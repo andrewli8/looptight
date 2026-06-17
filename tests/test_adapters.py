@@ -1,0 +1,93 @@
+"""Adapter registry + the delegate/supply split (F1)."""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+
+from looptight.adapters import available_adapter_names, get_adapter
+from looptight.adapters.claude import ClaudeAdapter, _build_prompt, _parse_result
+
+
+def test_registry_lists_three_agents():
+    assert set(available_adapter_names()) == {"claude", "codex", "opencode"}
+
+
+def test_native_loop_capability():
+    # Claude ships /goal (drivable headlessly); codex/opencode are supply-only.
+    assert get_adapter("claude").supports_native_loop is True
+    assert get_adapter("codex").supports_native_loop is False
+    assert get_adapter("opencode").supports_native_loop is False
+
+
+def test_memory_files_match_each_agent():
+    assert get_adapter("claude").memory_filename == "CLAUDE.md"
+    assert get_adapter("codex").memory_filename == "AGENTS.md"
+    assert get_adapter("opencode").memory_filename == "AGENTS.md"
+
+
+def test_unknown_agent_raises():
+    with pytest.raises(KeyError):
+        get_adapter("nope")
+
+
+def test_claude_prompt_includes_goal_and_context():
+    prompt = _build_prompt("fix the parser", "verify says: 2 failing")
+    assert "fix the parser" in prompt
+    assert "2 failing" in prompt
+
+
+def test_claude_parses_cost_from_json():
+    text, cost = _parse_result('{"result": "done", "total_cost_usd": 0.12}')
+    assert text == "done"
+    assert cost == 0.12
+
+
+def test_claude_parse_tolerates_non_json():
+    text, cost = _parse_result("plain text, no json")
+    assert "plain text" in text
+    assert cost == 0.0
+
+
+def test_claude_parse_matches_recorded_cli_output():
+    # Contract test against a recorded `claude -p --output-format json` blob.
+    # If Claude Code's JSON schema drifts, this fails loudly instead of us
+    # silently reading $0.00. Refresh the fixture when the CLI changes.
+    fixture = Path(__file__).parent / "fixtures" / "claude_result.json"
+    text, cost = _parse_result(fixture.read_text())
+    assert "paginate()" in text
+    assert cost == 0.0142
+
+
+def test_claude_builds_goal_prompt_for_native_loop(monkeypatch):
+    # drive_native_loop should phrase the goal as a /goal condition over verify.
+    captured = {}
+
+    def fake_invoke(self, prompt, workdir, model):
+        captured["prompt"] = prompt
+        import subprocess
+
+        return subprocess.CompletedProcess(args=[], returncode=0, stdout='{"result": "ok", "total_cost_usd": 0.0}', stderr="")
+
+    monkeypatch.setattr(ClaudeAdapter, "_invoke", fake_invoke)
+    ClaudeAdapter().drive_native_loop("fix tests", "pytest -q", 4, 1.0, Path("."))
+    assert "/goal" in captured["prompt"]
+    assert "pytest -q" in captured["prompt"]
+
+
+def test_supply_only_adapters_refuse_native_loop():
+    # codex/opencode don't fake a native loop they can't drive.
+    for name in ("codex", "opencode"):
+        with pytest.raises(NotImplementedError):
+            get_adapter(name).drive_native_loop("g", "v", 3, 1.0, Path("."))
+
+
+def test_codex_and_opencode_build_prompts_with_goal_and_context():
+    from looptight.adapters.codex import _build_prompt as codex_prompt
+    from looptight.adapters.opencode import _build_prompt as opencode_prompt
+
+    for builder in (codex_prompt, opencode_prompt):
+        prompt = builder("fix the parser", "2 failing")
+        assert "fix the parser" in prompt
+        assert "2 failing" in prompt
