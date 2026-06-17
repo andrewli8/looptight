@@ -3,7 +3,7 @@
 Thanks for looking at looptight. The bar for a change is simple: does it keep the
 product **legible and easy**? If a feature makes the surface bigger without
 serving the one-idea (`verify`) mental model or the learning layer, it's
-probably a no — see the deferred list in [`docs/SPEC.md`](docs/SPEC.md).
+probably a no. See the deferred list in [`docs/SPEC.md`](docs/SPEC.md).
 
 ## Setup
 
@@ -18,9 +18,9 @@ Python 3.11+ (we use stdlib `tomllib`). The only runtime dependency is `rich`.
 
 ## Layout
 
-- `src/looptight/` — the package. Small, focused files; see
+- `src/looptight/`: the package. Small, focused files; see
   [`docs/architecture.md`](docs/architecture.md).
-- `tests/` — pure unit tests with injected fakes. No network, no real agent.
+- `tests/`: pure unit tests with injected fakes. No network, no real agent.
 
 ## Conventions
 

@@ -1,6 +1,6 @@
 # looptight
 
-**Your coding agent on autopilot — across Claude Code, Codex, and opencode — that gets smarter every run.**
+**Your coding agent on autopilot, across Claude Code, Codex, and opencode, that gets smarter every run.**
 
 looptight is a thin, portable learning layer for coding agents. It runs on the
 agent you already have, drives the native loop where one exists, supplies one
@@ -12,12 +12,12 @@ Two things no single agent does today:
    Code, Codex, and opencode. Switch agents without relearning anything.
 2. **Durable lessons that compound.** Every failed-then-fixed run leaves a
    short, specific lesson in your agent's own memory file (`CLAUDE.md` /
-   `AGENTS.md` / opencode config). Lessons survive across runs, across goals,
-   and even when looptight isn't running.
+   `AGENTS.md` / opencode config). Lessons survive across runs and across goals,
+   and they keep working even when looptight isn't running.
 
-It does **not** reinvent the loop. Where your agent already ships an eval-gated
-loop (Codex `/goal`), looptight drives it. Where it doesn't, looptight supplies
-one. Building on top, not around.
+It does not reinvent the loop. Where your agent already ships an eval-gated loop
+(Claude Code's `/goal`), looptight drives it. Where it doesn't, looptight
+supplies one. It builds on those loops instead of working around them.
 
 ## Quickstart (three lines)
 
@@ -35,7 +35,7 @@ about 90 seconds from your first green loop.
 
 ## The one concept you have to learn: `verify`
 
-`verify` is a command that decides pass/fail. **No verify, no loop.** That's the
+`verify` is a command that decides pass/fail. No verify, no loop. That's the
 whole mental model.
 
 ```toml
@@ -45,7 +45,7 @@ verify = "pytest -q"      # exit 0 = pass; non-zero = keep going
 
 `looptight init` auto-detects this from your project (`pytest`, `npm test`,
 `go test`, `cargo test`, `make test`), so most repos need no config at all.
-Everything else — the agent, the budget, the iteration cap — has a safe default
+Everything else (the agent, the budget, the iteration cap) has a safe default
 and is just an override.
 
 ## What a run looks like
@@ -60,59 +60,82 @@ iteration 3 → verify: PASS                $0.13
 ✓ done in 3 iterations · $0.13 · lesson saved to CLAUDE.md
 ```
 
+## How it works
+
+The CLI loads your config, picks an adapter for the agent on your PATH, and
+hands off to the loop. The loop either drives the agent's own loop (`--native`)
+or supplies its own. Either way, looptight runs `verify` as the contract and
+writes a lesson when a run hits a failure.
+
+```mermaid
+flowchart LR
+    CLI[CLI] --> Config[Config + autodetect]
+    Config --> Adapter[Adapter<br/>claude / codex / opencode]
+    Adapter --> Loop[run_loop]
+    Loop -->|supply or delegate| Verify{verify<br/>passed?}
+    Verify -->|no| Loop
+    Verify -->|yes| Summary[summary]
+    Loop -.->|on failure| Reflect[reflect]
+    Reflect --> Memory[(CLAUDE.md /<br/>AGENTS.md)]
+    Summary --> Out[terminal]
+```
+
+The full breakdown, including the supply-vs-delegate decision and the adapter
+seam, is in [`docs/architecture.md`](docs/architecture.md).
+
 ## Why looptight
 
-- **vs a single agent's native loop (Codex `/goal`, Claude `/goal`):** not locked
-  to one agent or one auth — it works on API-key *or* subscription auth, on all
-  three agents, with one interface. And it adds compounding lessons that a
-  per-thread goal primitive structurally can't. Where an agent *has* a native
-  loop, looptight drives it (`--native`) instead of fighting it.
+- **vs a single agent's native loop (Claude `/goal`):** not locked to one agent
+  or one auth. It works on API-key or subscription auth, on all three agents,
+  with one interface. It also adds compounding lessons that a per-thread goal
+  primitive structurally can't. Where an agent has a native loop, looptight
+  drives it (`--native`) instead of fighting it.
 - **vs heavy frameworks (DAG/orchestration):** no graph to author, no migration.
   Runs on the agent you already have in under two minutes, and it's eval-gated,
   so it never loops pointlessly.
 - **vs raw headless mode:** adds the learning, the safety rails (hard caps, cost
-  ceiling, per-iteration git checkpoints), and one consistent interface — the
-  part everyone otherwise hand-rolls badly.
+  ceiling, per-iteration git checkpoints), and one consistent interface. That's
+  the part everyone otherwise hand-rolls badly.
 
 ## What this is / isn't
 
 **It is:**
-- A portability + learning layer above your coding agent.
+- A portability and learning layer above your coding agent.
 - Eval-gated: the `verify` command is the ground-truth oracle.
 - Safe by default: low iteration cap, a cost ceiling you can't exceed without
   `--budget`, and a git checkpoint before every iteration so you can always get
   your repo back.
 
 **It isn't:**
-- A replacement for native loops. **Where your agent has its own eval-gated loop,
-  looptight drives it, it does not replace it.**
+- A replacement for native loops. Where your agent has its own eval-gated loop,
+  looptight drives it rather than replacing it.
 - A multi-agent / DAG orchestrator.
 - A web dashboard. Terminal output is more gif-able and zero-setup.
-- A new model or a fine-tuner. It's a wrapper around the agent you already run.
+- A new model or a fine-tuner. It wraps the agent you already run.
 
 ## Supported agents
 
 | Agent | Headless command | Native loop | Status |
 |-------|------------------|-------------|--------|
-| Claude Code (`claude`) | `claude -p` | `/goal` — drive it with `--native` | ✅ working |
+| Claude Code (`claude`) | `claude -p` | `/goal`, drive it with `--native` | ✅ working |
 | Codex (`codex`) | `codex exec` | supply (driving `/goal` headlessly is unconfirmed) | ✅ working |
 | opencode (`opencode`) | `opencode run` | supply (no goal primitive) | ✅ working |
 
-By default looptight **supplies** the loop on all three — the same command, the
-same `verify`-gated behaviour everywhere. Pass `--native` to **drive the agent's
-own loop** where it has one (Claude `/goal` today); `verify` still gates the
-result and a lesson is still written, so the learning layer works either way.
+By default looptight supplies the loop on all three: the same command, the same
+`verify`-gated behaviour everywhere. Pass `--native` to drive the agent's own
+loop where it has one (Claude `/goal` today). `verify` still gates the result
+and a lesson is still written, so the learning layer works either way.
 
 Adding an agent is one adapter (see [`docs/architecture.md`](docs/architecture.md)).
 
 ## Safety
 
-- **Hard iteration cap + cost ceiling**, both with low defaults. A default run
+- **Hard iteration cap and cost ceiling**, both with low defaults. A default run
   cannot exceed the cost ceiling without an explicit `--budget`.
 - **Per-iteration git checkpoint.** Each iteration is a restore point; revert
   with `looptight revert`.
 - **Cheap-model routing for reflection.** The bookkeeping step (writing the
-  lesson) uses a smaller model than the coding step. Cost goes to the work.
+  lesson) uses a smaller model than the coding step, so cost goes to the work.
 - Runs inside your agent's existing sandbox / approval mode.
 
 ## Install for development

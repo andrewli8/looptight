@@ -1,4 +1,4 @@
-# Loop Harness — Mandatory Feature Spec (v1, revised)
+# Loop Harness: Mandatory Feature Spec (v1, revised)
 
 > Working name: **looptight**.
 > A portable learning layer for coding agents. It runs on the agent you already
@@ -12,7 +12,7 @@ is tracked in [`STATUS.md`](STATUS.md).
 
 ## Positioning (one line)
 
-**Your coding agent on autopilot — across Claude Code, Codex, and opencode — that gets smarter every run.**
+**Your coding agent on autopilot, across Claude Code, Codex, and opencode, that gets smarter every run.**
 
 It does **not** reinvent the loop. Where the agent already ships an eval-gated
 loop (Codex `/goal`), it drives that. Where it doesn't, it supplies one. On top
@@ -32,7 +32,7 @@ interface across agents**, and **durable lessons that compound across runs**.
    the agent's own memory file. This is the headline, not a sub-feature.
 4. **Safe to try.** No cost blowups, no unrecoverable edits. "Safe" is part of
    "easy."
-5. **Legible in one gif** — and the gif leads with *"runs on your agent and got
+5. **Legible in one gif**, and the gif leads with *"runs on your agent and got
    smarter,"* not *"it loops."*
 
 ---
@@ -45,17 +45,17 @@ interface across agents**, and **durable lessons that compound across runs**.
   project's test command.
 - **A3 One concept to learn: `verify`.** `init` writes a minimal config and
   explains `verify` in two lines.
-- **A4 Use the agent you already have — auth-neutral.** Works on API-key *or*
+- **A4 Use the agent you already have (auth-neutral).** Works on API-key *or*
   subscription auth; not locked to one provider's flow.
 
-### B. Loop — delegate or supply
+### B. Loop: delegate or supply
 - **B1 Detect & drive the native loop** (Codex `/goal`).
 - **B2 Supply the loop where absent** (Claude Code, opencode): run → verify →
   continue, with budget + persistence.
 - **B3 Verify is the ground-truth oracle.** Pass/fail or numeric score.
 - **B4 Normalized surface.** Same flags, caps, and summary across backends.
 
-### C. The learning layer — *the differentiator*
+### C. The learning layer (*the differentiator*)
 - **C1 Reflection on failure.** Distill one short, specific lesson from
   (transcript + verify output).
 - **C2 Persist lessons into the agent's native memory file.**
@@ -72,7 +72,7 @@ interface across agents**, and **durable lessons that compound across runs**.
 - **E1 Readable run summary** (cross-backend).
 - **E2 Gif-able output.** Clear `iteration N → verify: PASS/FAIL` lines.
 
-### F. Portability — *core, not footnote*
+### F. Portability (*core, not footnote*)
 - **F1 Adapter interface.** Each agent drives the native loop or supplies one.
 - **F2 Auth-neutral.**
 - **F3 (later) ACP transport.** Post-v1.
