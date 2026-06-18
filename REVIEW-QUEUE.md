@@ -121,3 +121,35 @@ would have silently returned no lint candidates. Fixed by switching to
 
 Test count: 102 → 111 passed (9 new tests, all offline/sub-second).
 All commits: `pytest -q` and `ruff check` clean before push.
+
+## Run Summary (2026-06-18, fourth run)
+
+Autonomous improvement loop — 1 task landed.
+
+### Landed
+
+| Hash | Description |
+|------|-------------|
+| `e78f2ca` | fix: stop propose flagging capability-guarded skips as fix-me |
+
+`propose` was surfacing the project's own `tests/test_propose.py:117`
+(`if shutil.which(...) is None: pytest.skip("ruff not available")`) as a
+"fix-me skip" every run — a recurring false positive. A `pytest.skip()`
+reached only under an `if`/`elif` guard is a conditional skip (the test runs
+when the guard is false, the normal CI case), i.e. intentional capability/
+platform-gate infrastructure, not rot. `from_skipped_tests` now excludes that
+inline-skip case, generalizing the prior env-var opt-in exclusion. Declarative
+`@pytest.mark.skip` and unconditional inline skips are still surfaced; covered
+by two new tests.
+
+### Not done (escalation / out of scope)
+
+The remaining `propose` candidates are the three `docs/STATUS.md` "## Next"
+items: confirm whether Codex `/goal` is headlessly drivable, parse cost from
+`codex exec --json` / `opencode run -f json`, and record the flagship gif.
+All require observing real external-CLI output formats or recording media that
+cannot be verified offline — escalate-don't-guess. They are already tracked in
+STATUS.md, so no further action this run.
+
+Test count: 111 → 113 passed (2 new tests, offline/sub-second).
+`pytest -q` and `ruff check` clean before push.
