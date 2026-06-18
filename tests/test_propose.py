@@ -56,6 +56,47 @@ def test_from_skipped_tests_detects_markers(tmp_path):
     assert "test_x.py" in cands[0].location
 
 
+def test_from_skipped_tests_ignores_env_optin_gate(tmp_path):
+    # An opt-in eval gated on an env var being set is intentional infrastructure,
+    # not rot — even when the condition wraps onto a following line.
+    _write(
+        tmp_path,
+        "tests/e2e_test.py",
+        "import os\nimport pytest\n\n"
+        "pytestmark = pytest.mark.skipif(\n"
+        '    not os.environ.get("LOOPTIGHT_E2E"),\n'
+        '    reason="real-agent eval; set LOOPTIGHT_E2E=1 to run",\n'
+        ")\n\n\ndef test_e2e():\n    pass\n",
+    )
+    assert from_skipped_tests(tmp_path) == []
+
+
+def test_from_skipped_tests_ignores_inner_skip_in_optin_module(tmp_path):
+    # A module wholesale gated by an env-var pytestmark is opt-in infrastructure;
+    # an imperative `pytest.skip(...)` guard inside it is not rot either.
+    _write(
+        tmp_path,
+        "tests/e2e_test.py",
+        "import os\nimport pytest\n\n"
+        'pytestmark = pytest.mark.skipif(\n    not os.environ.get("E2E"), reason="opt-in"\n)\n\n\n'
+        'def test_e2e():\n    if True:\n        pytest.skip("no agent on PATH")\n',
+    )
+    assert from_skipped_tests(tmp_path) == []
+
+
+def test_from_skipped_tests_keeps_non_env_skipif(tmp_path):
+    # A skipif on a real (non-env) condition is still a fix-me candidate.
+    _write(
+        tmp_path,
+        "tests/test_y.py",
+        "import sys\nimport pytest\n"
+        '@pytest.mark.skipif(sys.platform == "win32", reason="broken on win")\n'
+        "def test_b():\n    pass\n",
+    )
+    cands = from_skipped_tests(tmp_path)
+    assert len(cands) == 1
+
+
 def test_from_status_next_parses_numbered_list(tmp_path):
     _write(
         tmp_path,

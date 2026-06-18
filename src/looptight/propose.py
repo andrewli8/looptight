@@ -111,22 +111,66 @@ def _is_skip_line(stripped: str) -> bool:
     return bool(re.match(r"\w+\s*=\s*pytest\.mark\.(?:skip|skipif|xfail)\b", stripped))
 
 
+# An env-var gate (`skipif(not os.environ.get(...))`) marks an opt-in eval —
+# intentional infrastructure, not a bit-rotting skip — so it is not a fix-me.
+_OPTIN_RE = re.compile(r"os\.environ|os\.getenv|\benviron\b")
+
+
+def _statement_text(lines: list[str], start: int) -> str:
+    """Join lines from ``start`` until parentheses balance — the full marker call.
+
+    Lets us see a condition that wraps onto following lines (the common shape of
+    `pytestmark = pytest.mark.skipif(\\n    not os.environ.get(...))`).
+    """
+    depth = 0
+    chunk: list[str] = []
+    for line in lines[start:]:
+        chunk.append(line)
+        depth += line.count("(") - line.count(")")
+        if depth <= 0:
+            break
+    return "\n".join(chunk)
+
+
+def _module_is_optin(lines: list[str]) -> bool:
+    """True if the whole module is gated behind an env-var ``pytestmark`` skipif.
+
+    Such a module is an opt-in eval wholesale; nothing in it is rot to fix, so we
+    surface no candidates for it at all (including inner ``pytest.skip`` guards).
+    """
+    for idx, line in enumerate(lines):
+        if re.match(r"pytestmark\s*=\s*pytest\.mark\.skipif\b", line.strip()):
+            if _OPTIN_RE.search(_statement_text(lines, idx)):
+                return True
+    return False
+
+
 def from_skipped_tests(root: Path) -> list[Candidate]:
-    """Skipped / xfailed tests — each is a candidate to fix and re-enable."""
+    """Skipped / xfailed tests — each is a candidate to fix and re-enable.
+
+    Env-gated opt-in evals (`skipif(not os.environ.get(...))`) are skipped: they
+    are deliberate infrastructure, so surfacing them every run is just noise.
+    """
     out: list[Candidate] = []
     for path in _py_files(root, "tests"):
-        for lineno, line in enumerate(path.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
-            if _is_skip_line(line.strip()):
-                out.append(
-                    Candidate(
-                        title=f"un-skip / fix skipped test in {path.name}",
-                        source="skipped-test",
-                        location=f"{_rel(root, path)}:{lineno}",
-                        suggested_verify=None,
-                        score=0.0,
-                        detail=line.strip(),
-                    )
+        lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        if _module_is_optin(lines):
+            continue
+        for idx, line in enumerate(lines):
+            if not _is_skip_line(line.strip()):
+                continue
+            if _OPTIN_RE.search(_statement_text(lines, idx)):
+                continue
+            out.append(
+                Candidate(
+                    title=f"un-skip / fix skipped test in {path.name}",
+                    source="skipped-test",
+                    location=f"{_rel(root, path)}:{idx + 1}",
+                    suggested_verify=None,
+                    score=0.0,
+                    detail=line.strip(),
                 )
+            )
     return out
 
 
