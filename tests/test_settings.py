@@ -65,6 +65,30 @@ def test_uninstall_removes_only_ours(tmp_path):
     assert commands == ["make lint"]
 
 
+def test_uninstall_preserves_commands_that_only_contain_ours(tmp_path):
+    path = tmp_path / "settings.json"
+    user_command = f"echo {HOOK_COMMAND} disabled"
+    path.write_text(
+        json.dumps(
+            {
+                "hooks": {
+                    "Stop": [
+                        {
+                            "matcher": "*",
+                            "hooks": [{"type": "command", "command": user_command}],
+                        }
+                    ]
+                }
+            }
+        )
+    )
+
+    install(path)
+    assert uninstall(path) == 1
+    commands = [h["command"] for e in _read(path)["hooks"]["Stop"] for h in e["hooks"]]
+    assert commands == [user_command]
+
+
 def test_refuses_to_clobber_malformed_file(tmp_path):
     path = tmp_path / "settings.json"
     path.write_text("{ this is not valid json")

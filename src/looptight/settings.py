@@ -50,7 +50,7 @@ def _hook_entry() -> dict:
 
 def _is_ours(entry: dict) -> bool:
     return any(
-        isinstance(h, dict) and HOOK_COMMAND in str(h.get("command", ""))
+        isinstance(h, dict) and h.get("command") == HOOK_COMMAND
         for h in entry.get("hooks", [])
     )
 
