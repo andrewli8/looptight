@@ -91,3 +91,39 @@ def test_codex_and_opencode_build_prompts_with_goal_and_context():
         prompt = builder("fix the parser", "2 failing")
         assert "fix the parser" in prompt
         assert "2 failing" in prompt
+
+
+def test_codex_reflect_returns_none_on_nonzero_exit(monkeypatch, tmp_path):
+    import subprocess
+
+    from looptight.adapters.codex import CodexAdapter
+
+    def fake_exec(*args, **kwargs):
+        return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="err")
+
+    monkeypatch.setattr(CodexAdapter, "_exec", lambda self, p, w: fake_exec())
+    assert CodexAdapter().reflect("some prompt", tmp_path) is None
+
+
+def test_codex_reflect_returns_stripped_text_on_success(monkeypatch, tmp_path):
+    import subprocess
+
+    from looptight.adapters.codex import CodexAdapter
+
+    def fake_exec(*args, **kwargs):
+        return subprocess.CompletedProcess(args=[], returncode=0, stdout="  Pin the timeout.  ", stderr="")
+
+    monkeypatch.setattr(CodexAdapter, "_exec", lambda self, p, w: fake_exec())
+    assert CodexAdapter().reflect("some prompt", tmp_path) == "Pin the timeout."
+
+
+def test_opencode_reflect_returns_none_on_nonzero_exit(monkeypatch, tmp_path):
+    import subprocess
+
+    from looptight.adapters.opencode import OpencodeAdapter
+
+    def fake_run(*args, **kwargs):
+        return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="err")
+
+    monkeypatch.setattr(OpencodeAdapter, "_run", lambda self, p, w: fake_run())
+    assert OpencodeAdapter().reflect("some prompt", tmp_path) is None
