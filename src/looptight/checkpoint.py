@@ -48,14 +48,20 @@ class Checkpointer:
         # `stash create` builds a commit from current changes without altering
         # anything. With a clean tree it prints nothing, so fall back to HEAD.
         created = _git(["stash", "create", "looptight checkpoint"], self.cwd)
+        if created.returncode != 0:
+            return None
+
         sha = created.stdout.strip()
         if not sha:
             head = _git(["rev-parse", "HEAD"], self.cwd)
+            if head.returncode != 0:
+                return None
             sha = head.stdout.strip()
-        if sha:
-            self.snapshots.append(sha)
-            return sha
-        return None
+
+        if not sha:
+            return None
+        self.snapshots.append(sha)
+        return sha
 
     def restore(self, sha: str | None = None) -> bool:
         """Restore the working tree to ``sha`` (default: the latest snapshot)."""
