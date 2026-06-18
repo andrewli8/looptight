@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import shutil
+
 from looptight.propose import (
     Candidate,
+    from_lint,
     from_skipped_tests,
     from_status_next,
     from_todos,
@@ -58,6 +61,24 @@ def test_from_status_next_parses_numbered_list(tmp_path):
 
 def test_from_status_next_absent_file_is_empty(tmp_path):
     assert from_status_next(tmp_path) == []
+
+
+def test_from_lint_finds_ruff_violations(tmp_path):
+    if shutil.which("ruff") is None and shutil.which("uv") is None:
+        import pytest
+        pytest.skip("ruff not available")
+    # F841: local variable assigned but never used — a real, simple ruff rule.
+    _write(tmp_path, "src/pkg/bad.py", "def f():\n    x = 1\n    return 2\n")
+    cands = from_lint(tmp_path)
+    assert len(cands) >= 1
+    assert all(c.source == "lint" for c in cands)
+    assert any("F841" in c.title for c in cands)
+
+
+def test_from_lint_empty_when_no_violations(tmp_path):
+    _write(tmp_path, "src/pkg/ok.py", "def f():\n    return 1\n")
+    cands = from_lint(tmp_path)
+    assert cands == []
 
 
 # --- dedup + rank ----------------------------------------------------------

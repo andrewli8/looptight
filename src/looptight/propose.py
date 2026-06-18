@@ -163,7 +163,8 @@ def from_lint(root: Path) -> list[Candidate]:
     """ruff findings, one task per (file, rule). Empty when ruff is unavailable."""
     if shutil.which("ruff") is None and shutil.which("uv") is None:
         return []
-    cmd = (["ruff", "check", "--quiet"] if shutil.which("ruff") else ["uv", "run", "ruff", "check", "--quiet"])
+    _ruff = ["ruff"] if shutil.which("ruff") else ["uv", "run", "ruff"]
+    cmd = [*_ruff, "check", "--output-format", "concise", "--quiet"]
     try:
         proc = subprocess.run(cmd, cwd=str(root), capture_output=True, text=True, timeout=60)
     except (OSError, subprocess.TimeoutExpired):
