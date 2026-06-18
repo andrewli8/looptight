@@ -35,6 +35,7 @@ looptight = "looptight.cli:main"
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
+    "ruff>=0.6",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -47,4 +48,5 @@ addopts = "-q"
 [dependency-groups]
 dev = [
     "pytest>=9.1.0",
+    "ruff>=0.6",
 ]
