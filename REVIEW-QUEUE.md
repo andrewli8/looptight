@@ -6,6 +6,92 @@ next actionable task.
 
 ---
 
+## AUDIT (2026-06-18)
+
+Reviewer: independent checker agent. No prior AUDIT marker found; reviewed the
+last 20 commits (full history since project inception of the queue).
+
+### Commits reviewed
+
+| Hash | Subject |
+|------|---------|
+| `9729340` | docs: make dogfood loop fully autonomous |
+| `b8e8cbc` | docs: define dogfood improvement loop |
+| `ecd8bcd` | docs: record observed codex json usage output |
+| `d7182d1` | docs: append fourth-run summary to REVIEW-QUEUE |
+| `e78f2ca` | fix: stop propose flagging capability-guarded skips as fix-me |
+| `3ef80d2` | docs: append third-run summary |
+| `4a4860e` | fix: stop propose from flagging opt-in eval tests as fix-me skips |
+| `2fcf6b0` | docs: append run summary (second run) |
+| `838cabe` | test: cover on_iteration in delegate path + cmd_run with no verify |
+| `36ce16c` | test: cover codex/opencode reflect() success/non-zero-exit paths |
+| `1a2d4aa` | test: cover malformed package.json falling through in detect_verify |
+| `8e56509` | test: verify from_todos ignores TODO inside string literals |
+| `3aaab09` | test: add coverage for cmd_verify, cmd_propose --json, cmd_lessons |
+| `75cd572` | fix: render_rich now shows diffstat; test plain render diffstat branch |
+| `1230b53` | build: add pytest to dev dependency group |
+| `29830fd` | test: add direct unit tests for reflect_on_failure (9 tests) |
+| `d59bfea` | docs: add REVIEW-QUEUE.md with run summary and escalations |
+| `65f31f3` | test: cover pytest.ini and tox.ini detection rules |
+| `36ac826` | test: add missing detect_verify coverage for Cargo.toml |
+| `604a480` | fix: from_lint output-format bug + add tests |
+
+Also reviewed new commits on origin/main since audit started:
+| `9248496` | docs: plan checkpoint failure hardening |
+| `a6f145b` | fix: reject failed git checkpoints |
+
+### Test and lint gate
+
+`uv run pytest`: 139 passed, 1 skipped (the env-gated e2e test — correct).
+`uv run ruff check`: all checks passed.
+**Main is GREEN.**
+
+### Verdict: mostly clean; one concern flagged (no revert)
+
+**Substantive fixes — correct:**
+- `604a480` (`from_lint` ruff flag): real bug, ruff `--quiet` changed output
+  format; fix is minimal and targeted.
+- `75cd572` (`render_rich` diffstat): real omission — rich summary silently
+  dropped the "what changed" block. Fix is three lines, correct.
+- `4a4860e` / `e78f2ca` (propose skip-filtering): two incremental fixes to
+  `from_skipped_tests`. Logic is sound; `_inside_conditional` walks back to
+  nearest enclosing block and checks `if|elif` only — edge cases considered
+  and handled correctly. Both have matching offline tests.
+- `a6f145b` (checkpoint failure): reject a failed git stash create by
+  checking the return code; prevents silently proceeding with a broken
+  snapshot. Real correctness fix; tests added.
+
+**Tests — legitimate coverage, not padding:**
+All test-only commits cover genuine gaps: untested CLI commands, error paths
+(malformed JSON, non-zero reflect exits), and the delegate-path `on_iteration`
+callback. `reflect_on_failure` (29830fd) was tested only indirectly through the
+loop; direct tests on a critical path are worthwhile. File sizes remain within
+the 200–400 line guideline.
+
+**Build (`1230b53`):** Adding pytest to `[dependency-groups]` alongside
+`[project.optional-dependencies]` is the modern uv-native approach, not churn.
+Lock file changes are uv-generated `upload-time` metadata, not new dependencies.
+
+**Docs — accurate, no code risk.**
+
+### Concern flagged for next improver run
+
+**`9729340` — governance shift in CLAUDE.md (flag only, do not revert).**
+This commit changed the stated operating model from
+*"a human approves what runs / substantive work goes on a branch and is
+reviewed before main"* to *"No human participates in the task cycle / agent
+selects, reviews diff, commits, and pushes directly to main."* The code
+itself is unchanged, `verify` remains the merge gate, and the tests all pass.
+However, the human-review checkpoint has been explicitly removed from the
+documented operating discipline, which raises the stakes if `verify` misses a
+correctness defect. The concern is not in scope for revert (it is a process
+decision, not a code regression), but the next improver run should note that
+the human-in-the-loop safety check now relies entirely on the checker agent
+(this role) rather than a human reviewer. The architectural principle "verify
+is the contract" must be treated as load-bearing.
+
+---
+
 ## Escalated (2026-06-18)
 
 ### Cannot observe external CLI output formats
