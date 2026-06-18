@@ -111,7 +111,10 @@ def run_hook(stdin_text: str, *, verify_fn: VerifyFn = run_verify) -> tuple[str 
     if not isinstance(event, dict):
         return None, 0
 
-    cwd = Path(event.get("cwd") or Path.cwd())
+    cwd_value = event.get("cwd")
+    if cwd_value is not None and not isinstance(cwd_value, str):
+        return None, 0
+    cwd = Path(cwd_value or Path.cwd())
     session_id = str(event.get("session_id") or "default")
 
     config = _config_for(cwd)

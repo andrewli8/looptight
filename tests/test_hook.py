@@ -100,3 +100,10 @@ def test_run_hook_tolerates_malformed_event():
     output, code = run_hook("not json at all", verify_fn=lambda c, w: _fail())
     assert output is None
     assert code == 0
+
+
+def test_run_hook_tolerates_non_path_cwd():
+    event = json.dumps({"cwd": {"unexpected": "object"}})
+    output, code = run_hook(event, verify_fn=lambda c, w: _fail())
+    assert output is None
+    assert code == 0
