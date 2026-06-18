@@ -158,3 +158,22 @@ def test_unavailable_agent_stops_cleanly(workdir):
     adapter = FakeAdapter(available=False)
     result = run_loop("x", adapter, _config(), workdir)
     assert result.stop_reason is StopReason.AGENT_UNAVAILABLE
+
+
+def test_on_iteration_callback_called_per_iteration(workdir):
+    adapter = FakeAdapter()
+    seen: list = []
+
+    run_loop(
+        "fix tests",
+        adapter,
+        _config(),
+        workdir,
+        verify_fn=make_verify(2),
+        checkpointer=Checkpointer(workdir, enabled=False),
+        on_iteration=seen.append,
+    )
+
+    assert len(seen) == 2  # pass_on=2 → 2 iterations
+    assert all(hasattr(r, "verify") for r in seen)
+    assert seen[-1].verify.passed  # last record is the passing one
