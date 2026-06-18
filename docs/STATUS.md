@@ -36,9 +36,15 @@ Codex as having a native loop. Reality:
 
 - **Claude Code** has `/goal`, drivable headlessly via `claude -p "/goal …"`.
   looptight drives it with `--native`.
-- **Codex** runs headless via `codex exec`; driving its interactive `/goal`
-  headlessly is unconfirmed, so we supply the loop around `codex exec` rather
-  than fake a delegate path.
+- **Codex** runs headless via `codex exec`. Its `/goal` (the stable `goals`
+  feature, default-on in Codex 0.141.0) is *not* an eval-gated loop: it's an
+  interactive objective + token-budget tracker the model self-manages via
+  `create_goal`/`update_goal`. The tool takes only `objective` and
+  `token_budget` (no verify command), gates on a token budget and a
+  self-assessed status, and is a TUI slash command — the headless entry,
+  `codex exec`, takes a prompt, not slash commands. Driving it as a native loop
+  would mean self-grading, which principle 3 forbids, so we keep supplying the
+  loop around `codex exec` and `supports_native_loop` stays `False`.
 - **opencode** runs headless via `opencode run`; no goal primitive → supply.
 
 The design absorbed this cleanly: `verify` is always the ground-truth oracle, so
@@ -59,8 +65,11 @@ back to the default model elsewhere.
 
 ## Next
 
-1. Confirm whether Codex `/goal` can be driven headlessly; if so, flip
-   `supports_native_loop` on and add `drive_native_loop`.
+1. ~~Confirm whether Codex `/goal` can be driven headlessly.~~ Resolved
+   (Codex 0.141.0): `/goal` is a self-graded objective + token-budget tracker,
+   not a headless eval-gated loop, so `supports_native_loop` stays `False` — see
+   the correction above. (Re-check if a future Codex `exec` gains a
+   verify-gated loop primitive.)
 2. Decide whether to add token-to-USD pricing for observed `codex exec --json`
    usage events; observe `opencode run -f json` before attempting opencode cost
    parsing.

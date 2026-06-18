@@ -3,8 +3,10 @@
 Codex's headless mode is ``codex exec <prompt>``: it runs one task
 autonomously and prints the final agent message to stdout. looptight wraps that
 in its run → verify → continue loop, so ``verify`` stays the deterministic
-oracle (rather than depending on whether Codex's interactive ``/goal`` can be
-driven headlessly — an unconfirmed capability we deliberately don't fake).
+oracle. Codex's ``/goal`` is *not* a native loop we can drive: it's an
+interactive, self-graded objective + token-budget tracker (no verify command,
+TUI-only slash command), so ``supports_native_loop`` stays False. See
+``docs/STATUS.md``.
 
 Codex doesn't report a USD cost on stdout, so cost shows as $0.00 and the run is
 bounded by the iteration cap (D1). Codex reads ``AGENTS.md``, where lessons land.
