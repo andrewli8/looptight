@@ -25,12 +25,45 @@ Source: `docs/STATUS.md` → Next #2.
 a real coding agent + auth. Un-skipping it in CI requires setting up agent auth
 in the CI environment; not safe to do autonomously.
 Source: `propose` output → skipped-test items.
+_Update (2026-06-18, third run):_ the **propose-noise** half of this is now
+resolved in code — `from_skipped_tests` no longer surfaces env-gated opt-in
+evals (commit `4a4860e`). Actually *running* the e2e test in CI still needs
+agent auth and remains escalated.
 
 ### Deferred non-goal
 
 **Flagship gif**
 Recording a gif of the same command across agents (docs/STATUS.md Next #3) is a
 human-performed documentation task, not a code change.
+
+---
+
+## Run Summary (2026-06-18, third run)
+
+Autonomous improvement loop. One substantive fix landed; remaining `propose`
+items are all already-escalated (external-CLI / gif). Resisted padding the
+already-dense suite (134 tests / ~2150 LOC) — correctness over quantity.
+
+### Landed
+
+| Hash | Description |
+|------|-------------|
+| `4a4860e` | fix: stop `propose` from flagging opt-in eval tests as fix-me skips |
+
+`from_skipped_tests` was surfacing `tests/e2e_test.py` (the env-gated
+`LOOPTIGHT_E2E` opt-in eval) as an "un-skip / fix" candidate on every run —
+noise that ranked above the real status-next items and buried signal. The fix
+recognises an env-var opt-in gate (`skipif(not os.environ.get(...))`), handles
+conditions that wrap onto following lines, and treats a module wholesale gated
+by such a `pytestmark` (incl. inner `pytest.skip` guards) as intentional. Three
+new offline tests; `propose` output dropped from 5 candidates (2 noise) to 3
+genuine ones.
+
+### Escalated / skipped
+
+Nothing new escalated. The three remaining `propose` candidates (Codex `/goal`
+headless drivability, Codex/opencode cost parsing, flagship gif) were already
+escalated in prior runs and stay blocked on real-CLI observation / human work.
 
 ---
 
