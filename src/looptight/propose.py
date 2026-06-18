@@ -200,29 +200,49 @@ def from_status_next(root: Path) -> list[Candidate]:
     if not status.is_file():
         return []
     out: list[Candidate] = []
+    lines = status.read_text(encoding="utf-8", errors="ignore").splitlines()
     in_next = False
-    for line in status.read_text(encoding="utf-8", errors="ignore").splitlines():
+    idx = 0
+    while idx < len(lines):
+        line = lines[idx]
         stripped = line.strip()
         if stripped.startswith("## "):
             in_next = stripped[3:].strip().lower() == "next"
+            idx += 1
             continue
         if not in_next:
+            idx += 1
             continue
         item = re.match(r"\d+\.\s+(?P<text>.+)", stripped)
-        if item:
-            text = item.group("text").strip()
-            if text.startswith("~~"):
-                continue
-            out.append(
-                Candidate(
-                    title=text,
-                    source="status-next",
-                    location="docs/STATUS.md",
-                    suggested_verify=None,
-                    score=0.0,
-                    detail="",
-                )
+        if not item:
+            idx += 1
+            continue
+        # A numbered item may wrap onto following indented lines; join them so the
+        # candidate title is the whole entry, not a mid-sentence truncation.
+        parts = [item.group("text").strip()]
+        idx += 1
+        while idx < len(lines):
+            nxt = lines[idx]
+            nxt_stripped = nxt.strip()
+            if not nxt_stripped or nxt[:1] not in (" ", "\t"):
+                break
+            if nxt_stripped.startswith("## ") or re.match(r"\d+\.\s+", nxt_stripped):
+                break
+            parts.append(nxt_stripped)
+            idx += 1
+        text = " ".join(parts)
+        if text.startswith("~~"):
+            continue
+        out.append(
+            Candidate(
+                title=text,
+                source="status-next",
+                location="docs/STATUS.md",
+                suggested_verify=None,
+                score=0.0,
+                detail="",
             )
+        )
     return out
 
 

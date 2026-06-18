@@ -142,6 +142,21 @@ def test_from_status_next_absent_file_is_empty(tmp_path):
     assert from_status_next(tmp_path) == []
 
 
+def test_from_status_next_joins_wrapped_continuation_lines(tmp_path):
+    _write(
+        tmp_path,
+        "docs/STATUS.md",
+        "## Next\n\n1. First line of the task\n   wraps onto a second line.\n2. Second task\n",
+    )
+
+    titles = [c.title for c in from_status_next(tmp_path)]
+
+    assert titles == [
+        "First line of the task wraps onto a second line.",
+        "Second task",
+    ]
+
+
 def test_from_status_next_ignores_struck_through_resolved_items(tmp_path):
     _write(
         tmp_path,
