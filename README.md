@@ -118,7 +118,7 @@ seam, is in [`docs/architecture.md`](docs/architecture.md).
 | Agent | Headless command | Native loop | Status |
 |-------|------------------|-------------|--------|
 | Claude Code (`claude`) | `claude -p` | `/goal`, drive it with `--native` | ✅ working |
-| Codex (`codex`) | `codex exec` | supply (driving `/goal` headlessly is unconfirmed) | ✅ working |
+| Codex (`codex`) | `codex exec` | supply (`/goal` is interactive and self-graded) | ✅ working |
 | opencode (`opencode`) | `opencode run` | supply (no goal primitive) | ✅ working |
 
 By default looptight supplies the loop on all three: the same command, the same
