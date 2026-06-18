@@ -46,6 +46,14 @@ def test_write_then_load_roundtrip(tmp_path):
     assert loaded.reflect is False
 
 
+def test_write_then_load_preserves_verify_command_with_toml_special_characters(tmp_path):
+    verify = 'python -c "print(\\"C:\\\\tmp\\\\artifact\\")"\n# second check'
+
+    path = write_config(Config(verify=verify), tmp_path)
+
+    assert load_config(path).verify == verify
+
+
 def test_missing_config_returns_defaults(tmp_path):
     loaded = load_config(tmp_path / "nope.toml")
     assert loaded == Config()

@@ -8,6 +8,7 @@ emit the file by hand so the comments survive).
 
 from __future__ import annotations
 
+import json
 import tomllib
 from dataclasses import dataclass, replace
 from pathlib import Path
@@ -71,12 +72,14 @@ def render_config(config: Config) -> str:
     """Render a minimal, commented config file. The comments teach ``verify``."""
     verify = config.verify or "pytest -q"
     agent_line = (
-        f'agent = "{config.agent}"' if config.agent else '# agent = "claude"   # auto-detected if omitted'
+        f"agent = {_toml_string(config.agent)}"
+        if config.agent
+        else '# agent = "claude"   # auto-detected if omitted'
     )
     return f"""# looptight config — the one concept that matters is `verify`.
 # `verify` is the command that decides pass/fail. No verify, no loop.
 # Exit code 0 means pass; anything else means keep going.
-verify = "{verify}"
+verify = {_toml_string(verify)}
 
 # Everything below is optional and has a safe default.
 {agent_line}
@@ -87,6 +90,11 @@ native = {str(config.native).lower()}               # drive the agent's own loop
 hook = {str(config.hook).lower()}                 # arm the Claude Code Stop-hook auto-loop in this repo (needs `looptight install-hook`)
 patience = {config.patience}                # stop early after N iterations with no measurable progress (0 = off)
 """
+
+
+def _toml_string(value: str) -> str:
+    """Encode a TOML basic string without pulling in a TOML writer."""
+    return json.dumps(value, ensure_ascii=False)
 
 
 def write_config(config: Config, directory: Path | None = None) -> Path:
