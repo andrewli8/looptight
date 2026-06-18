@@ -6,6 +6,42 @@ next actionable task.
 
 ---
 
+## Run Summary (2026-06-18, robustness-hardening session)
+
+Interactive autonomous loop, engineer-driven. Seven substantive correctness/
+robustness fixes landed, each TDD'd (red→green) and gated on `uv run pytest -q`
++ `uv run ruff check` clean before push. Focus: harden the boundaries against
+untrusted external input (agent-CLI output, config files, settings files) and
+protect the load-bearing `verify` contract the audit flagged below.
+
+### Landed
+
+| Hash | Description |
+|------|-------------|
+| `403573c` | fix: join wrapped continuation lines in STATUS `Next` parser (was truncated mid-sentence) |
+| `9bd8f06` | fix: `load_config` raises a clear `ConfigError` (+ CLI catch) instead of a raw traceback on malformed `.looptight.toml` |
+| `d857aaa` | fix: reach the hooks-not-an-object guard in `settings.py` (dead code: `dict()` crashed first); same guard added to `uninstall` |
+| `584c6ec` | fix: keep the Stop hook dormant on a malformed config (was crashing the subprocess, breaking `run_hook`'s documented contract) |
+| `1f34bad` | fix: harden claude JSON parsing against non-object blobs / non-numeric cost (untrusted CLI output) |
+| `69b5f38` | fix: truncate autonomous commit subjects on a word boundary (were cut mid-word, e.g. `...then a seco`) |
+| `0116665` | fix: parse verify `SCORE:` from full output before truncating — a score in the truncated-away middle was silently lost (score-gated loops) |
+
+### On the audit's governance concern
+
+The AUDIT below flags that CLAUDE.md removed the human-in-the-loop checkpoint,
+so `verify` is now solely load-bearing. `0116665` directly hardens that path:
+the oracle no longer drops a `SCORE:` signal on verbose output. The merge gate
+itself (exit-code pass/fail) was already correct and is unchanged.
+
+### Not done
+
+The remaining `propose` / escalated items (Codex `/goal` headless drivability,
+Codex/opencode USD cost parsing, flagship gif) are all blocked on observing real
+external-CLI output or interactive recording — unchanged from prior runs,
+escalate-don't-guess.
+
+---
+
 ## Run Summary (2026-06-18, idle run)
 
 No changes: nothing safe and valuable to do. Verified main is green
