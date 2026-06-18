@@ -53,3 +53,16 @@ def test_header_names_mode():
 def test_summary_explains_value_aware_stops():
     assert "no measurable progress" in summary.render(_result(StopReason.NO_PROGRESS))
     assert "human" in summary.render(_result(StopReason.ESCALATED))
+
+
+def test_summary_includes_diffstat():
+    result = RunResult(
+        goal="fix",
+        agent="claude",
+        mode="supply",
+        stop_reason=StopReason.SUCCESS,
+        diffstat=" src/a.py | 3 +++",
+    )
+    text = summary.render(result)
+    assert "changes:" in text
+    assert "src/a.py" in text

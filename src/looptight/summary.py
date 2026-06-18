@@ -64,5 +64,9 @@ def render_rich(result: RunResult, console) -> None:  # pragma: no cover - thin 
         f"{mark} {tail} · {result.iteration_count} iteration(s) · ${result.total_cost_usd:.2f}",
         style="bold green" if passed else "bold red",
     )
+    if result.diffstat:
+        console.print()
+        console.print("changes:", style="dim")
+        console.print(result.diffstat, style="dim")
     if result.lesson:
         console.print(f"lesson saved: {result.lesson.text}", style="cyan")
