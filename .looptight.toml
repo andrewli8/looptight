@@ -10,3 +10,4 @@ budget_usd = 1.0            # cost ceiling; never exceeded without --budget
 reflect = true              # write a lesson to your agent's memory on failure
 native = false               # drive the agent's own loop (e.g. Claude /goal) where it has one
 hook = true                 # arm the Claude Code Stop-hook auto-loop in this repo
+patience = 2                # stop early after 2 iterations with no measurable progress (value-aware stopping)

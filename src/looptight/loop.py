@@ -22,6 +22,7 @@ from .budget import BudgetTracker
 from .checkpoint import Checkpointer
 from .config import Config
 from .lessons import LessonStore
+from .metacog import Decision, assess, progress_signal
 from .reflect import reflect_on_failure
 from .types import IterationRecord, RunResult, StopReason, VerifyResult
 from .verify import run_verify
@@ -79,6 +80,7 @@ def run_loop(
 def _supply_loop(goal, adapter, config, workdir, *, verify_fn, reflect_fn, checkpointer, store, on_iteration) -> RunResult:
     budget = BudgetTracker(max_iterations=config.max_iterations, budget_usd=config.budget_usd)
     records: list[IterationRecord] = []
+    progress: list[float | None] = []
     context = ""
     stop = StopReason.ITERATION_CAP
 
@@ -101,6 +103,18 @@ def _supply_loop(goal, adapter, config, workdir, *, verify_fn, reflect_fn, check
         if budget.over_budget():
             stop = StopReason.BUDGET_EXCEEDED
             break
+
+        # Value-aware stopping: cut a stalled loop short instead of burning the
+        # rest of the cap (no-op when config.patience is 0).
+        progress.append(progress_signal(verify))
+        decision = assess(progress, config.patience)
+        if decision is Decision.ESCALATE:
+            stop = StopReason.ESCALATED
+            break
+        if decision is Decision.STOP_NO_PROGRESS:
+            stop = StopReason.NO_PROGRESS
+            break
+
         context = _continuation_context(verify)
 
     result = RunResult(

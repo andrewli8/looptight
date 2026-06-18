@@ -78,13 +78,18 @@ flowchart TD
     P -- yes --> Win["stop: SUCCESS"]
     P -- no --> B{"over budget?"}
     B -- yes --> StopB["stop: BUDGET_EXCEEDED"]
-    B -- no --> C{"iteration cap hit?"}
+    B -- no --> M{"progress stalled?<br/>(metacog, patience)"}
+    M -- never improved --> StopE["stop: ESCALATED"]
+    M -- plateaued --> StopNP["stop: NO_PROGRESS"]
+    M -- improving / off --> C{"iteration cap hit?"}
     C -- yes --> StopC["stop: ITERATION_CAP"]
     C -- no --> S
 
     Win --> R
     StopB --> R
     StopC --> R
+    StopE --> R
+    StopNP --> R
     R -- yes --> Reflect["reflect → LessonStore.add"]
     R -- no --> Done(["RunResult"])
     Reflect --> Done
@@ -93,6 +98,25 @@ flowchart TD
 A timeout or a crashed verify command counts as a recoverable failure, not an
 exception: the loop keeps its footing and lets the agent try again on the next
 iteration.
+
+## Value-aware stopping (metacog.py)
+
+The blunt iteration cap keeps looping even when the agent stopped making
+progress several turns ago, which is where tokens leak. `metacog.py` adds the
+cheap half of a monitor-control loop: after each failed verify it reads a
+progress signal from the output (a failing/error count, or an explicit
+`SCORE:`) and decides whether another iteration is worth it. The policy is the
+myopic value-of-computation approximation from resource-rational analysis
+(Russell & Wefald; Lieder & Griffiths): keep going only while progress is still
+improving. When it has plateaued after real progress, the loop stops and cuts
+losses (`NO_PROGRESS`); when the agent never moved the needle at all, it stops
+and flags the run for a human (`ESCALATED`).
+
+It costs no extra tokens: the signal comes from output the loop already
+collects, and the decision is a few comparisons. It is opt-in through
+`patience` (0 = off, the legacy run-to-cap behaviour) and never tries to pick a
+winning attempt from confidence, which is a known failure mode; `verify` stays
+the oracle.
 
 ## The adapter is the seam (F1)
 

@@ -31,6 +31,7 @@ class Config:
     reflect: bool = True
     native: bool = False  # drive the agent's own loop (e.g. Claude /goal) where it has one
     hook: bool = False  # arm the Claude Code Stop-hook auto-loop in this repo
+    patience: int = 0  # stop early after N iterations of no measurable progress (0 = off)
 
     def merged(self, **overrides: object) -> "Config":
         """Return a new Config with any non-None overrides applied (CLI > file)."""
@@ -62,6 +63,7 @@ def load_config(path: Path | None = None) -> Config:
         reflect=bool(data.get("reflect", True)),
         native=bool(data.get("native", False)),
         hook=bool(data.get("hook", False)),
+        patience=int(data.get("patience", 0)),
     )
 
 
@@ -83,6 +85,7 @@ budget_usd = {config.budget_usd}            # cost ceiling; never exceeded witho
 reflect = {str(config.reflect).lower()}              # write a lesson to your agent's memory on failure
 native = {str(config.native).lower()}               # drive the agent's own loop (e.g. Claude /goal) where it has one
 hook = {str(config.hook).lower()}                 # arm the Claude Code Stop-hook auto-loop in this repo (needs `looptight install-hook`)
+patience = {config.patience}                # stop early after N iterations with no measurable progress (0 = off)
 """
 
 

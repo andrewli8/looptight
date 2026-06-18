@@ -75,6 +75,11 @@ def _add_run_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--verify", help="verify command (auto-detected if omitted)")
     parser.add_argument("--max-iterations", type=int, help="hard iteration cap")
     parser.add_argument(
+        "--patience",
+        type=int,
+        help="stop early after N iterations with no measurable progress (0 = off)",
+    )
+    parser.add_argument(
         "--budget",
         type=float,
         help="cost ceiling in USD — the only way to raise it above the safe default",
@@ -144,6 +149,7 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
         agent=args.agent,
         verify=args.verify,
         max_iterations=args.max_iterations,
+        patience=args.patience,
         budget_usd=args.budget,
         reflect=False if args.no_reflect else None,
         native=True if args.native else None,

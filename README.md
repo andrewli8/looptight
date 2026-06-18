@@ -164,6 +164,11 @@ Two things to know:
 
 - **Hard iteration cap and cost ceiling**, both with low defaults. A default run
   cannot exceed the cost ceiling without an explicit `--budget`.
+- **Value-aware stopping (opt-in).** Set `patience = N` and looptight stops a
+  stalled loop instead of grinding to the cap: if the verify signal plateaus
+  after real progress it cuts losses, and if the agent never moves the needle it
+  stops and flags the run for you. Costs no extra tokens. See
+  [`docs/architecture.md`](docs/architecture.md#value-aware-stopping-metacogpy).
 - **Per-iteration git checkpoint.** Each iteration is a restore point; revert
   with `looptight revert`.
 - **Cheap-model routing for reflection.** The bookkeeping step (writing the

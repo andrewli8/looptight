@@ -17,6 +17,8 @@ class StopReason(str, Enum):
     SUCCESS = "success"
     ITERATION_CAP = "iteration_cap"
     BUDGET_EXCEEDED = "budget_exceeded"
+    NO_PROGRESS = "no_progress"  # stalled after real progress — cut losses
+    ESCALATED = "escalated"  # never moved the needle — a human should look
     NO_VERIFY = "no_verify"
     AGENT_UNAVAILABLE = "agent_unavailable"
     ERROR = "error"

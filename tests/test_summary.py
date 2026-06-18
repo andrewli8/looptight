@@ -48,3 +48,8 @@ def test_summary_includes_saved_lesson():
 def test_header_names_mode():
     text = summary.render(_result(StopReason.SUCCESS))
     assert "supplying loop" in text
+
+
+def test_summary_explains_value_aware_stops():
+    assert "no measurable progress" in summary.render(_result(StopReason.NO_PROGRESS))
+    assert "human" in summary.render(_result(StopReason.ESCALATED))
