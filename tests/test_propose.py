@@ -142,6 +142,18 @@ def test_from_status_next_absent_file_is_empty(tmp_path):
     assert from_status_next(tmp_path) == []
 
 
+def test_from_status_next_ignores_struck_through_resolved_items(tmp_path):
+    _write(
+        tmp_path,
+        "docs/STATUS.md",
+        "## Next\n\n1. ~~Resolved task.~~ Done.\n2. Still actionable\n",
+    )
+
+    titles = [c.title for c in from_status_next(tmp_path)]
+
+    assert titles == ["Still actionable"]
+
+
 def test_from_lint_finds_ruff_violations(tmp_path):
     if shutil.which("ruff") is None and shutil.which("uv") is None:
         import pytest

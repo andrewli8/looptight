@@ -210,9 +210,12 @@ def from_status_next(root: Path) -> list[Candidate]:
             continue
         item = re.match(r"\d+\.\s+(?P<text>.+)", stripped)
         if item:
+            text = item.group("text").strip()
+            if text.startswith("~~"):
+                continue
             out.append(
                 Candidate(
-                    title=item.group("text").strip(),
+                    title=text,
                     source="status-next",
                     location="docs/STATUS.md",
                     suggested_verify=None,
