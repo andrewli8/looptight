@@ -68,11 +68,13 @@ def run_verify(
             duration_s=time.monotonic() - started,
         )
 
-    output = _truncate((proc.stdout or "") + (proc.stderr or ""))
+    combined = (proc.stdout or "") + (proc.stderr or "")
+    # Parse the score from the full output, then store a bounded copy: a SCORE
+    # line in the truncated-away middle would otherwise be silently lost.
     return VerifyResult(
         passed=proc.returncode == 0,
         exit_code=proc.returncode,
-        output=output,
-        score=parse_score(output),
+        output=_truncate(combined),
+        score=parse_score(combined),
         duration_s=time.monotonic() - started,
     )

@@ -35,6 +35,15 @@ def test_score_surfaced_in_result(tmp_path):
     assert result.score == 0.5
 
 
+def test_score_parsed_from_full_output_even_when_truncated(tmp_path):
+    # A SCORE line buried in the middle of large output must still be read: the
+    # score comes from the full output, not the head+tail truncated copy.
+    big = "x" * 9000
+    result = run_verify(f"echo {big}; echo 'SCORE: 0.77'; echo {big}", tmp_path)
+    assert result.score == 0.77
+    assert "[truncated]" in result.output  # output itself is still bounded
+
+
 def test_missing_command_is_failure_not_crash(tmp_path):
     result = run_verify("this-binary-does-not-exist-xyz", tmp_path)
     assert not result.passed  # shell reports 127, captured as a failure
