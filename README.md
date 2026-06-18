@@ -173,7 +173,7 @@ Two things to know:
   with `looptight revert`.
 - **Cheap-model routing for reflection.** The bookkeeping step (writing the
   lesson) uses a smaller model than the coding step, so cost goes to the work.
-- Runs inside your agent's existing sandbox / approval mode.
+- Runs inside your agent's existing sandbox and permission boundaries.
 
 ## Install for development
 

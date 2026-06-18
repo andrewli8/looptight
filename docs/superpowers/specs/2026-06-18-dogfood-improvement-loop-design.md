@@ -12,13 +12,14 @@ committed and pushed directly to `main`.
 ## Cycle
 
 1. Run `looptight propose` and discard candidates already recorded as blocked or
-   requiring external human work.
+   requiring unavailable external evidence.
 2. If no actionable proposal remains, identify one task from concrete repository
    evidence: failing checks, a safety gap, an untested critical path, inconsistent
    documentation, or observable CLI friction.
 3. Run the task through the existing `looptight run` command and configured
    agent. Do not add a second orchestrator or persistent daemon.
-4. Review the resulting diff. Run `uv run pytest -q` and `uv run ruff check`.
+4. The operating agent reviews the resulting diff, then runs
+   `uv run pytest -q` and `uv run ruff check`.
 5. Commit a coherent verified change with a conventional commit and push it to
    `origin/main`.
 6. Repeat while a defensible task remains and the loop continues to produce
@@ -42,6 +43,8 @@ small enough to verify and review independently.
 
 - Start each task from a clean working tree.
 - Process one task at a time; inspect all agent-produced changes before commit.
+- Task selection, diff review, commit, push, and continuation are autonomous.
+  No human participates in the task cycle.
 - Retain the configured `$1` budget, six-iteration cap, and patience of two.
 - Treat the configured verify command as the pass/fail contract, with Ruff as an
   additional required check.

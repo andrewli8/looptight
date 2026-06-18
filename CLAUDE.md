@@ -20,16 +20,18 @@ durable lessons, across Claude Code, Codex, and opencode. Architecture lives in
 
 ## Autonomous-loop discipline
 
-- **Propose, then approve.** `looptight propose` surfaces tasks from concrete
-  repo signals; a human approves what runs. Substantive work goes on a branch
-  and is reviewed before main.
-- **Escalate, don't guess.** If a change can't be cheaply verified (e.g. it
-  depends on an external CLI's output format we can't observe), stop and flag it
-  for a human instead of inventing an implementation.
+- **Propose, then select.** `looptight propose` surfaces tasks from concrete
+  repo signals; the operating agent selects the highest-value actionable task,
+  runs it through looptight, reviews the diff, and pushes a verified commit to
+  main. No human participates in the task cycle.
+- **Skip, don't guess.** If a change can't be cheaply verified (e.g. it depends
+  on an external CLI's output format we can't observe), record the blocker and
+  continue to the next actionable task instead of inventing an implementation.
 - **Guard token cost.** Low caps, cheap-model reflection, value-aware early stop
   (`patience`). A second opinion (sub-agent) is worth spending on only where it
   pays off.
-- **Stay the engineer.** Verification stays human. Don't let the loop outrun
+- **Stay the engineer.** The operating agent owns task selection and diff
+  review; objective checks remain the merge gate. Don't let the loop outrun
   understanding.
 
 ## Workflow

@@ -1,6 +1,8 @@
 # Review Queue
 
-Items that need a human decision or external verification before they can land.
+Items blocked on unavailable evidence or a decision that cannot be derived
+safely from the repository. Autonomous runs skip these and continue with the
+next actionable task.
 
 ---
 
@@ -36,8 +38,9 @@ agent auth and remains escalated.
 ### Deferred non-goal
 
 **Flagship gif**
-Recording a gif of the same command across agents (docs/STATUS.md Next #3) is a
-human-performed documentation task, not a code change.
+Recording a gif of the same command across agents (docs/STATUS.md Next #3)
+requires an interactive recording environment and is not an autonomous code
+change.
 
 ---
 
@@ -66,7 +69,8 @@ genuine ones.
 
 Nothing new escalated. The three remaining `propose` candidates (Codex `/goal`
 headless drivability, Codex/opencode cost parsing, flagship gif) were already
-escalated in prior runs and stay blocked on real-CLI observation / human work.
+escalated in prior runs and stay blocked on real-CLI observation / interactive
+recording work.
 
 ---
 

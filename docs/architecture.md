@@ -110,7 +110,8 @@ myopic value-of-computation approximation from resource-rational analysis
 (Russell & Wefald; Lieder & Griffiths): keep going only while progress is still
 improving. When it has plateaued after real progress, the loop stops and cuts
 losses (`NO_PROGRESS`); when the agent never moved the needle at all, it stops
-and flags the run for a human (`ESCALATED`).
+and stops with an explicit `ESCALATED` result so the blocker can be recorded and
+the autonomous session can continue with another task.
 
 It costs no extra tokens: the signal comes from output the loop already
 collects, and the decision is a few comparisons. It is opt-in through

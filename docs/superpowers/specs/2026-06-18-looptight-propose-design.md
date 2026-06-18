@@ -1,7 +1,7 @@
 # looptight propose — design
 
 Date: 2026-06-18
-Status: approved (Approach C), building
+Status: implemented; autonomous execution policy amended 2026-06-18
 
 ## Context
 
@@ -9,8 +9,9 @@ looptight runs a coding agent in a verify-gated loop with value-aware stopping.
 The next step toward "loop engineering" is letting the loop find its own work
 instead of being handed one goal. Research (see project memory) found the
 "what to work on / in what order" decision is the least validated part, so this
-feature stays deliberately grounded and human-gated: it only proposes tasks from
-concrete, verifiable repo signals, and a human approves what runs.
+feature stays deliberately grounded: it only proposes tasks from concrete,
+verifiable repo signals. The operating agent selects and runs actionable tasks;
+no human participates in the task cycle.
 
 ## Goal
 
@@ -31,8 +32,9 @@ In scope (the buildable, tested feature):
 - CLI: prints a ranked list; `--json` for machine use; `--limit N` (default 10).
 
 Out of scope (operating procedure, reuses existing pieces):
-- Executing tasks. Approved tasks run via existing `looptight run` on a branch,
-  with diffs surfaced for human review. Nothing auto-merges to main.
+- Executing tasks. The operating agent runs selected tasks via existing
+  `looptight run`, reviews the diff, verifies it, and commits and pushes each
+  coherent change. This remains outside the read-only `propose` command itself.
 - A standalone orchestrator. Claude Code's worktrees/agents already cover that.
 - `mypy` and `from_failing_verify` extractors (easy follow-ons; deferred to keep
   v1 lean and offline-testable).
@@ -57,10 +59,10 @@ appeared.
 ## Guardrails
 
 - `propose` is read-only: no agent, no tokens, no writes.
-- Execution stays human-gated: propose -> you approve a subset -> branch per task
-  -> `looptight run` (verify-gated loop + `patience` early stop) -> you review ->
-  merge or discard.
-- Session spend is bounded by approved-tasks x per-task budget ($1 / 6 iters /
+- Execution is autonomous: propose -> select the highest-value actionable task
+  -> `looptight run` (verify-gated loop + `patience` early stop) -> agent diff
+  review -> commit and push, or discard and record the blocker.
+- Session spend is bounded per task by the configured budget ($1 / 6 iterations /
   patience 2 defaults). `--limit` (default 10) caps how many are surfaced.
 - Skill auto-install during execution: official Vercel skills directory only,
   logged to the run report, reversible. The real install mechanism is verified
