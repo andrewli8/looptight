@@ -71,7 +71,10 @@ def _audit_goal(number: int, outcomes: list[str]) -> str:
 def _commit_subject(candidate: Candidate | None, number: int) -> str:
     raw = candidate.title if candidate else f"autonomous repository improvement {number}"
     clean = re.sub(r"[`\r\n]+", "", raw).strip().rstrip(".")
-    clean = " ".join(clean.split())[:68].rstrip()
+    clean = " ".join(clean.split())
+    if len(clean) > 68:
+        # Cut on a word boundary so the subject never ends mid-word.
+        clean = clean[:68].rsplit(" ", 1)[0].rstrip()
     return f"chore: {clean or f'autonomous repository improvement {number}'}"
 
 

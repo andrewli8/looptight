@@ -3,7 +3,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from looptight.improve import ImproveStopReason, run_improve
+from looptight.improve import ImproveStopReason, _commit_subject, run_improve
 from looptight.propose import Candidate
 from looptight.types import RunResult, StopReason
 
@@ -47,6 +47,26 @@ def _candidate() -> Candidate:
         suggested_verify="pytest -q",
         score=20.0,
     )
+
+
+def test_commit_subject_truncates_at_word_boundary():
+    # A hard character slice cut subjects mid-word (e.g. "...then a seco").
+    # Truncate on a word boundary so the subject ends on a whole word.
+    title = (
+        "Record the flagship gif: the same command across agents, then a second "
+        "task that benefits from a lesson"
+    )
+    subject = _commit_subject(
+        Candidate(title=title, source="status-next", location="docs/STATUS.md",
+                  suggested_verify=None, score=0.0),
+        1,
+    )
+    assert subject.startswith("chore: ")
+    body = subject[len("chore: "):]
+    assert title.startswith(body)  # a clean prefix of the title
+    assert len(body) <= 68
+    # the character right after the kept prefix is a space → no mid-word cut
+    assert title[len(body)] == " "
 
 
 def test_refuses_to_start_with_dirty_tree(tmp_path):
