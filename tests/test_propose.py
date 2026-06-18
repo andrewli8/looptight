@@ -1,0 +1,85 @@
+"""Task proposal from concrete repo signals."""
+
+from __future__ import annotations
+
+from looptight.propose import (
+    Candidate,
+    from_skipped_tests,
+    from_status_next,
+    from_todos,
+    propose,
+    rank,
+)
+
+
+def _write(root, rel, text):
+    path = root / rel
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+# --- extractors ------------------------------------------------------------
+
+def test_from_todos_finds_markers_with_location(tmp_path):
+    _write(tmp_path, "src/pkg/a.py", "x = 1  # TODO: pin the timeout\n# FIXME broken on win\n")
+    cands = from_todos(tmp_path)
+    titles = [c.title for c in cands]
+    assert any("pin the timeout" in t for t in titles)
+    assert any("broken on win" in t for t in titles)
+    assert all(c.location and ":" in c.location for c in cands)
+
+
+def test_from_todos_ignores_non_python(tmp_path):
+    _write(tmp_path, "notes.txt", "TODO: not code\n")
+    assert from_todos(tmp_path) == []
+
+
+def test_from_skipped_tests_detects_markers(tmp_path):
+    _write(
+        tmp_path,
+        "tests/test_x.py",
+        "import pytest\n@pytest.mark.skip(reason='flaky')\ndef test_a():\n    pass\n",
+    )
+    cands = from_skipped_tests(tmp_path)
+    assert len(cands) == 1
+    assert "test_x.py" in cands[0].location
+
+
+def test_from_status_next_parses_numbered_list(tmp_path):
+    _write(
+        tmp_path,
+        "docs/STATUS.md",
+        "# Status\n\n## Next\n\n1. First thing to do\n2. Second thing\n\n## Other\n\n3. not this\n",
+    )
+    titles = [c.title for c in from_status_next(tmp_path)]
+    assert titles == ["First thing to do", "Second thing"]
+
+
+def test_from_status_next_absent_file_is_empty(tmp_path):
+    assert from_status_next(tmp_path) == []
+
+
+# --- dedup + rank ----------------------------------------------------------
+
+def test_rank_orders_by_source_priority():
+    todo = Candidate(title="t", source="todo", location="a.py:1", suggested_verify=None, score=0, detail="")
+    lint = Candidate(title="l", source="lint", location="b.py:2", suggested_verify=None, score=0, detail="")
+    ranked = rank([todo, lint])
+    assert [c.source for c in ranked] == ["lint", "todo"]  # lint outranks todo
+
+
+def test_propose_dedups_by_location_and_title(tmp_path):
+    _write(tmp_path, "src/a.py", "# TODO: same thing\n")
+    _write(tmp_path, "docs/STATUS.md", "## Next\n\n1. same thing\n")
+    # Force a collision: a TODO and a STATUS item with the same normalized title
+    # at different locations stay distinct; identical (loc, title) collapse.
+    cands = propose(tmp_path)
+    keys = {(c.location, c.title.lower()) for c in cands}
+    assert len(keys) == len(cands)  # no exact duplicates
+
+
+def test_propose_respects_limit(tmp_path):
+    body = "".join(f"# TODO: task {i}\n" for i in range(20))
+    _write(tmp_path, "src/a.py", body)
+    assert len(propose(tmp_path, limit=5)) == 5

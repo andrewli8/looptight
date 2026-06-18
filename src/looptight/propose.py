@@ -1,0 +1,230 @@
+"""Task proposal from concrete repo signals (the grounded half of task-gen).
+
+`propose` scans the working tree for *verifiable* signals — TODO/FIXME comments,
+skipped tests, the STATUS "Next" list, lint findings — and turns them into a
+ranked, deduped candidate task list. It runs no agent, spends no tokens, and
+writes nothing; it only reads the repo.
+
+This is deliberately the cheap, grounded part of "what to work on". The research
+behind looptight found free-form task invention is the least validated decision,
+so this stays anchored to signals a human can immediately check, and a human
+approves what actually runs. Ranking is a transparent heuristic, labeled as one,
+not a claim of optimal ordering.
+"""
+
+from __future__ import annotations
+
+import re
+import shutil
+import subprocess
+import tokenize
+from dataclasses import dataclass
+from pathlib import Path
+
+# Source-priority weights for ranking. Higher runs first. A documented heuristic,
+# not a validated ordering (see docs/superpowers/specs/2026-06-18-...).
+_SOURCE_WEIGHT = {
+    "verify": 100,  # reserved for a future failing-verify extractor
+    "types": 80,    # reserved for a future mypy extractor
+    "lint": 60,
+    "skipped-test": 40,
+    "todo": 20,
+    "status-next": 10,
+}
+
+# Marker inside a real comment token (tokenize gives us only comments, never
+# string literals — so a "# TODO" written inside a test fixture string is not a
+# false hit).
+# Anchored at the start of the comment body, so a marker word merely *mentioned*
+# mid-sentence in a comment is not a hit — only conventional "# TODO: ..." lines.
+_TODO_RE = re.compile(r"^(TODO|FIXME|HACK|XXX)\b[:\s]*(?P<text>.*)", re.IGNORECASE)
+
+
+@dataclass(frozen=True)
+class Candidate:
+    """One proposed task, traceable to the signal that produced it."""
+
+    title: str
+    source: str
+    location: str | None
+    suggested_verify: str | None
+    score: float
+    detail: str = ""
+
+    def render(self) -> str:
+        where = f"  [{self.location}]" if self.location else ""
+        return f"[{self.source}] {self.title}{where}"
+
+
+def _py_files(root: Path, subdir: str) -> list[Path]:
+    base = root / subdir
+    if not base.is_dir():
+        return []
+    return sorted(p for p in base.rglob("*.py") if p.is_file())
+
+
+def _rel(root: Path, path: Path) -> str:
+    try:
+        return str(path.relative_to(root))
+    except ValueError:
+        return str(path)
+
+
+def _comments(path: Path):
+    """Yield (lineno, comment_text) for real comment tokens, ignoring strings."""
+    try:
+        with path.open("rb") as fh:
+            for tok in tokenize.tokenize(fh.readline):
+                if tok.type == tokenize.COMMENT:
+                    yield tok.start[0], tok.string
+    except (tokenize.TokenError, SyntaxError, OSError, UnicodeDecodeError):
+        return
+
+
+def from_todos(root: Path) -> list[Candidate]:
+    """TODO/FIXME/HACK/XXX in real comments (not string literals), with file:line."""
+    out: list[Candidate] = []
+    for sub in ("src", "tests"):
+        for path in _py_files(root, sub):
+            for lineno, comment in _comments(path):
+                match = _TODO_RE.match(comment.lstrip("#").strip())
+                if not match:
+                    continue
+                text = match.group("text").strip() or match.group(1).upper()
+                out.append(
+                    Candidate(
+                        title=text,
+                        source="todo",
+                        location=f"{_rel(root, path)}:{lineno}",
+                        suggested_verify=None,
+                        score=0.0,
+                        detail=comment.strip(),
+                    )
+                )
+    return out
+
+
+def _is_skip_line(stripped: str) -> bool:
+    """True for real skip/xfail code, not a marker string inside a literal."""
+    if stripped.startswith(("@pytest.mark.skip", "@pytest.mark.xfail", "pytest.skip(")):
+        return True
+    return bool(re.match(r"\w+\s*=\s*pytest\.mark\.(?:skip|skipif|xfail)\b", stripped))
+
+
+def from_skipped_tests(root: Path) -> list[Candidate]:
+    """Skipped / xfailed tests — each is a candidate to fix and re-enable."""
+    out: list[Candidate] = []
+    for path in _py_files(root, "tests"):
+        for lineno, line in enumerate(path.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
+            if _is_skip_line(line.strip()):
+                out.append(
+                    Candidate(
+                        title=f"un-skip / fix skipped test in {path.name}",
+                        source="skipped-test",
+                        location=f"{_rel(root, path)}:{lineno}",
+                        suggested_verify=None,
+                        score=0.0,
+                        detail=line.strip(),
+                    )
+                )
+    return out
+
+
+def from_status_next(root: Path) -> list[Candidate]:
+    """The numbered list under the `## Next` heading in docs/STATUS.md."""
+    status = root / "docs" / "STATUS.md"
+    if not status.is_file():
+        return []
+    out: list[Candidate] = []
+    in_next = False
+    for line in status.read_text(encoding="utf-8", errors="ignore").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("## "):
+            in_next = stripped[3:].strip().lower() == "next"
+            continue
+        if not in_next:
+            continue
+        item = re.match(r"\d+\.\s+(?P<text>.+)", stripped)
+        if item:
+            out.append(
+                Candidate(
+                    title=item.group("text").strip(),
+                    source="status-next",
+                    location="docs/STATUS.md",
+                    suggested_verify=None,
+                    score=0.0,
+                    detail="",
+                )
+            )
+    return out
+
+
+def from_lint(root: Path) -> list[Candidate]:
+    """ruff findings, one task per (file, rule). Empty when ruff is unavailable."""
+    if shutil.which("ruff") is None and shutil.which("uv") is None:
+        return []
+    cmd = (["ruff", "check", "--quiet"] if shutil.which("ruff") else ["uv", "run", "ruff", "check", "--quiet"])
+    try:
+        proc = subprocess.run(cmd, cwd=str(root), capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
+        return []
+    out: list[Candidate] = []
+    seen: set[str] = set()
+    for line in proc.stdout.splitlines():
+        # ruff default format: path:line:col: CODE message
+        match = re.match(r"(?P<loc>\S+:\d+:\d+):\s+(?P<code>\S+)\s+(?P<msg>.+)", line)
+        if not match:
+            continue
+        key = f"{match.group('loc').split(':')[0]}:{match.group('code')}"
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(
+            Candidate(
+                title=f"fix {match.group('code')}: {match.group('msg')}",
+                source="lint",
+                location=match.group("loc"),
+                suggested_verify="ruff check",
+                score=0.0,
+                detail=line.strip(),
+            )
+        )
+    return out
+
+
+_EXTRACTORS = (from_lint, from_skipped_tests, from_todos, from_status_next)
+
+
+def _normalized(title: str) -> str:
+    return " ".join(title.lower().split())
+
+
+def rank(candidates: list[Candidate]) -> list[Candidate]:
+    """Stable sort by source priority (descending). Heuristic, not validated."""
+    scored = [
+        Candidate(**{**c.__dict__, "score": float(_SOURCE_WEIGHT.get(c.source, 0))})
+        for c in candidates
+    ]
+    return sorted(scored, key=lambda c: c.score, reverse=True)
+
+
+def dedupe(candidates: list[Candidate]) -> list[Candidate]:
+    """Drop later candidates with an already-seen (location, normalized title)."""
+    seen: set[tuple[str | None, str]] = set()
+    out: list[Candidate] = []
+    for c in candidates:
+        key = (c.location, _normalized(c.title))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(c)
+    return out
+
+
+def propose(root: Path, *, limit: int = 10) -> list[Candidate]:
+    """Scan all signals, dedupe, rank, and return the top ``limit`` candidates."""
+    found: list[Candidate] = []
+    for extractor in _EXTRACTORS:
+        found.extend(extractor(root))
+    ranked = rank(dedupe(found))
+    return ranked[:limit] if limit and limit > 0 else ranked

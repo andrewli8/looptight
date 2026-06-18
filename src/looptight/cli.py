@@ -25,7 +25,7 @@ from .summary import render_rich
 from .types import StopReason
 from .verify import run_verify
 
-_COMMANDS = {"init", "run", "verify", "lessons", "doctor", "revert", "hook", "install-hook"}
+_COMMANDS = {"init", "run", "verify", "lessons", "doctor", "revert", "hook", "install-hook", "propose"}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -56,6 +56,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_revert = sub.add_parser("revert", help="undo the agent's uncommitted edits (restore to HEAD)")
     p_revert.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
+
+    p_propose = sub.add_parser(
+        "propose", help="scan the repo for concrete signals and rank candidate tasks (no agent, no tokens)"
+    )
+    p_propose.add_argument("--json", action="store_true", help="emit the ranked candidates as JSON")
+    p_propose.add_argument("--limit", type=int, default=10, help="max candidates to show (default 10)")
 
     sub.add_parser("hook", help="Claude Code Stop-hook handler (reads the hook event on stdin)")
 
@@ -115,6 +121,7 @@ def main(argv: list[str] | None = None) -> int:
         "revert": cmd_revert,
         "hook": cmd_hook,
         "install-hook": cmd_install_hook,
+        "propose": cmd_propose,
     }[args.command]
     return handler(args, console)
 
@@ -269,6 +276,33 @@ def cmd_revert(args: argparse.Namespace, console: Console) -> int:
 
     subprocess.run(["git", "checkout", "HEAD", "--", "."], cwd=str(workdir), check=False)
     console.print("[green]reverted[/green] tracked files to HEAD.")
+    return 0
+
+
+def cmd_propose(args: argparse.Namespace, console: Console) -> int:
+    from .propose import propose
+
+    candidates = propose(Path.cwd(), limit=args.limit)
+    if args.json:
+        import json
+
+        print(json.dumps([c.__dict__ for c in candidates], indent=2))
+        return 0
+
+    if not candidates:
+        console.print("No candidate tasks found from repo signals (clean tree).")
+        return 0
+
+    console.print(f"[bold]{len(candidates)} candidate task(s)[/bold] (ranked; pick what to run):")
+    console.print()
+    for i, c in enumerate(candidates, 1):
+        where = f" [dim]{c.location}[/dim]" if c.location else ""
+        console.print(f"  {i}. [cyan]{c.source}[/cyan]  {c.title}{where}")
+    console.print()
+    console.print(
+        "[dim]Ranking is a source-priority heuristic. Approve a subset; each runs on its "
+        'own branch via[/dim] [bold]looptight run "<task>"[/bold][dim], surfaced for review.[/dim]'
+    )
     return 0
 
 
