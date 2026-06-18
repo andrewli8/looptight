@@ -6,6 +6,50 @@ next actionable task.
 
 ---
 
+## AUDIT (2026-06-18)
+
+Reviewer: independent checker agent. Previous AUDIT marker: `6d15e90`.
+Reviewed 2 commits from `78fe32e` through `ee68c74`.
+
+### Test and lint gate
+
+`uv run pytest`: 175 passed, 1 skipped (env-gated e2e — correct).
+`uv run ruff check`: all checks passed.
+**Main is GREEN.**
+
+### Commits reviewed
+
+| Hash | Subject |
+|------|---------|
+| `78fe32e` | refactor: extract CLI command handlers into commands.py |
+| `ee68c74` | docs: record idle improve run (no actionable work) |
+
+### Verdict: clean; no concerns (previous concerns resolved)
+
+**`78fe32e` — pure mechanical extraction, correct:**
+This directly resolves audit concern #1 from `6d15e90`: `cli.py` had grown to
+464 lines (above the 200–400 guideline). The `cmd_*` handler functions moved
+verbatim into `src/looptight/commands.py` (321 lines); `cli.py` is now 163
+lines — a thin parser + dispatcher. No logic was changed. All `monkeypatch`
+targets in `tests/test_cli.py` were correctly updated from
+`looptight.cli.<name>` to `looptight.commands.<name>`. Tests stayed at 175
+passed, 1 skipped. The commit message accurately describes what moved and why.
+
+Both flagged concerns from the prior audit are now resolved:
+- **Concern #1 (cli.py size):** resolved by `78fe32e`.
+- **Concern #2 (chore: prefix on audit commits):** reviewed and left as-is by
+  the idle-run summary (`ee68c74`); rationale accepted — a derived prefix risks
+  being more misleading than a predictable uniform `chore:`. Closed.
+
+**`ee68c74` — docs only, accurate:**
+Records that the idle improve run found nothing actionable; correctly notes both
+prior audit concerns as resolved; does not introduce any code changes.
+
+No new concerns to flag. The escalated items (Codex `/goal`, cost parsing,
+flagship gif) remain unchanged and correctly deferred.
+
+---
+
 ## Run Summary (2026-06-18, idle run)
 
 No changes: nothing safe and valuable to do. Verified main is green
