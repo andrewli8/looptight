@@ -15,6 +15,14 @@ from pathlib import Path
 
 CONFIG_NAME = ".looptight.toml"
 
+
+class ConfigError(Exception):
+    """A ``.looptight.toml`` exists but is invalid (bad TOML or a bad value).
+
+    Carries a message naming the offending file so the CLI can fail fast with a
+    clear, actionable line instead of a raw traceback.
+    """
+
 # Low, safe defaults (D1). budget_usd is a post-iteration spend threshold, not an
 # unexceedable ceiling — one iteration can overshoot it; --budget raises it.
 DEFAULT_MAX_ITERATIONS = 6
@@ -55,17 +63,23 @@ def load_config(path: Path | None = None) -> Config:
     resolved = path or find_config()
     if resolved is None or not resolved.is_file():
         return Config()
-    data = tomllib.loads(resolved.read_text(encoding="utf-8"))
-    return Config(
-        verify=data.get("verify"),
-        agent=data.get("agent"),
-        max_iterations=int(data.get("max_iterations", DEFAULT_MAX_ITERATIONS)),
-        budget_usd=float(data.get("budget_usd", DEFAULT_BUDGET_USD)),
-        reflect=bool(data.get("reflect", True)),
-        native=bool(data.get("native", False)),
-        hook=bool(data.get("hook", False)),
-        patience=int(data.get("patience", 0)),
-    )
+    try:
+        data = tomllib.loads(resolved.read_text(encoding="utf-8"))
+    except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError) as exc:
+        raise ConfigError(f"{resolved} is not valid TOML: {exc}") from exc
+    try:
+        return Config(
+            verify=data.get("verify"),
+            agent=data.get("agent"),
+            max_iterations=int(data.get("max_iterations", DEFAULT_MAX_ITERATIONS)),
+            budget_usd=float(data.get("budget_usd", DEFAULT_BUDGET_USD)),
+            reflect=bool(data.get("reflect", True)),
+            native=bool(data.get("native", False)),
+            hook=bool(data.get("hook", False)),
+            patience=int(data.get("patience", 0)),
+        )
+    except (TypeError, ValueError) as exc:
+        raise ConfigError(f"{resolved} has an invalid value: {exc}") from exc
 
 
 def render_config(config: Config) -> str:

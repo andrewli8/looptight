@@ -17,7 +17,7 @@ from rich.console import Console
 from . import __version__
 from .adapters import available_adapter_names, get_adapter
 from .checkpoint import is_git_repo
-from .config import load_config, write_config, Config
+from .config import ConfigError, load_config, write_config, Config
 from .detect import KNOWN_AGENTS, detect_agent, detect_verify
 from .lessons import LessonStore
 from .improve import ImproveStopReason, run_improve
@@ -157,7 +157,11 @@ def main(argv: list[str] | None = None) -> int:
         "install-hook": cmd_install_hook,
         "propose": cmd_propose,
     }[args.command]
-    return handler(args, console)
+    try:
+        return handler(args, console)
+    except ConfigError as exc:
+        console.print(f"[red]config error:[/red] {exc}")
+        return 2
 
 
 def cmd_init(args: argparse.Namespace, console: Console) -> int:

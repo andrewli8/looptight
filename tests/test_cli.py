@@ -33,6 +33,13 @@ def test_doctor_runs(tmp_path, monkeypatch):
     assert main(["doctor"]) == 0
 
 
+def test_malformed_config_exits_cleanly_not_traceback(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".looptight.toml").write_text('verify = "pytest"\nbad = = toml\n')
+    # A broken config must surface as a clean exit code, not an uncaught traceback.
+    assert main(["doctor"]) == 2
+
+
 def test_lessons_empty(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert main(["lessons", "--agent", "claude"]) == 0

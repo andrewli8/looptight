@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import pytest
+
 from looptight.config import (
     DEFAULT_BUDGET_USD,
     DEFAULT_MAX_ITERATIONS,
     Config,
+    ConfigError,
     load_config,
     write_config,
 )
@@ -52,6 +55,22 @@ def test_write_then_load_preserves_verify_command_with_toml_special_characters(t
     path = write_config(Config(verify=verify), tmp_path)
 
     assert load_config(path).verify == verify
+
+
+def test_load_config_raises_clear_error_on_malformed_toml(tmp_path):
+    path = tmp_path / ".looptight.toml"
+    path.write_text('verify = "pytest"\nnot valid = = toml\n', encoding="utf-8")
+    with pytest.raises(ConfigError) as exc:
+        load_config(path)
+    assert str(path) in str(exc.value)
+
+
+def test_load_config_raises_clear_error_on_non_numeric_value(tmp_path):
+    path = tmp_path / ".looptight.toml"
+    path.write_text('verify = "pytest"\nmax_iterations = "lots"\n', encoding="utf-8")
+    with pytest.raises(ConfigError) as exc:
+        load_config(path)
+    assert str(path) in str(exc.value)
 
 
 def test_missing_config_returns_defaults(tmp_path):
