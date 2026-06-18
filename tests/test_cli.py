@@ -89,6 +89,26 @@ def test_propose_text_output_describes_autonomous_flow(tmp_path, monkeypatch, ca
     assert "push" in out
 
 
+def test_revert_reports_failure_when_git_checkout_fails(tmp_path, monkeypatch, capsys):
+    import subprocess
+
+    monkeypatch.chdir(tmp_path)
+    # Pretend we're inside a git repo so revert proceeds past the guard.
+    monkeypatch.setattr("looptight.cli.is_git_repo", lambda *a, **k: True)
+
+    def fake_run(*a, **k):
+        return subprocess.CompletedProcess(args=a[0] if a else [], returncode=1)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    # A failed checkout must surface a nonzero exit, not a green success message.
+    assert main(["revert", "--yes"]) == 1
+    out = capsys.readouterr().out.lower()
+    assert "reverted" not in out
+    assert "failed" in out
+    assert "restore not confirmed" in out
+
+
 def test_lessons_clear_removes_all(tmp_path, monkeypatch):
     from looptight.lessons import LessonStore
     from looptight.types import Lesson

@@ -273,7 +273,10 @@ def cmd_revert(args: argparse.Namespace, console: Console) -> int:
         return 0
     import subprocess
 
-    subprocess.run(["git", "checkout", "HEAD", "--", "."], cwd=str(workdir), check=False)
+    result = subprocess.run(["git", "checkout", "HEAD", "--", "."], cwd=str(workdir), check=False)
+    if result.returncode != 0:
+        console.print("[red]error:[/red] git checkout failed; restore not confirmed. Inspect the working tree.")
+        return 1
     console.print("[green]reverted[/green] tracked files to HEAD.")
     return 0
 
