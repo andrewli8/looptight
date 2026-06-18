@@ -25,7 +25,7 @@ from .summary import render_rich
 from .types import StopReason
 from .verify import run_verify
 
-_COMMANDS = {"init", "run", "verify", "lessons", "doctor", "revert"}
+_COMMANDS = {"init", "run", "verify", "lessons", "doctor", "revert", "hook", "install-hook"}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -56,6 +56,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_revert = sub.add_parser("revert", help="undo the agent's uncommitted edits (restore to HEAD)")
     p_revert.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
+
+    sub.add_parser("hook", help="Claude Code Stop-hook handler (reads the hook event on stdin)")
+
+    p_install = sub.add_parser(
+        "install-hook", help="register the Stop-hook auto-loop in Claude Code's settings.json"
+    )
+    p_install.add_argument(
+        "--project", action="store_true", help="install into ./.claude/settings.json instead of the user file"
+    )
+    p_install.add_argument("--uninstall", action="store_true", help="remove the looptight Stop hook instead")
 
     return parser
 
@@ -98,6 +108,8 @@ def main(argv: list[str] | None = None) -> int:
         "lessons": cmd_lessons,
         "doctor": cmd_doctor,
         "revert": cmd_revert,
+        "hook": cmd_hook,
+        "install-hook": cmd_install_hook,
     }[args.command]
     return handler(args, console)
 
@@ -251,6 +263,42 @@ def cmd_revert(args: argparse.Namespace, console: Console) -> int:
 
     subprocess.run(["git", "checkout", "HEAD", "--", "."], cwd=str(workdir), check=False)
     console.print("[green]reverted[/green] tracked files to HEAD.")
+    return 0
+
+
+def cmd_hook(args: argparse.Namespace, console: Console) -> int:
+    """Claude Code Stop-hook entry point. Reads the event on stdin, and prints a
+    decision JSON to stdout only when it wants Claude to keep going. Stdout has to
+    stay clean for Claude to parse, so this path never uses the rich Console."""
+    from .hook import run_hook
+
+    output, code = run_hook(sys.stdin.read())
+    if output:
+        sys.stdout.write(output + "\n")
+    return code
+
+
+def cmd_install_hook(args: argparse.Namespace, console: Console) -> int:
+    from .settings import install, project_settings_path, uninstall, user_settings_path
+
+    path = project_settings_path(Path.cwd()) if args.project else user_settings_path()
+    try:
+        if args.uninstall:
+            removed = uninstall(path)
+            console.print(f"removed {removed} looptight hook(s) from {path}")
+            return 0
+        added = install(path)
+    except ValueError as exc:
+        console.print(f"[red]{exc}[/red]")
+        return 1
+
+    if added:
+        console.print(f"[green]installed[/green] the looptight Stop hook in {path}")
+    else:
+        console.print(f"already installed in {path}")
+    console.print()
+    console.print("The hook stays dormant until a repo opts in. In a project you want")
+    console.print("auto-looping, set [cyan]hook = true[/cyan] in its .looptight.toml.")
     return 0
 
 

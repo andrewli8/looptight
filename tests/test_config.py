@@ -17,6 +17,12 @@ def test_defaults_are_safe():
     assert config.budget_usd == DEFAULT_BUDGET_USD
     assert config.reflect is True
     assert config.agent is None  # auto-detect
+    assert config.hook is False  # Stop-hook auto-loop is opt-in
+
+
+def test_hook_flag_roundtrips(tmp_path):
+    path = write_config(Config(verify="pytest -q", hook=True), tmp_path)
+    assert load_config(path).hook is True
 
 
 def test_merged_ignores_none_overrides():

@@ -1,0 +1,12 @@
+# looptight config — the one concept that matters is `verify`.
+# `verify` is the command that decides pass/fail. No verify, no loop.
+# Exit code 0 means pass; anything else means keep going.
+verify = "uv run pytest -q"
+
+# Everything below is optional and has a safe default.
+agent = "claude"
+max_iterations = 6   # hard cap; the loop stops here no matter what
+budget_usd = 1.0            # cost ceiling; never exceeded without --budget
+reflect = true              # write a lesson to your agent's memory on failure
+native = false               # drive the agent's own loop (e.g. Claude /goal) where it has one
+hook = true                 # arm the Claude Code Stop-hook auto-loop in this repo

@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "DIR=\"${CLAUDE_PROJECT_DIR:-$PWD}\"; dirty=$(git -C \"$DIR\" status --porcelain 2>/dev/null); ahead=$(git -C \"$DIR\" rev-list --count origin/main..HEAD 2>/dev/null || echo 0); if [ -n \"$dirty\" ] || [ \"${ahead:-0}\" -gt 0 ]; then printf '{\"systemMessage\":\"looptight: uncommitted or unpushed changes. Consider committing and pushing to main.\"}\\n'; fi",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

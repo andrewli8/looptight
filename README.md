@@ -128,6 +128,38 @@ and a lesson is still written, so the learning layer works either way.
 
 Adding an agent is one adapter (see [`docs/architecture.md`](docs/architecture.md)).
 
+## Run it inside Claude Code (no goal message)
+
+If you live in Claude Code, you don't have to drop to a terminal and type a goal.
+looptight registers as a Claude Code [Stop hook](https://docs.claude.com/en/docs/claude-code/hooks):
+when Claude finishes a turn, the hook runs `verify`, and if it fails it tells
+Claude to keep going until the check passes. The goal is just whatever you already
+asked for in the conversation.
+
+```bash
+looptight install-hook        # adds the Stop hook to ~/.claude/settings.json
+```
+
+The hook stays dormant until a repo opts in, so installing it globally is safe.
+To arm a project, set `hook = true` in its `.looptight.toml`:
+
+```toml
+verify = "uv run pytest -q"   # use a verify that resolves regardless of PATH
+hook = true                   # arm the Stop-hook auto-loop here
+```
+
+Now, in that repo, Claude keeps working until `verify` is green, bounded by
+`max_iterations` so it can't run away. Remove it any time with
+`looptight install-hook --uninstall`.
+
+Two things to know:
+- The hook only engages when the verify command runs cleanly from a bare shell.
+  Prefer `uv run pytest -q` or `.venv/bin/pytest -q` over a plain `pytest` that
+  needs an activated virtualenv, or a green run can look like a failure.
+- Lessons are written in CLI mode, not in the hook. Reflection needs a model
+  call, and spawning one from inside a Stop hook risks nesting, so the hook
+  sticks to the verify-gated loop.
+
 ## Safety
 
 - **Hard iteration cap and cost ceiling**, both with low defaults. A default run
