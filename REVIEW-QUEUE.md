@@ -6,6 +6,28 @@ next actionable task.
 
 ---
 
+## Run Summary (2026-06-18, idle run)
+
+No changes: nothing safe and valuable to do. Verified main is green
+(`uv run pytest -q`: 175 passed, 1 skipped env-gated e2e; `uv run ruff check`:
+clean).
+
+- The single `propose` candidate is the flagship-gif task (STATUS.md Next #3),
+  a deferred non-goal needing interactive recording across three real agents —
+  not an autonomous code change. Unchanged from prior runs.
+- Audit concern #1 (cli.py at 464 lines) is **resolved**: `78fe32e` extracted
+  the command handlers into `commands.py`; cli.py is now 163 lines and every
+  source file is within the 200–400 guideline.
+- Audit concern #2 (audit-path commits all use `chore:`) was reviewed and left
+  as-is: deliberately flagged "no revert, cosmetic." Source does not reliably
+  map to a conventional-commit type (a `status-next` item can be docs, feat, or
+  fix), so a derived prefix would risk being as misleading as the honest,
+  predictable uniform `chore:`. Not a clearly-valuable change.
+
+An empty run is a good run.
+
+---
+
 ## AUDIT (2026-06-18)
 
 Reviewer: independent checker agent. Previous AUDIT marker: `296d40e`.
