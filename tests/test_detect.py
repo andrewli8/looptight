@@ -27,6 +27,11 @@ def test_detect_verify_npm_without_test_script_falls_through(tmp_path):
     assert detect.detect_verify(tmp_path) is None
 
 
+def test_detect_verify_npm_malformed_json_falls_through(tmp_path):
+    (tmp_path / "package.json").write_text("{ not valid json }")
+    assert detect.detect_verify(tmp_path) is None
+
+
 def test_detect_verify_setup_cfg(tmp_path):
     (tmp_path / "setup.cfg").write_text("[metadata]\nname = x\n")
     assert detect.detect_verify(tmp_path) == "pytest -q"
