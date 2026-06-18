@@ -32,6 +32,11 @@ def test_detect_verify_setup_cfg(tmp_path):
     assert detect.detect_verify(tmp_path) == "pytest -q"
 
 
+def test_detect_verify_cargo(tmp_path):
+    (tmp_path / "Cargo.toml").write_text("[package]\nname = 'x'\n")
+    assert detect.detect_verify(tmp_path) == "cargo test"
+
+
 def test_detect_verify_makefile(tmp_path):
     (tmp_path / "Makefile").write_text("test:\n\tpytest\n")
     assert detect.detect_verify(tmp_path) == "make test"
