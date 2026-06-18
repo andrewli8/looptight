@@ -93,8 +93,8 @@ seam, is in [`docs/architecture.md`](docs/architecture.md).
 - **vs heavy frameworks (DAG/orchestration):** no graph to author, no migration.
   Runs on the agent you already have in under two minutes, and it's eval-gated,
   so it never loops pointlessly.
-- **vs raw headless mode:** adds the learning, the safety rails (hard caps, cost
-  ceiling, per-iteration git checkpoints), and one consistent interface. That's
+- **vs raw headless mode:** adds the learning, the safety rails (hard caps, a
+  spend threshold, per-iteration git checkpoints), and one consistent interface. That's
   the part everyone otherwise hand-rolls badly.
 
 ## What this is / isn't
@@ -102,9 +102,9 @@ seam, is in [`docs/architecture.md`](docs/architecture.md).
 **It is:**
 - A portability and learning layer above your coding agent.
 - Eval-gated: the `verify` command is the ground-truth oracle.
-- Safe by default: low iteration cap, a cost ceiling you can't exceed without
-  `--budget`, and a git checkpoint before every iteration so you can always get
-  your repo back.
+- Safe by default: low iteration cap, a spend threshold that stops the loop
+  (raise it with `--budget`), and a git checkpoint before every iteration so you
+  can always get your repo back.
 
 **It isn't:**
 - A replacement for native loops. Where your agent has its own eval-gated loop,
@@ -162,8 +162,10 @@ Two things to know:
 
 ## Safety
 
-- **Hard iteration cap and cost ceiling**, both with low defaults. A default run
-  cannot exceed the cost ceiling without an explicit `--budget`.
+- **Hard iteration cap and spend threshold**, both with low defaults. Cost is
+  known only after each agent call, so the budget is a post-iteration spend stop:
+  the loop halts once spend reaches or exceeds it, and one iteration can overshoot. `--budget`
+  raises it above the safe default.
 - **Value-aware stopping (opt-in).** Set `patience = N` and looptight stops a
   stalled loop instead of grinding to the cap: if the verify signal plateaus
   after real progress it cuts losses, and if the agent never moves the needle it

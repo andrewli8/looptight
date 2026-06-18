@@ -1,8 +1,10 @@
 """Budget + iteration accounting (D1).
 
-Low defaults, a hard stop, and a single object the loop and the live counter
-both read. A default run cannot exceed the cost ceiling without an explicit
-``--budget`` (which the CLI surfaces as the only way to raise it).
+Low defaults, a clean stop, and a single object the loop and the live counter
+both read. Cost is known only after each agent call, so ``budget_usd`` is a
+spend threshold checked between iterations: the loop stops once spend reaches
+or exceeds it, and a single iteration can overshoot. ``--budget`` raises it above the safe
+default.
 """
 
 from __future__ import annotations
@@ -28,4 +30,5 @@ class BudgetTracker:
         self.spent_usd += max(0.0, cost_usd)
 
     def over_budget(self) -> bool:
+        """True once spend reaches the threshold (checked after each iteration)."""
         return self.spent_usd >= self.budget_usd

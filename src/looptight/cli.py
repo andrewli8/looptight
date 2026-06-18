@@ -88,7 +88,8 @@ def _add_run_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--budget",
         type=float,
-        help="cost ceiling in USD — the only way to raise it above the safe default",
+        help="USD spend threshold; raise it above the safe default. Checked after each "
+        "iteration, so a single agent call can overshoot it.",
     )
     parser.add_argument("--no-reflect", action="store_true", help="do not write lessons on failure")
     parser.add_argument(

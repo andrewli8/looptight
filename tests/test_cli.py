@@ -89,6 +89,19 @@ def test_propose_text_output_describes_autonomous_flow(tmp_path, monkeypatch, ca
     assert "push" in out
 
 
+def test_budget_flag_help_describes_spend_threshold(capsys):
+    # --budget is a post-iteration spend stop, not an unexceedable ceiling: a
+    # single agent call can overshoot it, so the help must not promise a ceiling.
+    try:
+        main(["run", "--help"])
+    except SystemExit:
+        pass
+    out = capsys.readouterr().out.lower()
+    assert "ceiling" not in out
+    assert "spend" in out
+    assert "overshoot" in out
+
+
 def test_revert_reports_failure_when_git_checkout_fails(tmp_path, monkeypatch, capsys):
     import subprocess
 

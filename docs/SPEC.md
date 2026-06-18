@@ -63,7 +63,7 @@ interface across agents**, and **durable lessons that compound across runs**.
 - **C4 Lesson hygiene.** Scoped, deduped, one-command prunable.
 
 ### D. Safety & trust
-- **D1 Hard iteration cap + cost ceiling**, low defaults, clean stop.
+- **D1 Hard iteration cap + spend threshold**, low defaults, clean stop.
 - **D2 Live counter:** iteration, running cost estimate, last verify result.
 - **D3 Cheap-model routing for reflection.**
 - **D4 Per-iteration git checkpoint + revert.**
@@ -98,7 +98,8 @@ interface across agents**, and **durable lessons that compound across runs**.
 - **Flagship demo leads with the gap, not the loop:** the *same* command on Claude
   Code and on Codex; then a second, similar task that visibly benefits from a
   lesson written during the first run.
-- **A default run cannot exceed the cost ceiling** without explicit `--budget`.
+- **A default run stops at a low spend threshold** without explicit `--budget`.
+  The threshold is checked after each iteration, so one agent call can overshoot.
 - **README opens with the differentiation** (portability + compounding lessons).
 
 ---

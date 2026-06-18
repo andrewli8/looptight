@@ -60,3 +60,13 @@ def test_rendered_config_explains_verify(tmp_path):
     text = write_config(Config(verify="pytest -q"), tmp_path).read_text()
     assert "verify" in text
     assert "No verify, no loop" in text
+
+
+def test_rendered_config_frames_budget_as_spend_threshold(tmp_path):
+    text = write_config(Config(verify="pytest -q"), tmp_path).read_text()
+    # Cost is only known after each agent call, so budget_usd is a post-iteration
+    # spend stop, not an unexceedable ceiling — one iteration can overshoot it.
+    assert "ceiling" not in text
+    assert "never exceeded" not in text
+    assert "spend" in text
+    assert "overshoot" in text

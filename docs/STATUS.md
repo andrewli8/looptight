@@ -16,7 +16,7 @@ Tracks the spec ([`SPEC.md`](SPEC.md)) against what's actually built.
 | C2 | Persist lessons into the agent's memory file | ✅ |
 | C3 | Lessons compound across runs/goals | ✅ |
 | C4 | Lesson hygiene (scope, dedupe, prune) | ✅ |
-| D1 | Hard iteration cap + cost ceiling | ✅ |
+| D1 | Hard iteration cap + post-iteration spend threshold | ✅ |
 | D2 | Live counter | ✅ |
 | D3 | Cheap-model routing for reflection | ✅ (Claude: haiku) |
 | D4 | Per-iteration git checkpoint + revert | ✅ |

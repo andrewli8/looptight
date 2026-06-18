@@ -14,8 +14,8 @@ from pathlib import Path
 
 CONFIG_NAME = ".looptight.toml"
 
-# Low, safe defaults (D1). A default run cannot exceed the cost ceiling without
-# an explicit --budget.
+# Low, safe defaults (D1). budget_usd is a post-iteration spend threshold, not an
+# unexceedable ceiling — one iteration can overshoot it; --budget raises it.
 DEFAULT_MAX_ITERATIONS = 6
 DEFAULT_BUDGET_USD = 1.00
 
@@ -81,7 +81,7 @@ verify = "{verify}"
 # Everything below is optional and has a safe default.
 {agent_line}
 max_iterations = {config.max_iterations}   # hard cap; the loop stops here no matter what
-budget_usd = {config.budget_usd}            # cost ceiling; never exceeded without --budget
+budget_usd = {config.budget_usd}            # spend threshold; checked after each iteration, so one call can overshoot
 reflect = {str(config.reflect).lower()}              # write a lesson to your agent's memory on failure
 native = {str(config.native).lower()}               # drive the agent's own loop (e.g. Claude /goal) where it has one
 hook = {str(config.hook).lower()}                 # arm the Claude Code Stop-hook auto-loop in this repo (needs `looptight install-hook`)

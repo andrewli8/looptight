@@ -55,7 +55,7 @@ which path ran (B4).
 `run_loop` checks two preconditions (a `verify` command and an available agent),
 then picks a path. With `--native` and an adapter that supports it, looptight
 delegates to the agent's own eval-gated loop. Otherwise it supplies the loop:
-snapshot, iterate, verify, repeat, under a hard iteration cap and cost ceiling.
+snapshot, iterate, verify, repeat, under a hard iteration cap and a post-iteration spend threshold.
 Both paths end the same way: if any iteration failed verification, reflect once
 and write a lesson.
 

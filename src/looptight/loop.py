@@ -1,7 +1,7 @@
 """The loop — supply or delegate (B1, B2, B4).
 
 The orchestrator. By default it *supplies* the loop: checkpoint → iterate →
-verify → continue, under a hard iteration cap and cost ceiling. With ``native``
+verify → continue, under a hard iteration cap and post-iteration spend threshold. With ``native``
 (the ``--native`` flag) and an adapter that ``supports_native_loop``, it instead
 *delegates* to the agent's own eval-gated loop (e.g. Claude `/goal`).
 

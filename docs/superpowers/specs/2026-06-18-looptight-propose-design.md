@@ -62,8 +62,10 @@ appeared.
 - Execution is autonomous: propose -> select the highest-value actionable task
   -> `looptight run` (verify-gated loop + `patience` early stop) -> agent diff
   review -> commit and push, or discard and record the blocker.
-- Session spend is bounded per task by the configured budget ($1 / 6 iterations /
-  patience 2 defaults). `--limit` (default 10) caps how many are surfaced.
+- Session spend per task is held near the configured budget ($1 / 6 iterations /
+  patience 2 defaults): the budget is a post-iteration spend threshold, so a
+  single iteration can overshoot it. `--limit` (default 10) caps how many are
+  surfaced.
 - Skill auto-install during execution: official Vercel skills directory only,
   logged to the run report, reversible. The real install mechanism is verified
   before use, not fabricated.

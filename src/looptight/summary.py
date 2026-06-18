@@ -12,7 +12,7 @@ from .types import RunResult, StopReason
 _REASON_TEXT = {
     StopReason.SUCCESS: "done",
     StopReason.ITERATION_CAP: "stopped: hit iteration cap",
-    StopReason.BUDGET_EXCEEDED: "stopped: hit budget ceiling",
+    StopReason.BUDGET_EXCEEDED: "stopped: reached spend threshold",
     StopReason.NO_PROGRESS: "stopped early: no measurable progress (cut losses)",
     StopReason.ESCALATED: "stopped: stuck with no progress, worth a human look",
     StopReason.NO_VERIFY: "stopped: no verify command (no verify, no loop)",
