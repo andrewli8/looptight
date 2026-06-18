@@ -16,7 +16,7 @@ from rich.console import Console
 
 from . import __version__
 from .adapters import available_adapter_names, get_adapter
-from .checkpoint import Checkpointer, is_git_repo
+from .checkpoint import is_git_repo
 from .config import load_config, write_config, Config
 from .detect import KNOWN_AGENTS, detect_agent, detect_verify
 from .lessons import LessonStore
@@ -271,7 +271,6 @@ def cmd_revert(args: argparse.Namespace, console: Console) -> int:
         console.print("This discards uncommitted changes (restores tracked files to HEAD).")
         console.print("Re-run with [bold]--yes[/bold] to confirm.")
         return 0
-    checkpointer = Checkpointer(workdir)
     import subprocess
 
     subprocess.run(["git", "checkout", "HEAD", "--", "."], cwd=str(workdir), check=False)
