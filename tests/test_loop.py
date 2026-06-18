@@ -177,3 +177,22 @@ def test_on_iteration_callback_called_per_iteration(workdir):
     assert len(seen) == 2  # pass_on=2 → 2 iterations
     assert all(hasattr(r, "verify") for r in seen)
     assert seen[-1].verify.passed  # last record is the passing one
+
+
+def test_on_iteration_callback_called_in_delegate_path(workdir):
+    adapter = FakeAdapter(supports_native=True)
+    seen: list = []
+
+    run_loop(
+        "do it",
+        adapter,
+        _config(),
+        workdir,
+        native=True,
+        verify_fn=make_verify(1),
+        checkpointer=Checkpointer(workdir, enabled=False),
+        on_iteration=seen.append,
+    )
+
+    assert len(seen) == 1  # one verify record from the delegate path
+    assert seen[0].verify.passed

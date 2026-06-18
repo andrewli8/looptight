@@ -20,6 +20,14 @@ def test_bare_goal_defaults_to_run_but_needs_an_agent(tmp_path, monkeypatch):
     assert main(["fix the failing tests"]) == 2
 
 
+def test_run_exits_error_when_no_verify_command(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.cli.detect_agent", lambda *a, **k: "claude")
+    monkeypatch.setattr("looptight.cli.get_adapter", lambda name: __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter())
+    # No config, no verify markers → no verify command → exit 2.
+    assert main(["run", "fix tests"]) == 2
+
+
 def test_doctor_runs(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert main(["doctor"]) == 0
