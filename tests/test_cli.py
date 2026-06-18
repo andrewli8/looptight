@@ -72,6 +72,23 @@ def test_propose_json_output(tmp_path, monkeypatch, capsys):
     assert any("fix the timeout" in c["title"] for c in data)
 
 
+def test_propose_text_output_describes_autonomous_flow(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# TODO: fix the timeout\n")
+    assert main(["propose"]) == 0
+    out = capsys.readouterr().out.lower()
+    # No human-approval / per-branch framing — the loop is autonomous to main.
+    assert "approve" not in out
+    assert "branch" not in out
+    # The operating agent selects, runs through looptight, verifies, and commits.
+    assert "highest-value" in out
+    assert "looptight" in out
+    assert "verif" in out
+    assert "commit" in out
+    assert "push" in out
+
+
 def test_lessons_clear_removes_all(tmp_path, monkeypatch):
     from looptight.lessons import LessonStore
     from looptight.types import Lesson

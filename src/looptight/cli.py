@@ -299,8 +299,10 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
         console.print(f"  {i}. [cyan]{c.source}[/cyan]  {c.title}{where}")
     console.print()
     console.print(
-        "[dim]Ranking is a source-priority heuristic. Approve a subset; each runs on its "
-        'own branch via[/dim] [bold]looptight run "<task>"[/bold][dim], surfaced for review.[/dim]'
+        "[dim]Ranking is a source-priority heuristic. The operating agent selects the "
+        "highest-value actionable task, runs it through[/dim] [bold]looptight run "
+        '"<task>"[/bold][dim], reviews and verifies the result, then commits and pushes a '
+        "coherent change to main.[/dim]"
     )
     return 0
 
