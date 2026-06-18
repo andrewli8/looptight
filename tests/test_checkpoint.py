@@ -1,7 +1,8 @@
 """Git checkpoint round-trip (D4) — the only test that touches real git.
 
-Proves the "I can always get my repo back" promise: an iteration's in-progress
-(uncommitted) edits can be snapshotted and later restored.
+Proves the tracked-file checkpoint promise: an iteration's in-progress
+(uncommitted) edits to tracked files can be snapshotted and later restored.
+Untracked files are out of scope — they are neither captured nor removed.
 """
 
 from __future__ import annotations

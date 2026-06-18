@@ -1,10 +1,12 @@
 """Per-iteration git checkpoints + revert (D4).
 
-"I can always get my repo back." Before each iteration we snapshot the working
-tree into a dangling commit object using ``git stash create`` — this captures
-tracked changes without touching the index, the working tree, or the branch.
-Restoring checks that tree back out. If we're not in a git repo, checkpointing
-degrades to a no-op (the loop still runs; it just can't offer restore points).
+"I can get my tracked changes back." Before each iteration we snapshot the
+tracked changes into a dangling commit object using ``git stash create`` —
+this captures tracked changes without touching the index, the working tree, or
+the branch. Restoring checks those tracked files back out. Untracked files are
+not captured and not removed, so a checkpoint is not a full working-tree
+backup. If we're not in a git repo, checkpointing degrades to a no-op (the loop
+still runs; it just can't offer restore points).
 """
 
 from __future__ import annotations
@@ -31,7 +33,7 @@ def is_git_repo(cwd: Path) -> bool:
 
 @dataclass
 class Checkpointer:
-    """Captures and restores working-tree snapshots for one run."""
+    """Captures and restores tracked-file snapshots for one run."""
 
     cwd: Path
     enabled: bool = True
@@ -42,7 +44,7 @@ class Checkpointer:
             self.enabled = False
 
     def snapshot(self) -> str | None:
-        """Capture the current working tree. Returns a commit sha, or None."""
+        """Capture the current tracked changes. Returns a commit sha, or None."""
         if not self.enabled:
             return None
         # `stash create` builds a commit from current changes without altering
@@ -64,7 +66,11 @@ class Checkpointer:
         return sha
 
     def restore(self, sha: str | None = None) -> bool:
-        """Restore the working tree to ``sha`` (default: the latest snapshot)."""
+        """Restore tracked files to ``sha`` (default: the latest snapshot).
+
+        Only files tracked at ``sha`` are checked out; untracked files in the
+        working tree are left as-is.
+        """
         if not self.enabled:
             return False
         target = sha or (self.snapshots[-1] if self.snapshots else None)

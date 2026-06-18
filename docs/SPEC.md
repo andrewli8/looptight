@@ -66,7 +66,8 @@ interface across agents**, and **durable lessons that compound across runs**.
 - **D1 Hard iteration cap + spend threshold**, low defaults, clean stop.
 - **D2 Live counter:** iteration, running cost estimate, last verify result.
 - **D3 Cheap-model routing for reflection.**
-- **D4 Per-iteration git checkpoint + revert.**
+- **D4 Per-iteration tracked-file git checkpoint + revert.** Captures tracked
+  changes only; untracked files are not snapshotted or removed.
 
 ### E. Output & legibility
 - **E1 Readable run summary** (cross-backend).

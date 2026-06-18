@@ -19,7 +19,7 @@ Tracks the spec ([`SPEC.md`](SPEC.md)) against what's actually built.
 | D1 | Hard iteration cap + post-iteration spend threshold | ✅ |
 | D2 | Live counter | ✅ |
 | D3 | Cheap-model routing for reflection | ✅ (Claude: haiku) |
-| D4 | Per-iteration git checkpoint + revert | ✅ |
+| D4 | Per-iteration tracked-file git checkpoint + revert | ✅ |
 | E1 | Readable run summary | ✅ |
 | E2 | Gif-able output | ✅ |
 | F1 | Adapter interface (3 agents registered) | ✅ |

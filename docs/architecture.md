@@ -19,7 +19,7 @@ flowchart TD
     LOOP["loop.run_loop"]
     VER["verify.run_verify<br/>ground-truth oracle"]
     BUD["budget.BudgetTracker"]
-    CHK["checkpoint.Checkpointer<br/>git snapshots"]
+    CHK["checkpoint.Checkpointer<br/>tracked-file git snapshots"]
     REF["reflect.reflect_on_failure"]
     STORE["lessons.LessonStore"]
     MEM[("CLAUDE.md /<br/>AGENTS.md")]
@@ -71,7 +71,7 @@ flowchart TD
     D --> DV["run verify once"]
     DV --> R{"any failed<br/>iteration?"}
 
-    N -- no --> S["snapshot working tree"]
+    N -- no --> S["snapshot tracked files"]
     S --> I["run_iteration"]
     I --> SV["run verify"]
     SV --> P{"passed?"}

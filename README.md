@@ -103,8 +103,8 @@ seam, is in [`docs/architecture.md`](docs/architecture.md).
 - A portability and learning layer above your coding agent.
 - Eval-gated: the `verify` command is the ground-truth oracle.
 - Safe by default: low iteration cap, a spend threshold that stops the loop
-  (raise it with `--budget`), and a git checkpoint before every iteration so you
-  can always get your repo back.
+  (raise it with `--budget`), and a git checkpoint of tracked changes before
+  every iteration so you can get your tracked edits back.
 
 **It isn't:**
 - A replacement for native loops. Where your agent has its own eval-gated loop,
@@ -171,8 +171,9 @@ Two things to know:
   after real progress it cuts losses, and if the agent never moves the needle it
   stops and flags the run for you. Costs no extra tokens. See
   [`docs/architecture.md`](docs/architecture.md#value-aware-stopping-metacogpy).
-- **Per-iteration git checkpoint.** Each iteration is a restore point; revert
-  with `looptight revert`.
+- **Per-iteration git checkpoint.** Each iteration is a restore point for
+  tracked changes; revert with `looptight revert`. Untracked files are not
+  captured or removed, so it isn't a full working-tree backup.
 - **Cheap-model routing for reflection.** The bookkeeping step (writing the
   lesson) uses a smaller model than the coding step, so cost goes to the work.
 - Runs inside your agent's existing sandbox and permission boundaries.
