@@ -15,9 +15,12 @@ If it can, `CodexAdapter.supports_native_loop` should be set to `True` and
 Source: `docs/STATUS.md` → Next #1.
 
 **Codex/opencode cost parsing**
-`codex exec --json` and `opencode run -f json` output formats are unconfirmed.
-Implementing `cost_usd` parsing (so the dollar ceiling binds on all three adapters,
-not just Claude) requires observing real output. Blocked on real CLI access.
+`codex exec --json` was observed on 2026-06-18: the `turn.completed` event
+includes `usage.input_tokens`, `usage.cached_input_tokens`,
+`usage.output_tokens`, and `usage.reasoning_output_tokens`, but no USD cost.
+Implementing a Codex `cost_usd` estimate now requires an explicit model/pricing
+mapping decision, not just parsing. `opencode run -f json` remains unobserved
+because `opencode` is not installed in this environment.
 Source: `docs/STATUS.md` → Next #2.
 
 **e2e test un-skip**

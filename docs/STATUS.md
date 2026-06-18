@@ -48,16 +48,18 @@ All three adapters are real and shell out to their confirmed headless commands
 under `--native`. The whole control flow is unit-tested with injected fakes (no
 agent, no network); the opt-in `tests/e2e_test.py` exercises a real agent.
 
-Known limitations: Codex/opencode don't report a USD cost on stdout, so their
-runs are bounded by the iteration cap rather than the dollar ceiling; cheap-model
-reflection (D3) is wired for Claude (`haiku`) and falls back to the default model
-elsewhere.
+Known limitations: Codex JSON output reports token usage, not USD cost, and
+opencode JSON output is still unobserved here. Those runs are bounded by the
+iteration cap rather than the dollar ceiling unless a model/pricing conversion
+is added; cheap-model reflection (D3) is wired for Claude (`haiku`) and falls
+back to the default model elsewhere.
 
 ## Next
 
 1. Confirm whether Codex `/goal` can be driven headlessly; if so, flip
    `supports_native_loop` on and add `drive_native_loop`.
-2. Parse cost from `codex exec --json` / `opencode run -f json` so the dollar
-   ceiling binds on all three.
+2. Decide whether to add token-to-USD pricing for observed `codex exec --json`
+   usage events; observe `opencode run -f json` before attempting opencode cost
+   parsing.
 3. Record the flagship gif: the same command across agents, then a second task
    that benefits from a lesson written in the first run.
