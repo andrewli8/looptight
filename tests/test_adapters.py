@@ -50,6 +50,20 @@ def test_claude_parse_tolerates_non_json():
     assert cost == 0.0
 
 
+def test_claude_parse_tolerates_non_object_json(tmp_path):
+    # Valid JSON that isn't an object (array/scalar) must degrade to text, not
+    # crash on a missing .get — the CLI output is untrusted external data.
+    text, cost = _parse_result("[1, 2, 3]")
+    assert text == "[1, 2, 3]"
+    assert cost == 0.0
+
+
+def test_claude_parse_tolerates_non_numeric_cost():
+    text, cost = _parse_result('{"result": "done", "total_cost_usd": "lots"}')
+    assert text == "done"
+    assert cost == 0.0
+
+
 def test_claude_parse_matches_recorded_cli_output():
     # Contract test against a recorded `claude -p --output-format json` blob.
     # If Claude Code's JSON schema drifts, this fails loudly instead of us

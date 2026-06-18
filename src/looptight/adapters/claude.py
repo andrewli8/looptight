@@ -109,6 +109,11 @@ def _parse_result(stdout: str) -> tuple[str, float]:
         data = json.loads(stdout)
     except (ValueError, TypeError):
         return stdout.strip(), 0.0
+    if not isinstance(data, dict):
+        return stdout.strip(), 0.0
     text = data.get("result") or data.get("text") or ""
-    cost = float(data.get("total_cost_usd") or data.get("cost_usd") or 0.0)
+    try:
+        cost = float(data.get("total_cost_usd") or data.get("cost_usd") or 0.0)
+    except (ValueError, TypeError):
+        cost = 0.0
     return str(text).strip(), cost
