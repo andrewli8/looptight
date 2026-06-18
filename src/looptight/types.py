@@ -100,6 +100,7 @@ class RunResult:
     total_cost_usd: float = 0.0
     lesson: Lesson | None = None
     diffstat: str = ""
+    error: str | None = None
 
     @property
     def passed(self) -> bool:

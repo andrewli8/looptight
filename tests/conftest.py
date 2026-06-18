@@ -32,11 +32,13 @@ class FakeAdapter(Adapter):
         cost: float = 0.05,
         reflect_text: str | None = "Pin the request timeout in client.py to 30s",
         supports_native: bool = False,
+        ok: bool = True,
     ) -> None:
         self.available = available
         self.cost = cost
         self.reflect_text = reflect_text
         self.supports_native_loop = supports_native
+        self.ok = ok
         self.iterations_run = 0
         self.native_runs = 0
         self.contexts: list[str] = []
@@ -47,11 +49,21 @@ class FakeAdapter(Adapter):
     def run_iteration(self, goal: str, context: str, workdir: Path, model: str | None = None) -> IterationResult:
         self.iterations_run += 1
         self.contexts.append(context)
-        return IterationResult(transcript=f"attempt {self.iterations_run}", cost_usd=self.cost, ok=True)
+        return IterationResult(
+            transcript=f"attempt {self.iterations_run}",
+            cost_usd=self.cost,
+            ok=self.ok,
+            error=None if self.ok else "provider credits exhausted",
+        )
 
     def drive_native_loop(self, goal, verify, max_iterations, budget_usd, workdir) -> IterationResult:
         self.native_runs += 1
-        return IterationResult(transcript="native loop done", cost_usd=self.cost, ok=True)
+        return IterationResult(
+            transcript="native loop done",
+            cost_usd=self.cost,
+            ok=self.ok,
+            error=None if self.ok else "provider credits exhausted",
+        )
 
     def reflect(self, prompt: str, workdir: Path) -> str | None:
         return self.reflect_text

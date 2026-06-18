@@ -34,6 +34,8 @@ class Adapter(ABC):
     memory_filename: str = "AGENTS.md"
     #: True if the agent ships a headless eval-gated loop we can drive (B1).
     supports_native_loop: bool = False
+    #: True when iteration results include measured USD cost.
+    reports_cost_usd: bool = False
 
     @abstractmethod
     def is_available(self) -> bool:

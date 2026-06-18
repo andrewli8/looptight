@@ -83,6 +83,7 @@ def _supply_loop(goal, adapter, config, workdir, *, verify_fn, reflect_fn, check
     progress: list[float | None] = []
     context = ""
     stop = StopReason.ITERATION_CAP
+    error: str | None = None
 
     for _ in range(config.max_iterations):
         number = budget.start_iteration()
@@ -90,6 +91,11 @@ def _supply_loop(goal, adapter, config, workdir, *, verify_fn, reflect_fn, check
 
         iteration = adapter.run_iteration(goal, context, workdir)
         budget.add_cost(iteration.cost_usd)
+
+        if not iteration.ok:
+            stop = StopReason.ERROR
+            error = iteration.error or iteration.transcript or "coding agent failed"
+            break
 
         verify = verify_fn(config.verify, workdir)
         record = IterationRecord(number=number, verify=verify, cost_usd=iteration.cost_usd, checkpoint=snapshot)
@@ -125,6 +131,7 @@ def _supply_loop(goal, adapter, config, workdir, *, verify_fn, reflect_fn, check
         iterations=tuple(records),
         total_cost_usd=budget.spent_usd,
         diffstat=checkpointer.diffstat(),
+        error=error,
     )
     return _maybe_reflect(result, adapter, config, workdir, reflect_fn, store)
 
@@ -135,6 +142,16 @@ def _delegate_loop(goal, adapter, config, workdir, *, verify_fn, reflect_fn, che
     iteration = adapter.drive_native_loop(
         goal, config.verify, config.max_iterations, config.budget_usd, workdir
     )
+    if not iteration.ok:
+        return RunResult(
+            goal=goal,
+            agent=adapter.name,
+            mode="delegate",
+            stop_reason=StopReason.ERROR,
+            total_cost_usd=iteration.cost_usd,
+            diffstat=checkpointer.diffstat(),
+            error=iteration.error or iteration.transcript or "coding agent failed",
+        )
     verify = verify_fn(config.verify, workdir)
     record = IterationRecord(number=1, verify=verify, cost_usd=iteration.cost_usd)
     if on_iteration:

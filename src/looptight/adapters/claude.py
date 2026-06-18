@@ -33,6 +33,7 @@ class ClaudeAdapter(Adapter):
     name = "claude"
     memory_filename = "CLAUDE.md"
     supports_native_loop = True
+    reports_cost_usd = True
 
     binary = "claude"
 

@@ -160,6 +160,36 @@ def test_unavailable_agent_stops_cleanly(workdir):
     assert result.stop_reason is StopReason.AGENT_UNAVAILABLE
 
 
+def test_supply_agent_failure_is_not_masked_by_green_verify(workdir):
+    adapter = FakeAdapter(ok=False)
+
+    result = _run(adapter, _config(), workdir, pass_on=1)
+
+    assert result.stop_reason is StopReason.ERROR
+    assert result.passed is False
+    assert result.error == "provider credits exhausted"
+    assert result.iteration_count == 0
+
+
+def test_delegate_agent_failure_is_not_masked_by_green_verify(workdir):
+    adapter = FakeAdapter(supports_native=True, ok=False)
+
+    result = run_loop(
+        "do it",
+        adapter,
+        _config(),
+        workdir,
+        native=True,
+        verify_fn=make_verify(1),
+        checkpointer=Checkpointer(workdir, enabled=False),
+    )
+
+    assert result.stop_reason is StopReason.ERROR
+    assert result.passed is False
+    assert result.error == "provider credits exhausted"
+    assert result.iteration_count == 0
+
+
 def test_on_iteration_callback_called_per_iteration(workdir):
     adapter = FakeAdapter()
     seen: list = []
