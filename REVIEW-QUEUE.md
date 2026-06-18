@@ -34,6 +34,35 @@ human-performed documentation task, not a code change.
 
 ---
 
+## Run Summary (2026-06-18, second run)
+
+Autonomous improvement loop — 8 tasks completed.
+
+### Landed
+
+| Hash | Description |
+|------|-------------|
+| `29830fd` | test: add direct unit tests for reflect_on_failure (9 tests) |
+| `75cd572` | fix: render_rich now shows diffstat; test plain render diffstat branch |
+| `3aaab09` | test: add coverage for cmd_verify, cmd_propose --json, cmd_lessons --clear/--prune |
+| `8e56509` | test: verify from_todos ignores TODO inside string literals |
+| `1a2d4aa` | test: cover malformed package.json falling through in detect_verify |
+| `36ce16c` | test: cover codex/opencode reflect() success and non-zero-exit paths |
+| `838cabe` | test: cover on_iteration in delegate path + cmd_run with no verify |
+| `1230b53` | build: add pytest to dev dependency group |
+
+Notable: the `render_rich` fix (75cd572) was a real gap — the CLI's rich
+summary omitted the diffstat block that the plain-text renderer already had.
+A successful run with code changes would show no summary of what changed.
+
+`reflect_on_failure` (29830fd) had zero direct tests despite being a
+critical path — lessons are written here. All 9 new tests are offline.
+
+Test count: 111 → 134 passed (23 new tests, all offline/sub-second).
+All commits: `pytest -q` and `ruff check` clean before push.
+
+---
+
 ## Run Summary (2026-06-18)
 
 Autonomous improvement loop — 8 tasks completed.
