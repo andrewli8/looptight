@@ -6,6 +6,18 @@ next actionable task.
 
 ---
 
+## Run Summary (2026-06-18, idle run)
+
+No changes: nothing safe and valuable to do. Verified main is green
+(`uv run pytest -q`: 169 passed, 1 skipped; `uv run ruff check`: clean). The
+only remaining `propose` candidate is the flagship-gif task, already recorded
+below as a deferred non-goal (needs an interactive recording environment with
+three real agents — not an autonomous code change). The propose-noise filtering
+for opt-in/conditional skips is already landed (`4a4860e`, `e78f2ca`), so no
+further work there. An empty run is a good run.
+
+---
+
 ## AUDIT (2026-06-18)
 
 Reviewer: independent checker agent. No prior AUDIT marker found; reviewed the
