@@ -107,3 +107,13 @@ def test_run_hook_tolerates_non_path_cwd():
     output, code = run_hook(event, verify_fn=lambda c, w: _fail())
     assert output is None
     assert code == 0
+
+
+def test_run_hook_tolerates_malformed_config(tmp_path):
+    # A broken .looptight.toml must not trap or crash the Stop hook: it behaves
+    # like an un-armed repo and lets the stop through (the documented contract).
+    (tmp_path / ".looptight.toml").write_text('hook = true\nbad = = toml\n')
+    event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
+    output, code = run_hook(event, verify_fn=lambda c, w: _fail())
+    assert output is None
+    assert code == 0

@@ -25,7 +25,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
-from .config import Config, find_config, load_config
+from .config import Config, ConfigError, find_config, load_config
 from .types import VerifyResult
 from .verify import run_verify
 
@@ -94,7 +94,14 @@ def write_count(path: Path, count: int) -> None:
 
 def _config_for(cwd: Path) -> Config:
     found = find_config(cwd)
-    return load_config(found) if found else Config()
+    if not found:
+        return Config()
+    try:
+        return load_config(found)
+    except ConfigError:
+        # A broken config must never trap or crash the hook; treat it as an
+        # un-armed repo (dormant default) and let the stop through.
+        return Config()
 
 
 def run_hook(stdin_text: str, *, verify_fn: VerifyFn = run_verify) -> tuple[str | None, int]:
