@@ -15,15 +15,15 @@ def test_init_writes_config(tmp_path, monkeypatch):
 
 def test_bare_goal_defaults_to_run_but_needs_an_agent(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("looptight.cli.detect_agent", lambda *a, **k: None)
+    monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: None)
     # No agent on PATH → clean exit code 2, not a crash.
     assert main(["fix the failing tests"]) == 2
 
 
 def test_run_exits_error_when_no_verify_command(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("looptight.cli.detect_agent", lambda *a, **k: "claude")
-    monkeypatch.setattr("looptight.cli.get_adapter", lambda name: __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter())
+    monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: "claude")
+    monkeypatch.setattr("looptight.commands.get_adapter", lambda name: __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter())
     # No config, no verify markers → no verify command → exit 2.
     assert main(["run", "fix tests"]) == 2
 
@@ -125,9 +125,9 @@ def test_improve_warns_when_provider_cost_cannot_be_measured(tmp_path, monkeypat
 
     monkeypatch.chdir(tmp_path)
     adapter = __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter()
-    monkeypatch.setattr("looptight.cli.get_adapter", lambda name: adapter)
+    monkeypatch.setattr("looptight.commands.get_adapter", lambda name: adapter)
     monkeypatch.setattr(
-        "looptight.cli.run_improve",
+        "looptight.commands.run_improve",
         lambda *a, **k: ImproveResult(ImproveStopReason.SESSION_BUDGET),
     )
 
@@ -142,9 +142,9 @@ def test_improve_maps_provider_stop_to_failure(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     adapter = __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter()
-    monkeypatch.setattr("looptight.cli.get_adapter", lambda name: adapter)
+    monkeypatch.setattr("looptight.commands.get_adapter", lambda name: adapter)
     monkeypatch.setattr(
-        "looptight.cli.run_improve",
+        "looptight.commands.run_improve",
         lambda *a, **k: ImproveResult(
             ImproveStopReason.PROVIDER_STOP, error="usage limit reached"
         ),
@@ -158,9 +158,9 @@ def test_improve_maps_interrupt_to_130(tmp_path, monkeypatch):
 
     monkeypatch.chdir(tmp_path)
     adapter = __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter()
-    monkeypatch.setattr("looptight.cli.get_adapter", lambda name: adapter)
+    monkeypatch.setattr("looptight.commands.get_adapter", lambda name: adapter)
     monkeypatch.setattr(
-        "looptight.cli.run_improve",
+        "looptight.commands.run_improve",
         lambda *a, **k: ImproveResult(ImproveStopReason.INTERRUPTED),
     )
 
@@ -172,7 +172,7 @@ def test_revert_reports_failure_when_git_checkout_fails(tmp_path, monkeypatch, c
 
     monkeypatch.chdir(tmp_path)
     # Pretend we're inside a git repo so revert proceeds past the guard.
-    monkeypatch.setattr("looptight.cli.is_git_repo", lambda *a, **k: True)
+    monkeypatch.setattr("looptight.commands.is_git_repo", lambda *a, **k: True)
 
     def fake_run(*a, **k):
         return subprocess.CompletedProcess(args=a[0] if a else [], returncode=1)
