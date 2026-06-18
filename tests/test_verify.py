@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import subprocess
+
 from looptight.verify import parse_score, run_verify
 
 
@@ -36,3 +38,14 @@ def test_score_surfaced_in_result(tmp_path):
 def test_missing_command_is_failure_not_crash(tmp_path):
     result = run_verify("this-binary-does-not-exist-xyz", tmp_path)
     assert not result.passed  # shell reports 127, captured as a failure
+
+
+def test_timeout_is_failure_not_crash(tmp_path, monkeypatch):
+    def raise_timeout(*args, **kwargs):
+        raise subprocess.TimeoutExpired(cmd="sleep 999", timeout=0.001)
+
+    monkeypatch.setattr(subprocess, "run", raise_timeout)
+    result = run_verify("sleep 999", tmp_path, timeout_s=0.001)
+    assert not result.passed
+    assert result.exit_code == 124
+    assert "timed out" in result.output
