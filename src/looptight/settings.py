@@ -62,10 +62,11 @@ def install(path: Path) -> bool:
     dict is local to this call, but we keep the merge explicit and copy-based).
     """
     data = _load(path)
-    hooks = dict(data.get("hooks", {}))
-    stop = list(hooks.get("Stop", []))
-    if not isinstance(data.get("hooks", {}), dict):
+    raw_hooks = data.get("hooks", {})
+    if not isinstance(raw_hooks, dict):
         raise ValueError(f"{path}: hooks is not an object; refusing to edit")
+    hooks = dict(raw_hooks)
+    stop = list(hooks.get("Stop", []))
     if any(_is_ours(entry) for entry in stop if isinstance(entry, dict)):
         return False
     stop.append(_hook_entry())
@@ -79,7 +80,10 @@ def uninstall(path: Path) -> int:
     if not path.is_file():
         return 0
     data = _load(path)
-    hooks = dict(data.get("hooks", {}))
+    raw_hooks = data.get("hooks", {})
+    if not isinstance(raw_hooks, dict):
+        raise ValueError(f"{path}: hooks is not an object; refusing to edit")
+    hooks = dict(raw_hooks)
     stop = list(hooks.get("Stop", []))
     kept = [entry for entry in stop if not (isinstance(entry, dict) and _is_ours(entry))]
     removed = len(stop) - len(kept)

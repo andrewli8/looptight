@@ -96,3 +96,18 @@ def test_refuses_to_clobber_malformed_file(tmp_path):
         install(path)
     # the broken file is left exactly as it was
     assert path.read_text() == "{ this is not valid json"
+
+
+def test_install_refuses_when_hooks_is_not_an_object(tmp_path):
+    path = tmp_path / "settings.json"
+    path.write_text(json.dumps({"hooks": ["not", "an", "object"]}))
+    # A clear, actionable error naming `hooks` — not a cryptic dict() crash.
+    with pytest.raises(ValueError, match="hooks"):
+        install(path)
+
+
+def test_uninstall_refuses_when_hooks_is_not_an_object(tmp_path):
+    path = tmp_path / "settings.json"
+    path.write_text(json.dumps({"hooks": ["not", "an", "object"]}))
+    with pytest.raises(ValueError, match="hooks"):
+        uninstall(path)
