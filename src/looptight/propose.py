@@ -132,6 +132,23 @@ def _statement_text(lines: list[str], start: int) -> str:
     return "\n".join(chunk)
 
 
+def _inside_conditional(lines: list[str], idx: int) -> bool:
+    """True if ``lines[idx]`` sits inside an ``if`` / ``elif`` guard.
+
+    An imperative ``pytest.skip()`` reached only under a runtime guard is a
+    conditional skip — the test runs whenever the guard is false (the normal CI
+    case) — so it is intentional infrastructure (a capability or platform gate),
+    not a bit-rotting skip to fix. We look at the immediately enclosing block.
+    """
+    indent = len(lines[idx]) - len(lines[idx].lstrip())
+    for prev in reversed(lines[:idx]):
+        if not prev.strip():
+            continue
+        if len(prev) - len(prev.lstrip()) < indent:
+            return bool(re.match(r"(if|elif)\b", prev.strip()))
+    return False
+
+
 def _module_is_optin(lines: list[str]) -> bool:
     """True if the whole module is gated behind an env-var ``pytestmark`` skipif.
 
@@ -157,9 +174,12 @@ def from_skipped_tests(root: Path) -> list[Candidate]:
         if _module_is_optin(lines):
             continue
         for idx, line in enumerate(lines):
-            if not _is_skip_line(line.strip()):
+            stripped = line.strip()
+            if not _is_skip_line(stripped):
                 continue
             if _OPTIN_RE.search(_statement_text(lines, idx)):
+                continue
+            if stripped.startswith("pytest.skip(") and _inside_conditional(lines, idx):
                 continue
             out.append(
                 Candidate(

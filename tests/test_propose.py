@@ -97,6 +97,37 @@ def test_from_skipped_tests_keeps_non_env_skipif(tmp_path):
     assert len(cands) == 1
 
 
+def test_from_skipped_tests_ignores_capability_guarded_skip(tmp_path):
+    # An imperative `pytest.skip()` reached only when a required tool is absent
+    # is an intentional capability guard — the test runs whenever the tool is
+    # present (the normal CI case) — so it is not a bit-rotting skip to fix.
+    _write(
+        tmp_path,
+        "tests/test_z.py",
+        "import shutil\nimport pytest\n\n"
+        "def test_needs_tool():\n"
+        "    if shutil.which('ruff') is None:\n"
+        "        pytest.skip('ruff not available')\n"
+        "    assert True\n",
+    )
+    assert from_skipped_tests(tmp_path) == []
+
+
+def test_from_skipped_tests_keeps_unconditional_inline_skip(tmp_path):
+    # A bare `pytest.skip()` not guarded by any condition disables the test
+    # outright — that is genuine rot, still a fix-me candidate.
+    _write(
+        tmp_path,
+        "tests/test_w.py",
+        "import pytest\n\n"
+        "def test_disabled():\n"
+        "    pytest.skip('disabled for now')\n"
+        "    assert True\n",
+    )
+    cands = from_skipped_tests(tmp_path)
+    assert len(cands) == 1
+
+
 def test_from_status_next_parses_numbered_list(tmp_path):
     _write(
         tmp_path,
