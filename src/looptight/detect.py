@@ -30,6 +30,7 @@ def detect_agent(preferred: str | None = None) -> str | None:
 # (marker file, predicate, verify command). First match wins.
 _VERIFY_RULES: tuple[tuple[str, str], ...] = (
     ("pyproject.toml", "pytest -q"),
+    ("setup.cfg", "pytest -q"),
     ("pytest.ini", "pytest -q"),
     ("tox.ini", "pytest -q"),
     ("Cargo.toml", "cargo test"),
