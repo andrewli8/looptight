@@ -7,9 +7,9 @@ writes nothing; it only reads the repo.
 
 This is deliberately the cheap, grounded part of "what to work on". The research
 behind looptight found free-form task invention is the least validated decision,
-so this stays anchored to signals a human can immediately check, and a human
-approves what actually runs. Ranking is a transparent heuristic, labeled as one,
-not a claim of optimal ordering.
+so this stays anchored to signals the operating agent can immediately check.
+Ranking is a transparent heuristic, labeled as one, not a claim of optimal
+ordering.
 """
 
 from __future__ import annotations

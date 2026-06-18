@@ -22,11 +22,11 @@ committed and pushed directly to `main`.
    `uv run pytest -q` and `uv run ruff check`.
 5. Commit a coherent verified change with a conventional commit and push it to
    `origin/main`.
-6. Repeat while a defensible task remains and the loop continues to produce
-   useful progress.
+6. Repeat through `looptight improve`; when grounded tasks are exhausted, use a
+   fresh evidence-based agent audit rather than stopping for lack of proposals.
 
-The session stops when only blocked, speculative, unverifiable, or low-value
-tasks remain; looping forever is not itself a success criterion.
+The session stops only when its session spend threshold is reached, the provider
+refuses further calls, the user interrupts it, or a Git safety operation fails.
 
 ## Task selection
 
@@ -65,4 +65,5 @@ Do not repeat blockers already present in `REVIEW-QUEUE.md` or `docs/STATUS.md`.
 - Every pushed code change passes pytest and Ruff.
 - Each task has a concrete evidence trail and a focused commit.
 - No task bypasses budget, iteration, verification, or Git safety boundaries.
-- The session ends without padding the repository or duplicating documentation.
+- Repeated audit prompts avoid padding and duplicate documentation while keeping
+  the session active until an explicit terminal condition occurs.
