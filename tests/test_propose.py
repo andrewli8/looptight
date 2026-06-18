@@ -38,6 +38,13 @@ def test_from_todos_ignores_non_python(tmp_path):
     assert from_todos(tmp_path) == []
 
 
+def test_from_todos_ignores_todo_inside_string_literal(tmp_path):
+    # tokenize only yields COMMENT tokens, so a "# TODO:" inside a string
+    # is never a false positive — this tests the key benefit of using tokenize.
+    _write(tmp_path, "src/pkg/a.py", 'x = "# TODO: not a real comment"\n')
+    assert from_todos(tmp_path) == []
+
+
 def test_from_skipped_tests_detects_markers(tmp_path):
     _write(
         tmp_path,
