@@ -20,10 +20,10 @@ durable lessons, across Claude Code, Codex, and opencode. Architecture lives in
 
 ## Autonomous-loop discipline
 
-- **Propose, then select.** `looptight propose` surfaces tasks from concrete
-  repo signals; the operating agent selects the highest-value actionable task,
-  runs it through looptight, reviews the diff, and pushes a verified commit to
-  main. No human participates in the task cycle.
+- **Continuously improve.** `looptight improve --push` consumes grounded
+  proposals first, then fresh repository audits. It selects one task at a time,
+  runs it through looptight, and pushes only verified commits. No human
+  participates in the task cycle.
 - **Skip, don't guess.** If a change can't be cheaply verified (e.g. it depends
   on an external CLI's output format we can't observe), record the blocker and
   continue to the next actionable task instead of inventing an implementation.

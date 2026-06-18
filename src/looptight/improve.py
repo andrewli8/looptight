@@ -81,6 +81,9 @@ def _rollback(
     git_fn: GitFn,
     workdir: Path,
 ) -> str | None:
+    reset = git_fn(["reset", "--mixed", snapshot], workdir)
+    if reset.returncode != 0:
+        return reset.stderr.strip() or "failed to reset task index"
     if not checkpointer.restore(snapshot):
         return "failed to restore tracked files"
     cleaned = git_fn(["clean", "-fd"], workdir)
@@ -150,14 +153,20 @@ def run_improve(
         tasks += 1
         spent += max(0.0, result.total_cost_usd)
 
-        if result.stop_reason is StopReason.ERROR:
+        if result.stop_reason in {StopReason.ERROR, StopReason.AGENT_UNAVAILABLE}:
             error = _rollback(checkpointer, snapshot, git_fn, workdir)
             return ImproveResult(
                 ImproveStopReason.GIT_ERROR if error else ImproveStopReason.PROVIDER_STOP,
                 tasks,
                 commits,
                 spent,
-                error or result.error or "coding provider stopped",
+                error
+                or result.error
+                or (
+                    "coding agent unavailable"
+                    if result.stop_reason is StopReason.AGENT_UNAVAILABLE
+                    else "coding provider stopped"
+                ),
             )
 
         if result.passed:

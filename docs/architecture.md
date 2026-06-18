@@ -17,6 +17,8 @@ flowchart TD
     REG["adapters/__init__.py<br/>registry"]
     ADP["Adapter<br/>claude / codex / opencode"]
     LOOP["loop.run_loop"]
+    IMP["improve.run_improve<br/>continuous task cycle"]
+    PROP["propose.propose<br/>grounded task signals"]
     VER["verify.run_verify<br/>ground-truth oracle"]
     BUD["budget.BudgetTracker"]
     CHK["checkpoint.Checkpointer<br/>tracked-file git snapshots"]
@@ -29,6 +31,9 @@ flowchart TD
 
     CLI --> DET
     CLI --> CFG
+    CLI --> IMP
+    IMP --> PROP
+    IMP --> LOOP
     CLI --> REG
     REG --> ADP
     CLI --> LOOP
@@ -55,7 +60,8 @@ which path ran (B4).
 `run_loop` checks two preconditions (a `verify` command and an available agent),
 then picks a path. With `--native` and an adapter that supports it, looptight
 delegates to the agent's own eval-gated loop. Otherwise it supplies the loop:
-snapshot, iterate, verify, repeat, under a hard iteration cap and a post-iteration spend threshold.
+snapshot, iterate, verify, repeat, under a hard iteration cap and a
+post-iteration spend threshold.
 Both paths end the same way: if any iteration failed verification, reflect once
 and write a lesson.
 

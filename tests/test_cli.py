@@ -102,6 +102,64 @@ def test_budget_flag_help_describes_spend_threshold(capsys):
     assert "overshoot" in out
 
 
+def test_improve_help_exposes_continuous_controls(capsys):
+    try:
+        main(["improve", "--help"])
+    except SystemExit as exc:
+        assert exc.code == 0
+    out = capsys.readouterr().out
+    assert "--budget" in out
+    assert "--push" in out
+    assert "--max-iterations" in out
+
+
+def test_improve_warns_when_provider_cost_cannot_be_measured(tmp_path, monkeypatch, capsys):
+    from looptight.improve import ImproveResult, ImproveStopReason
+
+    monkeypatch.chdir(tmp_path)
+    adapter = __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter()
+    monkeypatch.setattr("looptight.cli.get_adapter", lambda name: adapter)
+    monkeypatch.setattr(
+        "looptight.cli.run_improve",
+        lambda *a, **k: ImproveResult(ImproveStopReason.SESSION_BUDGET),
+    )
+
+    assert main(["improve", "--agent", "claude", "--verify", "exit 0", "--budget", "5"]) == 0
+    out = capsys.readouterr().out.lower()
+    assert "cannot enforce" in out
+    assert "provider" in out
+
+
+def test_improve_maps_provider_stop_to_failure(tmp_path, monkeypatch):
+    from looptight.improve import ImproveResult, ImproveStopReason
+
+    monkeypatch.chdir(tmp_path)
+    adapter = __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter()
+    monkeypatch.setattr("looptight.cli.get_adapter", lambda name: adapter)
+    monkeypatch.setattr(
+        "looptight.cli.run_improve",
+        lambda *a, **k: ImproveResult(
+            ImproveStopReason.PROVIDER_STOP, error="usage limit reached"
+        ),
+    )
+
+    assert main(["improve", "--agent", "claude", "--verify", "exit 0"]) == 1
+
+
+def test_improve_maps_interrupt_to_130(tmp_path, monkeypatch):
+    from looptight.improve import ImproveResult, ImproveStopReason
+
+    monkeypatch.chdir(tmp_path)
+    adapter = __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter()
+    monkeypatch.setattr("looptight.cli.get_adapter", lambda name: adapter)
+    monkeypatch.setattr(
+        "looptight.cli.run_improve",
+        lambda *a, **k: ImproveResult(ImproveStopReason.INTERRUPTED),
+    )
+
+    assert main(["improve", "--agent", "claude", "--verify", "exit 0", "--push"]) == 130
+
+
 def test_revert_reports_failure_when_git_checkout_fails(tmp_path, monkeypatch, capsys):
     import subprocess
 

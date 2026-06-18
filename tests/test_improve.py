@@ -135,6 +135,19 @@ def test_provider_error_stops_continuous_session(tmp_path):
     assert result.error == "usage limit reached"
 
 
+def test_unavailable_provider_stops_instead_of_retrying_forever(tmp_path):
+    _init_repo(tmp_path)
+
+    result = run_improve(
+        tmp_path,
+        lambda goal, cp: _result(StopReason.AGENT_UNAVAILABLE),
+        propose_fn=lambda root, limit=0: [],
+    )
+
+    assert result.stop_reason is ImproveStopReason.PROVIDER_STOP
+    assert result.tasks_attempted == 1
+
+
 def test_failed_task_is_rolled_back_before_continuing(tmp_path):
     _init_repo(tmp_path)
     calls = 0
@@ -166,6 +179,7 @@ def test_commit_failure_stops_session(tmp_path):
 
     def run_task(goal, checkpointer):
         (tmp_path / "app.py").write_text("new\n")
+        (tmp_path / "created.py").write_text("new file\n")
         return _result()
 
     def git_fn(args, cwd):
@@ -182,6 +196,8 @@ def test_commit_failure_stops_session(tmp_path):
 
     assert result.stop_reason is ImproveStopReason.GIT_ERROR
     assert "commit" in (result.error or "")
+    assert _git(["status", "--porcelain"], tmp_path).stdout == ""
+    assert not (tmp_path / "created.py").exists()
 
 
 def test_keyboard_interrupt_stops_cleanly(tmp_path):

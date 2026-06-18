@@ -2,8 +2,8 @@
 
 The surface is deliberately tiny (A3 — one concept to learn). The default verb
 is ``run``, so ``looptight "fix the failing tests"`` just works. Everything else
-(``init``, ``verify``, ``lessons``, ``doctor``, ``revert``) supports that one
-path.
+(``init``, ``improve``, ``verify``, ``lessons``, ``doctor``, ``revert``)
+supports that path or the explicit continuous-improvement mode.
 """
 
 from __future__ import annotations
@@ -20,12 +20,24 @@ from .checkpoint import is_git_repo
 from .config import load_config, write_config, Config
 from .detect import KNOWN_AGENTS, detect_agent, detect_verify
 from .lessons import LessonStore
+from .improve import ImproveStopReason, run_improve
 from .loop import run_loop
 from .summary import render_rich
 from .types import StopReason
 from .verify import run_verify
 
-_COMMANDS = {"init", "run", "verify", "lessons", "doctor", "revert", "hook", "install-hook", "propose"}
+_COMMANDS = {
+    "init",
+    "run",
+    "improve",
+    "verify",
+    "lessons",
+    "doctor",
+    "revert",
+    "hook",
+    "install-hook",
+    "propose",
+}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -43,6 +55,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_run = sub.add_parser("run", help="run your agent until verify passes")
     p_run.add_argument("goal", help="what you want done, in plain language")
     _add_run_flags(p_run)
+
+    p_improve = sub.add_parser(
+        "improve", help="continuously discover and implement verified repository improvements"
+    )
+    _add_improve_flags(p_improve)
 
     p_verify = sub.add_parser("verify", help="run the verify command once and report")
     p_verify.add_argument("--verify", help="override the verify command")
@@ -99,6 +116,21 @@ def _add_run_flags(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_improve_flags(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--agent", choices=KNOWN_AGENTS, help="agent to use (auto-detected if omitted)")
+    parser.add_argument("--verify", help="override the per-task verify command")
+    parser.add_argument("--max-iterations", type=int, help="per-task hard iteration cap")
+    parser.add_argument("--patience", type=int, help="per-task no-progress patience (0 = off)")
+    parser.add_argument(
+        "--budget",
+        type=float,
+        help="optional cumulative session spend threshold; default uses provider limits",
+    )
+    parser.add_argument("--no-reflect", action="store_true", help="do not write lessons on failure")
+    parser.add_argument("--native", action="store_true", help="use the agent's native loop where available")
+    parser.add_argument("--push", action="store_true", help="push each verified autonomous commit")
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     # Default verb: a bare goal string means `run` (A2/A3 ergonomics).
@@ -116,6 +148,7 @@ def main(argv: list[str] | None = None) -> int:
     handler = {
         "init": cmd_init,
         "run": cmd_run,
+        "improve": cmd_improve,
         "verify": cmd_verify,
         "lessons": cmd_lessons,
         "doctor": cmd_doctor,
@@ -206,6 +239,82 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
     console.print()
     render_rich(result, console)
     return 0 if result.stop_reason is StopReason.SUCCESS else 1
+
+
+def cmd_improve(args: argparse.Namespace, console: Console) -> int:
+    workdir = Path.cwd()
+    config = load_config().merged(
+        agent=args.agent,
+        verify=args.verify,
+        max_iterations=args.max_iterations,
+        patience=args.patience,
+        reflect=False if args.no_reflect else None,
+        native=True if args.native else None,
+    )
+    agent_name = config.agent or detect_agent()
+    if not agent_name:
+        console.print("[red]No coding agent found on PATH.[/red] Install claude, codex, or opencode.")
+        return 2
+    adapter = get_adapter(agent_name)
+    if not config.verify:
+        config = config.merged(verify=detect_verify(workdir))
+    if not config.verify:
+        console.print("[red]No verify command.[/red] No verify, no improve loop.")
+        return 2
+
+    use_native = config.native and adapter.supports_native_loop
+    if args.budget is not None and not adapter.reports_cost_usd:
+        console.print(
+            f"[yellow]{agent_name} does not report USD cost; looptight cannot enforce the "
+            "session budget and will use the provider's limit.[/yellow]"
+        )
+
+    store = LessonStore(adapter.memory_file(workdir))
+
+    def on_iteration(record) -> None:
+        style = "green" if record.verify.passed else "red"
+        console.print(
+            f"  iteration {record.number} → verify: [{style}]{record.verify.short()}[/{style}]"
+            f"   [dim]${record.cost_usd:.2f}[/dim]"
+        )
+
+    def run_task(goal, checkpointer):
+        return run_loop(
+            goal,
+            adapter,
+            config,
+            workdir,
+            native=use_native,
+            checkpointer=checkpointer,
+            store=store,
+            on_iteration=on_iteration,
+        )
+
+    console.print(
+        f"[bold]looptight improve[/bold] · agent: [cyan]{agent_name}[/cyan] · "
+        f"verify: [cyan]{config.verify}[/cyan] · "
+        f"session budget: {'provider limit' if args.budget is None else f'${args.budget:.2f}'}"
+    )
+    result = run_improve(
+        workdir,
+        run_task,
+        session_budget_usd=args.budget if adapter.reports_cost_usd else None,
+        push=args.push,
+        on_event=lambda message: console.print(f"[bold]{message}[/bold]"),
+    )
+    console.print(
+        f"stopped: {result.stop_reason.value.replace('_', ' ')} · "
+        f"{result.tasks_attempted} task(s) · {result.commits} commit(s) · "
+        f"${result.total_cost_usd:.2f} reported"
+    )
+    if result.error:
+        console.print(f"[yellow]{result.error}[/yellow]")
+    return {
+        ImproveStopReason.SESSION_BUDGET: 0,
+        ImproveStopReason.PROVIDER_STOP: 1,
+        ImproveStopReason.INTERRUPTED: 130,
+        ImproveStopReason.GIT_ERROR: 2,
+    }[result.stop_reason]
 
 
 def cmd_verify(args: argparse.Namespace, console: Console) -> int:

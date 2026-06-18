@@ -78,6 +78,15 @@ interface across agents**, and **durable lessons that compound across runs**.
 - **F2 Auth-neutral.**
 - **F3 (later) ACP transport.** Post-v1.
 
+### G. Continuous improvement
+- **G1 Explicit `improve` mode.** Repeatedly discover and execute one verified
+  repository improvement until interruption, provider stop, or an optional
+  cumulative session spend threshold.
+- **G2 Autonomous Git workflow.** Require a clean tree, commit verified diffs,
+  roll back failed task edits, and push only with explicit `--push`.
+- **G3 No empty-queue stop.** When grounded proposals are exhausted, continue
+  with fresh evidence-based repository audits.
+
 ---
 
 ## Explicitly deferred (NOT in v1)

@@ -25,6 +25,9 @@ Tracks the spec ([`SPEC.md`](SPEC.md)) against what's actually built.
 | F1 | Adapter interface (3 agents registered) | ✅ |
 | F2 | Auth-neutral | ✅ |
 | F3 | ACP transport | ⏳ post-v1 (deferred) |
+| G1 | Continuous autonomous improvement (`improve`) | ✅ |
+| G2 | Verified auto-commit + opt-in push | ✅ |
+| G3 | Provider-limit default + optional session spend threshold | ✅ |
 
 ## Correction to the spec (June 2026)
 
