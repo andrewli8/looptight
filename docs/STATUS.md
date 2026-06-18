@@ -59,9 +59,11 @@ agent, no network); the opt-in `tests/e2e_test.py` exercises a real agent.
 
 Known limitations: Codex JSON output reports token usage, not USD cost, and
 opencode JSON output is still unobserved here. Those runs are bounded by the
-iteration cap rather than the dollar ceiling unless a model/pricing conversion
-is added; cheap-model reflection (D3) is wired for Claude (`haiku`) and falls
-back to the default model elsewhere.
+iteration cap rather than the dollar ceiling. We will not estimate Codex USD
+cost from tokens: the observed event has no billed cost, and the adapter neither
+selects nor observes a pricing-stable model, so a local price table could make a
+budget silently inaccurate. Cheap-model reflection (D3) is wired for Claude
+(`haiku`) and falls back to the default model elsewhere.
 
 ## Next
 
@@ -70,8 +72,10 @@ back to the default model elsewhere.
    not a headless eval-gated loop, so `supports_native_loop` stays `False` — see
    the correction above. (Re-check if a future Codex `exec` gains a
    verify-gated loop primitive.)
-2. Decide whether to add token-to-USD pricing for observed `codex exec --json`
-   usage events; observe `opencode run -f json` before attempting opencode cost
-   parsing.
+2. ~~Decide whether to add token-to-USD pricing for observed `codex exec --json`
+   usage events.~~ Resolved: do not add an estimate; keep Codex on the provider
+   limit until its output reports billed USD (or a pricing-stable model and
+   versioned pricing contract). Observe `opencode run -f json` before attempting
+   opencode cost parsing.
 3. Record the flagship gif: the same command across agents, then a second task
    that benefits from a lesson written in the first run.
