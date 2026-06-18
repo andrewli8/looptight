@@ -6,6 +6,114 @@ next actionable task.
 
 ---
 
+## AUDIT (2026-06-18)
+
+Reviewer: independent checker agent. Previous AUDIT marker: `296d40e`.
+Reviewed all 24 commits from `0c2462d` through `0ebe480`.
+
+### Test and lint gate
+
+`uv run pytest`: 175 passed, 1 skipped (env-gated e2e — correct).
+`uv run ruff check`: all checks passed.
+**Main is GREEN.**
+
+### Commits reviewed
+
+| Hash | Subject |
+|------|---------|
+| `0c2462d` | fix: document budget as a spend threshold |
+| `80c0388` | ci: enforce ruff on every change |
+| `be0f453` | docs: define continuous improve mode |
+| `26e8eec` | docs: plan continuous improve command |
+| `ce220d1` | docs: clarify tracked-file checkpoint scope |
+| `9990bbd` | fix: propagate coding agent failures |
+| `75d8bdd` | feat: add continuous improvement engine |
+| `73a96a0` | feat: add continuous improve command |
+| `46953ad` | chore: Confirm whether Codex /goal can be driven headlessly |
+| `f808d28` | fix: skip resolved status proposals |
+| `13cf1f5` | chore: Decide whether to add token-to-USD pricing |
+| `abe78fd` | chore: Record the flagship gif (README table fix) |
+| `042dfc6` | chore: autonomous repository improvement 3 (`_is_ours` exact-match fix) |
+| `63a0294` | chore: autonomous repository improvement 4 (TOML string escaping) |
+| `f647492` | chore: autonomous repository improvement 5 (hook non-string cwd guard) |
+| `403573c` | fix: join wrapped continuation lines in STATUS Next parser |
+| `9bd8f06` | fix: fail cleanly on a malformed .looptight.toml |
+| `968ea7e` | docs: record idle improve run (no actionable work) |
+| `d857aaa` | fix: reach the hooks-not-an-object guard in settings surgery |
+| `584c6ec` | fix: keep the Stop hook dormant on a malformed config |
+| `1f34bad` | fix: harden claude JSON parsing against unexpected output shapes |
+| `69b5f38` | fix: truncate autonomous commit subjects on a word boundary |
+| `0116665` | fix: parse verify SCORE from full output before truncating |
+| `0ebe480` | docs: record robustness-hardening session in REVIEW-QUEUE |
+
+### Verdict: clean; two minor style concerns flagged (no revert)
+
+**Correctness fixes — all legitimate and well-tested:**
+- `9990bbd` (propagate agent failures): real gap — a provider error was silently
+  treated as a failed iteration, letting the loop continue or misreport the cause.
+  `StopReason.ERROR` now propagates correctly from both supply and delegate paths.
+  `reports_cost_usd` flag correctly scopes session-budget tracking to Claude only.
+- `0c2462d` (budget documentation): `budget_usd` was documented as a hard ceiling
+  but is a post-iteration threshold; docs now match reality.
+- `f808d28` (struck-through status items): `~~resolved~~` items in STATUS.md Next
+  no longer surface as candidates.
+- `042dfc6` (`_is_ours` exact match): changed from substring containment to exact
+  equality for hook command identity — prevents false matches on user commands that
+  merely contain the hook command string.
+- `63a0294` (TOML string escaping): `render_config` now uses `json.dumps()` to
+  safely encode the verify command, fixing silent data loss for commands with
+  quotes, backslashes, or newlines.
+- `f647492` (hook non-string cwd): hardens against a non-string `cwd` in the hook
+  event JSON crashing `Path()`.
+- `403573c` (wrapped continuation lines): STATUS.md items that wrap onto indented
+  continuation lines are fully captured. Logic is sound.
+- `9bd8f06` (malformed config): `ConfigError` is now raised at the boundary,
+  giving a clear message instead of a raw traceback.
+- `d857aaa` (settings type guard): type check moved before the `dict()` conversion
+  that would crash on a non-dict hooks value — dead code path is now reachable.
+- `584c6ec` (hook dormant on broken config): `ConfigError` caught in `_config_for`;
+  hook correctly falls back to the un-armed default.
+- `1f34bad` (claude JSON parsing): non-object JSON blobs and non-numeric cost
+  values are now degraded safely rather than crashing an iteration.
+- `69b5f38` (word boundary truncation): commit subjects no longer end mid-word.
+- `0116665` (SCORE parsing): score is parsed from full combined output before
+  truncation, so a SCORE line in the middle of verbose output is not silently lost.
+
+**New feature (`improve.py` + CLI) — correct and in-scope:**
+`75d8bdd` + `73a96a0` add the continuous improvement engine (`looptight improve
+--push`) described in CLAUDE.md. The design is sound: verify-gated, injected
+collaborators, frozen dataclasses, 200+ lines of offline tests covering rollback,
+budget stop, provider failure, keyboard interrupt, and the grounded→audit
+transition. The loop correctly guarantees a clean working tree before each task
+and rolls back on failure (`git reset --mixed HEAD`, `checkout HEAD -- .`,
+`git clean -fd`). `verify` stays the gate.
+
+**Architecture docs — accurate.** `46953ad` and `13cf1f5` record confirmed
+decisions (Codex `/goal` is self-graded, not a verify-gated loop; Codex USD
+cost estimation deferred) correctly and mark the STATUS.md items resolved.
+
+### Concerns flagged for next improver run
+
+**`cli.py` at 464 lines (above the 200-400 line guideline).**
+The file grew to accommodate 10 subcommands. The logic lives in the right modules;
+the CLI only wires them together. Nevertheless, at 464 lines it is meaningfully
+above the stated guideline. A straightforward split would extract the individual
+`cmd_*` handler functions into `src/looptight/_commands.py` (or a `commands/`
+subpackage), leaving `cli.py` as the thin parser and dispatcher. This would bring
+both files within range without touching any logic. Flag only — no revert.
+
+**Chore commits from the audit path all use `chore:` prefix regardless of content.**
+`042dfc6` (`_is_ours` correctness fix) and `f647492` (hook non-string cwd guard)
+are real bug fixes but were committed as `chore:` because they came from the
+improve loop's audit path rather than a grounded `propose` candidate. The
+`_commit_subject` function in `improve.py` always prefixes with `chore:` for
+audit tasks. Consider deriving the conventional-commit prefix from the change
+type (fix vs. docs vs. refactor) or from a `Candidate.source` field on audit
+candidates. Flag only — no revert; fixes are correct, history is slightly
+misleading.
+
+---
+
 ## Run Summary (2026-06-18, robustness-hardening session)
 
 Interactive autonomous loop, engineer-driven. Seven substantive correctness/
