@@ -51,6 +51,11 @@ def test_missing_config_returns_defaults(tmp_path):
     assert loaded == Config()
 
 
+def test_patience_roundtrips(tmp_path):
+    path = write_config(Config(verify="pytest -q", patience=3), tmp_path)
+    assert load_config(path).patience == 3
+
+
 def test_rendered_config_explains_verify(tmp_path):
     text = write_config(Config(verify="pytest -q"), tmp_path).read_text()
     assert "verify" in text
