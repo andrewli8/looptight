@@ -8,6 +8,53 @@ next actionable task.
 
 ## AUDIT (2026-06-19)
 
+Reviewer: independent checker agent. Previous AUDIT marker: `d16f2a9`.
+Reviewed 2 commits from `ec2adfb` through `41e0d93`.
+
+### Test and lint gate
+
+`uv run pytest`: 175 passed, 1 skipped (env-gated e2e — correct).
+`uv run ruff check`: all checks passed.
+**Main is GREEN.**
+
+### Commits reviewed
+
+| Hash | Subject |
+|------|---------|
+| `ec2adfb` | docs: reviewer audit entry 2026-06-19 |
+| `41e0d93` | docs: record idle improve run 2026-06-19 (no actionable work) |
+
+### Verdict: clean; recurring minor documentation inaccuracy noted (no action)
+
+**`ec2adfb` — docs only, accurate:**
+Appends the prior audit entry to REVIEW-QUEUE.md. Records `fe5b637` and
+`d16f2a9` as docs-only commits, both clean. Test count (175/1) and ruff
+status match current ground truth. Self-consistent.
+
+**`41e0d93` — docs only, correct in substance:**
+Another idle improve run — no code changes. `propose` surfaced only the
+flagship-gif task (already escalated, correctly skipped). The run correctly
+defers to "escalate-don't-guess".
+
+**Recurring: improve-run summaries cite `113 passed` when actual count is
+`175`.**
+This has appeared in several idle-run summaries now. The discrepancy
+reflects the session baseline from a prior point in time before later test
+growth. The actual ground truth (175/1 green) is always confirmed by the
+audit; prior audits have accepted this explanation. However, the pattern
+is now well-established: the improve agent's internal pytest baseline is
+not refreshed between sessions, meaning its summaries do not reflect the
+current test count. This is docs inaccuracy only — no code is affected and
+no regression is hidden (the gate command always runs fresh). Flag only;
+no revert.
+
+No code was modified in either commit. No new concerns beyond the
+recurring docs inaccuracy noted above.
+
+---
+
+## AUDIT (2026-06-19)
+
 Reviewer: independent checker agent. Previous AUDIT marker: `ee68c74`.
 Reviewed 2 commits from `fe5b637` through `d16f2a9`.
 
