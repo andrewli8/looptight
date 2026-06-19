@@ -356,3 +356,24 @@ def test_idle_streak_resets_on_commit(tmp_path):
     assert result.stop_reason is ImproveStopReason.NO_PROGRESS
     assert result.commits == 1
     assert result.tasks_attempted == 4
+
+
+def test_max_idle_tasks_zero_disables_the_idle_guard(tmp_path):
+    # The runaway guard must be disablable (max_idle_tasks<=0) so the loop can
+    # run past the default idle cap; the session budget then bounds it. This
+    # pins the escape hatch and the `> 0` guard against regression.
+    _init_repo(tmp_path)
+
+    def run_task(goal, checkpointer):
+        return _result(cost=0.1)  # passes, makes no change (idle), small cost
+
+    result = run_improve(
+        tmp_path,
+        run_task,
+        propose_fn=lambda root, limit=0: [],
+        session_budget_usd=1.0,  # ~10 idle tasks before this trips
+        max_idle_tasks=0,  # guard disabled
+    )
+
+    assert result.stop_reason is ImproveStopReason.SESSION_BUDGET
+    assert result.tasks_attempted >= 4  # ran well past the default cap of 3
