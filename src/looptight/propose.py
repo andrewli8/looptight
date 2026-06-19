@@ -1,9 +1,9 @@
 """Task proposal from concrete repo signals (the grounded half of task-gen).
 
 `propose` scans the working tree for *verifiable* signals — TODO/FIXME comments,
-skipped tests, the STATUS "Next" list, lint findings — and turns them into a
-ranked, deduped candidate task list. It runs no agent, spends no tokens, and
-writes nothing; it only reads the repo.
+skipped tests, the STATUS "Next" list, lint findings, mypy type errors — and
+turns them into a ranked, deduped candidate task list. It runs no agent, spends
+no tokens, and writes nothing; it only reads the repo.
 
 This is deliberately the cheap, grounded part of "what to work on". The research
 behind looptight found free-form task invention is the least validated decision,
@@ -25,7 +25,7 @@ from pathlib import Path
 # not a validated ordering (see docs/superpowers/specs/2026-06-18-...).
 _SOURCE_WEIGHT = {
     "verify": 100,  # reserved for a future failing-verify extractor
-    "types": 80,    # reserved for a future mypy extractor
+    "types": 80,    # mypy type errors (from_types)
     "lint": 60,
     "skipped-test": 40,
     "todo": 20,
