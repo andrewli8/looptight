@@ -53,7 +53,7 @@ def render(result: RunResult) -> str:
     return "\n".join(lines)
 
 
-def render_rich(result: RunResult, console) -> None:  # pragma: no cover - thin I/O
+def render_rich(result: RunResult, console) -> None:
     """Print the summary to a rich Console with green/red emphasis (E2)."""
     console.print(header(result), style="bold")
     console.print()

@@ -83,3 +83,43 @@ def test_summary_includes_diffstat():
     text = summary.render(result)
     assert "changes:" in text
     assert "src/a.py" in text
+
+
+def test_render_rich_covers_the_user_facing_summary():
+    # render_rich is what `looptight run` actually prints; cover it (incl. the
+    # cost-honesty branch) so a bug in the user-facing path can't ship unseen.
+    from rich.console import Console
+
+    reported = RunResult(
+        goal="fix",
+        agent="claude",
+        mode="supply",
+        stop_reason=StopReason.SUCCESS,
+        iterations=(IterationRecord(1, VerifyResult(passed=True, exit_code=0), 0.07),),
+        total_cost_usd=0.07,
+        lesson=Lesson(text="Pin the timeout"),
+        diffstat=" src/a.py | 2 +-",
+    )
+    console = Console(force_terminal=False)
+    with console.capture() as cap:
+        summary.render_rich(reported, console)
+    out = cap.get()
+    assert "iteration 1 → verify: PASS" in out
+    assert "$0.07" in out
+    assert "lesson saved: Pin the timeout" in out
+    assert "src/a.py" in out
+
+    unreported = RunResult(
+        goal="fix",
+        agent="codex",
+        mode="supply",
+        stop_reason=StopReason.SUCCESS,
+        iterations=(IterationRecord(1, VerifyResult(passed=True, exit_code=0), 0.0),),
+        total_cost_usd=0.0,
+        reports_cost_usd=False,
+    )
+    with console.capture() as cap:
+        summary.render_rich(unreported, console)
+    out = cap.get()
+    assert "cost not reported" in out
+    assert "$0.00" not in out
