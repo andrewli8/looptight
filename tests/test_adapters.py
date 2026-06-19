@@ -8,11 +8,18 @@ from pathlib import Path
 import pytest
 
 from looptight.adapters import available_adapter_names, get_adapter
+from looptight.adapters.base import run_command
 from looptight.adapters.claude import ClaudeAdapter, _build_prompt, _parse_result
 
 
 def test_registry_lists_three_agents():
     assert set(available_adapter_names()) == {"claude", "codex", "opencode"}
+
+
+def test_run_command_tolerates_non_utf8_output(tmp_path):
+    # Agent CLI output is untrusted bytes; non-UTF-8 must not crash an iteration.
+    proc = run_command(["sh", "-c", r"printf '\377\376'; exit 2"], tmp_path)
+    assert proc.returncode == 2
 
 
 def test_native_loop_capability():

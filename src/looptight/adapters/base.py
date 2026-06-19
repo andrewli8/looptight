@@ -34,6 +34,7 @@ def run_command(cmd: list[str], workdir: Path) -> subprocess.CompletedProcess[st
             cwd=str(workdir),
             capture_output=True,
             text=True,
+            errors="replace",  # agent CLI output is untrusted bytes; never crash on bad UTF-8
             check=False,
         )
     except OSError as exc:
