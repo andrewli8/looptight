@@ -77,5 +77,7 @@ budget silently inaccurate. Cheap-model reflection (D3) is wired for Claude
    limit until its output reports billed USD (or a pricing-stable model and
    versioned pricing contract). Observe `opencode run -f json` before attempting
    opencode cost parsing.
-3. Record the flagship gif: the same command across agents, then a second task
-   that benefits from a lesson written in the first run.
+3. ~~Record the flagship gif: the same command across agents, then a second task
+   that benefits from a lesson written in the first run.~~ Deferred: recording
+   requires an interactive environment with all three real agents installed and
+   authenticated; tracked in [`REVIEW-QUEUE.md`](../REVIEW-QUEUE.md#deferred-non-goal).
