@@ -6,7 +6,6 @@ import shutil
 
 from looptight.propose import (
     Candidate,
-    _mypy_candidates,
     from_lint,
     from_skipped_tests,
     from_status_next,
@@ -168,48 +167,6 @@ def test_from_status_next_ignores_struck_through_resolved_items(tmp_path):
     titles = [c.title for c in from_status_next(tmp_path)]
 
     assert titles == ["Still actionable"]
-
-
-def test_mypy_candidates_parse_errors_skip_notes_and_summary():
-    sample = (
-        'src/app.py:12: error: Incompatible return value type (got "int", expected "str")  [return-value]\n'
-        "src/app.py:12: note: a note line that must be ignored\n"
-        'src/app.py:20:5: error: Name "bar" is not defined  [name-defined]\n'
-        "Found 2 errors in 1 file (checked 3 source files)\n"
-    )
-    cands = _mypy_candidates(sample)
-    assert {c.source for c in cands} == {"types"}
-    assert [c.suggested_verify for c in cands] == ["mypy", "mypy"]
-    titles = " ".join(c.title for c in cands)
-    assert "return-value" in titles and "name-defined" in titles
-    assert cands[0].location == "src/app.py:12"  # path:line
-    assert cands[1].location == "src/app.py:20:5"  # path:line:col supported
-    assert len(cands) == 2  # note + summary lines ignored
-
-
-def test_from_types_is_silent_when_mypy_and_uv_are_absent(tmp_path, monkeypatch):
-    # Safety contract: with neither mypy nor uv on PATH, from_types must return
-    # no candidates (and never spawn anything), so propose stays usable on
-    # projects that don't have mypy.
-    import looptight.propose as propose_mod
-
-    monkeypatch.setattr(propose_mod.shutil, "which", lambda name: None)
-    monkeypatch.setattr(
-        propose_mod.subprocess,
-        "run",
-        lambda *a, **k: (_ for _ in ()).throw(AssertionError("must not spawn")),
-    )
-    assert propose_mod.from_types(tmp_path) == []
-
-
-def test_mypy_candidates_dedupe_per_file_and_code():
-    sample = (
-        "a.py:1: error: first  [arg-type]\n"
-        "a.py:9: error: second  [arg-type]\n"  # same file+code -> deduped
-        "a.py:9: error: third  [name-defined]\n"  # same file, different code -> kept
-    )
-    cands = _mypy_candidates(sample)
-    assert len(cands) == 2
 
 
 def test_from_lint_finds_ruff_violations(tmp_path):

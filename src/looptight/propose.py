@@ -1,9 +1,9 @@
 """Task proposal from concrete repo signals (the grounded half of task-gen).
 
 `propose` scans the working tree for *verifiable* signals — TODO/FIXME comments,
-skipped tests, the STATUS "Next" list, lint findings, mypy type errors — and
-turns them into a ranked, deduped candidate task list. It runs no agent, spends
-no tokens, and writes nothing; it only reads the repo.
+skipped tests, the STATUS "Next" list, lint findings — and turns them into a
+ranked, deduped candidate task list. It runs no agent, spends no tokens, and
+writes nothing; it only reads the repo.
 
 This is deliberately the cheap, grounded part of "what to work on". The research
 behind looptight found free-form task invention is the least validated decision,
@@ -25,7 +25,7 @@ from pathlib import Path
 # not a validated ordering (see docs/superpowers/specs/2026-06-18-...).
 _SOURCE_WEIGHT = {
     "verify": 100,  # reserved for a future failing-verify extractor
-    "types": 80,    # mypy type errors (from_types)
+    "types": 80,    # reserved for a future mypy extractor
     "lint": 60,
     "skipped-test": 40,
     "todo": 20,
@@ -280,60 +280,7 @@ def from_lint(root: Path) -> list[Candidate]:
     return out
 
 
-# mypy concise line: ``path:line[:col]: error: message  [code]``. We skip
-# ``note:`` lines and the summary, and read the trailing ``[code]`` if present.
-_MYPY_RE = re.compile(r"^(?P<loc>\S+?:\d+(?::\d+)?):\s+error:\s+(?P<msg>.+)$")
-_MYPY_CODE_RE = re.compile(r"\[(?P<code>[a-z][a-z0-9-]*)\]\s*$")
-
-
-def _mypy_candidates(output: str) -> list[Candidate]:
-    """Parse mypy output into candidates, deduped per (file, error code)."""
-    out: list[Candidate] = []
-    seen: set[str] = set()
-    for line in output.splitlines():
-        match = _MYPY_RE.match(line.strip())
-        if not match:
-            continue
-        loc, msg = match.group("loc"), match.group("msg").strip()
-        code_match = _MYPY_CODE_RE.search(msg)
-        code = code_match.group("code") if code_match else "type"
-        key = f"{loc.split(':')[0]}:{code}"
-        if key in seen:
-            continue
-        seen.add(key)
-        out.append(
-            Candidate(
-                title=f"fix {code}: {msg}",
-                source="types",
-                location=loc,
-                suggested_verify="mypy",
-                score=0.0,
-                detail=line.strip(),
-            )
-        )
-    return out
-
-
-def from_types(root: Path) -> list[Candidate]:
-    """mypy type errors, one task per (file, code). Empty when mypy is unavailable.
-
-    Mirrors :func:`from_lint`: shells out to mypy (directly or via ``uv run``) and
-    degrades to no candidates if it can't run, so a project without mypy is silent.
-    """
-    if shutil.which("mypy") is None and shutil.which("uv") is None:
-        return []
-    _mypy = ["mypy"] if shutil.which("mypy") else ["uv", "run", "mypy"]
-    cmd = [*_mypy, "--no-error-summary", "--no-color-output", "."]
-    try:
-        proc = subprocess.run(
-            cmd, cwd=str(root), capture_output=True, text=True, errors="replace", timeout=120
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return []
-    return _mypy_candidates(proc.stdout)
-
-
-_EXTRACTORS = (from_lint, from_types, from_skipped_tests, from_todos, from_status_next)
+_EXTRACTORS = (from_lint, from_skipped_tests, from_todos, from_status_next)
 
 
 def _normalized(title: str) -> str:

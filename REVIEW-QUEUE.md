@@ -8,6 +8,12 @@ next actionable task.
 
 ## ESCALATION (2026-06-19) — mypy extractor: gate-or-not decision (maintainer call)
 
+**RESOLVED (2026-06-19): maintainer chose to revert `from_types`.** mypy is not
+part of looptight's quality contract, so the extractor only produced noise here
+(the `config.py:48` false-positive + test import-not-found). Reverted in a
+follow-up commit; `_SOURCE_WEIGHT["types"]` is reserved again for a future
+extractor if mypy is ever adopted as a real gate. Original escalation below.
+
 The new `from_types` mypy extractor (commits `904f15e`/`8566c1e`/`a85cb73`) now
 surfaces type findings via `propose`. First run encountering its output:
 
