@@ -252,3 +252,25 @@ def test_keyboard_interrupt_stops_cleanly(tmp_path):
 
     assert result.stop_reason is ImproveStopReason.INTERRUPTED
     assert result.tasks_attempted == 0
+
+
+def test_task_runner_exception_rolls_back_before_stopping(tmp_path):
+    _init_repo(tmp_path)
+
+    def crash(goal, checkpointer):
+        (tmp_path / "app.py").write_text("partial edit\n")
+        (tmp_path / "created.py").write_text("partial file\n")
+        raise RuntimeError("agent integration crashed")
+
+    result = run_improve(
+        tmp_path,
+        crash,
+        propose_fn=lambda root, limit=0: [],
+    )
+
+    assert result.stop_reason is ImproveStopReason.PROVIDER_STOP
+    assert result.tasks_attempted == 0
+    assert result.error == "task runner failed: RuntimeError: agent integration crashed"
+    assert (tmp_path / "app.py").read_text() == "old\n"
+    assert not (tmp_path / "created.py").exists()
+    assert _git(["status", "--porcelain"], tmp_path).stdout == ""

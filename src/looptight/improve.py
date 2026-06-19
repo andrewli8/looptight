@@ -156,6 +156,11 @@ def run_improve(
             error = _rollback(checkpointer, snapshot, git_fn, workdir)
             reason = ImproveStopReason.GIT_ERROR if error else ImproveStopReason.INTERRUPTED
             return ImproveResult(reason, tasks, commits, spent, error)
+        except Exception as exc:
+            error = _rollback(checkpointer, snapshot, git_fn, workdir)
+            reason = ImproveStopReason.GIT_ERROR if error else ImproveStopReason.PROVIDER_STOP
+            detail = f"task runner failed: {type(exc).__name__}: {exc}"
+            return ImproveResult(reason, tasks, commits, spent, error or detail)
 
         tasks += 1
         spent += max(0.0, result.total_cost_usd)
