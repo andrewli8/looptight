@@ -52,6 +52,20 @@ def test_returns_none_when_lesson_contains_storage_delimiter(tmp_path):
     assert result is None
 
 
+def test_collapses_multiline_lesson_to_a_single_bullet(tmp_path):
+    # The lessons store is line-based: a multi-line lesson would lose every line
+    # after the first on round-trip. Reflection must collapse it to one line.
+    lesson = reflect_on_failure(
+        _StubAdapter("Pin the request timeout\nin client.py\nto 30 seconds"),
+        "fix it",
+        _fail(),
+        tmp_path,
+    )
+    assert lesson is not None
+    assert "\n" not in lesson.text
+    assert lesson.text == "Pin the request timeout in client.py to 30 seconds"
+
+
 def test_returns_lesson_for_specific_text(tmp_path):
     lesson = reflect_on_failure(
         _StubAdapter("Pin the request timeout in client.py to 30s"),

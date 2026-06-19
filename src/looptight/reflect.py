@@ -62,7 +62,9 @@ def reflect_on_failure(
     if not raw:
         return None
 
-    text = raw.strip().strip("-•* ").strip()
+    # Collapse to one line: the lessons store is line-based, so a multi-line
+    # lesson would lose every line after the first on round-trip.
+    text = " ".join(raw.strip().strip("-•* ").split())
     if not text or text.upper() == "NONE":
         return None
     # Reflection output is model-controlled and is persisted inside this
