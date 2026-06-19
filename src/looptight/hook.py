@@ -135,5 +135,10 @@ def run_hook(stdin_text: str, *, verify_fn: VerifyFn = run_verify) -> tuple[str 
 
     verify = verify_fn(config.verify, cwd)
     decision, new_count = decide(verify, prior, config.max_iterations)
-    write_count(state, new_count)
+    try:
+        write_count(state, new_count)
+    except OSError:
+        # Without durable state a failing verify could be blocked forever because
+        # every invocation would restart at zero. Fail open instead.
+        return None, 0
     return decision.to_stdout(), 0

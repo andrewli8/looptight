@@ -117,3 +117,18 @@ def test_run_hook_tolerates_malformed_config(tmp_path):
     output, code = run_hook(event, verify_fn=lambda c, w: _fail())
     assert output is None
     assert code == 0
+
+
+def test_run_hook_fails_open_when_continuation_state_cannot_be_saved(tmp_path, monkeypatch):
+    write_config(Config(verify="pytest -q", hook=True), tmp_path)
+    event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
+
+    def fail_to_save(*args, **kwargs):
+        raise PermissionError("read-only temp directory")
+
+    monkeypatch.setattr("looptight.hook.write_count", fail_to_save)
+
+    output, code = run_hook(event, verify_fn=lambda c, w: _fail())
+
+    assert output is None
+    assert code == 0
