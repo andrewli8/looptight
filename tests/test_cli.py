@@ -281,6 +281,25 @@ def test_improve_maps_interrupt_to_130(tmp_path, monkeypatch):
     assert main(["improve", "--agent", "claude", "--verify", "exit 0", "--push"]) == 130
 
 
+def test_revert_survives_oserror_when_listing_untracked(tmp_path, monkeypatch, capsys):
+    # The post-revert `git ls-files` (untracked notice) must not crash the
+    # command if git can't be launched for it — the revert already succeeded.
+    import subprocess
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.commands.is_git_repo", lambda *a, **k: True)
+
+    def fake_run(cmd, *a, **k):
+        if cmd[:2] == ["git", "ls-files"]:
+            raise OSError("git vanished")
+        return subprocess.CompletedProcess(cmd, 0)  # checkout succeeds
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert main(["revert", "--yes"]) == 0
+    assert "reverted" in capsys.readouterr().out.lower()
+
+
 def test_revert_reports_failure_when_git_checkout_fails(tmp_path, monkeypatch, capsys):
     import subprocess
 
