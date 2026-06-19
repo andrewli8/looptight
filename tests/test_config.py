@@ -73,6 +73,18 @@ def test_load_config_raises_clear_error_on_non_numeric_value(tmp_path):
     assert str(path) in str(exc.value)
 
 
+@pytest.mark.parametrize("field", ["reflect", "native", "hook"])
+def test_load_config_rejects_string_boolean_values(tmp_path, field):
+    path = tmp_path / ".looptight.toml"
+    path.write_text(f'{field} = "false"\n', encoding="utf-8")
+
+    with pytest.raises(ConfigError) as exc:
+        load_config(path)
+
+    assert str(path) in str(exc.value)
+    assert field in str(exc.value)
+
+
 def test_missing_config_returns_defaults(tmp_path):
     loaded = load_config(tmp_path / "nope.toml")
     assert loaded == Config()

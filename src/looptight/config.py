@@ -73,13 +73,20 @@ def load_config(path: Path | None = None) -> Config:
             agent=data.get("agent"),
             max_iterations=int(data.get("max_iterations", DEFAULT_MAX_ITERATIONS)),
             budget_usd=float(data.get("budget_usd", DEFAULT_BUDGET_USD)),
-            reflect=bool(data.get("reflect", True)),
-            native=bool(data.get("native", False)),
-            hook=bool(data.get("hook", False)),
+            reflect=_boolean(data, "reflect", True),
+            native=_boolean(data, "native", False),
+            hook=_boolean(data, "hook", False),
             patience=int(data.get("patience", 0)),
         )
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{resolved} has an invalid value: {exc}") from exc
+
+
+def _boolean(data: dict[str, object], field: str, default: bool) -> bool:
+    value = data.get(field, default)
+    if not isinstance(value, bool):
+        raise ValueError(f"{field} must be a boolean")
+    return value
 
 
 def render_config(config: Config) -> str:
