@@ -65,6 +65,18 @@ def test_run_warns_when_budget_cannot_be_enforced(tmp_path, monkeypatch, capsys)
     assert "budget" in out
 
 
+def test_run_exits_one_when_verify_never_passes(tmp_path, monkeypatch):
+    # The primary command's failure exit code is a contract CI/scripts gate on:
+    # a run that ends without a passing verify must return 1, not 0.
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: "claude")
+    monkeypatch.setattr(
+        "looptight.commands.get_adapter",
+        lambda name: __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter(),
+    )
+    assert main(["run", "fix it", "--verify", "exit 1", "--max-iterations", "1", "--no-reflect"]) == 1
+
+
 def test_doctor_runs(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert main(["doctor"]) == 0
