@@ -6,6 +6,111 @@ next actionable task.
 
 ---
 
+## AUDIT (2026-06-19, sixth)
+
+Reviewer: independent checker agent. Previous AUDIT marker: `966f4f6` (fifth audit).
+Reviewed 19 commits from `bd1ef12` through `7a2daee`.
+
+### Test and lint gate
+
+`uv run pytest`: 204 passed, 1 skipped (env-gated e2e — correct).
+`uv run ruff check`: all checks passed.
+**Main is GREEN.** (Test count grew from 175 → 204; 29 new tests, all offline.)
+
+### Commits reviewed
+
+| Hash | Subject |
+|------|---------|
+| `bd1ef12` | docs: reviewer audit entry 2026-06-19 (fifth) |
+| `3a45a5a` | docs: record idle improve run 2026-06-19 (no actionable work) |
+| `71ef76f` | chore: Record the flagship gif (marks item ~~struck through~~ as deferred) |
+| `fc60862` | fix: keep idle improve audits read-only |
+| `fb37a8f` | chore: autonomous repository improvement 2 |
+| `040d17f` | chore: autonomous repository improvement 3 |
+| `9a1552d` | chore: autonomous repository improvement 4 |
+| `f6c4a53` | chore: autonomous repository improvement 5 |
+| `b9ba7b8` | chore: autonomous repository improvement 6 |
+| `69770c1` | chore: autonomous repository improvement 7 |
+| `b9c566e` | chore: autonomous repository improvement 8 |
+| `93cf248` | chore: autonomous repository improvement 9 |
+| `d25e682` | chore: autonomous repository improvement 10 |
+| `f1328ad` | chore: autonomous repository improvement 11 |
+| `4244505` | chore: autonomous repository improvement 12 |
+| `25a7938` | chore: autonomous repository improvement 13 |
+| `4bf06f5` | chore: autonomous repository improvement 14 |
+| `8146cff` | chore: autonomous repository improvement 15 |
+| `7a2daee` | chore: autonomous repository improvement 16 |
+
+### Verdict: clean; no concerns
+
+**Docs commits (`bd1ef12`, `3a45a5a`, `71ef76f`) — accurate:**
+`bd1ef12` is the fifth audit entry. `3a45a5a` is an idle improve run (no code
+changes, all 5 propose candidates non-actionable offline). `71ef76f` strikes
+through the flagship-gif STATUS.md item and links to REVIEW-QUEUE's deferred
+section — accurate bookkeeping; commit message is truncated but harmless.
+
+**`fc60862` — prompt hardening, correct:**
+Strengthened the `_audit_goal` prompt to explicitly forbid editing
+REVIEW-QUEUE.md or STATUS.md just to log "no work found", and to require
+leaving the working tree unchanged when no evidence-backed improvement exists.
+Two new tests assert the relevant phrases are present in the prompt text.
+
+**Improvements 2–16 — all correctness/robustness fixes, each with targeted tests:**
+
+- **fb37a8f** (`_boolean` helper): TOML boolean fields (`reflect`, `native`, `hook`)
+  previously accepted `"false"` silently as `True` (`bool("false") == True`). Now
+  rejects non-bool values with a clear error.
+- **040d17f** (`run_command` helper): extracted identical `subprocess.run` boilerplate
+  from all three adapters into a shared `run_command()` in `base.py` that also
+  normalizes `OSError` to a non-zero result. Real DRY improvement + correctness fix.
+- **9a1552d** (`_stop_hooks` helper): `hooks.Stop` being a non-list (e.g. a dict)
+  would silently corrupt state via `list(dict)` (iterates keys). Now rejects with
+  a clear error. File is left unchanged on error (test verifies).
+- **f6c4a53** (generic exception rollback): unexpected exceptions from the task runner
+  now trigger rollback before returning `PROVIDER_STOP`, rather than propagating
+  and leaving the working tree dirty.
+- **b9ba7b8** (`_non_negative_int`): `--limit -1` for `propose` rejected at the
+  CLI layer (exit code 2) rather than silently passing a negative limit.
+- **69770c1** (timeout partial output): `subprocess.TimeoutExpired` carries
+  `.stdout`/`.stderr` captured before the kill; this is now prepended to the
+  "timed out" message and the SCORE parsed from it, giving the next iteration
+  useful context. Real improvement to the verify oracle under timeout.
+- **b9c566e** (`_optional_string`): `verify` and `agent` config fields now reject
+  non-string values (e.g. `42`) at load time rather than silently propagating the
+  wrong type.
+- **93cf248** (injection guard in reflect): if a model's reflection output contains
+  `BLOCK_START` or `BLOCK_END` (lesson store delimiters), the lesson is discarded
+  rather than written, preventing delimiter injection that would corrupt CLAUDE.md.
+  Correct and minimal security fix.
+- **d25e682** (checkpoint git OSError): `checkpoint._git()` now normalises `OSError`
+  (e.g. git not installed) to a non-zero `CompletedProcess`, consistent with the
+  rest of the codebase.
+- **f1328ad** (non-dict `scripts` in package.json): `{"scripts": null}` or
+  `{"scripts": [...]}` would previously crash `detect_verify` with `AttributeError`.
+  Now falls through gracefully.
+- **4244505** (`_is_ours` non-list guard): hook entries with `"hooks": null` would
+  cause `for h in None` to crash. Now returns `False` for malformed entries,
+  preserving them and still installing the new entry.
+- **25a7938** (`_positive_int` / `_positive_integer`): `--max-iterations 0` (CLI)
+  and `max_iterations = 0` (config) are now rejected. The config helper correctly
+  checks `isinstance(value, bool)` before `isinstance(value, int)` to exclude TOML
+  booleans.
+- **4bf06f5** (hook fail-open on `write_count`): `OSError` saving iteration state
+  now returns `None, 0` (don't block the session) instead of propagating. Rationale
+  documented in the diff: without durable state the hook would deadlock forever.
+- **8146cff** (rollback before GIT_ERROR on status failure): `git status` failing
+  after a successful task was returning `GIT_ERROR` without rolling back changes.
+  Test verifies working tree is clean afterward.
+- **7a2daee** (revert OSError): `cmd_revert`'s direct `subprocess.run` call now
+  catches `OSError` and returns exit code 1 with a clear message, consistent with
+  the rest of the codebase.
+
+All 29 new tests are targeted, offline, and sub-second. No new runtime dependencies.
+No speculative abstractions. No test padding. The `chore:` prefix convention on
+improvement commits was noted in prior audits and left as-is; no new concern there.
+
+---
+
 ## Run Summary (2026-06-19, idle run)
 
 No changes: nothing safe and valuable to do. Verified main is green
