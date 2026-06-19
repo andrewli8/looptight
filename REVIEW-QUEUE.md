@@ -521,3 +521,16 @@ guess); it is already tracked in STATUS.md. The earlier "## Next" items (Codex
 `/goal` headless drivability, Codex/opencode cost parsing) remain resolved/
 deferred there. No lint or test-rot candidates remained after prior runs. Made
 no code changes this run.
+
+## Run Summary (2026-06-19, later)
+
+Autonomous improvement loop — no changes: nothing safe and valuable to do.
+
+Baseline green on entry: `uv run pytest -q` 113 passed, `uv run ruff check`
+clean. `uv run looptight propose` surfaced a single candidate: STATUS.md "##
+Next" item 3 (record the flagship gif — same command across agents plus a
+lesson-dependent second task). That requires running real external agents and
+capturing media that cannot be observed or verified offline (escalate-don't-
+guess); it is already tracked in STATUS.md. The prior skipped-test candidates
+no longer appear — they were intentional opt-in/platform skips and the proposer
+already excludes them. Made no code changes this run.
