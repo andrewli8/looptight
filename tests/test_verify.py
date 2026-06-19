@@ -58,3 +58,21 @@ def test_timeout_is_failure_not_crash(tmp_path, monkeypatch):
     assert not result.passed
     assert result.exit_code == 124
     assert "timed out" in result.output
+
+
+def test_timeout_preserves_partial_verify_output(tmp_path, monkeypatch):
+    def raise_timeout(*args, **kwargs):
+        raise subprocess.TimeoutExpired(
+            cmd="slow verify",
+            timeout=1,
+            output=b"test_widget.py::test_save FAILED\n",
+            stderr=b"AssertionError: expected saved record\n",
+        )
+
+    monkeypatch.setattr(subprocess, "run", raise_timeout)
+
+    result = run_verify("slow verify", tmp_path, timeout_s=1)
+
+    assert "test_widget.py::test_save FAILED" in result.output
+    assert "AssertionError: expected saved record" in result.output
+    assert "verify timed out after 1s" in result.output

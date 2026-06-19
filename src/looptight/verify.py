@@ -33,6 +33,16 @@ def _truncate(text: str) -> str:
     return f"{text[:half]}\n...[truncated]...\n{text[-half:]}"
 
 
+def _as_text(value: str | bytes | None) -> str:
+    return value.decode(errors="replace") if isinstance(value, bytes) else value or ""
+
+
+def _timeout_output(partial: str, command: str, timeout_s: float) -> str:
+    """Retain output captured before a timeout so the next iteration can act on it."""
+    separator = "\n" if partial and not partial.endswith("\n") else ""
+    return _truncate(f"{partial}{separator}verify timed out after {timeout_s:g}s: {command}")
+
+
 def run_verify(
     command: str,
     cwd: Path | None = None,
@@ -53,11 +63,13 @@ def run_verify(
             text=True,
             timeout=timeout_s,
         )
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
+        partial = _as_text(exc.stdout) + _as_text(exc.stderr)
         return VerifyResult(
             passed=False,
             exit_code=124,
-            output=f"verify timed out after {timeout_s:g}s: {command}",
+            output=_timeout_output(partial, command, timeout_s),
+            score=parse_score(partial),
             duration_s=time.monotonic() - started,
         )
     except OSError as exc:
