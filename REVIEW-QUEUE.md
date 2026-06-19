@@ -6,6 +6,29 @@ next actionable task.
 
 ---
 
+## Run Summary (2026-06-19, idle run)
+
+No changes: nothing safe and valuable to do. Verified main is green
+(`uv run pytest`: 175 passed, 1 skipped env-gated e2e; `uv run ruff check`:
+clean). HEAD at `bd1ef12`.
+
+`uv run looptight propose` surfaced 5 candidates, none actionable offline:
+
+- **skipped-test ×2 (`tests/e2e_test.py:23`, `:37`)** — the intentional opt-in
+  real-agent eval. Requires an installed agent on PATH, live auth, and real
+  spend; deliberately excluded from offline CI. The skip is correct; un-skipping
+  would violate the never-weaken-tests floor and can't be verified here.
+- **status-next: confirm Codex `/goal` headless** — needs observation of the real
+  `codex` CLI. Already escalated; still deferred.
+- **status-next: parse cost from `codex exec --json` / `opencode run -f json`** —
+  needs the real CLIs' JSON output formats, unobservable here. Still deferred.
+- **status-next: record the flagship gif** — interactive recording across three
+  real agents, not an autonomous code change. Still deferred.
+
+An empty run is a good run.
+
+---
+
 ## AUDIT (2026-06-19)
 
 Reviewer: independent checker agent. Previous AUDIT marker: `d16f2a9`.
