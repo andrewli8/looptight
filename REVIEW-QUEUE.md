@@ -6,6 +6,30 @@ next actionable task.
 
 ---
 
+## ESCALATION (2026-06-19) — mypy extractor: gate-or-not decision (maintainer call)
+
+The new `from_types` mypy extractor (commits `904f15e`/`8566c1e`/`a85cb73`) now
+surfaces type findings via `propose`. First run encountering its output:
+
+- `mypy src/looptight` → **4 errors, all on `config.py:48`**, the
+  `replace(self, **clean)` idiom where `clean: dict[str, object]`. This is a
+  well-known mypy false-positive (it can't see through `**dict` to the dataclass
+  field types); the code is correct at runtime.
+- `mypy` over `tests/` additionally reports 6 `import-not-found` findings
+  (pytest, rich.console) — pure noise from missing stubs in the run env, not
+  defects.
+
+**Not auto-fixed, deferred to maintainer.** Reasons: mypy is not part of the
+quality contract (not in dev deps, not in CI, no config) and the codebase has
+zero `# type: ignore` comments by design. "Fixing" `config.py:48` would mean
+introducing the first `type: ignore`/cast purely to satisfy a non-gating tool —
+unenforced (would silently regress) and out of contract — and would not make
+`mypy` clean overall (the test import-not-found findings remain). Whether to
+adopt mypy as a real gate (deps + CI + `ignore_missing_imports`, and scope the
+extractor to `src` so it stops surfacing test-import noise) is a project-
+direction decision, not something to guess autonomously.
+
+
 ## AUDIT (2026-06-19, sixth)
 
 Reviewer: independent checker agent. Previous AUDIT marker: `966f4f6` (fifth audit).
