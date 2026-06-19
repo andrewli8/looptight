@@ -3,7 +3,7 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from looptight.improve import ImproveStopReason, _commit_subject, run_improve
+from looptight.improve import ImproveStopReason, _audit_goal, _commit_subject, run_improve
 from looptight.propose import Candidate
 from looptight.types import RunResult, StopReason
 
@@ -47,6 +47,24 @@ def _candidate() -> Candidate:
         suggested_verify="pytest -q",
         score=20.0,
     )
+
+
+def test_audit_prompt_requires_noop_audits_to_leave_tree_unchanged():
+    goal = _audit_goal(3, ["no changes from audit #2"])
+
+    assert "REVIEW-QUEUE.md" in goal
+    assert "STATUS" in goal
+    assert "other documentation" in goal
+    assert "merely to report" in goal
+    assert "leave the working tree unchanged" in goal.lower()
+    assert "no evidence-backed improvement" in goal.lower()
+
+
+def test_audit_prompt_allows_product_documentation_as_the_improvement():
+    goal = _audit_goal(1, [])
+
+    assert "legitimate product documentation" in goal.lower()
+    assert "actual evidence-backed improvement" in goal.lower()
 
 
 def test_commit_subject_truncates_at_word_boundary():

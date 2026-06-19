@@ -64,7 +64,11 @@ def _audit_goal(number: int, outcomes: list[str]) -> str:
         f"Repository improvement audit #{number}. Inspect the repository and implement exactly one "
         "new, high-value, evidence-backed improvement. Prior session outcomes: "
         f"{recent}. Choose a different concrete area; avoid speculative behavior, test padding, "
-        "and duplicate documentation. Leave verification to looptight."
+        "and duplicate documentation. Do not edit REVIEW-QUEUE.md, add STATUS run logs, or change "
+        "other documentation merely to report that no work was found. If there is no "
+        "evidence-backed improvement, leave the working tree unchanged. Legitimate product "
+        "documentation remains allowed when it is the actual evidence-backed improvement. Leave "
+        "verification to looptight."
     )
 
 
