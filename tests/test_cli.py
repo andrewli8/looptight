@@ -30,6 +30,21 @@ def test_run_exits_error_when_no_verify_command(tmp_path, monkeypatch):
     assert main(["run", "fix tests"]) == 2
 
 
+def test_run_warns_when_budget_cannot_be_enforced(tmp_path, monkeypatch, capsys):
+    # A user who passes --budget to a no-cost-reporting agent (codex/opencode)
+    # must be told it can't be enforced — same honesty as `improve` already has.
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: "claude")
+    monkeypatch.setattr(
+        "looptight.commands.get_adapter",
+        lambda name: __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter(),
+    )
+    main(["run", "fix it", "--verify", "exit 0", "--budget", "0.5"])
+    out = capsys.readouterr().out.lower()
+    assert "cannot enforce" in out
+    assert "budget" in out
+
+
 def test_doctor_runs(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert main(["doctor"]) == 0

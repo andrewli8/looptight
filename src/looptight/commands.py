@@ -74,6 +74,12 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
         console.print('  looptight init   (auto-detects)   or   looptight run "..." --verify "pytest -q"')
         return 2
 
+    if args.budget is not None and not adapter.reports_cost_usd:
+        console.print(
+            f"[yellow]{agent_name} does not report USD cost; looptight cannot enforce "
+            "--budget (the run is bounded by --max-iterations instead).[/yellow]"
+        )
+
     use_native = config.native and adapter.supports_native_loop
     if config.native and not adapter.supports_native_loop:
         console.print(f"[yellow]{agent_name} has no native loop; supplying the loop instead.[/yellow]")
