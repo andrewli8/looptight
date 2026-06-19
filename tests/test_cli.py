@@ -92,6 +92,21 @@ def test_run_exits_one_when_verify_never_passes(tmp_path, monkeypatch):
     assert main(["run", "fix it", "--verify", "exit 1", "--max-iterations", "1", "--no-reflect"]) == 1
 
 
+def test_next_prints_a_grounded_task(tmp_path, monkeypatch, capsys):
+    # `looptight next` emits the top grounded task for the current session to do.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# TODO: fix the timeout\n")
+    assert main(["next"]) == 0
+    assert "fix the timeout" in capsys.readouterr().out
+
+
+def test_next_emits_audit_task_when_no_signals(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    assert main(["next"]) == 0
+    assert "audit" in capsys.readouterr().out.lower()
+
+
 def test_doctor_runs(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert main(["doctor"]) == 0

@@ -336,6 +336,18 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
     return 0
 
 
+def cmd_next(args: argparse.Namespace, console: Console) -> int:
+    """Print the single next task to work on, for the current session to execute.
+
+    The in-session driver: run `looptight next`, do the task on this session's
+    tokens, gate with `looptight verify`, commit — no spawned `claude -p`. Plain
+    stdout so it's easy to capture/script."""
+    from .improve import next_task
+
+    print(next_task(Path.cwd()))
+    return 0
+
+
 def cmd_hook(args: argparse.Namespace, console: Console) -> int:
     """Claude Code Stop-hook entry point. Reads the event on stdin, and prints a
     decision JSON to stdout only when it wants Claude to keep going. Stdout has to

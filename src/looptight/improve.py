@@ -73,6 +73,21 @@ def _audit_goal(number: int, outcomes: list[str]) -> str:
     )
 
 
+def next_task(workdir: Path, *, propose_fn: ProposeFn = propose) -> str:
+    """The single next task for the *current* session to execute — no agent spawn.
+
+    Returns the top grounded candidate's goal, or a fresh audit goal when the
+    proposal queue is empty: the same selection ``run_improve`` uses, but exposed
+    so an in-session agent can drive the improve loop on its own (session) tokens
+    instead of spawning a paid ``claude -p`` / ``codex exec``. The caller does the
+    work and lets ``verify`` gate it.
+    """
+    candidates = propose_fn(workdir, limit=1)
+    if candidates:
+        return _grounded_goal(candidates[0])
+    return _audit_goal(1, [])
+
+
 def _commit_subject(candidate: Candidate | None, number: int) -> str:
     raw = candidate.title if candidate else f"autonomous repository improvement {number}"
     clean = re.sub(r"[`\r\n]+", "", raw).strip().rstrip(".")

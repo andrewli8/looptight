@@ -3,7 +3,13 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
-from looptight.improve import ImproveStopReason, _audit_goal, _commit_subject, run_improve
+from looptight.improve import (
+    ImproveStopReason,
+    _audit_goal,
+    _commit_subject,
+    next_task,
+    run_improve,
+)
 from looptight.propose import Candidate
 from looptight.types import RunResult, StopReason
 
@@ -377,3 +383,19 @@ def test_max_idle_tasks_zero_disables_the_idle_guard(tmp_path):
 
     assert result.stop_reason is ImproveStopReason.SESSION_BUDGET
     assert result.tasks_attempted >= 4  # ran well past the default cap of 3
+
+
+def test_next_task_emits_top_grounded_goal():
+    # In-session driver: returns the top grounded candidate as an actionable goal.
+    cand = Candidate(
+        title="fix the timeout", source="todo", location="client.py:7",
+        suggested_verify=None, score=20.0,
+    )
+    goal = next_task(Path("/repo"), propose_fn=lambda root, limit=1: [cand])
+    assert "fix the timeout" in goal
+    assert "client.py:7" in goal
+
+
+def test_next_task_falls_back_to_audit_when_queue_empty():
+    goal = next_task(Path("/repo"), propose_fn=lambda root, limit=1: [])
+    assert "audit" in goal.lower()

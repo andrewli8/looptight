@@ -13,6 +13,7 @@ from .commands import (
     cmd_init,
     cmd_install_hook,
     cmd_lessons,
+    cmd_next,
     cmd_propose,
     cmd_revert,
     cmd_run,
@@ -32,6 +33,7 @@ _COMMANDS = {
     "hook",
     "install-hook",
     "propose",
+    "next",
 }
 
 
@@ -89,6 +91,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_propose.add_argument("--json", action="store_true", help="emit the ranked candidates as JSON")
     p_propose.add_argument(
         "--limit", type=_non_negative_int, default=10, help="max candidates to show (default 10)"
+    )
+
+    sub.add_parser(
+        "next",
+        help="print the next task to work on (top grounded candidate, or an audit task when "
+        "the queue is empty) — for the current session to execute on its own tokens",
     )
 
     sub.add_parser("hook", help="Claude Code Stop-hook handler (reads the hook event on stdin)")
@@ -167,6 +175,7 @@ def main(argv: list[str] | None = None) -> int:
         "hook": cmd_hook,
         "install-hook": cmd_install_hook,
         "propose": cmd_propose,
+        "next": cmd_next,
     }[args.command]
     try:
         return handler(args, console)
