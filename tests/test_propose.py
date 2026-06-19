@@ -187,6 +187,21 @@ def test_mypy_candidates_parse_errors_skip_notes_and_summary():
     assert len(cands) == 2  # note + summary lines ignored
 
 
+def test_from_types_is_silent_when_mypy_and_uv_are_absent(tmp_path, monkeypatch):
+    # Safety contract: with neither mypy nor uv on PATH, from_types must return
+    # no candidates (and never spawn anything), so propose stays usable on
+    # projects that don't have mypy.
+    import looptight.propose as propose_mod
+
+    monkeypatch.setattr(propose_mod.shutil, "which", lambda name: None)
+    monkeypatch.setattr(
+        propose_mod.subprocess,
+        "run",
+        lambda *a, **k: (_ for _ in ()).throw(AssertionError("must not spawn")),
+    )
+    assert propose_mod.from_types(tmp_path) == []
+
+
 def test_mypy_candidates_dedupe_per_file_and_code():
     sample = (
         "a.py:1: error: first  [arg-type]\n"
