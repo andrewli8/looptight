@@ -6,11 +6,17 @@ from the files in the repo. Both are best-effort and always overridable.
 
 from __future__ import annotations
 
+import re
 import shutil
 from pathlib import Path
 
 # Order = preference when several agents are installed.
 KNOWN_AGENTS: tuple[str, ...] = ("claude", "codex", "opencode")
+
+# A Make `test` rule: "test" then optional spaces and a colon, but NOT an
+# assignment (`test:=` / `test::=` / `test ::=`). The lookahead rejects an "="
+# right after the colon(s) so a variable named `test` isn't read as a target.
+_MAKE_TEST_TARGET = re.compile(r"test\s*:(?!:?=)")
 
 
 def detect_agent(preferred: str | None = None) -> str | None:
@@ -65,7 +71,7 @@ def detect_verify(root: Path | None = None) -> str | None:
     if makefile.is_file():
         try:
             if any(
-                line.startswith("test:") for line in makefile.read_text(encoding="utf-8").splitlines()
+                _MAKE_TEST_TARGET.match(line) for line in makefile.read_text(encoding="utf-8").splitlines()
             ):
                 return "make test"
         except OSError:

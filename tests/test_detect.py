@@ -63,6 +63,19 @@ def test_detect_verify_makefile(tmp_path):
     assert detect.detect_verify(tmp_path) == "make test"
 
 
+def test_detect_verify_makefile_ignores_test_assignment(tmp_path):
+    # `test:=...` / `test::=...` are Make variable assignments, not targets, so
+    # they must not be mistaken for a `make test` rule.
+    (tmp_path / "Makefile").write_text("test:=pytest\n\nbuild:\n\tgcc x.c\n")
+    assert detect.detect_verify(tmp_path) is None
+
+
+def test_detect_verify_makefile_target_with_prereqs(tmp_path):
+    # A real target with prerequisites is still detected.
+    (tmp_path / "Makefile").write_text("test: build\n\tpytest\n")
+    assert detect.detect_verify(tmp_path) == "make test"
+
+
 def test_detect_verify_none(tmp_path):
     assert detect.detect_verify(tmp_path) is None
 
