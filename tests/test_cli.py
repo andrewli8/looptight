@@ -271,6 +271,26 @@ def test_revert_reports_failure_when_git_cannot_launch(tmp_path, monkeypatch, ca
     assert "could not run git checkout" in out
 
 
+def test_revert_notes_untracked_files_left_in_place(tmp_path, monkeypatch, capsys):
+    # revert only restores tracked files; it must tell the user that any
+    # agent-created untracked files remain, so the leftover state isn't a surprise.
+    import subprocess
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.email", "t@e.com"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.name", "T"], cwd=tmp_path, check=True)
+    (tmp_path / "app.py").write_text("orig\n")
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-qm", "init"], cwd=tmp_path, check=True)
+    (tmp_path / "agent_made_this.py").write_text("new\n")  # untracked
+
+    assert main(["revert", "--yes"]) == 0
+    out = capsys.readouterr().out.lower()
+    assert "reverted" in out
+    assert "untracked" in out
+
+
 def test_lessons_clear_removes_all(tmp_path, monkeypatch):
     from looptight.lessons import LessonStore
     from looptight.types import Lesson

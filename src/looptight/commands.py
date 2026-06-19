@@ -274,6 +274,21 @@ def cmd_revert(args: argparse.Namespace, console: Console) -> int:
         console.print("[red]error:[/red] git checkout failed; restore not confirmed. Inspect the working tree.")
         return 1
     console.print("[green]reverted[/green] tracked files to HEAD.")
+    # revert is tracked-only by design; tell the user about any untracked files
+    # the agent created so the leftover state isn't a surprise.
+    untracked = subprocess.run(
+        ["git", "ls-files", "--others", "--exclude-standard"],
+        cwd=str(workdir),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    leftovers = untracked.stdout.splitlines() if untracked.returncode == 0 else []
+    if leftovers:
+        console.print(
+            f"[yellow]{len(leftovers)} untracked file(s) left in place[/yellow] — revert only "
+            "touches tracked files; remove them with `git clean -fd` if unwanted."
+        )
     return 0
 
 
