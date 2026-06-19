@@ -32,6 +32,12 @@ def test_detect_verify_npm_malformed_json_falls_through(tmp_path):
     assert detect.detect_verify(tmp_path) is None
 
 
+def test_detect_verify_npm_non_object_scripts_falls_through(tmp_path):
+    (tmp_path / "package.json").write_text('{"scripts": null}')
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n")
+    assert detect.detect_verify(tmp_path) == "pytest -q"
+
+
 def test_detect_verify_setup_cfg(tmp_path):
     (tmp_path / "setup.cfg").write_text("[metadata]\nname = x\n")
     assert detect.detect_verify(tmp_path) == "pytest -q"

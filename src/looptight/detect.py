@@ -48,7 +48,10 @@ def detect_verify(root: Path | None = None) -> str | None:
         try:
             import json
 
-            scripts = json.loads(package_json.read_text(encoding="utf-8")).get("scripts", {})
+            manifest = json.loads(package_json.read_text(encoding="utf-8"))
+            scripts = manifest.get("scripts", {}) if isinstance(manifest, dict) else {}
+            if not isinstance(scripts, dict):
+                scripts = {}
             if "test" in scripts:
                 return "npm test"
         except (ValueError, OSError):
