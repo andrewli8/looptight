@@ -35,6 +35,14 @@ def test_score_surfaced_in_result(tmp_path):
     assert result.score == 0.5
 
 
+def test_run_verify_tolerates_non_utf8_output(tmp_path):
+    # The verify oracle must never crash on a command's raw bytes; invalid UTF-8
+    # is decoded leniently rather than raising UnicodeDecodeError.
+    result = run_verify(r"printf '\377\376'; exit 3", tmp_path)
+    assert result.exit_code == 3
+    assert not result.passed
+
+
 def test_score_parsed_from_full_output_even_when_truncated(tmp_path):
     # A SCORE line buried in the middle of large output must still be read: the
     # score comes from the full output, not the head+tail truncated copy.

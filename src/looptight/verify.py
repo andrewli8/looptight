@@ -61,6 +61,7 @@ def run_verify(
             cwd=str(cwd) if cwd else None,
             capture_output=True,
             text=True,
+            errors="replace",  # verify output is untrusted bytes; never crash on bad UTF-8
             timeout=timeout_s,
         )
     except subprocess.TimeoutExpired as exc:
