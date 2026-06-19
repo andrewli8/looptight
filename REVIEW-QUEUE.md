@@ -581,3 +581,17 @@ capturing media that cannot be observed or verified offline (escalate-don't-
 guess); it is already tracked in STATUS.md. The prior skipped-test candidates
 no longer appear — they were intentional opt-in/platform skips and the proposer
 already excludes them. Made no code changes this run.
+
+## Run Summary (2026-06-19, third)
+
+Autonomous improvement loop — no changes: nothing safe and valuable to do.
+
+Baseline green on entry: `uv run pytest -q` 113 passed (1 skipped), `uv run
+ruff check` clean. `uv run looptight propose` surfaced a single candidate:
+STATUS.md "## Next" item 3 (record the flagship gif — same command across
+agents plus a lesson-dependent second task), which requires real external-agent
+runs and media capture that cannot be verified offline (escalate-don't-guess);
+already tracked in STATUS.md. A skeptical read of the (small, mature) source
+tree turned up no genuine, verifiable bug or simplification worth a diff.
+Manufacturing a refactor or padding tests here would violate the run's idle-is-
+success rule. Made no code changes this run.
