@@ -92,9 +92,12 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
 
     store = LessonStore(adapter.memory_file(workdir))
     verb = "driving native loop" if use_native else "supplying loop"
+    # Only show a dollar budget when the agent reports cost; otherwise the budget
+    # is unenforceable, so don't imply it caps spend.
+    budget = f"${config.budget_usd:.2f}" if adapter.reports_cost_usd else "not enforced (no cost reported)"
     console.print(
         f"[bold]looptight[/bold] · agent: [cyan]{agent_name}[/cyan] ({verb}) · "
-        f"verify: [cyan]{config.verify}[/cyan] · budget: ${config.budget_usd:.2f}"
+        f"verify: [cyan]{config.verify}[/cyan] · budget: {budget}"
     )
     console.print()
 

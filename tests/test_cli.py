@@ -50,6 +50,21 @@ def test_main_handles_keyboard_interrupt_cleanly(monkeypatch, capsys):
     assert "interrupted" in capsys.readouterr().out.lower()
 
 
+def test_run_banner_budget_honest_for_non_cost_reporting_agent(tmp_path, monkeypatch, capsys):
+    # The startup banner must not show a dollar budget for an agent that reports
+    # no cost — it can't be enforced, so don't imply it caps spend.
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: "claude")
+    monkeypatch.setattr(
+        "looptight.commands.get_adapter",
+        lambda name: __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter(),
+    )
+    main(["run", "fix it", "--verify", "exit 0", "--no-reflect"])
+    out = " ".join(capsys.readouterr().out.lower().split())  # collapse rich line-wrapping
+    assert "budget: not enforced" in out
+    assert "budget: $" not in out
+
+
 def test_run_warns_when_budget_cannot_be_enforced(tmp_path, monkeypatch, capsys):
     # A user who passes --budget to a no-cost-reporting agent (codex/opencode)
     # must be told it can't be enforced — same honesty as `improve` already has.
