@@ -15,7 +15,7 @@ from rich.console import Console
 
 from .adapters import available_adapter_names, get_adapter
 from .checkpoint import is_git_repo
-from .config import Config, load_config, write_config
+from .config import Config, find_config, load_config, write_config
 from .detect import detect_agent, detect_verify
 from .improve import ImproveStopReason, run_improve
 from .lessons import LessonStore
@@ -235,7 +235,11 @@ def cmd_doctor(args: argparse.Namespace, console: Console) -> int:
     agent = config.agent or detect_agent()
     verify = config.verify or detect_verify(workdir)
 
+    config_path = find_config(workdir)
     console.print("[bold]looptight doctor[/bold]")
+    console.print(
+        f"  config: {config_path}" if config_path else "  config: none (using defaults)"
+    )
     console.print(f"  agent (detected): {agent or '[red]none on PATH[/red]'}")
     console.print(f"  verify (detected): {verify or '[yellow]none[/yellow]'}")
     console.print(f"  git checkpoints: {'on' if is_git_repo(workdir) else '[yellow]off (not a git repo)[/yellow]'}")

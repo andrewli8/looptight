@@ -50,6 +50,21 @@ def test_doctor_runs(tmp_path, monkeypatch):
     assert main(["doctor"]) == 0
 
 
+def test_doctor_reports_config_path_when_present(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".looptight.toml").write_text('verify = "pytest -q"\n')
+    assert main(["doctor"]) == 0
+    out = capsys.readouterr().out
+    assert ".looptight.toml" in out
+
+
+def test_doctor_reports_no_config(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    assert main(["doctor"]) == 0
+    out = capsys.readouterr().out.lower()
+    assert "default" in out  # "none (using defaults)"
+
+
 def test_malformed_config_exits_cleanly_not_traceback(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / ".looptight.toml").write_text('verify = "pytest"\nbad = = toml\n')
