@@ -55,6 +55,13 @@ def _is_ours(entry: dict) -> bool:
     )
 
 
+def _stop_hooks(path: Path, hooks: dict) -> list:
+    stop = hooks.get("Stop", [])
+    if not isinstance(stop, list):
+        raise ValueError(f"{path}: hooks.Stop is not an array; refusing to edit")
+    return stop
+
+
 def install(path: Path) -> bool:
     """Add the Stop hook to ``path``. Returns True if added, False if already there.
 
@@ -66,7 +73,7 @@ def install(path: Path) -> bool:
     if not isinstance(raw_hooks, dict):
         raise ValueError(f"{path}: hooks is not an object; refusing to edit")
     hooks = dict(raw_hooks)
-    stop = list(hooks.get("Stop", []))
+    stop = list(_stop_hooks(path, hooks))
     if any(_is_ours(entry) for entry in stop if isinstance(entry, dict)):
         return False
     stop.append(_hook_entry())
@@ -84,7 +91,7 @@ def uninstall(path: Path) -> int:
     if not isinstance(raw_hooks, dict):
         raise ValueError(f"{path}: hooks is not an object; refusing to edit")
     hooks = dict(raw_hooks)
-    stop = list(hooks.get("Stop", []))
+    stop = list(_stop_hooks(path, hooks))
     kept = [entry for entry in stop if not (isinstance(entry, dict) and _is_ours(entry))]
     removed = len(stop) - len(kept)
     if removed:

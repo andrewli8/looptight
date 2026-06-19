@@ -106,6 +106,18 @@ def test_install_refuses_when_hooks_is_not_an_object(tmp_path):
         install(path)
 
 
+@pytest.mark.parametrize("edit", [install, uninstall])
+def test_refuses_when_stop_hooks_is_not_an_array(tmp_path, edit):
+    path = tmp_path / "settings.json"
+    original = json.dumps({"hooks": {"Stop": {"hooks": []}}})
+    path.write_text(original)
+
+    with pytest.raises(ValueError, match="Stop"):
+        edit(path)
+
+    assert path.read_text() == original
+
+
 def test_uninstall_refuses_when_hooks_is_not_an_object(tmp_path):
     path = tmp_path / "settings.json"
     path.write_text(json.dumps({"hooks": ["not", "an", "object"]}))
