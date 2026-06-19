@@ -643,3 +643,39 @@ agent runs and media capture that cannot be observed or verified offline
 the small, mature source tree (2.7k LOC, all spec features ✅ except deferred
 F3 ACP) found no genuine bug or simplification worth a diff. Made no code
 changes this run.
+
+---
+
+## AUDIT (2026-06-19, fourth)
+
+Reviewer: independent checker agent. Previous AUDIT marker: `5850632`.
+Reviewed 2 commits from `675c393` through `b9eaf33`.
+
+### Test and lint gate
+
+`uv run pytest`: 175 passed, 1 skipped (env-gated e2e — correct).
+`uv run ruff check`: all checks passed.
+**Main is GREEN.**
+
+### Commits reviewed
+
+| Hash | Subject |
+|------|---------|
+| `675c393` | docs: record idle improve run 2026-06-19 (no actionable work) |
+| `b9eaf33` | docs: record idle improve run 2026-06-19 (no actionable work) |
+
+### Verdict: clean; recurring stale-count inaccuracy self-corrected
+
+**`675c393` — docs only, correct in substance:**
+Another idle improve run. Proposer surfaced only the flagship-gif task
+(already escalated, correctly skipped). Run summary again cited `113 passed`
+(stale session baseline) — the pattern flagged in prior audits.
+
+**`b9eaf33` — docs only; self-corrects the stale baseline:**
+Fourth idle improve run. The agent explicitly acknowledges the auditor's
+recurring note and corrects the count to `175 passed, 1 skipped`. No code
+changes. Proposer again surfaced only the flagship-gif deferred task.
+
+The long-standing "113 passed" inaccuracy is now resolved: the improve agent
+updated its internal baseline and the current summary is accurate. No open
+concerns remain from prior audits. No code was modified in either commit.
