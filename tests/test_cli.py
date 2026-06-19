@@ -127,6 +127,25 @@ def test_budget_flag_help_describes_spend_threshold(capsys):
     assert "overshoot" in out
 
 
+def test_improve_summary_hides_dollar_cost_when_unreported(tmp_path, monkeypatch, capsys):
+    # Consistent with the run summary: an agent that bills but reports no USD
+    # must not show "$0.00 reported" (reads as free) in the improve summary line.
+    from looptight.improve import ImproveResult, ImproveStopReason
+
+    monkeypatch.chdir(tmp_path)
+    adapter = __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter()  # reports_cost_usd=False
+    monkeypatch.setattr("looptight.commands.get_adapter", lambda name: adapter)
+    monkeypatch.setattr(
+        "looptight.commands.run_improve",
+        lambda *a, **k: ImproveResult(ImproveStopReason.NO_PROGRESS),
+    )
+
+    assert main(["improve", "--agent", "claude", "--verify", "exit 0"]) == 0
+    out = capsys.readouterr().out.lower()
+    assert "$0.00" not in out
+    assert "cost not reported" in out
+
+
 def test_improve_help_exposes_continuous_controls(capsys):
     try:
         main(["improve", "--help"])

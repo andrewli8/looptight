@@ -167,10 +167,14 @@ def cmd_improve(args: argparse.Namespace, console: Console) -> int:
         push=args.push,
         on_event=lambda message: console.print(f"[bold]{message}[/bold]"),
     )
+    cost = (
+        f"${result.total_cost_usd:.2f} reported"
+        if adapter.reports_cost_usd
+        else "cost not reported (provider-billed)"
+    )
     console.print(
         f"stopped: {result.stop_reason.value.replace('_', ' ')} · "
-        f"{result.tasks_attempted} task(s) · {result.commits} commit(s) · "
-        f"${result.total_cost_usd:.2f} reported"
+        f"{result.tasks_attempted} task(s) · {result.commits} commit(s) · {cost}"
     )
     if result.error:
         console.print(f"[yellow]{result.error}[/yellow]")
