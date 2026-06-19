@@ -6,6 +6,135 @@ next actionable task.
 
 ---
 
+## AUDIT (2026-06-19, seventh)
+
+Reviewer: independent checker agent. Previous AUDIT marker: `7a2daee` (sixth audit).
+Reviewed 23 commits from `ae0c6bb` through `c10065e`.
+
+### Test and lint gate
+
+`uv run pytest`: 224 passed, 1 skipped (env-gated e2e — correct). Up from 204 in the sixth audit.
+`uv run ruff check`: all checks passed.
+**Main is GREEN.**
+
+### Commits reviewed
+
+| Hash | Subject |
+|------|---------|
+| `ae0c6bb` | docs: reviewer audit entry 2026-06-19 (sixth) |
+| `6db8c51` | fix: stop the improve loop after consecutive idle tasks |
+| `c4f5ec4` | fix: collapse multi-line reflections into a single lesson bullet |
+| `3a92851` | fix: don't read a Make 'test' assignment as a test target |
+| `b13a478` | test: pin the improve idle-guard disable escape hatch |
+| `4b1e446` | fix: don't show $0.00 cost for agents that don't report it |
+| `b9361d9` | fix: honest cost in the improve summary line too |
+| `601b74e` | fix: warn when run --budget can't be enforced |
+| `a421c9a` | feat: show the resolved config path in doctor |
+| `fe626a5` | fix: tell the user when revert leaves untracked files behind |
+| `f64532d` | test: cover render_rich, the user-facing run summary |
+| `0726454` | fix: exit cleanly on Ctrl-C instead of dumping a traceback |
+| `37f9f88` | fix: verify oracle tolerates non-UTF-8 command output |
+| `3484edf` | fix: agent runner tolerates non-UTF-8 CLI output |
+| `f199506` | fix: init refuses to clobber an existing config |
+| `fb4041e` | fix: lessons reads the configured agent's memory file |
+| `13990d1` | test: pin that run exits 1 when verify never passes |
+| `efb6ac4` | fix: run banner shows honest budget for non-cost-reporting agents |
+| `904f15e` | feat: add mypy type-error extractor to propose |
+| `8566c1e` | docs: reflect that the mypy type extractor is implemented |
+| `a85cb73` | test: pin from_types graceful degradation without mypy |
+| `37eb255` | docs: escalate mypy-extractor gate decision to maintainer |
+| `c10065e` | revert: drop the mypy from_types extractor (maintainer decision) |
+
+### Verdict: clean; one minor style inconsistency flagged (no revert)
+
+**`6db8c51` (idle guard) — correct and necessary:**
+`run_improve` had no stopping condition for unattended runs with no session
+budget (the only mode for codex/opencode, which report $0 USD so the budget
+can never trip). The audit path would spin forever once the repo ran dry.
+The fix adds a `consecutive_idle` counter reset on every commit, incremented
+on both "no changes" and "failed verify" outcomes, with a `max_idle_tasks=3`
+default and a `<= 0` escape hatch. Logic is sound. `NO_PROGRESS` is correctly
+wired to exit code 0 in `cmd_improve`. Four new tests cover the trigger,
+a mid-streak reset, the escape hatch, and the unverified path.
+
+**`c4f5ec4` (reflection collapse) — real data-loss bug, correct fix:**
+`reflect_on_failure` preserved internal newlines in lesson text. The lessons
+store is line-based (`parse_lessons` matches one bullet per line), so any
+multi-line lesson lost every line after the first on round-trip. `" ".join(raw.strip().strip("-•* ").split())` correctly flattens to a single line. One edge
+case (interior `•` characters become inline text) is acceptable behaviour.
+
+**`3a92851` (Makefile regex) — correct:**
+Old code used `line.startswith("test:")`, which matched variable assignments
+(`test:=pytest`, `test::=`). New regex `r"test\s*:(?!:?=)"` uses a negative
+lookahead that correctly rejects both `test:=` (`:?` matches nothing, `=`
+matches) and `test::=` (`:?` matches `:`, `=` matches). Real targets
+(`test:`, `test: prereqs`) still match. Logic verified.
+
+**Cost-honesty cluster (`4b1e446`, `b9361d9`, `601b74e`, `efb6ac4`) — complete and correct:**
+All four coordinate to give non-cost-reporting agents (codex/opencode) honest
+UX: no misleading `$0.00` in the iteration line, summary footer, improve
+summary, or startup banner; `--budget` warns it cannot be enforced. The new
+`reports_cost_usd: bool = True` field on the frozen `RunResult` dataclass is
+minimal and correctly defaulted. `render_rich` pragma dropped after gaining
+coverage in `f64532d`.
+
+**Robustness cluster (`37f9f88`, `3484edf`) — critical path hardening:**
+Both the verify oracle and the adapter runner decoded output with the strict
+codec; an agent emitting invalid UTF-8 raised an uncaught `UnicodeDecodeError`
+not caught by the existing `OSError`/`TimeoutExpired` handlers. Fixed with
+`errors="replace"` in both subprocess calls. Minimal, correct, and load-bearing
+(verify is the contract).
+
+**`f199506` (init clobber) — real data-loss fix:**
+Re-running `init` silently overwrote a user's customized config. Now refuses
+when the file exists. Correct.
+
+**`fb4041e` (lessons agent resolution) — real bug fix:**
+`cmd_lessons` ignored `config.agent`, so a project configured for codex would
+read an empty `CLAUDE.md`. Resolution order now matches `run`/`improve`:
+CLI flag > config > detect.
+
+**`a421c9a` (doctor config path) — small, useful, in scope:**
+Shows the resolved `.looptight.toml` path (or "none (using defaults)") so a
+user can debug a silently-not-applied config. One targeted test.
+
+**`0726454` (Ctrl-C) — correct:**
+`KeyboardInterrupt` now caught at the top level; returns exit 130
+(conventional SIGINT code). The improve loop's own `KeyboardInterrupt` catch
+(which does rollback first) is unaffected.
+
+**`fe626a5` (revert untracked warning) — correct in substance:**
+After reverting tracked files, the command now runs `git ls-files --others
+--exclude-standard` and reports any untracked leftovers. The main `git
+checkout` call is wrapped in `try/except OSError`; the follow-up
+`ls-files` call is not. In practice this cannot fail (git was proven
+available seconds earlier), but the inconsistency is a style concern — noted
+below.
+
+**mypy arc (`904f15e` → `8566c1e` → `a85cb73` → `37eb255` → `c10065e`) — correctly handled:**
+The extractor was added, escalated by the sixth audit for a maintainer
+decision (mypy is not part of the quality contract), and reverted by the
+maintainer. Final state is clean: `from_types` and `_mypy_candidates` are
+absent; the `types` source weight is re-reserved for a future extractor;
+the escalation is recorded as resolved in REVIEW-QUEUE. No test or code
+residue remains.
+
+**20 new tests — targeted and offline:** All cover real gaps (render_rich,
+idle guard paths, exit-code regression, etc.). No padding. All sub-second.
+
+### Minor concern flagged (no revert)
+
+**`fe626a5`: `git ls-files` call in `cmd_revert` lacks `try/except OSError`.**
+The informational `git ls-files` call added after the main revert runs without
+the `OSError` guard that wraps the `git checkout` call above it. If git were
+removed from PATH between the two calls (unrealistic, but theoretically possible
+in a container), the exception would propagate uncaught. The existing guard on
+the earlier call makes the inconsistency visible. Suggest adding a bare
+`except OSError` that sets `leftovers = []` around the second `subprocess.run`.
+Flag only — no revert; the fix is purely defensive.
+
+---
+
 ## ESCALATION (2026-06-19) — mypy extractor: gate-or-not decision (maintainer call)
 
 **RESOLVED (2026-06-19): maintainer chose to revert `from_types`.** mypy is not
