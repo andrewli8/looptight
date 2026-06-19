@@ -71,7 +71,7 @@ def load_config(path: Path | None = None) -> Config:
         return Config(
             verify=_optional_string(data, "verify"),
             agent=_optional_string(data, "agent"),
-            max_iterations=int(data.get("max_iterations", DEFAULT_MAX_ITERATIONS)),
+            max_iterations=_positive_integer(data, "max_iterations", DEFAULT_MAX_ITERATIONS),
             budget_usd=float(data.get("budget_usd", DEFAULT_BUDGET_USD)),
             reflect=_boolean(data, "reflect", True),
             native=_boolean(data, "native", False),
@@ -93,6 +93,13 @@ def _optional_string(data: dict[str, object], field: str) -> str | None:
     value = data.get(field)
     if value is not None and not isinstance(value, str):
         raise ValueError(f"{field} must be a string")
+    return value
+
+
+def _positive_integer(data: dict[str, object], field: str, default: int) -> int:
+    value = data.get(field, default)
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ValueError(f"{field} must be a positive integer")
     return value
 
 

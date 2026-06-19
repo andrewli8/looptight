@@ -73,6 +73,18 @@ def test_load_config_raises_clear_error_on_non_numeric_value(tmp_path):
     assert str(path) in str(exc.value)
 
 
+@pytest.mark.parametrize("value", ["0", "-1", "true"])
+def test_load_config_rejects_invalid_max_iterations(tmp_path, value):
+    path = tmp_path / ".looptight.toml"
+    path.write_text(f"max_iterations = {value}\n", encoding="utf-8")
+
+    with pytest.raises(ConfigError) as exc:
+        load_config(path)
+
+    assert str(path) in str(exc.value)
+    assert "max_iterations" in str(exc.value)
+
+
 @pytest.mark.parametrize("field", ["reflect", "native", "hook"])
 def test_load_config_rejects_string_boolean_values(tmp_path, field):
     path = tmp_path / ".looptight.toml"

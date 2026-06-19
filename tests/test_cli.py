@@ -88,6 +88,15 @@ def test_propose_rejects_negative_cli_limit():
     assert exc.value.code == 2
 
 
+@pytest.mark.parametrize("command", [["run", "goal"], ["improve"]])
+@pytest.mark.parametrize("value", ["0", "-1"])
+def test_loop_commands_reject_non_positive_max_iterations(command, value):
+    with pytest.raises(SystemExit) as exc:
+        main([*command, "--max-iterations", value])
+
+    assert exc.value.code == 2
+
+
 def test_propose_text_output_describes_autonomous_flow(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "src").mkdir()

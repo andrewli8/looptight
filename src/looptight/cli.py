@@ -42,6 +42,13 @@ def _non_negative_int(value: str) -> int:
     return parsed
 
 
+def _positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be greater than zero")
+    return parsed
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="looptight",
@@ -100,7 +107,7 @@ def build_parser() -> argparse.ArgumentParser:
 def _add_run_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--agent", choices=KNOWN_AGENTS, help="agent to use (auto-detected if omitted)")
     parser.add_argument("--verify", help="verify command (auto-detected if omitted)")
-    parser.add_argument("--max-iterations", type=int, help="hard iteration cap")
+    parser.add_argument("--max-iterations", type=_positive_int, help="hard iteration cap")
     parser.add_argument(
         "--patience",
         type=int,
@@ -123,7 +130,7 @@ def _add_run_flags(parser: argparse.ArgumentParser) -> None:
 def _add_improve_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--agent", choices=KNOWN_AGENTS, help="agent to use (auto-detected if omitted)")
     parser.add_argument("--verify", help="override the per-task verify command")
-    parser.add_argument("--max-iterations", type=int, help="per-task hard iteration cap")
+    parser.add_argument("--max-iterations", type=_positive_int, help="per-task hard iteration cap")
     parser.add_argument("--patience", type=int, help="per-task no-progress patience (0 = off)")
     parser.add_argument(
         "--budget",
