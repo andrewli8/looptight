@@ -205,6 +205,23 @@ def test_revert_reports_failure_when_git_checkout_fails(tmp_path, monkeypatch, c
     assert "restore not confirmed" in out
 
 
+def test_revert_reports_failure_when_git_cannot_launch(tmp_path, monkeypatch, capsys):
+    import subprocess
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.commands.is_git_repo", lambda *a, **k: True)
+
+    def fail_to_launch(*args, **kwargs):
+        raise FileNotFoundError("git is not installed")
+
+    monkeypatch.setattr(subprocess, "run", fail_to_launch)
+
+    assert main(["revert", "--yes"]) == 1
+    out = capsys.readouterr().out.lower()
+    assert "reverted" not in out
+    assert "could not run git checkout" in out
+
+
 def test_lessons_clear_removes_all(tmp_path, monkeypatch):
     from looptight.lessons import LessonStore
     from looptight.types import Lesson

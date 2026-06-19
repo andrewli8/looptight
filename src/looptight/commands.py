@@ -248,7 +248,13 @@ def cmd_revert(args: argparse.Namespace, console: Console) -> int:
         return 0
     import subprocess
 
-    result = subprocess.run(["git", "checkout", "HEAD", "--", "."], cwd=str(workdir), check=False)
+    try:
+        result = subprocess.run(
+            ["git", "checkout", "HEAD", "--", "."], cwd=str(workdir), check=False
+        )
+    except OSError as exc:
+        console.print(f"[red]error:[/red] could not run git checkout: {exc}")
+        return 1
     if result.returncode != 0:
         console.print("[red]error:[/red] git checkout failed; restore not confirmed. Inspect the working tree.")
         return 1
