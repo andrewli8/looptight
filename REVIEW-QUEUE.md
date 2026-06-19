@@ -468,3 +468,17 @@ STATUS.md, so no further action this run.
 
 Test count: 111 → 113 passed (2 new tests, offline/sub-second).
 `pytest -q` and `ruff check` clean before push.
+
+## Run Summary (2026-06-19)
+
+Autonomous improvement loop — no changes: nothing safe and valuable to do.
+
+Baseline green on entry: `uv run pytest -q` 113 passed, `uv run ruff check`
+clean. `uv run looptight propose` surfaced a single candidate — STATUS.md "##
+Next" item 3, recording the flagship gif (same command across agents plus a
+lesson-dependent second task). That requires running real external agents and
+capturing media that cannot be observed or verified offline (escalate-don't-
+guess); it is already tracked in STATUS.md. The earlier "## Next" items (Codex
+`/goal` headless drivability, Codex/opencode cost parsing) remain resolved/
+deferred there. No lint or test-rot candidates remained after prior runs. Made
+no code changes this run.
