@@ -176,6 +176,7 @@ def cmd_improve(args: argparse.Namespace, console: Console) -> int:
         console.print(f"[yellow]{result.error}[/yellow]")
     return {
         ImproveStopReason.SESSION_BUDGET: 0,
+        ImproveStopReason.NO_PROGRESS: 0,
         ImproveStopReason.PROVIDER_STOP: 1,
         ImproveStopReason.INTERRUPTED: 130,
         ImproveStopReason.GIT_ERROR: 2,

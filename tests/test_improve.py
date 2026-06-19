@@ -305,3 +305,54 @@ def test_task_runner_exception_rolls_back_before_stopping(tmp_path):
     assert (tmp_path / "app.py").read_text() == "old\n"
     assert not (tmp_path / "created.py").exists()
     assert _git(["status", "--porcelain"], tmp_path).stdout == ""
+
+
+def test_stops_after_consecutive_idle_tasks_without_budget(tmp_path):
+    # Runaway guard: with no session budget and an agent that keeps passing but
+    # changing nothing (cost $0 — e.g. codex/opencode), the loop must stop after
+    # a few idle tasks instead of spinning forever burning the provider quota.
+    _init_repo(tmp_path)
+    calls = 0
+
+    def run_task(goal, checkpointer):
+        nonlocal calls
+        calls += 1
+        return _result(cost=0.0)  # passed, no file changes, no cost
+
+    result = run_improve(
+        tmp_path,
+        run_task,
+        propose_fn=lambda root, limit=0: [],
+        session_budget_usd=None,
+        max_idle_tasks=3,
+    )
+
+    assert result.stop_reason is ImproveStopReason.NO_PROGRESS
+    assert result.tasks_attempted == 3
+    assert result.commits == 0
+
+
+def test_idle_streak_resets_on_commit(tmp_path):
+    # A committing task resets the idle streak, so intermittent progress keeps
+    # the loop alive rather than tripping the no-progress stop prematurely.
+    _init_repo(tmp_path)
+    calls = 0
+
+    def run_task(goal, checkpointer):
+        nonlocal calls
+        calls += 1
+        if calls == 2:  # only the 2nd task makes a committable change
+            (tmp_path / "app.py").write_text("v2\n")
+        return _result(cost=0.0)
+
+    result = run_improve(
+        tmp_path,
+        run_task,
+        propose_fn=lambda root, limit=0: [],
+        max_idle_tasks=2,
+    )
+
+    # idle, commit(reset), idle, idle -> stop on the 4th task (not the 3rd).
+    assert result.stop_reason is ImproveStopReason.NO_PROGRESS
+    assert result.commits == 1
+    assert result.tasks_attempted == 4

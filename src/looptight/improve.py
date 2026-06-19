@@ -19,6 +19,7 @@ class ImproveStopReason(str, Enum):
     PROVIDER_STOP = "provider_stop"
     INTERRUPTED = "interrupted"
     GIT_ERROR = "git_error"
+    NO_PROGRESS = "no_progress"  # ran dry: too many consecutive tasks made no commit
 
 
 @dataclass(frozen=True)
@@ -111,8 +112,16 @@ def run_improve(
     push: bool = False,
     git_fn: GitFn = _git,
     on_event: EventFn | None = None,
+    max_idle_tasks: int = 3,
 ) -> ImproveResult:
-    """Continuously discover and run improvements until an explicit stop."""
+    """Continuously discover and run improvements until a stop condition.
+
+    Stops on a session-budget overrun, a provider/git error, an interrupt, or —
+    crucially for an unattended run with no measurable cost (codex/opencode
+    report $0, so the budget can never trip) — after ``max_idle_tasks``
+    consecutive tasks that produce no commit. Without that idle guard the audit
+    path would spin forever once the repo runs dry. ``max_idle_tasks <= 0``
+    disables the guard (legacy run-until-explicit-stop)."""
     if not is_git_repo(workdir):
         return ImproveResult(ImproveStopReason.GIT_ERROR, error="improve requires a Git repository")
     initial = _status(git_fn, workdir)
@@ -130,6 +139,7 @@ def run_improve(
     commits = 0
     spent = 0.0
     audit_number = 0
+    consecutive_idle = 0
 
     while True:
         candidates = propose_fn(workdir, limit=0)
@@ -206,6 +216,7 @@ def run_improve(
                         error or committed.stderr.strip() or "git commit failed",
                     )
                 commits += 1
+                consecutive_idle = 0
                 outcomes.append(f"committed {subject}")
                 if push:
                     pushed = git_fn(["push"], workdir)
@@ -218,14 +229,18 @@ def run_improve(
                             pushed.stderr.strip() or "git push failed",
                         )
             else:
+                consecutive_idle += 1
                 outcomes.append(f"no changes from {candidate.title if candidate else f'audit #{audit_number}'}")
         else:
             error = _rollback(checkpointer, snapshot, git_fn, workdir)
             if error:
                 return ImproveResult(ImproveStopReason.GIT_ERROR, tasks, commits, spent, error)
+            consecutive_idle += 1
             outcomes.append(
                 f"unverified {candidate.title if candidate else f'audit #{audit_number}'}"
             )
 
         if session_budget_usd is not None and spent >= session_budget_usd:
             return ImproveResult(ImproveStopReason.SESSION_BUDGET, tasks, commits, spent)
+        if max_idle_tasks > 0 and consecutive_idle >= max_idle_tasks:
+            return ImproveResult(ImproveStopReason.NO_PROGRESS, tasks, commits, spent)
