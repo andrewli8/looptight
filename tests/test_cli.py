@@ -311,6 +311,22 @@ def test_revert_notes_untracked_files_left_in_place(tmp_path, monkeypatch, capsy
     assert "untracked" in out
 
 
+def test_lessons_respects_configured_agent(tmp_path, monkeypatch, capsys):
+    # With agent=codex in config, lessons must read AGENTS.md (codex's memory),
+    # not fall back to a detected claude and read the wrong (empty) CLAUDE.md.
+    from looptight.config import Config, write_config
+    from looptight.lessons import LessonStore
+    from looptight.types import Lesson
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: "claude")
+    write_config(Config(verify="pytest -q", agent="codex"), tmp_path)
+    LessonStore(tmp_path / "AGENTS.md").add(Lesson(text="Pin codex retries"))
+
+    assert main(["lessons"]) == 0
+    assert "Pin codex retries" in capsys.readouterr().out
+
+
 def test_lessons_clear_removes_all(tmp_path, monkeypatch):
     from looptight.lessons import LessonStore
     from looptight.types import Lesson

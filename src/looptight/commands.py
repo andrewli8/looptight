@@ -213,7 +213,9 @@ def cmd_verify(args: argparse.Namespace, console: Console) -> int:
 
 def cmd_lessons(args: argparse.Namespace, console: Console) -> int:
     workdir = Path.cwd()
-    agent_name = args.agent or detect_agent() or "claude"
+    # CLI flag > configured agent > autodetect, matching how run/improve resolve
+    # it, so lessons reads the same memory file the run wrote to.
+    agent_name = args.agent or load_config().agent or detect_agent() or "claude"
     store = LessonStore(get_adapter(agent_name).memory_file(workdir))
 
     if args.clear:
