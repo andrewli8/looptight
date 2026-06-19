@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -105,6 +106,20 @@ def test_codex_and_opencode_build_prompts_with_goal_and_context():
         prompt = builder("fix the parser", "2 failing")
         assert "fix the parser" in prompt
         assert "2 failing" in prompt
+
+
+@pytest.mark.parametrize("name", available_adapter_names())
+def test_agent_launch_failure_is_returned_as_iteration_error(name, monkeypatch, tmp_path):
+    def fail_to_launch(*args, **kwargs):
+        raise PermissionError("permission denied")
+
+    monkeypatch.setattr(subprocess, "run", fail_to_launch)
+
+    result = get_adapter(name).run_iteration("fix it", "", tmp_path)
+
+    assert result.ok is False
+    assert result.error == f"{name} exited 127"
+    assert "permission denied" in result.transcript
 
 
 def test_codex_reflect_returns_none_on_nonzero_exit(monkeypatch, tmp_path):

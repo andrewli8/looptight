@@ -18,11 +18,11 @@ from __future__ import annotations
 
 import json
 import shutil
-import subprocess
 from pathlib import Path
+from subprocess import CompletedProcess
 
 from ..types import IterationResult
-from .base import Adapter
+from .base import Adapter, run_command
 
 # A small, cheap model for the bookkeeping/reflection step (D3). The coding step
 # uses whatever the agent defaults to; only reflection is pinned cheap.
@@ -40,11 +40,13 @@ class ClaudeAdapter(Adapter):
     def is_available(self) -> bool:
         return shutil.which(self.binary) is not None
 
-    def _invoke(self, prompt: str, workdir: Path, model: str | None) -> subprocess.CompletedProcess[str]:
+    def _invoke(
+        self, prompt: str, workdir: Path, model: str | None
+    ) -> CompletedProcess[str]:
         cmd = [self.binary, "-p", prompt, "--output-format", "json"]
         if model:
             cmd += ["--model", model]
-        return subprocess.run(cmd, cwd=str(workdir), capture_output=True, text=True, check=False)
+        return run_command(cmd, workdir)
 
     def run_iteration(
         self,

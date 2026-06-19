@@ -16,11 +16,11 @@ NOTE: flags are kept minimal and may need tuning for your opencode version (e.g.
 from __future__ import annotations
 
 import shutil
-import subprocess
 from pathlib import Path
+from subprocess import CompletedProcess
 
 from ..types import IterationResult
-from .base import Adapter
+from .base import Adapter, run_command
 
 
 class OpencodeAdapter(Adapter):
@@ -34,9 +34,9 @@ class OpencodeAdapter(Adapter):
     def is_available(self) -> bool:
         return shutil.which(self.binary) is not None
 
-    def _run(self, prompt: str, workdir: Path) -> subprocess.CompletedProcess[str]:
+    def _run(self, prompt: str, workdir: Path) -> CompletedProcess[str]:
         cmd = [self.binary, *self.run_args, prompt]
-        return subprocess.run(cmd, cwd=str(workdir), capture_output=True, text=True, check=False)
+        return run_command(cmd, workdir)
 
     def run_iteration(
         self,

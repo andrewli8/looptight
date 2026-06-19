@@ -19,10 +19,27 @@ writing one subclass and registering it.
 
 from __future__ import annotations
 
+import subprocess
 from abc import ABC, abstractmethod
 from pathlib import Path
 
 from ..types import IterationResult
+
+
+def run_command(cmd: list[str], workdir: Path) -> subprocess.CompletedProcess[str]:
+    """Run an agent CLI, normalizing launch failures as a non-zero result."""
+    try:
+        return subprocess.run(
+            cmd,
+            cwd=str(workdir),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        return subprocess.CompletedProcess(
+            cmd, 127, stdout="", stderr=f"could not launch {cmd[0]}: {exc}"
+        )
 
 
 class Adapter(ABC):

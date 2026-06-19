@@ -18,11 +18,11 @@ approval/sandbox settings; see ``binary``/``exec_args`` below.
 from __future__ import annotations
 
 import shutil
-import subprocess
 from pathlib import Path
+from subprocess import CompletedProcess
 
 from ..types import IterationResult
-from .base import Adapter
+from .base import Adapter, run_command
 
 
 class CodexAdapter(Adapter):
@@ -36,9 +36,9 @@ class CodexAdapter(Adapter):
     def is_available(self) -> bool:
         return shutil.which(self.binary) is not None
 
-    def _exec(self, prompt: str, workdir: Path) -> subprocess.CompletedProcess[str]:
+    def _exec(self, prompt: str, workdir: Path) -> CompletedProcess[str]:
         cmd = [self.binary, *self.exec_args, prompt]
-        return subprocess.run(cmd, cwd=str(workdir), capture_output=True, text=True, check=False)
+        return run_command(cmd, workdir)
 
     def run_iteration(
         self,
