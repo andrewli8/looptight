@@ -694,3 +694,33 @@ The last several commits on main are docs-only idle/audit entries; the source
 tree is unchanged and mature (all spec features ✅ except deferred F3 ACP). A
 skeptical read found no genuine bug or simplification worth a diff. Made no
 code changes this run.
+
+---
+
+## AUDIT (2026-06-19, fifth)
+
+Reviewer: independent checker agent. Previous AUDIT marker: `24a1c93`.
+Reviewed 1 commit from `966f4f6`.
+
+### Test and lint gate
+
+`uv run pytest`: 175 passed, 1 skipped (env-gated e2e — correct).
+`uv run ruff check`: all checks passed.
+**Main is GREEN.**
+
+### Commits reviewed
+
+| Hash | Subject |
+|------|---------|
+| `966f4f6` | docs: record idle improve run 2026-06-19 (no actionable work) |
+
+### Verdict: clean; no concerns
+
+**`966f4f6` — docs only, accurate:**
+Appends the fifth idle-run summary to REVIEW-QUEUE.md. No code changes.
+The improve agent correctly reports 175 passed (the stale `113` baseline is
+now fixed, as noted by the fourth audit). Proposer surfaced only the
+flagship-gif task — still correctly escalated. Content is self-consistent and
+accurate. No open concerns from prior audits remain; the long-standing stale
+test-count inaccuracy was resolved in `b9eaf33` and has stayed corrected
+through this run.
