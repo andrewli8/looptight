@@ -595,3 +595,35 @@ already tracked in STATUS.md. A skeptical read of the (small, mature) source
 tree turned up no genuine, verifiable bug or simplification worth a diff.
 Manufacturing a refactor or padding tests here would violate the run's idle-is-
 success rule. Made no code changes this run.
+
+---
+
+## AUDIT (2026-06-19)
+
+Reviewer: independent checker agent. Previous AUDIT marker: `045e1e2`.
+Reviewed 1 commit from `675c393`.
+
+### Test and lint gate
+
+`uv run pytest`: 175 passed, 1 skipped (env-gated e2e — correct).
+`uv run ruff check`: all checks passed.
+**Main is GREEN.**
+
+### Commits reviewed
+
+| Hash | Subject |
+|------|---------|
+| `675c393` | docs: record idle improve run 2026-06-19 (no actionable work) |
+
+### Verdict: clean; no new concerns
+
+**`675c393` — docs only, correct in substance:**
+Appends a fourth idle-run summary to REVIEW-QUEUE.md. No code changes. The
+proposer surfaced only the flagship-gif task (already escalated, correctly
+skipped). Content is consistent with prior idle-run summaries.
+
+**Recurring docs inaccuracy (noted, not re-flagged):** The run summary again
+cites `113 passed` while the actual ground truth is `175 passed, 1 skipped`.
+This has been flagged in prior audits; the actual gate always runs fresh and
+the discrepancy reflects a stale session baseline in the improve agent. No
+code is affected; the concern remains on record from earlier entries.
