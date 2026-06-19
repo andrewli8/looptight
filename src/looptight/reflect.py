@@ -14,6 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .adapters.base import Adapter
+from .lessons import BLOCK_END, BLOCK_START
 from .types import Lesson, VerifyResult
 
 _MAX_LESSON_CHARS = 240
@@ -63,6 +64,10 @@ def reflect_on_failure(
 
     text = raw.strip().strip("-•* ").strip()
     if not text or text.upper() == "NONE":
+        return None
+    # Reflection output is model-controlled and is persisted inside this
+    # delimited block. Never let it terminate or create a lessons block.
+    if BLOCK_START in text or BLOCK_END in text:
         return None
     if len(text) > _MAX_LESSON_CHARS:
         text = text[:_MAX_LESSON_CHARS].rsplit(" ", 1)[0] + "…"
