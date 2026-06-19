@@ -69,8 +69,8 @@ def load_config(path: Path | None = None) -> Config:
         raise ConfigError(f"{resolved} is not valid TOML: {exc}") from exc
     try:
         return Config(
-            verify=data.get("verify"),
-            agent=data.get("agent"),
+            verify=_optional_string(data, "verify"),
+            agent=_optional_string(data, "agent"),
             max_iterations=int(data.get("max_iterations", DEFAULT_MAX_ITERATIONS)),
             budget_usd=float(data.get("budget_usd", DEFAULT_BUDGET_USD)),
             reflect=_boolean(data, "reflect", True),
@@ -86,6 +86,13 @@ def _boolean(data: dict[str, object], field: str, default: bool) -> bool:
     value = data.get(field, default)
     if not isinstance(value, bool):
         raise ValueError(f"{field} must be a boolean")
+    return value
+
+
+def _optional_string(data: dict[str, object], field: str) -> str | None:
+    value = data.get(field)
+    if value is not None and not isinstance(value, str):
+        raise ValueError(f"{field} must be a string")
     return value
 
 
