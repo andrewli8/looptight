@@ -6,6 +6,65 @@ next actionable task.
 
 ---
 
+## AUDIT (2026-06-19, eighth)
+
+Reviewer: independent checker agent. Previous AUDIT marker: `a743f64` (seventh audit).
+Reviewed 4 commits from `f9d0e88` through `0d18884`.
+
+### Test and lint gate
+
+`uv run pytest`: 229 passed, 1 skipped (env-gated e2e — correct). Up from 224 in the seventh audit.
+`uv run ruff check`: all checks passed.
+**Main is GREEN.**
+
+### Commits reviewed
+
+| Hash | Subject |
+|------|---------|
+| `f9d0e88` | fix: guard the post-revert untracked-file listing against OSError |
+| `823f826` | feat: add 'looptight next' — in-session task driver (no agent spawn) |
+| `00a3bb1` | docs: document 'looptight next' and the session-token in-session loop |
+| `0d18884` | docs: log improver run (no changes; escalations recorded) |
+
+### Verdict: clean; no concerns
+
+**`f9d0e88` — resolves seventh-audit concern, correct:**
+Directly addresses the concern flagged in the seventh audit: the informational `git
+ls-files` call added by `fe626a5` lacked the `try/except OSError` that wrapped the
+preceding `git checkout`. The fix wraps the call and falls back to `leftovers = []`
+on failure, ensuring a revert that already succeeded can never be crashed by the
+follow-up listing. One targeted test covers the exact scenario. Resolution is clean
+and precisely scoped.
+
+**`823f826` — new `looptight next` command, in scope and minimal:**
+Adds a thin in-session task driver: `looptight next` prints the single next task
+(top grounded `propose` candidate, or a fresh audit goal when the queue is empty)
+for the current agent session to execute on its own tokens, bypassing `improve`'s
+`claude -p` / `codex exec` agent spawn. Core logic is 7 lines (`next_task` in
+`improve.py`), reusing `_grounded_goal` and `_audit_goal` which already existed.
+`cmd_next` is 6 effective lines. No new abstractions, no new dependencies.
+File sizes all within the 200–400 line guideline (`commands.py` at 384,
+`improve.py` at 261). Four new offline tests cover the grounded-task path, the
+audit fallback, and the CLI contract. The feature fills a real gap: the Stop hook
+covers single-iteration continuation; `improve` spawns agents; `next` covers
+in-session multi-task iteration explicitly. The `_audit_goal(1, [])` default is
+reasonable — produces a generic audit instruction, the right fallback when the
+propose queue is empty.
+
+**`00a3bb1` — README docs, accurate:**
+Adds a 20-line section describing `next` and the session-tokens-vs-API-credits
+distinction. Accurately describes the `next → implement → verify → commit` flow.
+In scope and factually correct.
+
+**`0d18884` — idle improver run log, correct:**
+Records no code changes; cites `224 passed` (accurate for that point in
+history). All five propose candidates correctly identified as non-actionable
+offline. Consistent with prior idle-run entries.
+
+No prior audit concerns remain open.
+
+---
+
 ## IMPROVER run (2026-06-19)
 
 No changes: nothing safe and valuable to do. On entry `uv run pytest -q`
