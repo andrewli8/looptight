@@ -49,9 +49,12 @@ def _hook_entry() -> dict:
 
 
 def _is_ours(entry: dict) -> bool:
+    nested_hooks = entry.get("hooks", [])
+    if not isinstance(nested_hooks, list):
+        return False
     return any(
         isinstance(h, dict) and h.get("command") == HOOK_COMMAND
-        for h in entry.get("hooks", [])
+        for h in nested_hooks
     )
 
 

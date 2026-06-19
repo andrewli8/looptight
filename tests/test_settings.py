@@ -51,6 +51,18 @@ def test_install_preserves_existing_settings_and_hooks(tmp_path):
     assert HOOK_COMMAND in commands
 
 
+def test_install_preserves_stop_entry_with_non_list_hooks(tmp_path):
+    path = tmp_path / "settings.json"
+    malformed_entry = {"matcher": "legacy", "hooks": None}
+    path.write_text(json.dumps({"hooks": {"Stop": [malformed_entry]}}))
+
+    assert install(path) is True
+
+    stop = _read(path)["hooks"]["Stop"]
+    assert stop[0] == malformed_entry
+    assert stop[1]["hooks"][0]["command"] == HOOK_COMMAND
+
+
 def test_uninstall_removes_only_ours(tmp_path):
     path = tmp_path / "settings.json"
     path.write_text(
