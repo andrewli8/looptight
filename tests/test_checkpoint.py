@@ -49,6 +49,19 @@ def test_checkpointer_is_a_noop_outside_git(tmp_path):
     assert cp.restore() is False
 
 
+def test_checkpointer_is_a_noop_when_git_cannot_launch(tmp_path, monkeypatch):
+    def fail_to_launch(*args, **kwargs):
+        raise FileNotFoundError("git is not installed")
+
+    monkeypatch.setattr(subprocess, "run", fail_to_launch)
+
+    cp = Checkpointer(tmp_path)
+
+    assert cp.enabled is False
+    assert cp.snapshot() is None
+    assert cp.restore() is False
+
+
 def test_snapshot_returns_none_when_stash_create_fails(tmp_path, monkeypatch):
     _init_repo(tmp_path)
     cp = Checkpointer(tmp_path)
