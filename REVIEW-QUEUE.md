@@ -627,3 +627,19 @@ cites `113 passed` while the actual ground truth is `175 passed, 1 skipped`.
 This has been flagged in prior audits; the actual gate always runs fresh and
 the discrepancy reflects a stale session baseline in the improve agent. No
 code is affected; the concern remains on record from earlier entries.
+
+## Run Summary (2026-06-19, fourth)
+
+Autonomous improvement loop — no changes: nothing safe and valuable to do.
+
+Baseline green on entry: `uv run pytest` reports **175 passed, 1 skipped**
+(env-gated e2e), `uv run ruff check` clean. (Earlier idle-run summaries cited
+"113 passed"; that figure was stale from a prior session and is corrected here,
+per the auditor's recurring note.) `uv run looptight propose` surfaced a single
+candidate: STATUS.md "## Next" item 3 (record the flagship gif — same command
+across agents plus a lesson-dependent second task). That needs real external-
+agent runs and media capture that cannot be observed or verified offline
+(escalate-don't-guess); it is already tracked in STATUS.md. A skeptical read of
+the small, mature source tree (2.7k LOC, all spec features ✅ except deferred
+F3 ACP) found no genuine bug or simplification worth a diff. Made no code
+changes this run.
