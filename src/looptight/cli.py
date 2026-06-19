@@ -173,6 +173,11 @@ def main(argv: list[str] | None = None) -> int:
     except ConfigError as exc:
         console.print(f"[red]config error:[/red] {exc}")
         return 2
+    except KeyboardInterrupt:
+        # Ctrl-C during a run should exit cleanly, not dump a traceback. (The
+        # improve loop catches its own to roll back; this covers every command.)
+        console.print("\n[yellow]interrupted[/yellow]")
+        return 130
 
 
 if __name__ == "__main__":  # pragma: no cover

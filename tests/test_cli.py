@@ -30,6 +30,16 @@ def test_run_exits_error_when_no_verify_command(tmp_path, monkeypatch):
     assert main(["run", "fix tests"]) == 2
 
 
+def test_main_handles_keyboard_interrupt_cleanly(monkeypatch, capsys):
+    # Ctrl-C must exit cleanly (130), not dump a traceback, for any command.
+    def boom(*args, **kwargs):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr("looptight.cli.cmd_doctor", boom)
+    assert main(["doctor"]) == 130
+    assert "interrupted" in capsys.readouterr().out.lower()
+
+
 def test_run_warns_when_budget_cannot_be_enforced(tmp_path, monkeypatch, capsys):
     # A user who passes --budget to a no-cost-reporting agent (codex/opencode)
     # must be told it can't be enforced — same honesty as `improve` already has.
