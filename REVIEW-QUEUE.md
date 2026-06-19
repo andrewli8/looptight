@@ -6,6 +6,28 @@ next actionable task.
 
 ---
 
+## IMPROVER run (2026-06-19)
+
+No changes: nothing safe and valuable to do. On entry `uv run pytest -q`
+(224 passed, 1 skipped) and `uv run ruff check` were both clean; no real
+TODO/FIXME markers in `src/`. All five `looptight propose` candidates were
+no-ops or unverifiable offline:
+
+- **tests/e2e_test.py:23, :37 (un-skip skipped tests)** — intentionally opt-in.
+  The module gates on `LOOPTIGHT_E2E` and skips when no agent is on PATH; it
+  needs a real coding agent, live auth, and costs money, so it is correctly
+  excluded from the offline default run. Not a defect; left as-is.
+- **Confirm Codex `/goal` headless drive (STATUS Next #1)** — requires observing
+  the real Codex CLI's interactive behaviour, unavailable offline. Skipped;
+  do not guess `supports_native_loop` / `drive_native_loop`.
+- **Parse cost from `codex exec --json` / `opencode run -f json` (Next #2)** —
+  depends on the exact JSON shape those CLIs emit, unobservable here. Skipped
+  rather than invent a parser against an assumed format.
+- **Record the flagship gif (Next #3)** — needs real agents running end-to-end;
+  not an offline code task. Skipped.
+
+---
+
 ## AUDIT (2026-06-19, seventh)
 
 Reviewer: independent checker agent. Previous AUDIT marker: `7a2daee` (sixth audit).
