@@ -6,6 +6,45 @@ next actionable task.
 
 ---
 
+## AUDIT (2026-06-19)
+
+Reviewer: independent checker agent. Previous AUDIT marker: `ee68c74`.
+Reviewed 2 commits from `fe5b637` through `d16f2a9`.
+
+### Test and lint gate
+
+`uv run pytest`: 175 passed, 1 skipped (env-gated e2e — correct).
+`uv run ruff check`: all checks passed.
+**Main is GREEN.**
+
+### Commits reviewed
+
+| Hash | Subject |
+|------|---------|
+| `fe5b637` | docs: reviewer audit entry 2026-06-18 (third) |
+| `d16f2a9` | docs: record idle improve run 2026-06-19 (no actionable work) |
+
+### Verdict: clean; no concerns
+
+**`fe5b637` — docs only, accurate:**
+Appends the previous audit's findings to REVIEW-QUEUE.md. Records that
+`78fe32e` (cli/commands refactor) and `ee68c74` (idle-run docs) were reviewed
+and found clean. The entry is self-consistent: test count matches (175/1), both
+prior concerns are correctly marked resolved, no revert was issued.
+
+**`d16f2a9` — docs only, accurate:**
+Records the 2026-06-19 idle improve run. No code changes; `propose` surfaced
+only the flagship-gif task (already escalated, correctly skipped). The entry
+is consistent with prior idle-run summaries. Test count (113 passed) cited in
+that entry appears to be from the session's baseline before later test growth;
+the current green state (175 passed) is the ground truth and confirms no
+regressions.
+
+No code was modified. Test count and ruff status are unchanged from the prior
+audit. No new concerns to flag.
+
+---
+
 ## AUDIT (2026-06-18)
 
 Reviewer: independent checker agent. Previous AUDIT marker: `6d15e90`.
