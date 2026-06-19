@@ -35,6 +35,13 @@ _COMMANDS = {
 }
 
 
+def _non_negative_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 0:
+        raise argparse.ArgumentTypeError("must be zero or greater")
+    return parsed
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="looptight",
@@ -73,7 +80,9 @@ def build_parser() -> argparse.ArgumentParser:
         "propose", help="scan the repo for concrete signals and rank candidate tasks (no agent, no tokens)"
     )
     p_propose.add_argument("--json", action="store_true", help="emit the ranked candidates as JSON")
-    p_propose.add_argument("--limit", type=int, default=10, help="max candidates to show (default 10)")
+    p_propose.add_argument(
+        "--limit", type=_non_negative_int, default=10, help="max candidates to show (default 10)"
+    )
 
     sub.add_parser("hook", help="Claude Code Stop-hook handler (reads the hook event on stdin)")
 

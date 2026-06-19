@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from looptight.cli import main
 
 
@@ -77,6 +79,13 @@ def test_propose_json_output(tmp_path, monkeypatch, capsys):
     data = json.loads(capsys.readouterr().out)
     assert isinstance(data, list)
     assert any("fix the timeout" in c["title"] for c in data)
+
+
+def test_propose_rejects_negative_cli_limit():
+    with pytest.raises(SystemExit) as exc:
+        main(["propose", "--limit", "-1"])
+
+    assert exc.value.code == 2
 
 
 def test_propose_text_output_describes_autonomous_flow(tmp_path, monkeypatch, capsys):
