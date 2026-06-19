@@ -55,6 +55,23 @@ def test_summary_explains_value_aware_stops():
     assert "human" in summary.render(_result(StopReason.ESCALATED))
 
 
+def test_summary_omits_dollar_cost_when_agent_does_not_report_it():
+    # codex/opencode report no USD cost; showing "$0.00" reads as "free" when the
+    # run was actually provider-billed. Be honest instead of misleading.
+    result = RunResult(
+        goal="fix tests",
+        agent="codex",
+        mode="supply",
+        stop_reason=StopReason.SUCCESS,
+        iterations=(IterationRecord(1, VerifyResult(passed=True, exit_code=0), 0.0),),
+        total_cost_usd=0.0,
+        reports_cost_usd=False,
+    )
+    text = summary.render(result)
+    assert "$0.00" not in text
+    assert "cost not reported" in text
+
+
 def test_summary_includes_diffstat():
     result = RunResult(
         goal="fix",

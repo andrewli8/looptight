@@ -130,6 +130,7 @@ def _supply_loop(goal, adapter, config, workdir, *, verify_fn, reflect_fn, check
         stop_reason=stop,
         iterations=tuple(records),
         total_cost_usd=budget.spent_usd,
+        reports_cost_usd=adapter.reports_cost_usd,
         diffstat=checkpointer.diffstat(),
         error=error,
     )
@@ -149,6 +150,7 @@ def _delegate_loop(goal, adapter, config, workdir, *, verify_fn, reflect_fn, che
             mode="delegate",
             stop_reason=StopReason.ERROR,
             total_cost_usd=iteration.cost_usd,
+            reports_cost_usd=adapter.reports_cost_usd,
             diffstat=checkpointer.diffstat(),
             error=iteration.error or iteration.transcript or "coding agent failed",
         )
@@ -165,6 +167,7 @@ def _delegate_loop(goal, adapter, config, workdir, *, verify_fn, reflect_fn, che
         stop_reason=stop,
         iterations=(record,),
         total_cost_usd=iteration.cost_usd,
+        reports_cost_usd=adapter.reports_cost_usd,
         diffstat=checkpointer.diffstat(),
     )
     return _maybe_reflect(result, adapter, config, workdir, reflect_fn, store)

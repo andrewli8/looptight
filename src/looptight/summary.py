@@ -26,17 +26,24 @@ def header(result: RunResult) -> str:
     return f"looptight · agent: {result.agent} ({verb})"
 
 
+def _cost_fragment(cost_usd: float, reports_cost_usd: bool) -> str:
+    """How a cost is shown: a dollar figure, or an honest note when unreported."""
+    return f"${cost_usd:.2f}" if reports_cost_usd else "cost not reported"
+
+
 def render(result: RunResult) -> str:
     """Full plain-text summary."""
     lines = [header(result), ""]
     for record in result.iterations:
-        lines.append(f"{record.line()}   ${record.cost_usd:.2f}")
+        suffix = f"   ${record.cost_usd:.2f}" if result.reports_cost_usd else ""
+        lines.append(f"{record.line()}{suffix}")
 
     mark = "✓" if result.passed else "✗"
     tail = _REASON_TEXT.get(result.stop_reason, result.stop_reason.value)
     lines.append("")
     lines.append(
-        f"{mark} {tail} · {result.iteration_count} iteration(s) · ${result.total_cost_usd:.2f}"
+        f"{mark} {tail} · {result.iteration_count} iteration(s) · "
+        f"{_cost_fragment(result.total_cost_usd, result.reports_cost_usd)}"
     )
     if result.diffstat:
         lines += ["", "changes:", result.diffstat]
@@ -54,14 +61,16 @@ def render_rich(result: RunResult, console) -> None:  # pragma: no cover - thin 
         style = "green" if record.verify.passed else "red"
         console.print(f"iteration {record.number} → verify: ", end="")
         console.print(record.verify.short(), style=f"bold {style}", end="")
-        console.print(f"   ${record.cost_usd:.2f}", style="dim")
+        suffix = f"   ${record.cost_usd:.2f}" if result.reports_cost_usd else ""
+        console.print(suffix, style="dim")
 
     passed = result.passed
     mark = "✓" if passed else "✗"
     tail = _REASON_TEXT.get(result.stop_reason, result.stop_reason.value)
     console.print()
     console.print(
-        f"{mark} {tail} · {result.iteration_count} iteration(s) · ${result.total_cost_usd:.2f}",
+        f"{mark} {tail} · {result.iteration_count} iteration(s) · "
+        f"{_cost_fragment(result.total_cost_usd, result.reports_cost_usd)}",
         style="bold green" if passed else "bold red",
     )
     if result.diffstat:

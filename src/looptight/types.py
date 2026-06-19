@@ -98,6 +98,7 @@ class RunResult:
     stop_reason: StopReason
     iterations: tuple[IterationRecord, ...] = ()
     total_cost_usd: float = 0.0
+    reports_cost_usd: bool = True  # False when the agent bills but reports no USD
     lesson: Lesson | None = None
     diffstat: str = ""
     error: str | None = None
