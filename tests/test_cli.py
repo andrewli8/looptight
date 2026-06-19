@@ -15,6 +15,16 @@ def test_init_writes_config(tmp_path, monkeypatch):
     assert 'verify = "pytest -q"' in text
 
 
+def test_init_does_not_clobber_existing_config(tmp_path, monkeypatch, capsys):
+    # Re-running init must not silently destroy a user's customized config.
+    monkeypatch.chdir(tmp_path)
+    existing = '# custom\nverify = "make check"\nbudget_usd = 5.0\n'
+    (tmp_path / ".looptight.toml").write_text(existing)
+    assert main(["init"]) == 0
+    assert (tmp_path / ".looptight.toml").read_text() == existing  # untouched
+    assert "exist" in capsys.readouterr().out.lower()
+
+
 def test_bare_goal_defaults_to_run_but_needs_an_agent(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: None)

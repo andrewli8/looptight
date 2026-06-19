@@ -15,7 +15,7 @@ from rich.console import Console
 
 from .adapters import available_adapter_names, get_adapter
 from .checkpoint import is_git_repo
-from .config import Config, find_config, load_config, write_config
+from .config import CONFIG_NAME, Config, find_config, load_config, write_config
 from .detect import detect_agent, detect_verify
 from .improve import ImproveStopReason, run_improve
 from .lessons import LessonStore
@@ -27,6 +27,12 @@ from .verify import run_verify
 
 def cmd_init(args: argparse.Namespace, console: Console) -> int:
     workdir = Path.cwd()
+    if (workdir / CONFIG_NAME).is_file():
+        console.print(
+            f"[yellow]{CONFIG_NAME} already exists[/yellow] — leaving it untouched. "
+            "Edit it, or delete it to re-init."
+        )
+        return 0
     verify = args.verify or detect_verify(workdir)
     agent = args.agent or detect_agent()
     config = Config(verify=verify, agent=agent)
