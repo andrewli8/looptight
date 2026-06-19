@@ -238,6 +238,37 @@ def test_commit_failure_stops_session(tmp_path):
     assert not (tmp_path / "created.py").exists()
 
 
+def test_status_failure_after_task_rolls_back_changes(tmp_path):
+    _init_repo(tmp_path)
+    status_calls = 0
+
+    def run_task(goal, checkpointer):
+        (tmp_path / "app.py").write_text("new\n")
+        (tmp_path / "created.py").write_text("new file\n")
+        return _result()
+
+    def git_fn(args, cwd):
+        nonlocal status_calls
+        if args == ["status", "--porcelain"]:
+            status_calls += 1
+            if status_calls == 2:
+                return subprocess.CompletedProcess(["git", *args], 1, "", "status failed")
+        return _git(args, cwd)
+
+    result = run_improve(
+        tmp_path,
+        run_task,
+        propose_fn=lambda root, limit=0: [_candidate()],
+        git_fn=git_fn,
+    )
+
+    assert result.stop_reason is ImproveStopReason.GIT_ERROR
+    assert result.error == "status failed"
+    assert (tmp_path / "app.py").read_text() == "old\n"
+    assert not (tmp_path / "created.py").exists()
+    assert _git(["status", "--porcelain"], tmp_path).stdout == ""
+
+
 def test_keyboard_interrupt_stops_cleanly(tmp_path):
     _init_repo(tmp_path)
 

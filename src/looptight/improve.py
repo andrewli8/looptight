@@ -184,12 +184,13 @@ def run_improve(
         if result.passed:
             status = _status(git_fn, workdir)
             if status.returncode != 0:
+                error = _rollback(checkpointer, snapshot, git_fn, workdir)
                 return ImproveResult(
                     ImproveStopReason.GIT_ERROR,
                     tasks,
                     commits,
                     spent,
-                    status.stderr.strip() or "failed to inspect working tree",
+                    error or status.stderr.strip() or "failed to inspect working tree",
                 )
             if status.stdout.strip():
                 added = git_fn(["add", "-A"], workdir)
