@@ -56,8 +56,10 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_No grounded task is queued. `next` reports `NO_WORK` until a new repository
-signal or user-facing friction surfaces one._
+1. Classify an unexecutable verifier as an execution error, not a test failure.
+   Acceptance: a missing verify command returns JSON status `error` and CLI exit
+   code 2 while ordinary nonzero test commands remain `fail`, regression tests
+   pass, and the full verifier passes.
 
 ## Rules
 
