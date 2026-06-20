@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import subprocess
 from pathlib import Path
 
 from looptight.adapters.base import Adapter
 from looptight.cli import main
 from looptight.config import Config
-from looptight.swarm import MAX_WORKERS, run_swarm
+from looptight.swarm import MAX_WORKERS, SwarmResult, Worker, run_swarm
 from looptight.types import IterationResult
 
 
@@ -89,6 +90,52 @@ def test_swarm_runs_isolated_workers_and_serializes_verified_merges(tmp_path, mo
     assert not subprocess.run(
         ["git", "status", "--porcelain"], cwd=tmp_path, capture_output=True, text=True
     ).stdout
+
+
+def test_swarm_json_reports_versioned_result(tmp_path, monkeypatch, capsys):
+    _repo(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+
+    exit_code = main(
+        ["swarm", "--headless", "--agent", "codex", "--verify", "exit 0", "--json"]
+    )
+
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["schema_version"] == 1
+    assert payload["command"] == "swarm"
+    assert payload["status"] == "pass"
+    assert payload["error"] is None
+    assert payload["push"] is None
+    assert [worker["status"] for worker in payload["workers"]] == ["merged", "merged"]
+    assert all(worker["task_id"] for worker in payload["workers"])
+    assert all(worker["error"] is None for worker in payload["workers"])
+    assert all(worker["worktree"] for worker in payload["workers"])
+
+
+def test_swarm_result_as_dict_reports_failure_and_paths(tmp_path):
+    worktree = tmp_path / "wt"
+    worker = Worker(
+        number=1,
+        task={"id": "t-1", "source": "src", "goal": "do", "location": None},
+        branch="b",
+        worktree=worktree,
+        base="abc",
+        status="failed",
+        error="boom",
+    )
+    result = SwarmResult((worker,), error="could not push", pushed="failed")
+
+    payload = result.as_dict()
+
+    assert payload["status"] == "error"
+    assert payload["error"] == "could not push"
+    assert payload["push"] == "failed"
+    assert payload["workers"][0]["task_id"] == "t-1"
+    assert payload["workers"][0]["status"] == "failed"
+    assert payload["workers"][0]["error"] == "boom"
+    assert payload["workers"][0]["worktree"] == str(worktree)
 
 
 def test_swarm_contains_worker_runtime_exception(tmp_path, monkeypatch):
