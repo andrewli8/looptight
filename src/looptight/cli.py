@@ -16,6 +16,7 @@ from .commands import (
     cmd_revert,
     cmd_run,
     cmd_status,
+    cmd_swarm,
     cmd_verify,
 )
 from .config import ConfigError
@@ -33,6 +34,7 @@ _COMMANDS = {
     "propose",
     "next",
     "status",
+    "swarm",
 }
 
 
@@ -102,6 +104,25 @@ def build_parser() -> argparse.ArgumentParser:
     p_status = sub.add_parser("status", help="show validation readiness and the next safe action")
     p_status.add_argument("--json", action="store_true", help="emit the versioned status as JSON")
 
+    p_swarm = sub.add_parser(
+        "swarm", help="launch or stop a swarm of agent sessions across git worktrees"
+    )
+    swarm_sub = p_swarm.add_subparsers(dest="swarm_command")
+    p_swarm_up = swarm_sub.add_parser(
+        "up", help="create N worktrees and launch one agent session in each"
+    )
+    p_swarm_up.add_argument(
+        "--workers", type=_positive_int, default=3, help="number of parallel workers (default 3)"
+    )
+    p_swarm_up.add_argument(
+        "--agent", choices=KNOWN_AGENTS, help="agent CLI to launch (auto-detected if omitted)"
+    )
+    p_swarm_up.add_argument(
+        "--dir", help="base directory for worktrees (default: <repo>-swarm beside the repo)"
+    )
+    p_swarm_down = swarm_sub.add_parser("down", help="force-remove the swarm worktrees")
+    p_swarm_down.add_argument("--dir", help="base directory used by `swarm up`")
+
     sub.add_parser("hook", help="Claude Code Stop-hook handler (reads the hook event on stdin)")
 
     p_install = sub.add_parser(
@@ -170,6 +191,7 @@ def main(argv: list[str] | None = None) -> int:
         "propose": cmd_propose,
         "next": cmd_next,
         "status": cmd_status,
+        "swarm": cmd_swarm,
     }[args.command]
     try:
         return handler(args, console)

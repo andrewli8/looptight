@@ -362,6 +362,59 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
     return 0
 
 
+def cmd_swarm(args: argparse.Namespace, console: Console) -> int:
+    """Launch or stop a swarm of agent sessions across isolated git worktrees.
+
+    `up` provisions N worktrees (one per worker, for write isolation + a distinct
+    claim identity) and launches the configured agent CLI in each — running on the
+    CLI's existing auth (subscription if logged in). Workers coordinate lock-free
+    through looptight's shared claim store, so no two take the same task."""
+    from .swarm import swarm_down, swarm_up
+
+    workdir = Path.cwd()
+    if not is_git_repo(workdir):
+        console.print("[red]swarm requires a Git repository.[/red]")
+        return 2
+    base = Path(args.dir) if getattr(args, "dir", None) else None
+
+    if args.swarm_command == "down":
+        removed = swarm_down(workdir, base_dir=base)
+        console.print(f"removed {len(removed)} swarm worktree(s)")
+        return 0
+    if args.swarm_command != "up":
+        console.print("usage: looptight swarm {up|down}")
+        return 2
+
+    agent = args.agent or detect_agent()
+    if not agent:
+        console.print(
+            "[red]No coding agent found on PATH.[/red] Install claude, codex, or "
+            "opencode, or pass --agent."
+        )
+        return 2
+    if not get_adapter(agent).is_available():
+        console.print(f"[red]{agent} CLI is not available on PATH.[/red]")
+        return 2
+
+    result = swarm_up(workdir, args.workers, agent, base_dir=base)
+    for spec in result.launched:
+        console.print(f"[green]worker {spec.index}[/green] · {spec.branch} · {spec.worktree}")
+    for err in result.errors:
+        console.print(f"[yellow]{err}[/yellow]")
+    if not result.launched:
+        console.print("[red]no workers launched.[/red]")
+        return 1
+    console.print()
+    console.print(
+        f"launched {len(result.launched)} {agent} session(s) on the CLI's existing "
+        "auth (subscription if logged in there)."
+    )
+    console.print("they coordinate via looptight claims — no two take the same task.")
+    console.print("monitor: [bold]looptight status[/bold] · logs: looptight-swarm.log in each worktree")
+    console.print("stop:    [bold]looptight swarm down[/bold]")
+    return 0
+
+
 def cmd_hook(args: argparse.Namespace, console: Console) -> int:
     """Claude Code Stop-hook entry point. Reads the event on stdin, and prints a
     decision JSON to stdout only when it wants Claude to keep going. Stdout has to

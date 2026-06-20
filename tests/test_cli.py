@@ -376,3 +376,46 @@ def test_revert_notes_untracked_files_left_in_place(tmp_path, monkeypatch, capsy
     out = capsys.readouterr().out.lower()
     assert "reverted" in out
     assert "untracked" in out
+
+
+def test_swarm_up_requires_git_repo(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    assert main(["swarm", "up"]) == 2
+
+
+def test_swarm_up_wires_workers_and_agent(tmp_path, monkeypatch, capsys):
+    from pathlib import Path as P
+
+    from looptight.swarm import SwarmResult, WorkerSpec
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.commands.is_git_repo", lambda *a, **k: True)
+    monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: "claude")
+    monkeypatch.setattr(
+        "looptight.commands.get_adapter",
+        lambda name: __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter(),
+    )
+    captured = {}
+
+    def fake_up(repo, workers, agent, *, base_dir=None, **kwargs):
+        captured.update(workers=workers, agent=agent)
+        return SwarmResult(
+            launched=(WorkerSpec(1, P("/wt/w1"), "looptight/swarm/w1", "swarm-w1", ("claude", "-p", "x")),)
+        )
+
+    monkeypatch.setattr("looptight.swarm.swarm_up", fake_up)
+    assert main(["swarm", "up", "--workers", "2"]) == 0
+    assert captured == {"workers": 2, "agent": "claude"}
+    out = capsys.readouterr().out.lower()
+    assert "worker 1" in out
+    assert "swarm down" in out
+
+
+def test_swarm_down_wires_through(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.commands.is_git_repo", lambda *a, **k: True)
+    monkeypatch.setattr(
+        "looptight.swarm.swarm_down", lambda repo, *, base_dir=None, **k: ["/wt/w1", "/wt/w2"]
+    )
+    assert main(["swarm", "down"]) == 0
+    assert "removed 2" in capsys.readouterr().out.lower()
