@@ -47,12 +47,13 @@ existing CLI session and makes no model or API calls of its own.
   JSON output is byte-for-byte unchanged.
 - Status discovery enforces the documented six-task maximum while preserving
   executable task order.
+- Package metadata and entry-point docs describe Looptight as a validation-gated
+  task protocol, without learning, teaching, or autopilot claims.
 
 ## Next
 
-1. Remove stale learning and teaching claims from package-facing descriptions.
-   Acceptance: package metadata and entry-point docs describe the validation and
-   task protocol accurately, and the full verifier passes.
+_No grounded task is queued. `next` reports `NO_WORK` until a new repository
+signal or user-facing friction surfaces one._
 
 ## Rules
 

@@ -5,12 +5,12 @@ build-backend = "hatchling.build"
 [project]
 name = "looptight"
 version = "0.1.0"
-description = "Your coding agent on autopilot — across Claude Code, Codex, and opencode — that gets smarter every run."
+description = "A validation-gated task protocol for Codex, Claude Code, and OpenCode."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11"
 authors = [{ name = "Andrew Li" }]
-keywords = ["ai", "coding-agent", "claude-code", "codex", "opencode", "agent-loop", "autopilot"]
+keywords = ["ai", "coding-agent", "claude-code", "codex", "opencode", "agent-loop", "validation"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",

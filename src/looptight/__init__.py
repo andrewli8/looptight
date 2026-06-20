@@ -1,7 +1,7 @@
-"""looptight — a portable learning layer for coding agents.
+"""looptight — a portable validation and task protocol for coding agents.
 
-Runs on the agent you already have, drives the native loop where one exists,
-supplies one where it doesn't, and makes every run teach the next.
+Coordinates a bounded loop inside the agent session the user already has, with
+grounded task selection and an objective verifier as the commit gate.
 """
 
 __version__ = "0.1.0"
