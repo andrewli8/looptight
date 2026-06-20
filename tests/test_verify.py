@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-import subprocess
+import os
+import time
 
 import pytest
 
@@ -78,31 +79,35 @@ def test_ordinary_nonzero_exit_remains_test_failure(tmp_path):
     assert result.error is None
 
 
-def test_timeout_is_failure_not_crash(tmp_path, monkeypatch):
-    def raise_timeout(*args, **kwargs):
-        raise subprocess.TimeoutExpired(cmd="sleep 999", timeout=0.001)
-
-    monkeypatch.setattr(subprocess, "run", raise_timeout)
-    result = run_verify("sleep 999", tmp_path, timeout_s=0.001)
+def test_timeout_is_failure_not_crash(tmp_path):
+    result = run_verify("sleep 1", tmp_path, timeout_s=0.01)
     assert not result.passed
     assert result.exit_code == 124
     assert "timed out" in result.output
 
 
-def test_timeout_preserves_partial_verify_output(tmp_path, monkeypatch):
-    def raise_timeout(*args, **kwargs):
-        raise subprocess.TimeoutExpired(
-            cmd="slow verify",
-            timeout=1,
-            output=b"test_widget.py::test_save FAILED\n",
-            stderr=b"AssertionError: expected saved record\n",
-        )
-
-    monkeypatch.setattr(subprocess, "run", raise_timeout)
-
-    result = run_verify("slow verify", tmp_path, timeout_s=1)
+def test_timeout_preserves_partial_verify_output(tmp_path):
+    command = (
+        "printf 'test_widget.py::test_save FAILED\\n'; "
+        "printf 'AssertionError: expected saved record\\n' >&2; sleep 1"
+    )
+    result = run_verify(command, tmp_path, timeout_s=0.05)
 
     assert "test_widget.py::test_save FAILED" in result.output
     assert "AssertionError: expected saved record" in result.output
-    assert "verify timed out after 1s" in result.output
+    assert "verify timed out after 0.05s" in result.output
     assert result.status == "timeout"
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group regression")
+def test_timeout_stops_delayed_child_process_work(tmp_path):
+    marker = tmp_path / "orphaned"
+    result = run_verify(
+        f"(sleep 0.2; touch {marker}) & wait",
+        tmp_path,
+        timeout_s=0.02,
+    )
+
+    assert result.status == "timeout"
+    time.sleep(0.35)
+    assert not marker.exists()

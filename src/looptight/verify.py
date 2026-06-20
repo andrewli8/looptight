@@ -7,7 +7,9 @@ so the same machinery supports score-gated loops, not just pass/fail.
 
 from __future__ import annotations
 
+import os
 import re
+import signal
 import subprocess
 import time
 from pathlib import Path
@@ -43,6 +45,33 @@ def _timeout_output(partial: str, command: str, timeout_s: float) -> str:
     return _truncate(f"{partial}{separator}verify timed out after {timeout_s:g}s: {command}")
 
 
+def _stop_process_tree(process: subprocess.Popen[str]) -> None:
+    """Stop the verifier shell and descendants before reporting a timeout."""
+    if os.name == "posix":
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+            return
+        except ProcessLookupError:
+            return
+        except OSError:
+            pass
+    elif os.name == "nt":
+        try:
+            result = subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(process.pid)],
+                capture_output=True,
+                check=False,
+            )
+            if result.returncode == 0:
+                return
+        except OSError:
+            pass
+    try:
+        process.kill()
+    except OSError:
+        pass
+
+
 def run_verify(
     command: str,
     cwd: Path | None = None,
@@ -55,17 +84,26 @@ def run_verify(
     """
     started = time.monotonic()
     try:
-        proc = subprocess.run(
+        popen_options: dict[str, object] = {}
+        if os.name == "posix":
+            popen_options["start_new_session"] = True
+        elif os.name == "nt":
+            popen_options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+        proc = subprocess.Popen(
             command,
             shell=True,
             cwd=str(cwd) if cwd else None,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
             errors="replace",  # verify output is untrusted bytes; never crash on bad UTF-8
-            timeout=timeout_s,
+            **popen_options,
         )
-    except subprocess.TimeoutExpired as exc:
-        partial = _as_text(exc.stdout) + _as_text(exc.stderr)
+        stdout, stderr = proc.communicate(timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        _stop_process_tree(proc)
+        stdout, stderr = proc.communicate()
+        partial = _as_text(stdout) + _as_text(stderr)
         return VerifyResult(
             passed=False,
             exit_code=124,
@@ -83,7 +121,7 @@ def run_verify(
             error="launch_error",
         )
 
-    combined = (proc.stdout or "") + (proc.stderr or "")
+    combined = (stdout or "") + (stderr or "")
     launch_error = "launch_error" if proc.returncode in (126, 127) else None
     # Parse the score from the full output, then store a bounded copy: a SCORE
     # line in the truncated-away middle would otherwise be silently lost.

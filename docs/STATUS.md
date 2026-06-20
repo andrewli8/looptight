@@ -55,13 +55,13 @@ existing CLI session and makes no model or API calls of its own.
   empty, so completed work cannot leave contradictory active-claim status.
 - Verifier shell launch codes 126/127 are execution `error` results with CLI
   exit 2; ordinary nonzero test verdicts remain `fail` with exit 1.
+- Verifier timeouts terminate the spawned process tree before returning while
+  retaining bounded partial stdout/stderr in the timeout result.
 
 ## Next
 
-1. Terminate the verifier process tree on timeout.
-   Acceptance: a timed-out verifier cannot perform delayed child-process work,
-   partial output remains available, timeout JSON stays compatible, regression
-   tests pass, and the full verifier passes.
+_No grounded task is queued. `next` reports `NO_WORK` until a new repository
+signal or user-facing friction surfaces one._
 
 ## Rules
 
