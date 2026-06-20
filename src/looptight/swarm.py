@@ -17,6 +17,7 @@ from .detect import detect_agent, detect_verify
 from .loop import run_loop
 from .tasks import next_task
 from .types import StopReason
+from .ui import STATE_SCHEMA_VERSION, write_state
 from .verify import run_verify
 
 MAX_WORKERS = 50
@@ -70,6 +71,45 @@ class SwarmResult:
                 for worker in self.workers
             ],
         }
+
+
+def _publish_state(
+    root: Path,
+    workers: list[Worker] | tuple[Worker, ...],
+    manager_status: str,
+) -> None:
+    state = {
+        "schema_version": STATE_SCHEMA_VERSION,
+        "manager": {"status": manager_status},
+        "tasks": [
+            {
+                "id": worker.task["id"],
+                "goal": worker.task["goal"],
+                "source": worker.task["source"],
+                "status": worker.status,
+            }
+            for worker in workers
+        ],
+        "workers": [
+            {
+                "number": worker.number,
+                "task_id": worker.task["id"],
+                "status": worker.status,
+                "error": worker.error,
+            }
+            for worker in workers
+        ],
+    }
+    try:
+        write_state(root, state)
+    except OSError:
+        # Observability is best-effort and must never disrupt orchestration.
+        pass
+
+
+def _result(root: Path, result: SwarmResult) -> SwarmResult:
+    _publish_state(root, result.workers, result.status)
+    return result
 
 
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -196,19 +236,20 @@ def run_swarm(
 ) -> SwarmResult:
     """Claim, run, and integrate up to ``workers`` independent tasks."""
     if workers < 1 or workers > MAX_WORKERS:
-        return SwarmResult((), f"workers must be between 1 and {MAX_WORKERS}")
+        return _result(root, SwarmResult((), f"workers must be between 1 and {MAX_WORKERS}"))
     if not config.verify:
-        return SwarmResult((), "no verify command configured")
+        return _result(root, SwarmResult((), "no verify command configured"))
     if not _git_clean(root):
-        return SwarmResult((), "swarm requires a clean Git worktree")
+        return _result(root, SwarmResult((), "swarm requires a clean Git worktree"))
     if not get_adapter(agent).is_available():
-        return SwarmResult((), f"{agent} is not available on PATH")
+        return _result(root, SwarmResult((), f"{agent} is not available on PATH"))
 
     prepared, error = _prepare_workers(root, workers)
     if error:
-        return SwarmResult(tuple(prepared), error)
+        return _result(root, SwarmResult(tuple(prepared), error))
     if not prepared:
-        return SwarmResult(())
+        return _result(root, SwarmResult(()))
+    _publish_state(root, prepared, "running")
 
     with executor_factory(max_workers=len(prepared)) as executor:
         futures = {
@@ -223,18 +264,20 @@ def run_swarm(
                 worker.status = "failed"
                 worker.error = f"worker crashed: {exc}"
                 completed.append(worker)
+            _publish_state(root, prepared, "running")
     for worker in sorted(completed, key=lambda item: item.number):
         _integrate(root, worker, config.verify)
+        _publish_state(root, prepared, "running")
     if push and any(worker.status == "merged" for worker in completed):
         pushed = _git(root, "push")
         if pushed.returncode != 0:
-            return SwarmResult(
+            return _result(root, SwarmResult(
                 tuple(completed),
                 pushed.stderr.strip() or "could not push integrated swarm commits",
                 pushed="failed",
-            )
-        return SwarmResult(tuple(completed), pushed="pushed")
-    return SwarmResult(tuple(completed))
+            ))
+        return _result(root, SwarmResult(tuple(completed), pushed="pushed"))
+    return _result(root, SwarmResult(tuple(completed)))
 
 
 def cmd_swarm(args, console: Console) -> int:

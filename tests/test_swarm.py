@@ -209,3 +209,23 @@ def test_swarm_contains_worker_runtime_exception(tmp_path, monkeypatch):
     assert not result.passed
     assert result.workers[0].status == "failed"
     assert result.workers[0].error == "worker crashed: provider crashed"
+
+
+def test_swarm_publishes_versioned_orchestration_state(tmp_path, monkeypatch):
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+
+    result = run_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0", max_iterations=1),
+        workers=2,
+    )
+
+    state = json.loads((tmp_path / ".git" / "looptight" / "swarm-state.json").read_text())
+    assert state["schema_version"] == 1
+    assert state["manager"]["status"] == result.status
+    assert {task["id"] for task in state["tasks"]} == {
+        worker.task["id"] for worker in result.workers
+    }
+    assert [worker["status"] for worker in state["workers"]] == ["merged", "merged"]
