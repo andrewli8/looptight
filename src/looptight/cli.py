@@ -52,6 +52,13 @@ def _positive_int(value: str) -> int:
     return parsed
 
 
+def _positive_float(value: str) -> float:
+    parsed = float(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be greater than zero")
+    return parsed
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="looptight",
@@ -110,6 +117,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_swarm.add_argument("--workers", type=_positive_int, default=4, help="concurrent workers (1-50)")
     p_swarm.add_argument("--verify", help="override the project verify command")
     p_swarm.add_argument("--max-iterations", type=_positive_int, help="iteration cap per worker")
+    p_swarm.add_argument(
+        "--worker-timeout",
+        type=_positive_float,
+        default=3600.0,
+        help="seconds allowed for each provider invocation (default 3600)",
+    )
     p_swarm.add_argument("--push", action="store_true", help="push integrated commits after the swarm")
     p_swarm.add_argument("--json", action="store_true", help="emit the versioned swarm result as JSON")
 
