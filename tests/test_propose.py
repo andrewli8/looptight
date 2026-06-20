@@ -179,6 +179,20 @@ def test_from_status_next_rejects_task_without_acceptance(tmp_path):
     assert from_status_next(tmp_path) == []
 
 
+def test_from_status_next_returns_only_first_six_executable_tasks(tmp_path):
+    tasks = "".join(
+        f"{number}. Task {number}. Acceptance: task {number} passes.\n"
+        for number in range(1, 9)
+    )
+    _write(tmp_path, "docs/STATUS.md", f"## Next\n\n{tasks}")
+
+    candidates = from_status_next(tmp_path)
+
+    assert [candidate.title for candidate in candidates] == [
+        f"Task {number}" for number in range(1, 7)
+    ]
+
+
 def test_from_lint_finds_ruff_violations(tmp_path):
     if shutil.which("ruff") is None and shutil.which("uv") is None:
         import pytest

@@ -18,6 +18,7 @@ htmlcov/
 # looptight runtime artifacts
 .looptight/
 *.looptight.log
+REVIEW-QUEUE.md
 
 # Editors / OS
 .DS_Store

@@ -186,7 +186,7 @@ def from_skipped_tests(root: Path) -> list[Candidate]:
 
 
 def from_status_next(root: Path) -> list[Candidate]:
-    """The numbered list under the `## Next` heading in docs/STATUS.md."""
+    """Return at most the first six executable tasks under the status Next heading."""
     status = root / "docs" / "STATUS.md"
     if not status.is_file():
         return []
@@ -239,6 +239,8 @@ def from_status_next(root: Path) -> list[Candidate]:
                 acceptance=acceptance.strip(),
             )
         )
+        if len(out) == 6:
+            return out
     return out
 
 
