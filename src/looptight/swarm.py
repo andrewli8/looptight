@@ -110,9 +110,11 @@ def _prepare_workers(root: Path, count: int) -> tuple[list[Worker], str | None]:
             _git(root, "worktree", "remove", str(worktree))
             break
         if decision.status != "task" or decision.task is None:
+            _git(root, "worktree", "remove", str(worktree))
             return workers, decision.error or "could not claim worker task"
         switched = _git(worktree, "switch", "-q", "-c", branch)
         if switched.returncode != 0:
+            _git(root, "worktree", "remove", str(worktree))
             return workers, switched.stderr.strip() or "could not create worker branch"
         workers.append(Worker(number, decision.task, branch, worktree, head.stdout.strip()))
     return workers, None

@@ -6,10 +6,12 @@ import json
 import subprocess
 from pathlib import Path
 
+from looptight import swarm
 from looptight.adapters.base import Adapter
 from looptight.cli import main
 from looptight.config import Config
 from looptight.swarm import MAX_WORKERS, SwarmResult, Worker, run_swarm
+from looptight.tasks import NextResult
 from looptight.types import IterationResult
 
 
@@ -159,6 +161,38 @@ def test_swarm_human_output_prints_retained_worktree_for_failed_worker(
         if "worktree retained for recovery:" in line
     )
     assert Path(retained).is_dir()
+
+
+def test_swarm_cleans_unstarted_worktree_when_preparation_fails(tmp_path, monkeypatch):
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+
+    real_next_task = swarm.next_task
+    calls = {"count": 0}
+
+    def flaky_next_task(workdir):
+        calls["count"] += 1
+        if calls["count"] == 2:
+            return NextResult(status="error", error="claim broke")
+        return real_next_task(workdir)
+
+    monkeypatch.setattr("looptight.swarm.next_task", flaky_next_task)
+
+    result = run_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0", max_iterations=1),
+        workers=2,
+    )
+
+    assert result.error == "claim broke"
+    listing = subprocess.run(
+        ["git", "worktree", "list", "--porcelain"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+    ).stdout
+    assert "detached" not in listing
 
 
 def test_swarm_contains_worker_runtime_exception(tmp_path, monkeypatch):
