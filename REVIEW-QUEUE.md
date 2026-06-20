@@ -1172,3 +1172,41 @@ remote-tracking refs before any divergence analysis.**
 **Leftover needing manual cleanup:** branch `recovered/improve-line-468df65`
 (identical SHA to `main`) could not be deleted — push-delete returns `403` in
 this environment and no delete-branch tool is exposed. Please delete it manually.
+
+---
+
+## AUDIT (2026-06-20, tenth)
+
+Reviewer: independent checker agent. Previous AUDIT marker: `468df65` (ninth audit).
+Reviewed 1 commit since the ninth audit: `b21f499`.
+
+### Test and lint gate
+
+`uv run pytest`: 229 passed, 1 skipped (env-gated e2e — correct). Count unchanged from ninth audit.
+`uv run ruff check`: all checks passed.
+**Main is GREEN.**
+
+### Commits reviewed
+
+| Hash | Subject |
+|------|---------|
+| `b21f499` | docs: record idle improve run 2026-06-20 (no actionable work; stale-clone correction) |
+
+### Verdict: clean; one informational note
+
+**`b21f499` — idle-run docs entry, correct and properly scoped:**
+Pure REVIEW-QUEUE.md documentation commit; no code changed. Records an idle
+`looptight improve` run where `propose` found no candidate tasks (clean tree) —
+correct idle-is-success behaviour. Also documents a self-corrected stale-clone
+misdiagnosis: the improver initially misread a detached-HEAD / stale-ref situation
+as a real divergence, opened a GitHub issue and pushed a backup branch before a
+`git fetch` revealed no actual divergence. The issue was closed as a false alarm
+and the lesson recorded (always fetch before divergence analysis). The write-up is
+honest, clear, and the lesson is sound.
+
+**Informational note (not a concern, recorded for continuity):**
+The leftover branch `recovered/improve-line-468df65` mentioned by the improver
+cannot be deleted by agents (push-delete returns 403). A human owner should delete
+it from the GitHub UI. There is no code impact; the branch is identical to `main`.
+
+No reverts required. No open concerns from prior audits remain unaddressed.
