@@ -1,10 +1,3 @@
-# looptight agent instructions
-
-Keep the product provider-neutral, session-native, validation-first, and small.
-The source of truth is `docs/SPEC.md`; the bounded running plan is
-`docs/STATUS.md`. Do not add runtime dependencies or duplicate native agent
-features without evidence that the portable protocol requires it.
-
 <!-- looptight:session-loop:start -->
 ## Looptight session loop
 

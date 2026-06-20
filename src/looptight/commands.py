@@ -19,6 +19,7 @@ from .checkpoint import is_git_repo
 from .config import CONFIG_NAME, Config, ConfigError, find_config, load_config, write_config
 from .detect import detect_agent, detect_verify
 from .improve import ImproveStopReason, run_improve
+from .integration import install_session_instructions
 from .lessons import LessonStore
 from .loop import run_loop
 from .summary import render_rich
@@ -28,31 +29,38 @@ from .verify import run_verify
 
 def cmd_init(args: argparse.Namespace, console: Console) -> int:
     workdir = Path.cwd()
-    if (workdir / CONFIG_NAME).is_file():
+    config_exists = (workdir / CONFIG_NAME).is_file()
+    if config_exists:
         console.print(
             f"[yellow]{CONFIG_NAME} already exists[/yellow] — leaving it untouched. "
             "Edit it, or delete it to re-init."
         )
-        return 0
-    verify = args.verify or detect_verify(workdir)
-    agent = args.agent or detect_agent()
-    config = Config(verify=verify, agent=agent)
-    path = write_config(config, workdir)
+    else:
+        verify = args.verify or detect_verify(workdir)
+        agent = args.agent or detect_agent()
+        config = Config(verify=verify, agent=agent)
+        path = write_config(config, workdir)
 
-    console.print(f"[green]wrote[/green] {path.name}")
-    console.print()
-    console.print("[bold]The one thing to know: `verify`.[/bold]")
-    console.print("`verify` is the command that decides pass/fail. No verify, no loop.")
-    if verify:
-        console.print(f"Detected: [cyan]{verify}[/cyan]. Edit {path.name} if that's wrong.")
-    else:
-        console.print("[yellow]Could not detect a test command — set `verify` in the config.[/yellow]")
-    if agent:
-        console.print(f"Agent: [cyan]{agent}[/cyan] (auto-detected).")
-    else:
-        console.print("[yellow]No coding agent found on PATH (claude / codex / opencode).[/yellow]")
-    console.print()
-    console.print('Then: [bold]looptight "fix the failing tests"[/bold]')
+        console.print(f"[green]wrote[/green] {path.name}")
+        console.print()
+        console.print("[bold]The one thing to know: `verify`.[/bold]")
+        console.print("`verify` is the command that decides pass/fail. No verify, no loop.")
+        if verify:
+            console.print(f"Detected: [cyan]{verify}[/cyan]. Edit {path.name} if that's wrong.")
+        else:
+            console.print("[yellow]Could not detect a test command — set `verify` in the config.[/yellow]")
+        if agent:
+            console.print(f"Agent: [cyan]{agent}[/cyan] (auto-detected).")
+        else:
+            console.print("[yellow]No coding agent found on PATH (claude / codex / opencode).[/yellow]")
+
+    if args.integrate:
+        changed = install_session_instructions(workdir)
+        state = "installed" if changed else "already installed"
+        console.print(f"[green]{state}[/green] session loop for Codex, Claude Code, and OpenCode")
+    elif not config_exists:
+        console.print()
+        console.print("For the subscription-only native loop: [bold]looptight init --integrate[/bold]")
     return 0
 
 

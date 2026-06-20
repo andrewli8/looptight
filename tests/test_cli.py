@@ -28,6 +28,16 @@ def test_init_does_not_clobber_existing_config(tmp_path, monkeypatch, capsys):
     assert "exist" in capsys.readouterr().out.lower()
 
 
+def test_init_integrates_even_when_config_exists(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".looptight.toml").write_text('verify = "pytest -q"\n')
+
+    assert main(["init", "--integrate"]) == 0
+
+    assert "looptight next --json" in (tmp_path / "AGENTS.md").read_text()
+    assert "looptight next --json" in (tmp_path / "CLAUDE.md").read_text()
+
+
 def test_bare_goal_defaults_to_run_but_needs_an_agent(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: None)

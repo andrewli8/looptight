@@ -62,6 +62,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_init = sub.add_parser("init", help="write a minimal .looptight.toml and explain `verify`")
     p_init.add_argument("--verify", help="verify command (auto-detected if omitted)")
     p_init.add_argument("--agent", choices=KNOWN_AGENTS, help="pin an agent (auto-detected if omitted)")
+    p_init.add_argument(
+        "--integrate",
+        action="store_true",
+        help="install the session loop in AGENTS.md and CLAUDE.md",
+    )
 
     p_run = sub.add_parser("run", help="run your agent until verify passes")
     p_run.add_argument("goal", help="what you want done, in plain language")

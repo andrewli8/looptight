@@ -23,6 +23,7 @@ supplies one. It builds on those loops instead of working around them.
 
 ```bash
 uvx looptight init                       # writes a minimal config, explains `verify`
+uvx looptight init --integrate           # installs the native subscription-only loop
 uvx looptight "fix the failing tests"    # runs your agent until verify passes
 uvx looptight lessons                    # see what it learned for next time
 ```

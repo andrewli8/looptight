@@ -25,18 +25,18 @@ existing CLI session and makes no model or API calls of its own.
 - Both protocols are provider-neutral and make no agent or network calls.
 - Atomic task claims are shared privately across Git worktrees, recover after
   24 hours, and disappear when their source task is no longer grounded.
+- `init --integrate` installs the same bounded session loop for Codex and
+  OpenCode (`AGENTS.md`) and Claude Code (`CLAUDE.md`) without child agents.
 
 ## Next
 
-1. Install one small native-session loop instruction compatible with Codex,
-   Claude Code, and OpenCode.
-2. Add a read-only `status` command that explains the current validation,
+1. Add a read-only `status` command that explains the current validation,
    claimed task, and next safe action in one screen.
-3. Make every agent-spawning path explicitly headless and remove claims about
+2. Make every agent-spawning path explicitly headless and remove claims about
    provider billing that looptight cannot verify.
-4. Remove generated reflection, cost estimation, and duplicate continuous-loop
+3. Remove generated reflection, cost estimation, and duplicate continuous-loop
    machinery after compatibility warnings.
-5. Remove the Rich runtime dependency and keep human and JSON output legible
+4. Remove the Rich runtime dependency and keep human and JSON output legible
    with the standard library.
 
 ## Rules
