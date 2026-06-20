@@ -132,7 +132,8 @@ def test_from_status_next_parses_numbered_list(tmp_path):
     _write(
         tmp_path,
         "docs/STATUS.md",
-        "# Status\n\n## Next\n\n1. First thing to do\n2. Second thing\n\n## Other\n\n3. not this\n",
+        "# Status\n\n## Next\n\n1. First thing to do. Acceptance: first passes.\n"
+        "2. Second thing. Acceptance: second passes.\n\n## Other\n\n3. not this\n",
     )
     titles = [c.title for c in from_status_next(tmp_path)]
     assert titles == ["First thing to do", "Second thing"]
@@ -146,13 +147,15 @@ def test_from_status_next_joins_wrapped_continuation_lines(tmp_path):
     _write(
         tmp_path,
         "docs/STATUS.md",
-        "## Next\n\n1. First line of the task\n   wraps onto a second line.\n2. Second task\n",
+        "## Next\n\n1. First line of the task\n"
+        "   wraps onto a second line. Acceptance: first passes.\n"
+        "2. Second task. Acceptance: second passes.\n",
     )
 
     titles = [c.title for c in from_status_next(tmp_path)]
 
     assert titles == [
-        "First line of the task wraps onto a second line.",
+        "First line of the task wraps onto a second line",
         "Second task",
     ]
 
@@ -161,12 +164,19 @@ def test_from_status_next_ignores_struck_through_resolved_items(tmp_path):
     _write(
         tmp_path,
         "docs/STATUS.md",
-        "## Next\n\n1. ~~Resolved task.~~ Done.\n2. Still actionable\n",
+        "## Next\n\n1. ~~Resolved task.~~ Done.\n"
+        "2. Still actionable. Acceptance: it passes.\n",
     )
 
     titles = [c.title for c in from_status_next(tmp_path)]
 
     assert titles == ["Still actionable"]
+
+
+def test_from_status_next_rejects_task_without_acceptance(tmp_path):
+    _write(tmp_path, "docs/STATUS.md", "## Next\n\n1. Vague task without a gate\n")
+
+    assert from_status_next(tmp_path) == []
 
 
 def test_from_lint_finds_ruff_violations(tmp_path):

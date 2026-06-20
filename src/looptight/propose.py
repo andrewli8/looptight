@@ -50,6 +50,7 @@ class Candidate:
     suggested_verify: str | None
     score: float
     detail: str = ""
+    acceptance: str = ""
 
     def render(self) -> str:
         where = f"  [{self.location}]" if self.location else ""
@@ -99,6 +100,7 @@ def from_todos(root: Path) -> list[Candidate]:
                         suggested_verify=None,
                         score=0.0,
                         detail=comment.strip(),
+                        acceptance=f"Remove the marker at {_rel(root, path)}:{lineno} and pass project verification.",
                     )
                 )
     return out
@@ -189,6 +191,7 @@ def from_skipped_tests(root: Path) -> list[Candidate]:
                     suggested_verify=None,
                     score=0.0,
                     detail=line.strip(),
+                    acceptance="Run this test without skip/xfail and pass project verification.",
                 )
             )
     return out
@@ -217,6 +220,7 @@ def from_status_next(root: Path) -> list[Candidate]:
         if not item:
             idx += 1
             continue
+        item_lineno = idx + 1
         # A numbered item may wrap onto following indented lines; join them so the
         # candidate title is the whole entry, not a mid-sentence truncation.
         parts = [item.group("text").strip()]
@@ -233,14 +237,18 @@ def from_status_next(root: Path) -> list[Candidate]:
         text = " ".join(parts)
         if text.startswith("~~"):
             continue
+        task_text, marker, acceptance = text.partition("Acceptance:")
+        if not marker or not task_text.strip() or not acceptance.strip():
+            continue
         out.append(
             Candidate(
-                title=text,
+                title=task_text.strip().rstrip(".;"),
                 source="status-next",
-                location="docs/STATUS.md",
+                location=f"docs/STATUS.md:{item_lineno}",
                 suggested_verify=None,
                 score=0.0,
-                detail="",
+                detail=text,
+                acceptance=acceptance.strip(),
             )
         )
     return out
@@ -275,6 +283,7 @@ def from_lint(root: Path) -> list[Candidate]:
                 suggested_verify="ruff check",
                 score=0.0,
                 detail=line.strip(),
+                acceptance=f"Remove {match.group('code')} at {match.group('loc')} and pass ruff check.",
             )
         )
     return out

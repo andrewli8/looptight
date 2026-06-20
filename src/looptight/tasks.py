@@ -44,6 +44,8 @@ def next_task(workdir: Path, *, propose_fn: ProposeFn = propose) -> NextResult:
 
     tasks: list[dict[str, str | None]] = []
     for candidate in candidates:
+        if not all((candidate.title.strip(), candidate.detail.strip(), candidate.acceptance.strip())):
+            continue
         identity = "\0".join((candidate.source, candidate.location or "", candidate.title))
         tasks.append(
             {
@@ -52,6 +54,7 @@ def next_task(workdir: Path, *, propose_fn: ProposeFn = propose) -> NextResult:
                 "location": candidate.location,
                 "goal": _grounded_goal(candidate),
                 "evidence": candidate.detail,
+                "acceptance": candidate.acceptance,
                 "suggested_verify": candidate.suggested_verify,
             }
         )

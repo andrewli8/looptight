@@ -37,12 +37,14 @@ existing CLI session and makes no model or API calls of its own.
   require no Rich/Markdown dependency chain.
 - Runtime contracts, summaries, adapters, and CLI contain no lesson or cost
   telemetry fields; deprecated TOML keys are safely ignored.
+- Queued tasks require nonempty source evidence and an explicit observable
+  acceptance condition before `next` can claim them.
 
 ## Next
 
-1. Validate that every queued task includes actionable evidence and an
-   observable acceptance condition before it can be claimed.
-2. Split the oversized command-handler module without expanding the public CLI.
+1. Split the oversized command-handler module without expanding the public CLI.
+   Acceptance: `commands.py` is below 250 lines, CLI help is unchanged, and the
+   full verifier passes.
 
 ## Rules
 
