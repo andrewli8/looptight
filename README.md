@@ -210,7 +210,9 @@ Ctrl-C stops the session cleanly.
 bills against **API credits**. If you're already inside an agent session, you
 usually want the opposite: spend that **session's** tokens, not new API credit.
 `looptight next` is that path — it prints one grounded task, or `NO_WORK` when
-the queue is empty, for the agent you're already running to execute:
+the queue is empty, for the agent you're already running to execute. In Git
+repositories it atomically claims the task under Git-private state, preventing
+other worktrees from selecting the same work without adding tracked files:
 
 ```bash
 looptight next      # → one grounded task, or NO_WORK

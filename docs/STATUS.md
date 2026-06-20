@@ -23,20 +23,20 @@ existing CLI session and makes no model or API calls of its own.
 - `verify --json` schema v1 distinguishes pass, fail, timeout, and error.
 - `next --json` schema v1 returns one grounded task or `NO_WORK`.
 - Both protocols are provider-neutral and make no agent or network calls.
+- Atomic task claims are shared privately across Git worktrees, recover after
+  24 hours, and disappear when their source task is no longer grounded.
 
 ## Next
 
-1. Add private atomic task claims so concurrent sessions cannot select the same
-   work; validate stale-claim recovery without tracked runtime files.
-2. Install one small native-session loop instruction compatible with Codex,
+1. Install one small native-session loop instruction compatible with Codex,
    Claude Code, and OpenCode.
-3. Add a read-only `status` command that explains the current validation,
+2. Add a read-only `status` command that explains the current validation,
    claimed task, and next safe action in one screen.
-4. Make every agent-spawning path explicitly headless and remove claims about
+3. Make every agent-spawning path explicitly headless and remove claims about
    provider billing that looptight cannot verify.
-5. Remove generated reflection, cost estimation, and duplicate continuous-loop
+4. Remove generated reflection, cost estimation, and duplicate continuous-loop
    machinery after compatibility warnings.
-6. Remove the Rich runtime dependency and keep human and JSON output legible
+5. Remove the Rich runtime dependency and keep human and JSON output legible
    with the standard library.
 
 ## Rules

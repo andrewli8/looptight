@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Callable
 
 from .checkpoint import Checkpointer, is_git_repo
+from .claims import ClaimStore, claim_dir, owner_id
 from .propose import Candidate, propose
 from .types import RunResult, StopReason
 
@@ -98,24 +99,28 @@ def next_task(workdir: Path, *, propose_fn: ProposeFn = propose) -> NextResult:
     The caller performs the work in its existing session and lets ``verify``
     gate it; this function makes no model or network call.
     """
-    candidates = propose_fn(workdir, limit=1)
+    candidates = propose_fn(workdir, limit=0)
     if not candidates:
         return NextResult(status="no_work")
 
-    candidate = candidates[0]
-    identity = "\0".join((candidate.source, candidate.location or "", candidate.title))
-    task_id = hashlib.sha256(identity.encode()).hexdigest()[:12]
-    return NextResult(
-        status="task",
-        task={
+    tasks: list[dict[str, str | None]] = []
+    for candidate in candidates:
+        identity = "\0".join((candidate.source, candidate.location or "", candidate.title))
+        task_id = hashlib.sha256(identity.encode()).hexdigest()[:12]
+        tasks.append({
             "id": task_id,
             "source": candidate.source,
             "location": candidate.location,
             "goal": _grounded_goal(candidate),
             "evidence": candidate.detail,
             "suggested_verify": candidate.suggested_verify,
-        },
-    )
+        })
+
+    private_dir = claim_dir(workdir)
+    task = tasks[0] if private_dir is None else ClaimStore(
+        private_dir, owner_id(workdir)
+    ).select(tasks)
+    return NextResult(status="task", task=task) if task else NextResult(status="no_work")
 
 
 def _commit_subject(candidate: Candidate | None, number: int) -> str:
