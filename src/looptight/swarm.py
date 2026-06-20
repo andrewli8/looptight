@@ -235,4 +235,6 @@ def cmd_swarm(args, console: Console) -> int:
     for worker in result.workers:
         detail = f": {worker.error}" if worker.error else ""
         console.print(f"worker {worker.number} · {worker.task['id']} · {worker.status}{detail}")
+        if worker.status in {"failed", "conflict"}:
+            console.print(f"  worktree retained for recovery: {worker.worktree}")
     return 0 if result.passed else 1

@@ -91,6 +91,29 @@ def test_swarm_runs_isolated_workers_and_serializes_verified_merges(tmp_path, mo
     ).stdout
 
 
+def test_swarm_human_output_prints_retained_worktree_for_failed_worker(
+    tmp_path, monkeypatch, capsys
+):
+    _repo(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: CrashingAdapter())
+
+    exit_code = main(
+        ["swarm", "--headless", "--agent", "codex", "--verify", "exit 0", "--workers", "1"]
+    )
+
+    assert exit_code == 1
+    out = capsys.readouterr().out
+    assert "· failed" in out
+    assert "worktree retained for recovery:" in out
+    retained = next(
+        line.split("worktree retained for recovery:")[1].strip()
+        for line in out.splitlines()
+        if "worktree retained for recovery:" in line
+    )
+    assert Path(retained).is_dir()
+
+
 def test_swarm_contains_worker_runtime_exception(tmp_path, monkeypatch):
     _repo(tmp_path)
     monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: CrashingAdapter())
