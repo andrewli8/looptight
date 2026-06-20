@@ -1092,3 +1092,17 @@ flagship-gif task — still correctly escalated. Content is self-consistent and
 accurate. No open concerns from prior audits remain; the long-standing stale
 test-count inaccuracy was resolved in `b9eaf33` and has stayed corrected
 through this run.
+
+## Run Summary (2026-06-20)
+
+Autonomous improvement loop — no changes: nothing safe and valuable to do.
+
+Baseline green on entry: `uv run pytest -q` reports **175 passed, 1 skipped**
+(env-gated e2e), `uv run ruff check` clean. `uv run looptight propose` found
+no candidate tasks ("clean tree"). No open GitHub issues or PRs. No
+`TODO`/`FIXME`/`HACK`/`XXX` markers in `src/`. STATUS.md shows every spec
+feature ✅ except the deliberately deferred F3 (ACP, post-v1); the remaining
+"## Next" items are either resolved or the flagship-gif task that needs real
+external-agent runs and media capture that cannot be observed or verified
+offline (already escalated/tracked). A skeptical read of the source tree found
+no genuine bug or simplification worth a diff. Made no code changes this run.
