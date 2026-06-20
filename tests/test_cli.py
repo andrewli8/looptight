@@ -151,6 +151,21 @@ def test_next_json_no_work_contract(tmp_path, monkeypatch, capsys):
     }
 
 
+def test_status_json_is_read_only_and_actionable(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+
+    assert main(["status", "--json"]) == 0
+
+    data = json.loads(capsys.readouterr().out)
+    assert data["schema_version"] == 1
+    assert data["command"] == "status"
+    assert data["validation"] == "missing"
+    assert data["workspace"] == "not_git"
+    assert data["claimed_task"] is None
+    assert "looptight init" in data["next_action"]
+    assert list(tmp_path.iterdir()) == []
+
+
 def test_doctor_runs(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert main(["doctor"]) == 0

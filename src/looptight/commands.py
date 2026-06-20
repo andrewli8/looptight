@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -16,6 +17,7 @@ from rich.console import Console
 
 from .adapters import available_adapter_names, get_adapter
 from .checkpoint import is_git_repo
+from .claims import ClaimStore, claim_dir, owner_id
 from .config import CONFIG_NAME, Config, ConfigError, find_config, load_config, write_config
 from .detect import detect_agent, detect_verify
 from .improve import ImproveStopReason, run_improve
@@ -412,6 +414,60 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
     else:
         assert result.task is not None
         print(result.task["goal"])
+    return 0
+
+
+def cmd_status(args: argparse.Namespace, console: Console) -> int:
+    """Report safety state without running validation or claiming work."""
+    workdir = Path.cwd()
+    verify = load_config().verify or detect_verify(workdir)
+    try:
+        git = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=workdir,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        git = None
+    workspace = "not_git" if git is None or git.returncode != 0 else (
+        "dirty" if git.stdout.strip() else "clean"
+    )
+
+    private_dir = claim_dir(workdir)
+    claimed_task = None
+    active_claims = 0
+    if private_dir is not None:
+        claimed_task, active_claims = ClaimStore(
+            private_dir, owner_id(workdir)
+        ).summary()
+
+    if not verify:
+        action = "configure verify with `looptight init`"
+    elif workspace == "dirty":
+        action = "review changes and run `looptight verify --json`"
+    elif claimed_task:
+        action = f"continue claimed task {claimed_task}"
+    else:
+        action = "run `looptight next --json`"
+
+    payload = {
+        "schema_version": 1,
+        "command": "status",
+        "validation": "configured" if verify else "missing",
+        "workspace": workspace,
+        "claimed_task": claimed_task,
+        "active_claims": active_claims,
+        "next_action": action,
+    }
+    if args.json:
+        print(json.dumps(payload, sort_keys=True))
+    else:
+        console.print(f"validation: {payload['validation']}")
+        console.print(f"workspace: {workspace}")
+        console.print(f"claims: {active_claims} active" + (f" · yours: {claimed_task}" if claimed_task else ""))
+        console.print(f"next: {action}")
     return 0
 
 

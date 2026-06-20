@@ -17,6 +17,7 @@ from .commands import (
     cmd_propose,
     cmd_revert,
     cmd_run,
+    cmd_status,
     cmd_verify,
 )
 from .config import ConfigError
@@ -34,6 +35,7 @@ _COMMANDS = {
     "install-hook",
     "propose",
     "next",
+    "status",
 }
 
 
@@ -104,6 +106,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="return one grounded task or NO_WORK for the current agent session",
     )
     p_next.add_argument("--json", action="store_true", help="emit the versioned task decision as JSON")
+
+    p_status = sub.add_parser("status", help="show validation readiness and the next safe action")
+    p_status.add_argument("--json", action="store_true", help="emit the versioned status as JSON")
 
     sub.add_parser("hook", help="Claude Code Stop-hook handler (reads the hook event on stdin)")
 
@@ -182,6 +187,7 @@ def main(argv: list[str] | None = None) -> int:
         "install-hook": cmd_install_hook,
         "propose": cmd_propose,
         "next": cmd_next,
+        "status": cmd_status,
     }[args.command]
     try:
         return handler(args, console)

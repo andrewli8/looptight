@@ -219,6 +219,7 @@ other worktrees from selecting the same work without adding tracked files:
 looptight next      # → one grounded task, or NO_WORK
 # … the current agent implements it …
 looptight verify    # → the ground-truth gate; commit on green
+looptight status    # → validation, workspace, claim, and next safe action
 ```
 
 Same task-selection as `improve`, no spawned subprocess. Tell the agent you're

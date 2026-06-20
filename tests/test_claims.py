@@ -48,6 +48,18 @@ def test_claim_disappears_when_task_is_no_longer_grounded(tmp_path):
     assert not (tmp_path / "old.json").exists()
 
 
+def test_summary_reads_claims_without_mutating_them(tmp_path):
+    tasks = [_task("one"), _task("two")]
+    ClaimStore(tmp_path, "session-a", now=100).select(tasks)
+    ClaimStore(tmp_path, "session-b", now=100).select(tasks)
+    before = {path: path.read_text() for path in tmp_path.glob("*.json")}
+
+    owned, active = ClaimStore(tmp_path, "session-a", now=101).summary()
+
+    assert (owned, active) == ("one", 2)
+    assert {path: path.read_text() for path in tmp_path.glob("*.json")} == before
+
+
 def test_claim_dir_uses_git_private_state(tmp_path):
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     path = claim_dir(tmp_path)

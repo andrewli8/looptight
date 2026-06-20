@@ -66,6 +66,22 @@ class ClaimStore:
                 return task
         return None
 
+    def summary(self) -> tuple[str | None, int]:
+        """Return this owner's task ID and total live claims without mutation."""
+        owned: str | None = None
+        active = 0
+        if not self.root.is_dir():
+            return owned, active
+        for path in self.root.glob("*.json"):
+            claim = self._read(path)
+            if not claim or self.now - float(claim.get("claimed_at", 0)) > _STALE_AFTER_S:
+                continue
+            active += 1
+            if claim.get("owner") == self.owner:
+                value = claim.get("task_id")
+                owned = value if isinstance(value, str) else None
+        return owned, active
+
     def _claim(self, task_id: str | None) -> bool:
         if not task_id:
             return False

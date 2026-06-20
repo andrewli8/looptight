@@ -27,16 +27,16 @@ existing CLI session and makes no model or API calls of its own.
   24 hours, and disappear when their source task is no longer grounded.
 - `init --integrate` installs the same bounded session loop for Codex and
   OpenCode (`AGENTS.md`) and Claude Code (`CLAUDE.md`) without child agents.
+- `status --json` reports validation readiness, workspace safety, claims, and
+  the next action without running checks or changing state.
 
 ## Next
 
-1. Add a read-only `status` command that explains the current validation,
-   claimed task, and next safe action in one screen.
-2. Make every agent-spawning path explicitly headless and remove claims about
+1. Make every agent-spawning path explicitly headless and remove claims about
    provider billing that looptight cannot verify.
-3. Remove generated reflection, cost estimation, and duplicate continuous-loop
+2. Remove generated reflection, cost estimation, and duplicate continuous-loop
    machinery after compatibility warnings.
-4. Remove the Rich runtime dependency and keep human and JSON output legible
+3. Remove the Rich runtime dependency and keep human and JSON output legible
    with the standard library.
 
 ## Rules
