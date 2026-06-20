@@ -67,18 +67,23 @@ existing CLI session and makes no model or API calls of its own.
   task-selection control flow prevents duplicate workers from receiving one task.
 - `swarm --json` emits a versioned schema with overall status, per-worker task
   IDs/status/errors/worktree paths, and the push outcome for automation.
+- Human swarm output prints retained failed/conflicting worktree paths, and
+  preparation errors remove only detached worktrees that never started a task.
 
 ## Next
 
-1. Make retained worker locations actionable in human output.
-   Acceptance: failed and conflicting workers print their worktree path and a
-   regression test covers the output.
-2. Clean up unstarted worktrees when swarm preparation fails.
-   Acceptance: a setup failure removes detached/unstarted worktrees without
-   deleting task branches, preserves actionable failures, and tests pass.
-3. Bound each provider invocation with an explicit worker timeout.
+1. Bound each provider invocation with an explicit worker timeout.
    Acceptance: `swarm --worker-timeout` terminates a timed-out provider process
    tree, reports a distinct failure, and leaves its worktree for recovery.
+2. Add a read-only localhost orchestration view with a distinctive node graph.
+   Acceptance: `looptight ui` binds to loopback, serves a dependency-free page
+   showing manager/tasks/workers as accessible nodes and arrows from versioned
+   swarm state, polls for updates, and server/UI contract tests pass.
+3. Define a secure path for remote mobile swarm management.
+   Acceptance: a concise decision record compares provider-native remote control
+   with authenticated tunnels, specifies identity/authorization/CSRF/replay and
+   secret-handling boundaries, and recommends a minimal opt-in implementation
+   without exposing an unauthenticated listener.
 
 ## Rules
 
