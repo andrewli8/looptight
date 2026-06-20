@@ -94,11 +94,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--limit", type=_non_negative_int, default=10, help="max candidates to show (default 10)"
     )
 
-    sub.add_parser(
+    p_next = sub.add_parser(
         "next",
-        help="print the next task to work on (top grounded candidate, or an audit task when "
-        "the queue is empty) — for the current session to execute on its own tokens",
+        help="return one grounded task or NO_WORK for the current agent session",
     )
+    p_next.add_argument("--json", action="store_true", help="emit the versioned task decision as JSON")
 
     sub.add_parser("hook", help="Claude Code Stop-hook handler (reads the hook event on stdin)")
 

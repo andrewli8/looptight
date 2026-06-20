@@ -391,11 +391,13 @@ def test_next_task_emits_top_grounded_goal():
         title="fix the timeout", source="todo", location="client.py:7",
         suggested_verify=None, score=20.0,
     )
-    goal = next_task(Path("/repo"), propose_fn=lambda root, limit=1: [cand])
-    assert "fix the timeout" in goal
-    assert "client.py:7" in goal
+    result = next_task(Path("/repo"), propose_fn=lambda root, limit=1: [cand])
+    assert result.task is not None
+    assert "fix the timeout" in result.task["goal"]
+    assert "client.py:7" in result.task["goal"]
 
 
-def test_next_task_falls_back_to_audit_when_queue_empty():
-    goal = next_task(Path("/repo"), propose_fn=lambda root, limit=1: [])
-    assert "audit" in goal.lower()
+def test_next_task_returns_no_work_when_queue_empty():
+    result = next_task(Path("/repo"), propose_fn=lambda root, limit=1: [])
+    assert result.status == "no_work"
+    assert result.task is None

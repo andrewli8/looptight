@@ -13,7 +13,7 @@ existence as a reason to keep them.
 | Versioned `verify --json` verdict | ✅ schema v1 |
 | Distinct pass/fail/timeout/error outcomes | ✅ |
 | Reject internally contradictory verdicts | ✅ |
-| Versioned `next --json` task contract | ⏳ next |
+| Versioned `next --json` task contract | ✅ schema v1 |
 | Task evidence and claim validation | ⏳ |
 | Pre-commit claim + passing-verdict validation | ⏳ |
 
@@ -82,10 +82,7 @@ budget silently inaccurate. Cheap-model reflection (D3) is wired for Claude
 
 ## Next
 
-1. Stabilize the versioned JSON contract for `next` (`verify` schema v1 is
-   complete).
-2. Return `NO_WORK` instead of generating fallback audits.
-3. Move runtime history out of tracked files and add atomic task claims.
-4. Add thin native-session instructions for Codex, Claude Code, and OpenCode.
-5. Make all agent-spawning paths explicitly headless, then remove duplicated
+1. Move runtime history out of tracked files and add atomic task claims.
+2. Add thin native-session instructions for Codex, Claude Code, and OpenCode.
+3. Make all agent-spawning paths explicitly headless, then remove duplicated
    reflection, cost, and continuous-orchestration machinery.

@@ -209,12 +209,11 @@ Ctrl-C stops the session cleanly.
 `improve` *spawns* a coding agent (`claude -p` / `codex exec`) per task, which
 bills against **API credits**. If you're already inside an agent session, you
 usually want the opposite: spend that **session's** tokens, not new API credit.
-`looptight next` is that path — it prints the single next task (the top grounded
-`propose` candidate, or a fresh audit task when the queue is empty) for the
-agent you're already running to execute:
+`looptight next` is that path — it prints one grounded task, or `NO_WORK` when
+the queue is empty, for the agent you're already running to execute:
 
 ```bash
-looptight next      # → the next task, on stdout
+looptight next      # → one grounded task, or NO_WORK
 # … the current agent implements it …
 looptight verify    # → the ground-truth gate; commit on green
 ```

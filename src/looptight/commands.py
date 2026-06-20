@@ -396,7 +396,14 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
     stdout so it's easy to capture/script."""
     from .improve import next_task
 
-    print(next_task(Path.cwd()))
+    result = next_task(Path.cwd())
+    if args.json:
+        print(json.dumps(result.as_dict(), sort_keys=True))
+    elif result.status == "no_work":
+        print("NO_WORK")
+    else:
+        assert result.task is not None
+        print(result.task["goal"])
     return 0
 
 

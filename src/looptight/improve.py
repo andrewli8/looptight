@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 import subprocess
 from dataclasses import dataclass
@@ -29,6 +30,23 @@ class ImproveResult:
     commits: int = 0
     total_cost_usd: float = 0.0
     error: str | None = None
+
+
+@dataclass(frozen=True)
+class NextResult:
+    """Versioned, provider-neutral decision for the current agent session."""
+
+    status: str
+    task: dict[str, str | None] | None = None
+    schema_version: int = 1
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "schema_version": self.schema_version,
+            "command": "next",
+            "status": self.status,
+            "task": self.task,
+        }
 
 
 GitFn = Callable[[list[str], Path], subprocess.CompletedProcess[str]]
@@ -73,19 +91,31 @@ def _audit_goal(number: int, outcomes: list[str]) -> str:
     )
 
 
-def next_task(workdir: Path, *, propose_fn: ProposeFn = propose) -> str:
+def next_task(workdir: Path, *, propose_fn: ProposeFn = propose) -> NextResult:
     """The single next task for the *current* session to execute — no agent spawn.
 
-    Returns the top grounded candidate's goal, or a fresh audit goal when the
-    proposal queue is empty: the same selection ``run_improve`` uses, but exposed
-    so an in-session agent can drive the improve loop on its own (session) tokens
-    instead of spawning a paid ``claude -p`` / ``codex exec``. The caller does the
-    work and lets ``verify`` gate it.
+    Returns the top grounded candidate, or ``no_work`` when the queue is empty.
+    The caller performs the work in its existing session and lets ``verify``
+    gate it; this function makes no model or network call.
     """
     candidates = propose_fn(workdir, limit=1)
-    if candidates:
-        return _grounded_goal(candidates[0])
-    return _audit_goal(1, [])
+    if not candidates:
+        return NextResult(status="no_work")
+
+    candidate = candidates[0]
+    identity = "\0".join((candidate.source, candidate.location or "", candidate.title))
+    task_id = hashlib.sha256(identity.encode()).hexdigest()[:12]
+    return NextResult(
+        status="task",
+        task={
+            "id": task_id,
+            "source": candidate.source,
+            "location": candidate.location,
+            "goal": _grounded_goal(candidate),
+            "evidence": candidate.detail,
+            "suggested_verify": candidate.suggested_verify,
+        },
+    )
 
 
 def _commit_subject(candidate: Candidate | None, number: int) -> str:

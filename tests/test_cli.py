@@ -104,10 +104,41 @@ def test_next_prints_a_grounded_task(tmp_path, monkeypatch, capsys):
     assert "fix the timeout" in capsys.readouterr().out
 
 
-def test_next_emits_audit_task_when_no_signals(tmp_path, monkeypatch, capsys):
+def test_next_returns_no_work_when_no_signals(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     assert main(["next"]) == 0
-    assert "audit" in capsys.readouterr().out.lower()
+    assert capsys.readouterr().out.strip() == "NO_WORK"
+
+
+def test_next_json_contract_is_grounded_and_stable(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# TODO: fix the timeout\n")
+
+    assert main(["next", "--json"]) == 0
+    first = json.loads(capsys.readouterr().out)
+    assert main(["next", "--json"]) == 0
+    second = json.loads(capsys.readouterr().out)
+
+    assert first == second
+    assert first["schema_version"] == 1
+    assert first["command"] == "next"
+    assert first["status"] == "task"
+    assert first["task"]["source"] == "todo"
+    assert first["task"]["location"] == "src/a.py:1"
+    assert "fix the timeout" in first["task"]["goal"]
+
+
+def test_next_json_no_work_contract(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    assert main(["next", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data == {
+        "schema_version": 1,
+        "command": "next",
+        "status": "no_work",
+        "task": None,
+    }
 
 
 def test_doctor_runs(tmp_path, monkeypatch):
