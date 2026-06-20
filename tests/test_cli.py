@@ -7,7 +7,7 @@ import json
 import pytest
 
 from looptight.cli import main
-from looptight.commands import _verify_exit_code
+from looptight.protocol_commands import _verify_exit_code
 
 
 def test_init_writes_config(tmp_path, monkeypatch):

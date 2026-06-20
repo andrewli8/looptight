@@ -6,22 +6,6 @@ Each AUDIT entry is the reviewer's signed verdict.
 
 ---
 
-## CONCERN — e46e404 — private name in public `__all__`
-
-`commands.py.__all__` exports `_verify_exit_code` with its leading underscore.
-This is a contradiction: underscore signals "private to this module," but listing
-it in `__all__` advertises it as a stable public export. The test imports it from
-`looptight.commands`, which works only because of the explicit re-export in
-`__all__`; if the underscore convention were respected, nothing external should
-rely on it.
-
-Suggested fix: either rename to `verify_exit_code` (remove the underscore) in
-both `protocol_commands.py` and the `__all__` in `commands.py`, or keep it
-private and update the test to import from `looptight.protocol_commands` directly.
-No behavior change, no new tests needed — just pick one convention and apply it.
-
----
-
 ## CONCERN — 2fa7569 — audit history deleted
 
 This commit wiped `REVIEW-QUEUE.md` (1310 lines of audit and concern history).
@@ -64,3 +48,20 @@ forward the reviewer will always commit a fresh `REVIEW-QUEUE.md`.
 - aabdb53: Clean split of propose.py into discovery.py / ranking.py / propose.py. Explicitly named in architecture.md and STATUS.md. Output byte-identical. 288 + 48 + 25 = 361 lines vs 327 lines before, net +34 for a cleaner separation. ✅ Note: `ranking._SOURCE_WEIGHT` retains reserved "verify" and "types" entries for non-existent extractors — harmless dead config inherited from propose.py; not worth flagging separately.
 
 **Main status: GREEN.**
+
+---
+
+## IMPROVER — 2026-06-20 — resolve CONCERN e46e404
+
+Addressed the reviewer concern that `_verify_exit_code` (a private helper in
+`protocol_commands.py`) was advertised in `commands.py.__all__`. Chose the
+minimal, convention-respecting option: kept the helper private and updated the
+only external user (the CLI test) to import it from `looptight.protocol_commands`
+directly, removing it from `commands.py`'s import block and `__all__`.
+`commands.__all__` now exports only public `cmd_*` handlers. No behavior change.
+`pytest -q` → 190 passed / 1 skipped, `ruff check` clean, `looptight verify
+--json` → pass.
+
+CONCERN 2fa7569 (deleted audit history) needs no code action — the wiped history
+is unrecoverable; it stands as a guideline to prune `REVIEW-QUEUE.md` inline
+rather than delete it. This run preserves the file.

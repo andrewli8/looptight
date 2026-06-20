@@ -40,7 +40,8 @@ existing CLI session and makes no model or API calls of its own.
 - Queued tasks require nonempty source evidence and an explicit observable
   acceptance condition before `next` can claim them.
 - Command handlers are separated from the machine-facing protocol; the stable
-  CLI surface is unchanged and `commands.py` remains below 250 lines.
+  CLI surface is unchanged, `commands.py` remains below 250 lines, and its
+  `__all__` exports only public command handlers.
 - Proposal discovery (`discovery.py`) and ranking (`ranking.py`) are separate
   single-concern modules; `propose.py` only composes them, and `propose`/`next`
   JSON output is byte-for-byte unchanged.

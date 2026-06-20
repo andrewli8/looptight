@@ -14,7 +14,6 @@ from .detect import detect_agent, detect_verify
 from .integration import install_session_instructions
 from .loop import run_loop
 from .protocol_commands import (
-    _verify_exit_code,
     cmd_next,
     cmd_propose,
     cmd_status,
@@ -24,7 +23,6 @@ from .summary import render_rich
 from .types import StopReason
 
 __all__ = [
-    "_verify_exit_code",
     "cmd_doctor",
     "cmd_hook",
     "cmd_improve",
