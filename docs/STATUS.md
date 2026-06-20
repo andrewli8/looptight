@@ -52,8 +52,10 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_No grounded task is queued. `next` reports `NO_WORK` until a new repository
-signal or user-facing friction surfaces one._
+1. Refuse to claim new work from a dirty Git worktree.
+   Acceptance: `next --json` returns a machine-readable error with a nonzero exit
+   code before proposal or claim mutation, regression tests cover clean and dirty
+   repositories, and the full verifier passes.
 
 ## Rules
 
