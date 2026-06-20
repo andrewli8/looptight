@@ -64,6 +64,26 @@ this protocol without requiring the user to re-prompt after each task.
 workspace, invalid configuration, and an unexecutable verifier are failures.
 Consuming the rest of a provider allowance is never a success criterion.
 
+## Validation model
+
+Validation is looptight's most important decision logic. Every automated action
+must follow this order:
+
+1. **Configuration validation:** the verifier and task source are explicit and
+   executable.
+2. **Task validation:** the task is grounded in inspectable project evidence,
+   is not already claimed, and has an observable completion condition.
+3. **Execution validation:** the verifier completed normally. Timeout and
+   launch errors are distinct from a valid failing verdict.
+4. **Result validation:** only verifier exit zero is `pass`; agent confidence,
+   a clean diff, or a numeric progress score cannot override it.
+5. **Mutation validation:** commit or continuation is allowed only from a valid
+   task claim and a passing verifier result.
+
+Heuristics may rank tasks or detect stalled progress, but they never grant a
+pass. When evidence is missing or contradictory, looptight stops safely and
+returns the reason in its machine-readable result.
+
 ## Requirements
 
 ### P0: the reason to install

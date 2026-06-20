@@ -72,6 +72,7 @@ def run_verify(
             output=_timeout_output(partial, command, timeout_s),
             score=parse_score(partial),
             duration_s=time.monotonic() - started,
+            error="timeout",
         )
     except OSError as exc:
         return VerifyResult(
@@ -79,6 +80,7 @@ def run_verify(
             exit_code=127,
             output=f"could not run verify command: {exc}",
             duration_s=time.monotonic() - started,
+            error="launch_error",
         )
 
     combined = (proc.stdout or "") + (proc.stderr or "")

@@ -48,6 +48,12 @@ verify = "pytest -q"      # exit 0 = pass; non-zero = keep going
 Everything else (the agent, the budget, the iteration cap) has a safe default
 and is just an override.
 
+For agent integrations and scripts, `looptight verify --json` returns the
+versioned verdict `pass`, `fail`, `timeout`, or `error`. Only `pass` permits a
+commit or successful continuation; a broken validator never looks like failing
+code. Command exit codes are `0` for pass, `1` for a valid failure, and `2` for
+configuration or validator-execution errors.
+
 ## What a run looks like
 
 ```

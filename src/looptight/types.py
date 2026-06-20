@@ -33,6 +33,24 @@ class VerifyResult:
     output: str = ""
     score: float | None = None
     duration_s: float = 0.0
+    error: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.passed != (self.exit_code == 0):
+            raise ValueError("verify pass state must match exit code zero")
+        if self.passed and self.error:
+            raise ValueError("a passing verify result cannot contain an execution error")
+
+    @property
+    def status(self) -> str:
+        """Stable verdict for automation: pass, fail, timeout, or error."""
+        if self.passed:
+            return "pass"
+        if self.error == "timeout":
+            return "timeout"
+        if self.error:
+            return "error"
+        return "fail"
 
     def short(self) -> str:
         """A compact, gif-able status fragment, e.g. ``PASS`` or ``FAIL``."""

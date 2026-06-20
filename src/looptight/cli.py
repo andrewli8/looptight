@@ -74,6 +74,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_verify = sub.add_parser("verify", help="run the verify command once and report")
     p_verify.add_argument("--verify", help="override the verify command")
+    p_verify.add_argument("--json", action="store_true", help="emit the versioned verdict as JSON")
 
     p_lessons = sub.add_parser("lessons", help="show or prune the lessons looptight has learned")
     p_lessons.add_argument("--agent", choices=KNOWN_AGENTS, help="which agent's memory file to read")

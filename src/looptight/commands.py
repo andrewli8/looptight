@@ -8,6 +8,7 @@ Each takes the parsed args and a rich ``Console`` and returns an exit code.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -15,7 +16,7 @@ from rich.console import Console
 
 from .adapters import available_adapter_names, get_adapter
 from .checkpoint import is_git_repo
-from .config import CONFIG_NAME, Config, find_config, load_config, write_config
+from .config import CONFIG_NAME, Config, ConfigError, find_config, load_config, write_config
 from .detect import detect_agent, detect_verify
 from .improve import ImproveStopReason, run_improve
 from .lessons import LessonStore
@@ -204,14 +205,67 @@ def cmd_improve(args: argparse.Namespace, console: Console) -> int:
 
 def cmd_verify(args: argparse.Namespace, console: Console) -> int:
     workdir = Path.cwd()
-    command = args.verify or load_config().verify or detect_verify(workdir)
+    try:
+        command = args.verify or load_config().verify or detect_verify(workdir)
+    except ConfigError as exc:
+        if args.json:
+            _print_verify_json(status="error", output=f"config error: {exc}")
+        else:
+            console.print(f"[red]config error:[/red] {exc}")
+        return 2
     if not command:
-        console.print("[red]No verify command found.[/red] Pass --verify or run `looptight init`.")
+        message = "No verify command found. Pass --verify or run `looptight init`."
+        if args.json:
+            _print_verify_json(status="error", output=message)
+        else:
+            console.print(f"[red]{message}[/red]")
         return 2
     result = run_verify(command, workdir)
+    if args.json:
+        _print_verify_json(
+            status=result.status,
+            exit_code=result.exit_code,
+            score=result.score,
+            duration_ms=round(result.duration_s * 1000, 3),
+            output=result.output,
+            error=result.error,
+        )
+        return _verify_exit_code(result.status)
     style = "green" if result.passed else "red"
     console.print(f"verify: [{style}]{result.short()}[/{style}] (exit {result.exit_code})")
-    return 0 if result.passed else 1
+    return _verify_exit_code(result.status)
+
+
+def _verify_exit_code(status: str) -> int:
+    """Separate a valid negative verdict from an invalid verifier execution."""
+    return {"pass": 0, "fail": 1, "timeout": 2, "error": 2}[status]
+
+
+def _print_verify_json(
+    *,
+    status: str,
+    output: str,
+    exit_code: int | None = None,
+    score: float | None = None,
+    duration_ms: float = 0.0,
+    error: str | None = None,
+) -> None:
+    """Emit the v1 verifier contract without terminal styling or wrapping."""
+    print(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "command": "verify",
+                "status": status,
+                "exit_code": exit_code,
+                "score": score,
+                "duration_ms": duration_ms,
+                "output": output,
+                "error": error,
+            },
+            sort_keys=True,
+        )
+    )
 
 
 def cmd_lessons(args: argparse.Namespace, console: Console) -> int:
@@ -312,8 +366,6 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
 
     candidates = propose(Path.cwd(), limit=args.limit)
     if args.json:
-        import json
-
         print(json.dumps([c.__dict__ for c in candidates], indent=2))
         return 0
 

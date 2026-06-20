@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from looptight.cli import main
+from looptight.commands import _verify_exit_code
 
 
 def test_init_writes_config(tmp_path, monkeypatch):
@@ -161,9 +164,45 @@ def test_verify_no_command_returns_error(tmp_path, monkeypatch):
     assert main(["verify"]) == 2
 
 
-def test_propose_json_output(tmp_path, monkeypatch, capsys):
-    import json
+def test_verify_json_pass_contract(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    assert main(["verify", "--verify", "printf 'SCORE: 0.75'", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["schema_version"] == 1
+    assert data["command"] == "verify"
+    assert data["status"] == "pass"
+    assert data["exit_code"] == 0
+    assert data["score"] == 0.75
+    assert data["error"] is None
 
+
+def test_verify_json_fail_contract(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    assert main(["verify", "--verify", "printf broken; exit 3", "--json"]) == 1
+    data = json.loads(capsys.readouterr().out)
+    assert data["status"] == "fail"
+    assert data["exit_code"] == 3
+    assert data["output"] == "broken"
+
+
+def test_verify_json_configuration_error_is_machine_readable(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    assert main(["verify", "--json"]) == 2
+    data = json.loads(capsys.readouterr().out)
+    assert data["status"] == "error"
+    assert data["exit_code"] is None
+    assert "No verify command" in data["output"]
+
+
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [("pass", 0), ("fail", 1), ("timeout", 2), ("error", 2)],
+)
+def test_verify_exit_codes_distinguish_verdict_from_execution_error(status, expected):
+    assert _verify_exit_code(status) == expected
+
+
+def test_propose_json_output(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "a.py").write_text("# TODO: fix the timeout\n")

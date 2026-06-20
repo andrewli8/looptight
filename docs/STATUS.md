@@ -6,6 +6,17 @@ The table below records the v0.1 implementation. The v0.2 product direction
 deliberately retires several completed experiments instead of treating their
 existence as a reason to keep them.
 
+## v0.2 validation protocol
+
+| Feature | Status |
+|---------|--------|
+| Versioned `verify --json` verdict | ✅ schema v1 |
+| Distinct pass/fail/timeout/error outcomes | ✅ |
+| Reject internally contradictory verdicts | ✅ |
+| Versioned `next --json` task contract | ⏳ next |
+| Task evidence and claim validation | ⏳ |
+| Pre-commit claim + passing-verdict validation | ⏳ |
+
 | Group | Feature | Status |
 |-------|---------|--------|
 | A1 | Single-command install (`uvx`/`pipx`/`pip`) | ✅ packaged |
@@ -71,7 +82,8 @@ budget silently inaccurate. Cheap-model reflection (D3) is wired for Claude
 
 ## Next
 
-1. Stabilize versioned JSON contracts for `next` and `verify`.
+1. Stabilize the versioned JSON contract for `next` (`verify` schema v1 is
+   complete).
 2. Return `NO_WORK` instead of generating fallback audits.
 3. Move runtime history out of tracked files and add atomic task claims.
 4. Add thin native-session instructions for Codex, Claude Code, and OpenCode.

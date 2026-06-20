@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import subprocess
 
+import pytest
+
+from looptight.types import VerifyResult
 from looptight.verify import parse_score, run_verify
 
 
@@ -17,6 +20,14 @@ def test_failing_command(tmp_path):
     result = run_verify("exit 1", tmp_path)
     assert not result.passed
     assert result.exit_code == 1
+
+
+def test_verify_result_rejects_contradictory_verdict():
+    with pytest.raises(ValueError, match="exit code zero"):
+        VerifyResult(passed=True, exit_code=1)
+
+    with pytest.raises(ValueError, match="execution error"):
+        VerifyResult(passed=True, exit_code=0, error="launch_error")
 
 
 def test_captures_output(tmp_path):
@@ -40,6 +51,7 @@ def test_run_verify_tolerates_non_utf8_output(tmp_path):
     # is decoded leniently rather than raising UnicodeDecodeError.
     result = run_verify(r"printf '\377\376'; exit 3", tmp_path)
     assert result.exit_code == 3
+    assert result.status == "fail"
     assert not result.passed
 
 
@@ -84,3 +96,4 @@ def test_timeout_preserves_partial_verify_output(tmp_path, monkeypatch):
     assert "test_widget.py::test_save FAILED" in result.output
     assert "AssertionError: expected saved record" in result.output
     assert "verify timed out after 1s" in result.output
+    assert result.status == "timeout"
