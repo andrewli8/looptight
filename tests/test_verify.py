@@ -64,9 +64,18 @@ def test_score_parsed_from_full_output_even_when_truncated(tmp_path):
     assert "[truncated]" in result.output  # output itself is still bounded
 
 
-def test_missing_command_is_failure_not_crash(tmp_path):
+def test_missing_command_is_launch_error_not_test_failure(tmp_path):
     result = run_verify("this-binary-does-not-exist-xyz", tmp_path)
-    assert not result.passed  # shell reports 127, captured as a failure
+    assert not result.passed
+    assert result.exit_code == 127
+    assert result.status == "error"
+    assert result.error == "launch_error"
+
+
+def test_ordinary_nonzero_exit_remains_test_failure(tmp_path):
+    result = run_verify("exit 1", tmp_path)
+    assert result.status == "fail"
+    assert result.error is None
 
 
 def test_timeout_is_failure_not_crash(tmp_path, monkeypatch):

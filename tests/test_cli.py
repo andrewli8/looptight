@@ -316,6 +316,17 @@ def test_verify_json_fail_contract(tmp_path, monkeypatch, capsys):
     assert data["output"] == "broken"
 
 
+def test_verify_json_missing_executable_is_machine_readable_error(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    assert main(["verify", "--verify", "this-binary-does-not-exist-xyz", "--json"]) == 2
+    data = json.loads(capsys.readouterr().out)
+    assert data["status"] == "error"
+    assert data["exit_code"] == 127
+    assert data["error"] == "launch_error"
+
+
 def test_verify_json_configuration_error_is_machine_readable(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     assert main(["verify", "--json"]) == 2

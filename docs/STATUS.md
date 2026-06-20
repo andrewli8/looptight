@@ -53,13 +53,13 @@ existing CLI session and makes no model or API calls of its own.
   a machine-readable error with exit code 2, and remains unchanged outside Git.
 - `next` reconciles claims against current task evidence even when the queue is
   empty, so completed work cannot leave contradictory active-claim status.
+- Verifier shell launch codes 126/127 are execution `error` results with CLI
+  exit 2; ordinary nonzero test verdicts remain `fail` with exit 1.
 
 ## Next
 
-1. Classify an unexecutable verifier as an execution error, not a test failure.
-   Acceptance: a missing verify command returns JSON status `error` and CLI exit
-   code 2 while ordinary nonzero test commands remain `fail`, regression tests
-   pass, and the full verifier passes.
+_No grounded task is queued. `next` reports `NO_WORK` until a new repository
+signal or user-facing friction surfaces one._
 
 ## Rules
 

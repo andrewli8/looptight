@@ -84,6 +84,7 @@ def run_verify(
         )
 
     combined = (proc.stdout or "") + (proc.stderr or "")
+    launch_error = "launch_error" if proc.returncode in (126, 127) else None
     # Parse the score from the full output, then store a bounded copy: a SCORE
     # line in the truncated-away middle would otherwise be silently lost.
     return VerifyResult(
@@ -92,4 +93,5 @@ def run_verify(
         output=_truncate(combined),
         score=parse_score(combined),
         duration_s=time.monotonic() - started,
+        error=launch_error,
     )
