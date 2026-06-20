@@ -21,8 +21,8 @@ import tokenize
 from dataclasses import dataclass
 from pathlib import Path
 
-# Source-priority weights for ranking. Higher runs first. A documented heuristic,
-# not a validated ordering (see docs/superpowers/specs/2026-06-18-...).
+# Source-priority weights for ranking. Higher runs first. This is a transparent
+# heuristic, not a validated ordering (see docs/SPEC.md).
 _SOURCE_WEIGHT = {
     "verify": 100,  # reserved for a future failing-verify extractor
     "types": 80,    # reserved for a future mypy extractor

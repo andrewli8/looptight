@@ -2,6 +2,10 @@
 
 Tracks the spec ([`SPEC.md`](SPEC.md)) against what's actually built.
 
+The table below records the v0.1 implementation. The v0.2 product direction
+deliberately retires several completed experiments instead of treating their
+existence as a reason to keep them.
+
 | Group | Feature | Status |
 |-------|---------|--------|
 | A1 | Single-command install (`uvx`/`pipx`/`pip`) | ✅ packaged |
@@ -67,17 +71,9 @@ budget silently inaccurate. Cheap-model reflection (D3) is wired for Claude
 
 ## Next
 
-1. ~~Confirm whether Codex `/goal` can be driven headlessly.~~ Resolved
-   (Codex 0.141.0): `/goal` is a self-graded objective + token-budget tracker,
-   not a headless eval-gated loop, so `supports_native_loop` stays `False` — see
-   the correction above. (Re-check if a future Codex `exec` gains a
-   verify-gated loop primitive.)
-2. ~~Decide whether to add token-to-USD pricing for observed `codex exec --json`
-   usage events.~~ Resolved: do not add an estimate; keep Codex on the provider
-   limit until its output reports billed USD (or a pricing-stable model and
-   versioned pricing contract). Observe `opencode run -f json` before attempting
-   opencode cost parsing.
-3. ~~Record the flagship gif: the same command across agents, then a second task
-   that benefits from a lesson written in the first run.~~ Deferred: recording
-   requires an interactive environment with all three real agents installed and
-   authenticated; tracked in [`REVIEW-QUEUE.md`](../REVIEW-QUEUE.md#deferred-non-goal).
+1. Stabilize versioned JSON contracts for `next` and `verify`.
+2. Return `NO_WORK` instead of generating fallback audits.
+3. Move runtime history out of tracked files and add atomic task claims.
+4. Add thin native-session instructions for Codex, Claude Code, and OpenCode.
+5. Make all agent-spawning paths explicitly headless, then remove duplicated
+   reflection, cost, and continuous-orchestration machinery.
