@@ -62,8 +62,10 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_No grounded task is queued. `next` reports `NO_WORK` until a new repository
-signal or user-facing friction surfaces one._
+1. Prevent lint discovery from writing Ruff cache state.
+   Acceptance: the discovery command includes `--no-cache`, a regression test
+   asserts the subprocess contract, proposal results remain unchanged, and the
+   full verifier passes.
 
 ## Rules
 
