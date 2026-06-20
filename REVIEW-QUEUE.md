@@ -1146,3 +1146,29 @@ and verifies the test count against the previous audit before recording the
 baseline.
 
 No reverts required. No open concerns from prior audits remain unaddressed.
+
+---
+
+## Run Summary (2026-06-20, improver — idle + stale-clone correction)
+
+Setup: `uv pip install -e ".[dev]"`; `uv run pytest` → 229 passed, 1 skipped
+(env-gated e2e — correct); `uv run ruff check` → clean. **Main is GREEN.**
+
+**No code changes this run.** `uv run looptight propose` reported "No candidate
+tasks found from repo signals (clean tree)." Nothing safe and valuable to do;
+per idle-is-success, no work was manufactured.
+
+**Self-inflicted noise — corrected within the run (for the auditor's awareness):**
+The session started with a *stale local clone*: `HEAD` was detached at the true
+remote tip `468df65`, but the local `main` / cached `origin/main` ref still
+pointed at an old, disjoint `211a31d` line (the remote `main` had earlier been
+force-updated `211a31d`→`468df65`). Before fetching, I mis-read this as a real
+divergence and over-reacted: opened issue #1 and pushed a backup branch
+`recovered/improve-line-468df65`. A `git fetch` then showed `origin/main` was
+already `468df65` (no divergence, no data-loss risk). I closed issue #1 as a
+false alarm with a correction. **Lesson: always `git fetch` and validate
+remote-tracking refs before any divergence analysis.**
+
+**Leftover needing manual cleanup:** branch `recovered/improve-line-468df65`
+(identical SHA to `main`) could not be deleted — push-delete returns `403` in
+this environment and no delete-branch tool is exposed. Please delete it manually.
