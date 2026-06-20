@@ -6,6 +6,83 @@ next actionable task.
 
 ---
 
+## AUDIT (2026-06-20, eleventh)
+
+Reviewer: independent checker agent. Previous AUDIT marker: `02973c4` (tenth audit).
+Reviewed 9 commits from `43281b8` through `185c67c`.
+
+### Test and lint gate
+
+`uv run pytest`: 250 passed, 1 skipped (env-gated e2e — correct). Up from 229 in the tenth audit.
+`uv run ruff check`: all checks passed.
+**Main is GREEN.**
+
+### Commits reviewed
+
+| Hash | Subject |
+|------|---------|
+| `43281b8` | docs: record idle improve run 2026-06-20 (eleventh; no actionable work) |
+| `f23dbb4` | docs: focus v0.2 on session-native protocol |
+| `515bfc9` | feat: make validation verdicts machine-readable |
+| `a748952` | feat: add grounded next task protocol |
+| `8d4f78f` | docs: bound the self-improvement plan |
+| `2b47783` | feat: claim tasks across worktrees |
+| `65d9c6f` | feat: install native session loop instructions |
+| `90e766b` | feat: add read-only loop status |
+| `185c67c` | feat: require explicit headless agent spawning |
+
+### Verdict: clean with one minor concern
+
+**`43281b8` / `8d4f78f`** — Docs only. No concerns.
+
+**`f23dbb4`** — Large SPEC.md rewrite and deletion of stale plan docs from
+`docs/plans/` and `docs/specs/`. One-line propose.py comment update pointing to
+the new SPEC.md location. Tightens scope; no concerns.
+
+**`515bfc9`** — Machine-readable `--json` for `looptight verify`. Good design:
+`VerifyResult.__post_init__` invariant (`passed == (exit_code == 0)`) holds in all
+three paths (timeout exit 124, launch-error exit 127, normal). `_verify_exit_code()`
+correctly distinguishes tool errors (exit 2) from code failures (exit 1). `ConfigError`
+caught inside `cmd_verify` so a malformed config emits a clean JSON error rather than
+crashing. Tests cover the JSON contract. No concerns.
+
+**`a748952`** — Refactors `next_task()` from raw string to structured `NextResult`.
+Removes the fallback to `_audit_goal` (which could generate unprompted self-improvement
+work in an autonomous session); replaces with explicit `no_work`. SHA-256 task ID
+(12-hex prefix) for stable identity across calls. Tests cover both code paths and the
+stable JSON contract. No concerns.
+
+**`2b47783`** — Adds `claims.py` for atomic task coordination across worktrees.
+`O_EXCL` prevents double-claiming; 24h stale threshold; `limit=0` in `propose_fn`
+correctly returns all candidates (confirmed: `propose.py:318`). Tests cover atomic
+claims, stale expiry, cross-task cleanup, and the non-mutating `summary()` method.
+No concerns.
+
+**`65d9c6f`** — Adds `integration.py` with idempotent managed-block pattern for
+AGENTS.md and CLAUDE.md. `--integrate` flag on `looptight init` keeps session
+instructions an explicit opt-in. Idempotency and surrounding-content preservation
+are tested. No concerns.
+
+**`90e766b`** — Read-only `looptight status` command reporting verify config, git
+workspace state, and claim state. No side effects. One minor inconsistency noted
+(see concern below).
+
+**`185c67c`** — Adds `--headless` guard to `looptight run` and `looptight improve`
+to prevent accidental child-agent spawning from within an autonomous session. Breaking
+change for existing users (add `--headless`), acceptable at v0.1 given the protocol
+shift to session-native. Tests updated correctly. The `--headless` in the `--help`
+test is unnecessary but harmless. No concerns.
+
+### Minor concern (flag, do not revert)
+
+`cmd_status --json` does not catch `ConfigError` internally. A malformed
+`.looptight.toml` causes the top-level handler in `main()` (cli.py:194) to emit a
+human-readable message rather than a JSON error object. `cmd_verify --json` handles
+this correctly. Suggested fix: wrap `load_config()` in `cmd_status` in a
+`try/except ConfigError` and emit a JSON error payload analogous to `cmd_verify`.
+
+---
+
 ## IMPROVE RUN (2026-06-20, eleventh) — idle, no changes
 
 Setup: `uv venv` + `uv pip install -e ".[dev]"`; `uv run pytest -q` → 229 passed,
