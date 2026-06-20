@@ -16,6 +16,7 @@ from .commands import (
     cmd_revert,
     cmd_run,
     cmd_status,
+    cmd_swarm,
     cmd_verify,
 )
 from .config import ConfigError
@@ -33,6 +34,7 @@ _COMMANDS = {
     "propose",
     "next",
     "status",
+    "swarm",
 }
 
 
@@ -102,6 +104,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_status = sub.add_parser("status", help="show validation readiness and the next safe action")
     p_status.add_argument("--json", action="store_true", help="emit the versioned status as JSON")
 
+    p_swarm = sub.add_parser("swarm", help="run isolated headless workers from the grounded queue")
+    p_swarm.add_argument("--headless", action="store_true", help="explicitly allow agent child processes")
+    p_swarm.add_argument("--agent", choices=KNOWN_AGENTS, help="agent CLI for every worker")
+    p_swarm.add_argument("--workers", type=_positive_int, default=4, help="concurrent workers (1-50)")
+    p_swarm.add_argument("--verify", help="override the project verify command")
+    p_swarm.add_argument("--max-iterations", type=_positive_int, help="iteration cap per worker")
+    p_swarm.add_argument("--push", action="store_true", help="push integrated commits after the swarm")
+
     sub.add_parser("hook", help="Claude Code Stop-hook handler (reads the hook event on stdin)")
 
     p_install = sub.add_parser(
@@ -170,6 +180,7 @@ def main(argv: list[str] | None = None) -> int:
         "propose": cmd_propose,
         "next": cmd_next,
         "status": cmd_status,
+        "swarm": cmd_swarm,
     }[args.command]
     try:
         return handler(args, console)

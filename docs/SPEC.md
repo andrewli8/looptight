@@ -122,6 +122,9 @@ returns the reason in its machine-readable result.
   explicit headless choice and uses that CLI's existing authentication.
 - Autonomous queue processing composes the same `next` and `verify` protocol;
   it does not maintain a separate task-selection or verification engine.
+- Explicit swarm processing may run claimed tasks concurrently in isolated Git
+  worktrees. A deterministic manager serializes integration and re-runs the
+  verifier before every merge commit.
 - Hooks and plugins remain thin adapters around the protocol and contain no
   product logic.
 
@@ -186,7 +189,7 @@ Release v0.2 only when all are true:
 - Inventing work merely to keep a session active.
 - Measuring or maximizing credit consumption.
 - Model-generated project memory after every failure.
-- Multi-agent DAG orchestration, dashboards, marketplaces, or hosted services.
+- Model-managed DAGs, dashboards, marketplaces, or hosted orchestration.
 - Claiming billing guarantees for provider CLIs or third-party authentication.
 
 ## Migration order

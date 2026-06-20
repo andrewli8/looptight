@@ -36,6 +36,11 @@ or select repository work.
 The deprecated `improve` command is a migration message only; there is no
 second continuous-loop engine.
 
+`swarm.py` is a deterministic, explicit headless manager over the same task,
+claim, loop, and verifier primitives. It creates isolated Git worktrees, runs a
+bounded worker pool, and serializes verified integration. It does not use a
+manager model, invent task graphs, or bypass provider-native limits.
+
 ## Validation order
 
 1. Validate configuration and task evidence.

@@ -20,6 +20,7 @@ from .protocol_commands import (
     cmd_verify,
 )
 from .summary import render_rich
+from .swarm import cmd_swarm
 from .types import StopReason
 
 __all__ = [
@@ -33,6 +34,7 @@ __all__ = [
     "cmd_revert",
     "cmd_run",
     "cmd_status",
+    "cmd_swarm",
     "cmd_verify",
 ]
 

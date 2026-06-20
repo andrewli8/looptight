@@ -61,6 +61,10 @@ existing CLI session and makes no model or API calls of its own.
   invokes `uv`, installs packages, writes an environment, or accesses a network.
 - Ruff discovery disables its cache, keeping `propose` free of repository state
   mutations while preserving the same lint candidates.
+- Explicit `swarm --headless` uses a deterministic manager, distinct atomic
+  claims, isolated worktrees, bounded concurrency, and serialized verified merges.
+- Cross-worktree tests prove nonempty queues pass through `ClaimStore`; explicit
+  task-selection control flow prevents duplicate workers from receiving one task.
 
 ## Next
 

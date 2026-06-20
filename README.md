@@ -71,6 +71,25 @@ CLI and applies the same verifier after each iteration. Looptight does not claim
 how provider CLIs authenticate or bill child processes. The former `improve`
 orchestrator is deprecated; use the native-session loop above.
 
+## Isolated headless swarm
+
+```bash
+looptight swarm --headless --agent codex --workers 4 --push
+# or: --agent claude
+```
+
+The deterministic manager claims up to one grounded task per worker, creates an
+isolated Git worktree and branch for each, runs workers concurrently, and merges
+successful branches one at a time only when the project verifier still passes.
+The hard limit is 50 workers; start with a small value because provider limits
+are shared and repository tasks rarely scale linearly. Failed or conflicting
+worktrees are retained; successfully merged worktrees are removed.
+Pushing is opt-in with `--push`.
+
+Swarm mode invokes the installed provider CLI. Looptight neither supplies API
+keys nor guarantees billing mode: Codex or Claude authentication determines
+whether work consumes subscription allowance, credits, or another account.
+
 ## Safety
 
 - Objective verifier output outranks model confidence.

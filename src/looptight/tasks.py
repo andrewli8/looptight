@@ -80,9 +80,8 @@ def next_task(workdir: Path, *, propose_fn: ProposeFn = propose) -> NextResult:
         )
 
     private_dir = claim_dir(workdir)
-    task = (
-        tasks[0] if tasks else None
-        if private_dir is None
-        else ClaimStore(private_dir, owner_id(workdir)).select(tasks)
-    )
+    if private_dir is None:
+        task = tasks[0] if tasks else None
+    else:
+        task = ClaimStore(private_dir, owner_id(workdir)).select(tasks)
     return NextResult(status="task", task=task) if task else NextResult(status="no_work")
