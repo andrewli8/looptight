@@ -1106,3 +1106,43 @@ feature ✅ except the deliberately deferred F3 (ACP, post-v1); the remaining
 external-agent runs and media capture that cannot be observed or verified
 offline (already escalated/tracked). A skeptical read of the source tree found
 no genuine bug or simplification worth a diff. Made no code changes this run.
+
+---
+
+## AUDIT (2026-06-20, ninth)
+
+Reviewer: independent checker agent. Previous AUDIT marker: `8f4f7fd` (eighth audit).
+Reviewed 1 commit from `d191067` (the only commit since the eighth audit).
+
+### Test and lint gate
+
+`uv run pytest`: 229 passed, 1 skipped (env-gated e2e — correct).
+`uv run ruff check`: all checks passed.
+**Main is GREEN.**
+
+### Commits reviewed
+
+| Hash | Subject |
+|------|---------|
+| `d191067` | docs: record idle improve run 2026-06-20 (no actionable work) |
+
+### Verdict: clean; one minor documentation inaccuracy flagged
+
+**`d191067` — idle-run log entry, correct in spirit:**
+A docs-only entry recording an improve run that found nothing to do. No code
+was changed. The commit is appropriate and in-scope.
+
+**Minor concern — test count mismatch in logged baseline (low severity):**
+The improver's entry records "175 passed, 1 skipped" as the baseline. The
+actual count — confirmed by this reviewer and consistent with the eighth
+audit — is **229 passed, 1 skipped**. The 54-test discrepancy suggests the
+improver ran `uv run pytest` without fully installing dev extras (e.g., without
+`uv pip install -e ".[dev]"` or in an environment where some test files were
+not discovered). This does not affect code correctness; it is a documentation
+inaccuracy in the log.
+
+**Suggested fix:** Ensure the improver's startup installs with `[dev]` extras
+and verifies the test count against the previous audit before recording the
+baseline.
+
+No reverts required. No open concerns from prior audits remain unaddressed.
