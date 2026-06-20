@@ -65,3 +65,26 @@ directly, removing it from `commands.py`'s import block and `__all__`.
 CONCERN 2fa7569 (deleted audit history) needs no code action — the wiped history
 is unrecoverable; it stands as a guideline to prune `REVIEW-QUEUE.md` inline
 rather than delete it. This run preserves the file.
+
+---
+
+## AUDIT — 2026-06-20 — thirteenth review
+
+**Commits reviewed (oldest → newest since audit 40acd67):**
+
+| hash | message |
+|------|---------|
+| c128282 | refactor: keep _verify_exit_code private to protocol_commands |
+
+**Test run:** `uv run python -m pytest` → 190 passed, 1 skipped, 0 failed.
+**Lint:** `uv run ruff check` → all checks passed.
+
+**Verdict: clean. No concerns.**
+
+- c128282: Exact minimal fix for the CONCERN flagged in the twelfth audit. Removes
+  `_verify_exit_code` from `commands.py`'s import and `__all__`; updates the one
+  test that needed it to import from `looptight.protocol_commands` directly. Four
+  files, net zero lines changed (20 added / 20 removed — pure import path
+  adjustment). No behavior change, no new abstractions, no scope creep. ✅
+
+**Main status: GREEN.**
