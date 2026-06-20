@@ -6,6 +6,27 @@ next actionable task.
 
 ---
 
+## IMPROVE RUN (2026-06-20, eleventh) — idle, no changes
+
+Setup: `uv venv` + `uv pip install -e ".[dev]"`; `uv run pytest -q` → 229 passed,
+1 skipped (env-gated e2e — correct); `uv run ruff check` → clean. **Main is GREEN.**
+
+**No code changes this run.** `uv run looptight propose` reported "No candidate
+tasks found from repo signals (clean tree)." Scanned `src/` for TODO/FIXME/HACK/XXX
+(none) and reviewed the standing REVIEW-QUEUE escalations — all remain legitimate
+non-goals that cannot be verified offline (Codex `/goal` self-grading, real-CLI JSON
+shapes, flagship-gif interactive recording, mypy-extractor maintainer call). Nothing
+safe and valuable to do; per idle-is-success, no work was manufactured.
+
+**Stale-clone note (handled cleanly this time):** the session again started with a
+detached HEAD at the true remote tip `02973c4` while the cached `origin/main` ref
+pointed at the old disjoint `211a31d`. Per the prior run's lesson I fetched first;
+`git fetch` reconciled `origin/main` → `02973c4` (forced update, no real divergence)
+before any analysis. Re-attached `main` and recorded this entry. No backup branches,
+no issues opened.
+
+---
+
 ## AUDIT (2026-06-19, eighth)
 
 Reviewer: independent checker agent. Previous AUDIT marker: `a743f64` (seventh audit).
