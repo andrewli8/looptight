@@ -4,14 +4,13 @@ Claude Code has both a headless one-shot mode (``claude -p``) and a native
 eval-gated loop (``/goal``, shipped 2026), so this adapter does both:
 
 - **supply** (default): each iteration runs ``claude -p <prompt> --output-format
-  json`` and we read the agent's own ``total_cost_usd`` (D2/D3) rather than
-  guessing.
+  json`` and read its result.
 - **delegate** (``--native``): drive ``claude -p "/goal …"`` and let Claude's own
   Haiku evaluator gate the condition. looptight still runs ``verify`` afterward
   as the contract.
 
 Auth-neutral (A4): we invoke whatever ``claude`` is on PATH and let it use its
-existing auth. Claude Code auto-loads ``CLAUDE.md``, which is where lessons land.
+existing auth. Claude Code auto-loads ``CLAUDE.md``.
 """
 
 from __future__ import annotations
@@ -23,11 +22,6 @@ from subprocess import CompletedProcess
 
 from ..types import IterationResult
 from .base import Adapter, run_command
-
-# A small, cheap model for the bookkeeping/reflection step (D3). The coding step
-# uses whatever the agent defaults to; only reflection is pinned cheap.
-CHEAP_MODEL = "haiku"
-
 
 class ClaudeAdapter(Adapter):
     name = "claude"
@@ -82,14 +76,6 @@ class ClaudeAdapter(Adapter):
         if proc.returncode != 0 and not transcript:
             transcript = proc.stderr.strip() or "claude /goal exited non-zero"
         return IterationResult(transcript=transcript, cost_usd=cost, ok=proc.returncode == 0)
-
-    def reflect(self, prompt: str, workdir: Path) -> str | None:
-        proc = self._invoke(prompt, workdir, CHEAP_MODEL)
-        if proc.returncode != 0:
-            return None
-        transcript, _ = _parse_result(proc.stdout)
-        return transcript.strip() or None
-
 
 def _build_prompt(goal: str, context: str) -> str:
     """Compose the continuation prompt for one supplied iteration."""

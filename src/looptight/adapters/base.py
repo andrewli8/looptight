@@ -3,7 +3,7 @@
 Every supported agent is exactly one adapter. The model is deliberately small:
 
 - **Every adapter can *supply* a loop iteration** — `run_iteration` runs the
-  agent once, headless, and reports what it did plus the cost. looptight wraps
+  agent once, headless, and reports what it did. looptight wraps
   this in run → verify → continue. This is the universal path; all three agents
   have a confirmed headless one-shot mode, so "one interface, three agents" is
   literally true.
@@ -12,9 +12,8 @@ Every supported agent is exactly one adapter. The model is deliberately small:
   ``drive_native_loop``. This is opt-in via ``--native``.
 
 Either way, **`verify` stays the ground-truth oracle** (principle 2): looptight
-runs the verify command and reflects on failures, so the learning layer works
-identically whether we supplied the loop or delegated it. Adding an agent means
-writing one subclass and registering it.
+runs the verify command itself. Adding an agent means writing one subclass and
+registering it.
 """
 
 from __future__ import annotations
@@ -89,11 +88,3 @@ class Adapter(ABC):
         contract (principle 2).
         """
         raise NotImplementedError(f"{self.name} has no native loop to drive")
-
-    def reflect(self, prompt: str, workdir: Path) -> str | None:
-        """Distill a lesson with a one-shot, read-only model call (C1, D3).
-
-        Returns the model's text, or None if reflection isn't possible (the loop
-        then writes nothing rather than a vague lesson).
-        """
-        return None

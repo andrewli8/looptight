@@ -1,241 +1,93 @@
 # looptight
 
-**Your coding agent on autopilot, across Claude Code, Codex, and opencode, that gets smarter every run.**
+The same validation-gated task loop inside Codex, Claude Code, or OpenCode.
+Looptight coordinates the agent session you already have; it does not need to
+launch another agent.
 
-looptight is a thin, portable learning layer for coding agents. It runs on the
-agent you already have, drives the native loop where one exists, supplies one
-where it doesn't, and makes every run teach the next.
-
-Two things no single agent does today:
-
-1. **One consistent interface across agents.** The same command works on Claude
-   Code, Codex, and opencode. Switch agents without relearning anything.
-2. **Durable lessons that compound.** Every failed-then-fixed run leaves a
-   short, specific lesson in your agent's own memory file (`CLAUDE.md` /
-   `AGENTS.md` / opencode config). Lessons survive across runs and across goals,
-   and they keep working even when looptight isn't running.
-
-It does not reinvent the loop. Where your agent already ships an eval-gated loop
-(Claude Code's `/goal`), looptight drives it. Where it doesn't, looptight
-supplies one. It builds on those loops instead of working around them.
-
-## Quickstart (three lines)
+## Install and integrate
 
 ```bash
-uvx looptight init                       # writes a minimal config, explains `verify`
-uvx looptight init --integrate           # installs the native current-session loop
-uvx looptight "fix the failing tests"    # runs your agent until verify passes
-uvx looptight lessons                    # see what it learned for next time
+uvx looptight init --integrate
 ```
 
-No services. No DAG to author. No migration. If your repo has tests, you are
-about 90 seconds from your first green loop.
+`init` detects the project verification command and writes `.looptight.toml`.
+`--integrate` installs one bounded instruction block in `AGENTS.md` for Codex
+and OpenCode and `CLAUDE.md` for Claude Code.
 
-> Prefer `pipx install looptight` or `pip install looptight` if you don't use
-> [uv](https://github.com/astral-sh/uv).
+The installed native-session loop is:
 
-## The one concept you have to learn: `verify`
+```text
+next → implement → verify → review → update status → commit → repeat
+```
 
-`verify` is a command that decides pass/fail. No verify, no loop. That's the
-whole mental model.
+It stops successfully when `next` returns `NO_WORK`. The current agent CLI owns
+authentication, models, context, and usage limits. `next`, `verify`, and
+`status` make no model or network calls.
+
+## Verification is the contract
 
 ```toml
 # .looptight.toml
-verify = "pytest -q"      # exit 0 = pass; non-zero = keep going
+verify = "pytest -q"
 ```
 
-`looptight init` auto-detects this from your project (`pytest`, `npm test`,
-`go test`, `cargo test`, `make test`), so most repos need no config at all.
-Everything else (the agent, the budget, the iteration cap) has a safe default
-and is just an override.
-
-For agent integrations and scripts, `looptight verify --json` returns the
-versioned verdict `pass`, `fail`, `timeout`, or `error`. Only `pass` permits a
-commit or successful continuation; a broken validator never looks like failing
-code. Command exit codes are `0` for pass, `1` for a valid failure, and `2` for
-configuration or validator-execution errors.
-
-## What a run looks like
-
-```
-looptight · agent: claude (supplying loop) · verify: pytest -q · budget: $1.00
-
-iteration 1 → verify: FAIL  (3 failing)   $0.04
-iteration 2 → verify: FAIL  (1 failing)   $0.09
-iteration 3 → verify: PASS                $0.13
-
-✓ done in 3 iterations · $0.13 · lesson saved to CLAUDE.md
-```
-
-## How it works
-
-The CLI loads your config, picks an adapter for the agent on your PATH, and
-hands off to the loop. The loop either drives the agent's own loop (`--native`)
-or supplies its own. Either way, looptight runs `verify` as the contract and
-writes a lesson when a run hits a failure.
-
-```mermaid
-flowchart LR
-    CLI[CLI] --> Config[Config + autodetect]
-    Config --> Adapter[Adapter<br/>claude / codex / opencode]
-    Adapter --> Loop[run_loop]
-    Loop -->|supply or delegate| Verify{verify<br/>passed?}
-    Verify -->|no| Loop
-    Verify -->|yes| Summary[summary]
-    Loop -.->|on failure| Reflect[reflect]
-    Reflect --> Memory[(CLAUDE.md /<br/>AGENTS.md)]
-    Summary --> Out[terminal]
-```
-
-The full breakdown, including the supply-vs-delegate decision and the adapter
-seam, is in [`docs/architecture.md`](docs/architecture.md).
-
-## Why looptight
-
-- **vs a single agent's native loop (Claude `/goal`):** not locked to one agent
-  or one auth. It works on API-key or subscription auth, on all three agents,
-  with one interface. It also adds compounding lessons that a per-thread goal
-  primitive structurally can't. Where an agent has a native loop, looptight
-  drives it (`--native`) instead of fighting it.
-- **vs heavy frameworks (DAG/orchestration):** no graph to author, no migration.
-  Runs on the agent you already have in under two minutes, and it's eval-gated,
-  so it never loops pointlessly.
-- **vs raw headless mode:** adds the learning, the safety rails (hard caps, a
-  spend threshold, per-iteration git checkpoints), and one consistent interface. That's
-  the part everyone otherwise hand-rolls badly.
-
-## What this is / isn't
-
-**It is:**
-- A portability and learning layer above your coding agent.
-- Eval-gated: the `verify` command is the ground-truth oracle.
-- Safe by default: low iteration cap, a spend threshold that stops the loop
-  (raise it with `--budget`), and a git checkpoint of tracked changes before
-  every iteration so you can get your tracked edits back.
-
-**It isn't:**
-- A replacement for native loops. Where your agent has its own eval-gated loop,
-  looptight drives it rather than replacing it.
-- A multi-agent / DAG orchestrator.
-- A web dashboard. Terminal output is more gif-able and zero-setup.
-- A new model or a fine-tuner. It wraps the agent you already run.
-
-## Supported agents
-
-| Agent | Headless command | Native loop | Status |
-|-------|------------------|-------------|--------|
-| Claude Code (`claude`) | `claude -p` | `/goal`, drive it with `--native` | ✅ working |
-| Codex (`codex`) | `codex exec` | supply (`/goal` is interactive and self-graded) | ✅ working |
-| opencode (`opencode`) | `opencode run` | supply (no goal primitive) | ✅ working |
-
-By default looptight supplies the loop on all three: the same command, the same
-`verify`-gated behaviour everywhere. Pass `--native` to drive the agent's own
-loop where it has one (Claude `/goal` today). `verify` still gates the result
-and a lesson is still written, so the learning layer works either way.
-
-Adding an agent is one adapter (see [`docs/architecture.md`](docs/architecture.md)).
-
-## Run it inside Claude Code (no goal message)
-
-If you live in Claude Code, you don't have to drop to a terminal and type a goal.
-looptight registers as a Claude Code [Stop hook](https://docs.claude.com/en/docs/claude-code/hooks):
-when Claude finishes a turn, the hook runs `verify`, and if it fails it tells
-Claude to keep going until the check passes. The goal is just whatever you already
-asked for in the conversation.
+Exit zero is the only passing verdict. For integrations and scripts:
 
 ```bash
-looptight install-hook        # adds the Stop hook to ~/.claude/settings.json
+looptight verify --json
 ```
 
-The hook stays dormant until a repo opts in, so installing it globally is safe.
-To arm a project, set `hook = true` in its `.looptight.toml`:
+The versioned result distinguishes `pass`, `fail`, `timeout`, and `error`.
+Command exit codes are `0` for pass, `1` for a valid negative verdict, and `2`
+for configuration or validator-execution errors.
 
-```toml
-verify = "uv run pytest -q"   # use a verify that resolves regardless of PATH
-hook = true                   # arm the Stop-hook auto-loop here
+## Session commands
+
+```bash
+looptight next --json    # atomically claim one grounded task, or NO_WORK
+looptight verify --json  # run the objective project contract
+looptight status --json  # inspect validation, workspace, claims, and next action
+looptight propose        # inspect the ranked grounded task queue
 ```
 
-Now, in that repo, Claude keeps working until `verify` is green, bounded by
-`max_iterations` so it can't run away. Remove it any time with
-`looptight install-hook --uninstall`.
+Tasks come from concrete repository signals such as the bounded `Next` list in
+`docs/STATUS.md`, source TODOs, skipped tests, and lint findings. Empty queues do
+not generate speculative audits.
 
-Two things to know:
-- The hook only engages when the verify command runs cleanly from a bare shell.
-  Prefer `uv run pytest -q` or `.venv/bin/pytest -q` over a plain `pytest` that
-  needs an activated virtualenv, or a green run can look like a failure.
-- Lessons are written in CLI mode, not in the hook. Reflection needs a model
-  call, and spawning one from inside a Stop hook risks nesting, so the hook
-  sticks to the verify-gated loop.
+In Git repositories, task claims live under Git's private common directory.
+They are shared across worktrees, never appear as tracked files, and expire
+after 24 hours. Parallel sessions should use separate worktrees.
+
+## Optional headless compatibility
+
+```bash
+looptight run --headless "fix the failing tests"
+```
+
+`run` is an explicit compatibility path that launches the selected provider
+CLI and applies the same verifier after each iteration. Looptight does not claim
+how provider CLIs authenticate or bill child processes. The former `improve`
+orchestrator is deprecated; use the native-session loop above.
 
 ## Safety
 
-- **Hard iteration cap and spend threshold**, both with low defaults. Cost is
-  known only after each agent call, so the budget is a post-iteration spend stop:
-  the loop halts once spend reaches or exceeds it, and one iteration can overshoot. `--budget`
-  raises it above the safe default.
-- **Value-aware stopping (opt-in).** Set `patience = N` and looptight stops a
-  stalled loop instead of grinding to the cap: if the verify signal plateaus
-  after real progress it cuts losses, and if the agent never moves the needle it
-  stops and flags the run for you. Costs no extra tokens. See
-  [`docs/architecture.md`](docs/architecture.md#value-aware-stopping-metacogpy).
-- **Per-iteration git checkpoint.** Each iteration is a restore point for
-  tracked changes; revert with `looptight revert`. Untracked files are not
-  captured or removed, so it isn't a full working-tree backup.
-- **Cheap-model routing for reflection.** The bookkeeping step (writing the
-  lesson) uses a smaller model than the coding step, so cost goes to the work.
-- Runs inside your agent's existing sandbox and permission boundaries.
+- Objective verifier output outranks model confidence.
+- Only `pass` authorizes a commit.
+- Timeout and launch errors never look like failing code.
+- Headless execution requires explicit `--headless`.
+- Concurrent tasks use atomic private claims.
+- No force-push, hard reset, dependency installation, or fabricated work.
+- Runtime state does not pollute project history.
 
-## Continuous repository improvement
+See [the product specification](docs/SPEC.md), [current architecture](docs/architecture.md),
+and [bounded self-improvement plan](docs/STATUS.md).
 
-`improve` keeps discovering and implementing one verified change at a time. It
-does not stop when the grounded proposal queue is empty; it switches to fresh,
-evidence-based repository audits and continues until interrupted or the provider
-stops accepting work.
+## Development
 
 ```bash
-looptight improve --headless      # explicitly launch agent child processes
-looptight improve --headless --budget 10  # optional reported-USD threshold
-looptight improve --headless --push       # push every verified autonomous commit
+uv sync
+uv run looptight verify --json
+uv run ruff check
 ```
 
-The command requires a clean Git tree, commits only verified diffs, and rolls
-failed task edits back before continuing. Commits are local by default; pushing
-is explicit. The config's `budget_usd` still limits each task. The command-line
-`improve --budget` is session-wide and can only be enforced for adapters that
-report USD cost; otherwise looptight reports that the threshold is unavailable.
-Ctrl-C stops the session cleanly.
-
-### Drive it from the session you're already in (no child agent)
-
-`improve --headless` spawns a coding-agent CLI (`claude -p` / `codex exec`) per
-task. Looptight cannot determine how a provider authenticates or bills those
-processes. If you're already inside an agent session, use the in-session path:
-`looptight next` is that path — it prints one grounded task, or `NO_WORK` when
-the queue is empty, for the agent you're already running to execute. In Git
-repositories it atomically claims the task under Git-private state, preventing
-other worktrees from selecting the same work without adding tracked files:
-
-```bash
-looptight next      # → one grounded task, or NO_WORK
-# … the current agent implements it …
-looptight verify    # → the ground-truth gate; commit on green
-looptight status    # → validation, workspace, claim, and next safe action
-```
-
-Same task-selection as `improve`, no spawned subprocess. Tell the agent you're
-in to "call `looptight next` and execute it," loop on that, and the work runs on
-session tokens. (For an even more hands-off in-session loop that just keeps the
-current session going until `verify` passes, use the Stop hook above.)
-
-## Install for development
-
-```bash
-git clone https://github.com/andrewli8/looptight
-cd looptight
-pip install -e ".[dev]"
-pytest
-```
-
-## License
-
-[MIT](LICENSE)
+MIT

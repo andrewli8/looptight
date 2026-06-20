@@ -29,14 +29,14 @@ existing CLI session and makes no model or API calls of its own.
   OpenCode (`AGENTS.md`) and Claude Code (`CLAUDE.md`) without child agents.
 - `status --json` reports validation readiness, workspace safety, claims, and
   the next action without running checks or changing state.
-- `run` and `improve` refuse to launch agent CLIs unless `--headless` is
-  explicit; current-session docs make no provider-billing promises.
+- `run` requires explicit `--headless`; deprecated `improve` no longer launches
+  agents. Current-session docs make no provider-billing promises.
+- Generated reflection, local cost gating, and the duplicate autonomous
+  orchestrator are removed; legacy flags and `improve` return migration guidance.
 
 ## Next
 
-1. Remove generated reflection, cost estimation, and duplicate continuous-loop
-   machinery after compatibility warnings.
-2. Remove the Rich runtime dependency and keep human and JSON output legible
+1. Remove the Rich runtime dependency and keep human and JSON output legible
    with the standard library.
 
 ## Rules

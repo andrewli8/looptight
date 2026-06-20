@@ -127,39 +127,3 @@ def test_agent_launch_failure_is_returned_as_iteration_error(name, monkeypatch, 
     assert result.ok is False
     assert result.error == f"{name} exited 127"
     assert "permission denied" in result.transcript
-
-
-def test_codex_reflect_returns_none_on_nonzero_exit(monkeypatch, tmp_path):
-    import subprocess
-
-    from looptight.adapters.codex import CodexAdapter
-
-    def fake_exec(*args, **kwargs):
-        return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="err")
-
-    monkeypatch.setattr(CodexAdapter, "_exec", lambda self, p, w: fake_exec())
-    assert CodexAdapter().reflect("some prompt", tmp_path) is None
-
-
-def test_codex_reflect_returns_stripped_text_on_success(monkeypatch, tmp_path):
-    import subprocess
-
-    from looptight.adapters.codex import CodexAdapter
-
-    def fake_exec(*args, **kwargs):
-        return subprocess.CompletedProcess(args=[], returncode=0, stdout="  Pin the timeout.  ", stderr="")
-
-    monkeypatch.setattr(CodexAdapter, "_exec", lambda self, p, w: fake_exec())
-    assert CodexAdapter().reflect("some prompt", tmp_path) == "Pin the timeout."
-
-
-def test_opencode_reflect_returns_none_on_nonzero_exit(monkeypatch, tmp_path):
-    import subprocess
-
-    from looptight.adapters.opencode import OpencodeAdapter
-
-    def fake_run(*args, **kwargs):
-        return subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="err")
-
-    monkeypatch.setattr(OpencodeAdapter, "_run", lambda self, p, w: fake_run())
-    assert OpencodeAdapter().reflect("some prompt", tmp_path) is None

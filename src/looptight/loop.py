@@ -1,14 +1,12 @@
 """The loop — supply or delegate (B1, B2, B4).
 
 The orchestrator. By default it *supplies* the loop: checkpoint → iterate →
-verify → continue, under a hard iteration cap and post-iteration spend threshold. With ``native``
+verify → continue, under a hard iteration cap. With ``native``
 (the ``--native`` flag) and an adapter that ``supports_native_loop``, it instead
 *delegates* to the agent's own eval-gated loop (e.g. Claude `/goal`).
 
-Crucially, **both paths run ``verify`` as the contract and reflect on failure**
-(principles 2 and 3), so the summary and the learning layer are identical
-whichever path ran. Everything the loop touches is injected, so the control flow
-is pure and unit-testable without a real agent or network.
+Crucially, **both paths run ``verify`` as the contract**. Everything the loop
+touches is injected, so the control flow is unit-testable without a real agent.
 """
 
 from __future__ import annotations
@@ -18,17 +16,13 @@ from pathlib import Path
 from typing import Callable
 
 from .adapters.base import Adapter
-from .budget import BudgetTracker
 from .checkpoint import Checkpointer
 from .config import Config
-from .lessons import LessonStore
 from .metacog import Decision, assess, progress_signal
-from .reflect import reflect_on_failure
 from .types import IterationRecord, RunResult, StopReason, VerifyResult
 from .verify import run_verify
 
 VerifyFn = Callable[[str, Path], VerifyResult]
-ReflectFn = Callable[[Adapter, str, VerifyResult, Path], "object"]
 ProgressFn = Callable[[IterationRecord], None]
 
 
@@ -48,9 +42,9 @@ def run_loop(
     *,
     native: bool = False,
     verify_fn: VerifyFn = run_verify,
-    reflect_fn: ReflectFn = reflect_on_failure,
+    reflect_fn=None,
     checkpointer: Checkpointer | None = None,
-    store: LessonStore | None = None,
+    store=None,
     on_iteration: ProgressFn | None = None,
 ) -> RunResult:
     """Run ``goal`` to a verified stop. Returns a normalized RunResult."""
@@ -70,27 +64,24 @@ def run_loop(
         config,
         workdir,
         verify_fn=verify_fn,
-        reflect_fn=reflect_fn,
         checkpointer=checkpointer,
-        store=store,
         on_iteration=on_iteration,
     )
 
 
-def _supply_loop(goal, adapter, config, workdir, *, verify_fn, reflect_fn, checkpointer, store, on_iteration) -> RunResult:
-    budget = BudgetTracker(max_iterations=config.max_iterations, budget_usd=config.budget_usd)
+def _supply_loop(goal, adapter, config, workdir, *, verify_fn, checkpointer, on_iteration) -> RunResult:
     records: list[IterationRecord] = []
     progress: list[float | None] = []
     context = ""
     stop = StopReason.ITERATION_CAP
     error: str | None = None
 
-    for _ in range(config.max_iterations):
-        number = budget.start_iteration()
+    total_cost = 0.0
+    for number in range(1, config.max_iterations + 1):
         snapshot = checkpointer.snapshot()
 
         iteration = adapter.run_iteration(goal, context, workdir)
-        budget.add_cost(iteration.cost_usd)
+        total_cost += max(0.0, iteration.cost_usd)
 
         if not iteration.ok:
             stop = StopReason.ERROR
@@ -106,10 +97,6 @@ def _supply_loop(goal, adapter, config, workdir, *, verify_fn, reflect_fn, check
         if verify.passed:
             stop = StopReason.SUCCESS
             break
-        if budget.over_budget():
-            stop = StopReason.BUDGET_EXCEEDED
-            break
-
         # Value-aware stopping: cut a stalled loop short instead of burning the
         # rest of the cap (no-op when config.patience is 0).
         progress.append(progress_signal(verify))
@@ -129,15 +116,15 @@ def _supply_loop(goal, adapter, config, workdir, *, verify_fn, reflect_fn, check
         mode="supply",
         stop_reason=stop,
         iterations=tuple(records),
-        total_cost_usd=budget.spent_usd,
+        total_cost_usd=total_cost,
         reports_cost_usd=adapter.reports_cost_usd,
         diffstat=checkpointer.diffstat(),
         error=error,
     )
-    return _maybe_reflect(result, adapter, config, workdir, reflect_fn, store)
+    return result
 
 
-def _delegate_loop(goal, adapter, config, workdir, *, verify_fn, reflect_fn, checkpointer, store, on_iteration) -> RunResult:
+def _delegate_loop(goal, adapter, config, workdir, *, verify_fn, checkpointer, on_iteration) -> RunResult:
     """Hand off to the agent's native loop, then verify once as the contract."""
     checkpointer.snapshot()
     iteration = adapter.drive_native_loop(
@@ -170,19 +157,4 @@ def _delegate_loop(goal, adapter, config, workdir, *, verify_fn, reflect_fn, che
         reports_cost_usd=adapter.reports_cost_usd,
         diffstat=checkpointer.diffstat(),
     )
-    return _maybe_reflect(result, adapter, config, workdir, reflect_fn, store)
-
-
-def _maybe_reflect(result, adapter, config, workdir, reflect_fn, store) -> RunResult:
-    """Write a lesson if the run hit (and possibly recovered from) a failure (C1)."""
-    if not config.reflect or store is None:
-        return result
-    failures = [record for record in result.iterations if not record.verify.passed]
-    if not failures:
-        return result
-
-    lesson = reflect_fn(adapter, result.goal, failures[-1].verify, workdir)
-    if lesson is None:
-        return result
-    store.add(lesson)  # dedupe handled by the store (C4)
-    return result.with_lesson(lesson)
+    return result

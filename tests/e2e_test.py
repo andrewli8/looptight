@@ -43,7 +43,7 @@ def test_loops_a_broken_repo_to_green(tmp_path, monkeypatch):
 
     # Low caps keep the eval cheap and bounded.
     exit_code = main(
-        ["run", "make the failing test pass", "--max-iterations", "4", "--budget", "0.50"]
+        ["run", "--headless", "make the failing test pass", "--max-iterations", "4"]
     )
 
     assert exit_code == 0, "looptight did not reach a passing verify"

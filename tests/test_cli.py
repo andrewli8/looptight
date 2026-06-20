@@ -45,10 +45,16 @@ def test_bare_goal_refuses_implicit_child_agent(tmp_path, monkeypatch):
     assert main(["fix the failing tests"]) == 2
 
 
-@pytest.mark.parametrize("command", [["run", "goal"], ["improve"]])
-def test_agent_spawning_commands_require_explicit_headless(command, capsys):
-    assert main(command) == 2
+def test_run_requires_explicit_headless(capsys):
+    assert main(["run", "goal"]) == 2
     assert "--headless" in capsys.readouterr().out
+
+
+def test_improve_is_deprecated_without_launching_agent(capsys):
+    assert main(["improve", "--headless"]) == 2
+    out = capsys.readouterr().out.lower()
+    assert "deprecated" in out
+    assert "next" in out
 
 
 def test_run_exits_error_when_no_verify_command(tmp_path, monkeypatch):
@@ -69,9 +75,7 @@ def test_main_handles_keyboard_interrupt_cleanly(monkeypatch, capsys):
     assert "interrupted" in capsys.readouterr().out.lower()
 
 
-def test_run_banner_budget_honest_for_non_cost_reporting_agent(tmp_path, monkeypatch, capsys):
-    # The startup banner must not show a dollar budget for an agent that reports
-    # no cost — it can't be enforced, so don't imply it caps spend.
+def test_run_banner_omits_budget(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: "claude")
     monkeypatch.setattr(
@@ -80,13 +84,10 @@ def test_run_banner_budget_honest_for_non_cost_reporting_agent(tmp_path, monkeyp
     )
     main(["run", "--headless", "fix it", "--verify", "exit 0", "--no-reflect"])
     out = " ".join(capsys.readouterr().out.lower().split())  # collapse rich line-wrapping
-    assert "budget: not enforced" in out
-    assert "budget: $" not in out
+    assert "budget" not in out
 
 
-def test_run_warns_when_budget_cannot_be_enforced(tmp_path, monkeypatch, capsys):
-    # A user who passes --budget to a no-cost-reporting agent (codex/opencode)
-    # must be told it can't be enforced — same honesty as `improve` already has.
+def test_run_warns_that_legacy_budget_is_ignored(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: "claude")
     monkeypatch.setattr(
@@ -95,8 +96,8 @@ def test_run_warns_when_budget_cannot_be_enforced(tmp_path, monkeypatch, capsys)
     )
     main(["run", "--headless", "fix it", "--verify", "exit 0", "--budget", "0.5"])
     out = capsys.readouterr().out.lower()
-    assert "cannot enforce" in out
-    assert "budget" in out
+    assert "deprecated" in out
+    assert "ignored" in out
 
 
 def test_run_exits_one_when_verify_never_passes(tmp_path, monkeypatch):
@@ -307,36 +308,14 @@ def test_propose_text_output_describes_autonomous_flow(tmp_path, monkeypatch, ca
     assert "push" in out
 
 
-def test_budget_flag_help_describes_spend_threshold(capsys):
-    # --budget is a post-iteration spend stop, not an unexceedable ceiling: a
-    # single agent call can overshoot it, so the help must not promise a ceiling.
+def test_budget_flag_help_marks_compatibility_option_deprecated(capsys):
     try:
         main(["run", "--headless", "--help"])
     except SystemExit:
         pass
     out = capsys.readouterr().out.lower()
-    assert "ceiling" not in out
-    assert "spend" in out
-    assert "overshoot" in out
-
-
-def test_improve_summary_hides_dollar_cost_when_unreported(tmp_path, monkeypatch, capsys):
-    # Consistent with the run summary: an agent that reports no USD
-    # must not show "$0.00 reported" (reads as free) in the improve summary line.
-    from looptight.improve import ImproveResult, ImproveStopReason
-
-    monkeypatch.chdir(tmp_path)
-    adapter = __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter()  # reports_cost_usd=False
-    monkeypatch.setattr("looptight.commands.get_adapter", lambda name: adapter)
-    monkeypatch.setattr(
-        "looptight.commands.run_improve",
-        lambda *a, **k: ImproveResult(ImproveStopReason.NO_PROGRESS),
-    )
-
-    assert main(["improve", "--headless", "--agent", "claude", "--verify", "exit 0"]) == 0
-    out = capsys.readouterr().out.lower()
-    assert "$0.00" not in out
-    assert "cost not reported" in out
+    assert "deprecated" in out
+    assert "ignored" in out
 
 
 def test_improve_help_exposes_continuous_controls(capsys):
@@ -348,53 +327,6 @@ def test_improve_help_exposes_continuous_controls(capsys):
     assert "--budget" in out
     assert "--push" in out
     assert "--max-iterations" in out
-
-
-def test_improve_warns_when_provider_cost_cannot_be_measured(tmp_path, monkeypatch, capsys):
-    from looptight.improve import ImproveResult, ImproveStopReason
-
-    monkeypatch.chdir(tmp_path)
-    adapter = __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter()
-    monkeypatch.setattr("looptight.commands.get_adapter", lambda name: adapter)
-    monkeypatch.setattr(
-        "looptight.commands.run_improve",
-        lambda *a, **k: ImproveResult(ImproveStopReason.SESSION_BUDGET),
-    )
-
-    assert main(["improve", "--headless", "--agent", "claude", "--verify", "exit 0", "--budget", "5"]) == 0
-    out = capsys.readouterr().out.lower()
-    assert "cannot enforce" in out
-    assert "provider" in out
-
-
-def test_improve_maps_provider_stop_to_failure(tmp_path, monkeypatch):
-    from looptight.improve import ImproveResult, ImproveStopReason
-
-    monkeypatch.chdir(tmp_path)
-    adapter = __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter()
-    monkeypatch.setattr("looptight.commands.get_adapter", lambda name: adapter)
-    monkeypatch.setattr(
-        "looptight.commands.run_improve",
-        lambda *a, **k: ImproveResult(
-            ImproveStopReason.PROVIDER_STOP, error="usage limit reached"
-        ),
-    )
-
-    assert main(["improve", "--headless", "--agent", "claude", "--verify", "exit 0"]) == 1
-
-
-def test_improve_maps_interrupt_to_130(tmp_path, monkeypatch):
-    from looptight.improve import ImproveResult, ImproveStopReason
-
-    monkeypatch.chdir(tmp_path)
-    adapter = __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter()
-    monkeypatch.setattr("looptight.commands.get_adapter", lambda name: adapter)
-    monkeypatch.setattr(
-        "looptight.commands.run_improve",
-        lambda *a, **k: ImproveResult(ImproveStopReason.INTERRUPTED),
-    )
-
-    assert main(["improve", "--headless", "--agent", "claude", "--verify", "exit 0", "--push"]) == 130
 
 
 def test_revert_survives_oserror_when_listing_untracked(tmp_path, monkeypatch, capsys):

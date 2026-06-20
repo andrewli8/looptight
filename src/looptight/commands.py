@@ -20,7 +20,6 @@ from .checkpoint import is_git_repo
 from .claims import ClaimStore, claim_dir, owner_id
 from .config import CONFIG_NAME, Config, ConfigError, find_config, load_config, write_config
 from .detect import detect_agent, detect_verify
-from .improve import ImproveStopReason, run_improve
 from .integration import install_session_instructions
 from .lessons import LessonStore
 from .loop import run_loop
@@ -79,8 +78,6 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
         verify=args.verify,
         max_iterations=args.max_iterations,
         patience=args.patience,
-        budget_usd=args.budget,
-        reflect=False if args.no_reflect else None,
         native=True if args.native else None,
     )
 
@@ -97,24 +94,17 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
         console.print('  looptight init   or   looptight run --headless "..." --verify "pytest -q"')
         return 2
 
-    if args.budget is not None and not adapter.reports_cost_usd:
-        console.print(
-            f"[yellow]{agent_name} does not report USD cost; looptight cannot enforce "
-            "--budget (the run is bounded by --max-iterations instead).[/yellow]"
-        )
+    if args.budget is not None:
+        console.print("[yellow]--budget is deprecated and ignored; use provider limits.[/yellow]")
 
     use_native = config.native and adapter.supports_native_loop
     if config.native and not adapter.supports_native_loop:
         console.print(f"[yellow]{agent_name} has no native loop; supplying the loop instead.[/yellow]")
 
-    store = LessonStore(adapter.memory_file(workdir))
     verb = "driving native loop" if use_native else "supplying loop"
-    # Only show a dollar budget when the agent reports cost; otherwise the budget
-    # is unenforceable, so don't imply it caps spend.
-    budget = f"${config.budget_usd:.2f}" if adapter.reports_cost_usd else "not enforced (no cost reported)"
     console.print(
         f"[bold]looptight[/bold] · agent: [cyan]{agent_name}[/cyan] ({verb}) · "
-        f"verify: [cyan]{config.verify}[/cyan] · budget: {budget}"
+        f"verify: [cyan]{config.verify}[/cyan]"
     )
     console.print()
 
@@ -127,7 +117,7 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
 
     try:
         result = run_loop(
-            args.goal, adapter, config, workdir, native=use_native, store=store, on_iteration=on_iteration
+            args.goal, adapter, config, workdir, native=use_native, on_iteration=on_iteration
         )
     except NotImplementedError as exc:
         console.print(f"[yellow]{exc}[/yellow]")
@@ -139,90 +129,12 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
 
 
 def cmd_improve(args: argparse.Namespace, console: Console) -> int:
-    if not args.headless:
-        console.print(
-            "[red]improve launches agent child processes.[/red] Pass --headless explicitly, "
-            "or use `looptight next` and `looptight verify` in the current session."
-        )
-        return 2
-    workdir = Path.cwd()
-    config = load_config().merged(
-        agent=args.agent,
-        verify=args.verify,
-        max_iterations=args.max_iterations,
-        patience=args.patience,
-        reflect=False if args.no_reflect else None,
-        native=True if args.native else None,
-    )
-    agent_name = config.agent or detect_agent()
-    if not agent_name:
-        console.print("[red]No coding agent found on PATH.[/red] Install claude, codex, or opencode.")
-        return 2
-    adapter = get_adapter(agent_name)
-    if not config.verify:
-        config = config.merged(verify=detect_verify(workdir))
-    if not config.verify:
-        console.print("[red]No verify command.[/red] No verify, no improve loop.")
-        return 2
-
-    use_native = config.native and adapter.supports_native_loop
-    if args.budget is not None and not adapter.reports_cost_usd:
-        console.print(
-            f"[yellow]{agent_name} does not report USD cost; looptight cannot enforce the "
-            "session budget; provider behavior is outside looptight's visibility.[/yellow]"
-        )
-
-    store = LessonStore(adapter.memory_file(workdir))
-
-    def on_iteration(record) -> None:
-        style = "green" if record.verify.passed else "red"
-        console.print(
-            f"  iteration {record.number} → verify: [{style}]{record.verify.short()}[/{style}]"
-            f"   [dim]${record.cost_usd:.2f}[/dim]"
-        )
-
-    def run_task(goal, checkpointer):
-        return run_loop(
-            goal,
-            adapter,
-            config,
-            workdir,
-            native=use_native,
-            checkpointer=checkpointer,
-            store=store,
-            on_iteration=on_iteration,
-        )
-
     console.print(
-        f"[bold]looptight improve[/bold] · agent: [cyan]{agent_name}[/cyan] · "
-        f"verify: [cyan]{config.verify}[/cyan] · "
-        f"session budget: {'not set' if args.budget is None else f'${args.budget:.2f}'}"
+        "[yellow]improve is deprecated and no longer launches agents.[/yellow] "
+        "Use `looptight init --integrate`, then `next`, `verify`, and `status` "
+        "inside the current agent session."
     )
-    result = run_improve(
-        workdir,
-        run_task,
-        session_budget_usd=args.budget if adapter.reports_cost_usd else None,
-        push=args.push,
-        on_event=lambda message: console.print(f"[bold]{message}[/bold]"),
-    )
-    cost = (
-        f"${result.total_cost_usd:.2f} reported"
-        if adapter.reports_cost_usd
-        else "cost not reported"
-    )
-    console.print(
-        f"stopped: {result.stop_reason.value.replace('_', ' ')} · "
-        f"{result.tasks_attempted} task(s) · {result.commits} commit(s) · {cost}"
-    )
-    if result.error:
-        console.print(f"[yellow]{result.error}[/yellow]")
-    return {
-        ImproveStopReason.SESSION_BUDGET: 0,
-        ImproveStopReason.NO_PROGRESS: 0,
-        ImproveStopReason.PROVIDER_STOP: 1,
-        ImproveStopReason.INTERRUPTED: 130,
-        ImproveStopReason.GIT_ERROR: 2,
-    }[result.stop_reason]
+    return 2
 
 
 def cmd_verify(args: argparse.Namespace, console: Console) -> int:
@@ -415,7 +327,7 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
     The in-session driver: run `looptight next`, do the task on this session's
     tokens, gate with `looptight verify`, commit — no spawned `claude -p`. Plain
     stdout so it's easy to capture/script."""
-    from .improve import next_task
+    from .tasks import next_task
 
     result = next_task(Path.cwd())
     if args.json:

@@ -5,9 +5,7 @@ non-interactive task and prints the result. It has no confirmed eval-gated goal
 primitive, so looptight supplies the loop, exactly as for the supply path of the
 others — keeping ``verify`` the ground-truth oracle.
 
-opencode doesn't report a USD cost on stdout, so cost shows as $0.00 and the run
-is bounded by the iteration cap (D1). opencode reads ``AGENTS.md``, where lessons
-land.
+The run is bounded by the iteration cap. opencode reads ``AGENTS.md``.
 
 NOTE: flags are kept minimal and may need tuning for your opencode version (e.g.
 ``-f json`` / ``-q`` / ``--model``); see ``binary``/``run_args`` below.
@@ -53,13 +51,6 @@ class OpencodeAdapter(Adapter):
                 error=f"opencode exited {proc.returncode}",
             )
         return IterationResult(transcript=proc.stdout.strip(), cost_usd=0.0, ok=True)
-
-    def reflect(self, prompt: str, workdir: Path) -> str | None:
-        proc = self._run("Do not modify any files. " + prompt, workdir)
-        if proc.returncode != 0:
-            return None
-        return proc.stdout.strip() or None
-
 
 def _build_prompt(goal: str, context: str) -> str:
     parts = [

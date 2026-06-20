@@ -1,10 +1,9 @@
-"""End-to-end loop behaviour with injected fakes (B1, B2, C1, D1)."""
+"""End-to-end loop behaviour with injected fakes."""
 
 from __future__ import annotations
 
 from looptight.checkpoint import Checkpointer
 from looptight.config import Config
-from looptight.lessons import LessonStore
 from looptight.loop import run_loop
 from looptight.types import StopReason
 
@@ -45,48 +44,31 @@ def test_hits_iteration_cap(workdir):
     assert result.iteration_count == 3
 
 
-def test_stops_at_budget_ceiling(workdir):
+def test_legacy_budget_does_not_override_iteration_cap(workdir):
     adapter = FakeAdapter(cost=0.6)
-    result = _run(adapter, _config(max_iterations=10, budget_usd=1.0), workdir, pass_on=99)
-    assert result.stop_reason is StopReason.BUDGET_EXCEEDED
-    # Two iterations spend $1.20, crossing the $1.00 ceiling.
-    assert result.iteration_count == 2
-    assert result.total_cost_usd >= 1.0
+    result = _run(adapter, _config(max_iterations=3, budget_usd=0.01), workdir, pass_on=99)
+    assert result.stop_reason is StopReason.ITERATION_CAP
+    assert result.iteration_count == 3
 
 
-def test_writes_lesson_after_failed_then_fixed(workdir):
-    store = LessonStore(workdir / "CLAUDE.md")
+def test_legacy_reflection_collaborators_are_ignored(workdir):
     adapter = FakeAdapter()
-    result = _run(adapter, _config(), workdir, pass_on=2, store=store)
+
+    def forbidden(*_args):
+        raise AssertionError("reflection model call should not run")
+
+    result = run_loop(
+        "fix it",
+        adapter,
+        _config(),
+        workdir,
+        verify_fn=make_verify(2),
+        reflect_fn=forbidden,
+        store=object(),
+        checkpointer=Checkpointer(workdir, enabled=False),
+    )
     assert result.passed
-    assert result.lesson is not None
-    saved = store.list()
-    assert len(saved) == 1
-    assert "client.py" in saved[0].text
-
-
-def test_no_lesson_when_reflect_disabled(workdir):
-    store = LessonStore(workdir / "CLAUDE.md")
-    adapter = FakeAdapter()
-    result = _run(adapter, _config(reflect=False), workdir, pass_on=2, store=store)
     assert result.lesson is None
-    assert store.list() == []
-
-
-def test_no_lesson_when_clean_first_pass(workdir):
-    store = LessonStore(workdir / "CLAUDE.md")
-    adapter = FakeAdapter()
-    result = _run(adapter, _config(), workdir, pass_on=1, store=store)
-    assert result.passed
-    assert result.lesson is None  # no failure to learn from
-
-
-def test_vague_reflection_is_dropped(workdir):
-    store = LessonStore(workdir / "CLAUDE.md")
-    adapter = FakeAdapter(reflect_text="the test failed")  # generic → discarded
-    result = _run(adapter, _config(), workdir, pass_on=2, store=store)
-    assert result.lesson is None
-    assert store.list() == []
 
 
 def test_context_carries_verify_output_forward(workdir):
@@ -115,7 +97,6 @@ def test_native_delegates_then_verifies(workdir):
 
 
 def test_native_records_failure_when_verify_still_fails(workdir):
-    store = LessonStore(workdir / "CLAUDE.md")
     adapter = FakeAdapter(supports_native=True)
     result = run_loop(
         "do it",
@@ -125,11 +106,10 @@ def test_native_records_failure_when_verify_still_fails(workdir):
         native=True,
         verify_fn=make_verify(99),  # native loop ran but verify (our contract) still fails
         checkpointer=Checkpointer(workdir, enabled=False),
-        store=store,
     )
     assert result.mode == "delegate"
     assert not result.passed
-    assert result.lesson is not None  # we still reflect on a delegated failure
+    assert result.lesson is None
 
 
 def test_native_ignored_when_unsupported(workdir):

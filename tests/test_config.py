@@ -18,7 +18,7 @@ def test_defaults_are_safe():
     config = Config()
     assert config.max_iterations == DEFAULT_MAX_ITERATIONS
     assert config.budget_usd == DEFAULT_BUDGET_USD
-    assert config.reflect is True
+    assert config.reflect is False
     assert config.agent is None  # auto-detect
     assert config.hook is False  # Stop-hook auto-loop is opt-in
 
@@ -45,7 +45,7 @@ def test_write_then_load_roundtrip(tmp_path):
     assert loaded.verify == "npm test"
     assert loaded.agent == "claude"
     assert loaded.max_iterations == 4
-    assert loaded.budget_usd == 2.5
+    assert loaded.budget_usd == DEFAULT_BUDGET_USD  # deprecated field is not written
     assert loaded.reflect is False
 
 
@@ -125,11 +125,7 @@ def test_rendered_config_explains_verify(tmp_path):
     assert "No verify, no loop" in text
 
 
-def test_rendered_config_frames_budget_as_spend_threshold(tmp_path):
+def test_rendered_config_omits_deprecated_budget_and_reflection(tmp_path):
     text = write_config(Config(verify="pytest -q"), tmp_path).read_text()
-    # Cost is only known after each agent call, so budget_usd is a post-iteration
-    # spend stop, not an unexceedable ceiling — one iteration can overshoot it.
-    assert "ceiling" not in text
-    assert "never exceeded" not in text
-    assert "spend" in text
-    assert "overshoot" in text
+    assert "budget_usd" not in text
+    assert "reflect" not in text

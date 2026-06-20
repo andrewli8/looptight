@@ -140,10 +140,9 @@ def _add_run_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--budget",
         type=float,
-        help="USD spend threshold; raise it above the safe default. Checked after each "
-        "iteration, so a single agent call can overshoot it.",
+        help="deprecated compatibility option; ignored",
     )
-    parser.add_argument("--no-reflect", action="store_true", help="do not write lessons on failure")
+    parser.add_argument("--no-reflect", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument(
         "--native",
         action="store_true",
@@ -164,7 +163,7 @@ def _add_improve_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--budget",
         type=float,
-        help="optional cumulative session spend threshold; default uses provider limits",
+        help="deprecated compatibility option; ignored",
     )
     parser.add_argument("--no-reflect", action="store_true", help="do not write lessons on failure")
     parser.add_argument("--native", action="store_true", help="use the agent's native loop where available")
