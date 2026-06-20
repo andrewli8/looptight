@@ -57,13 +57,13 @@ existing CLI session and makes no model or API calls of its own.
   exit 2; ordinary nonzero test verdicts remain `fail` with exit 1.
 - Verifier timeouts terminate the spawned process tree before returning while
   retaining bounded partial stdout/stderr in the timeout result.
+- Lint discovery uses only an already-installed `ruff` executable; it never
+  invokes `uv`, installs packages, writes an environment, or accesses a network.
 
 ## Next
 
-1. Keep lint task discovery package-manager and network free.
-   Acceptance: `from_lint` returns no candidates when `ruff` is absent without
-   invoking `uv` or subprocesses, installed `ruff` discovery still works, a
-   regression test passes, and the full verifier passes.
+_No grounded task is queued. `next` reports `NO_WORK` until a new repository
+signal or user-facing friction surfaces one._
 
 ## Rules
 

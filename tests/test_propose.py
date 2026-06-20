@@ -194,7 +194,7 @@ def test_from_status_next_returns_only_first_six_executable_tasks(tmp_path):
 
 
 def test_from_lint_finds_ruff_violations(tmp_path):
-    if shutil.which("ruff") is None and shutil.which("uv") is None:
+    if shutil.which("ruff") is None:
         import pytest
         pytest.skip("ruff not available")
     # F841: local variable assigned but never used — a real, simple ruff rule.
@@ -209,6 +209,22 @@ def test_from_lint_empty_when_no_violations(tmp_path):
     _write(tmp_path, "src/pkg/ok.py", "def f():\n    return 1\n")
     cands = from_lint(tmp_path)
     assert cands == []
+
+
+def test_from_lint_does_not_invoke_package_manager_when_ruff_is_absent(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(
+        "looptight.discovery.shutil.which",
+        lambda command: "/usr/bin/uv" if command == "uv" else None,
+    )
+
+    def unexpected_subprocess(*args, **kwargs):
+        raise AssertionError("lint discovery must not install or invoke tools")
+
+    monkeypatch.setattr("looptight.discovery.subprocess.run", unexpected_subprocess)
+
+    assert from_lint(tmp_path) == []
 
 
 # --- dedup + rank ----------------------------------------------------------
