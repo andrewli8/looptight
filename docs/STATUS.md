@@ -86,8 +86,9 @@ existing CLI session and makes no model or API calls of its own.
 
 1. Expose swarm-state freshness in the localhost UI.
    Acceptance: each atomic state publication includes a UTC timestamp, the UI
-   reports last-update age and a distinct stale state, schema compatibility is
-   explicit, and deterministic tests avoid wall-clock timing assumptions.
+   reports last-event age without treating a long-running worker as unhealthy,
+   schema compatibility is explicit, and deterministic tests avoid wall-clock
+   timing assumptions.
 
 ## Rules
 
