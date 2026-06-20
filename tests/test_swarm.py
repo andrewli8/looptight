@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import json
 import subprocess
+import time
 from pathlib import Path
 
 from looptight import swarm
-from looptight.adapters.base import Adapter
+from looptight.adapters.base import Adapter, run_command
 from looptight.cli import main
 from looptight.config import Config
 from looptight.swarm import MAX_WORKERS, SwarmResult, Worker, run_swarm
@@ -30,6 +31,21 @@ class EditingAdapter(Adapter):
 class CrashingAdapter(EditingAdapter):
     def run_iteration(self, goal, context, workdir, model=None):
         raise RuntimeError("provider crashed")
+
+
+class TimingOutAdapter(EditingAdapter):
+    def run_iteration(self, goal, context, workdir, model=None):
+        marker = workdir / "orphaned-provider-child"
+        proc = run_command(
+            ["sh", "-c", f"(sleep 0.2; touch {marker}) & wait"],
+            workdir,
+            timeout_s=self.worker_timeout_s,
+        )
+        return IterationResult(
+            transcript=proc.stderr,
+            ok=False,
+            error=proc.stderr.strip(),
+        )
 
 
 def _git(root: Path, *args: str) -> None:
@@ -209,3 +225,23 @@ def test_swarm_contains_worker_runtime_exception(tmp_path, monkeypatch):
     assert not result.passed
     assert result.workers[0].status == "failed"
     assert result.workers[0].error == "worker crashed: provider crashed"
+
+
+def test_swarm_worker_timeout_stops_provider_tree_and_retains_worktree(tmp_path, monkeypatch):
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: TimingOutAdapter())
+
+    result = run_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0", max_iterations=1),
+        workers=1,
+        worker_timeout=0.02,
+    )
+
+    worker = result.workers[0]
+    assert worker.status == "timeout"
+    assert worker.error == "provider timed out after 0.02s"
+    assert worker.worktree.is_dir()
+    time.sleep(0.35)
+    assert not (worker.worktree / "orphaned-provider-child").exists()

@@ -37,7 +37,7 @@ class CodexAdapter(Adapter):
 
     def _exec(self, prompt: str, workdir: Path) -> CompletedProcess[str]:
         cmd = [self.binary, *self.exec_args, prompt]
-        return run_command(cmd, workdir)
+        return run_command(cmd, workdir, timeout_s=self.worker_timeout_s)
 
     def run_iteration(
         self,
@@ -48,10 +48,11 @@ class CodexAdapter(Adapter):
     ) -> IterationResult:
         proc = self._exec(_build_prompt(goal, context), workdir)
         if proc.returncode != 0:
+            error = proc.stderr.strip() if proc.returncode == 124 else f"codex exited {proc.returncode}"
             return IterationResult(
                 transcript=proc.stderr.strip() or "codex exited non-zero",
                 ok=False,
-                error=f"codex exited {proc.returncode}",
+                error=error,
             )
         return IterationResult(transcript=proc.stdout.strip(), ok=True)
 

@@ -39,7 +39,7 @@ class ClaudeAdapter(Adapter):
         cmd = [self.binary, "-p", prompt, "--output-format", "json"]
         if model:
             cmd += ["--model", model]
-        return run_command(cmd, workdir)
+        return run_command(cmd, workdir, timeout_s=self.worker_timeout_s)
 
     def run_iteration(
         self,
@@ -50,10 +50,11 @@ class ClaudeAdapter(Adapter):
     ) -> IterationResult:
         proc = self._invoke(_build_prompt(goal, context), workdir, model)
         if proc.returncode != 0:
+            error = proc.stderr.strip() if proc.returncode == 124 else f"claude exited {proc.returncode}"
             return IterationResult(
                 transcript=proc.stderr.strip() or "claude exited non-zero",
                 ok=False,
-                error=f"claude exited {proc.returncode}",
+                error=error,
             )
         return IterationResult(transcript=_parse_result(proc.stdout), ok=True)
 

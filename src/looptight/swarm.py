@@ -20,6 +20,7 @@ from .types import StopReason
 from .verify import run_verify
 
 MAX_WORKERS = 50
+DEFAULT_WORKER_TIMEOUT = 3600.0
 SCHEMA_VERSION = 1
 
 
@@ -120,16 +121,18 @@ def _prepare_workers(root: Path, count: int) -> tuple[list[Worker], str | None]:
     return workers, None
 
 
-def _run_worker(worker: Worker, agent: str, config: Config) -> Worker:
+def _run_worker(worker: Worker, agent: str, config: Config, worker_timeout: float) -> Worker:
+    adapter = get_adapter(agent)
+    adapter.worker_timeout_s = worker_timeout
     result = run_loop(
         str(worker.task["goal"]),
-        get_adapter(agent),
+        adapter,
         config,
         worker.worktree,
         native=False,
     )
     if result.stop_reason is not StopReason.SUCCESS:
-        worker.status = "failed"
+        worker.status = "timeout" if result.error and "provider timed out after" in result.error else "failed"
         worker.error = result.error or result.stop_reason.value
         return worker
 
@@ -191,6 +194,7 @@ def run_swarm(
     agent: str,
     config: Config,
     workers: int,
+    worker_timeout: float = DEFAULT_WORKER_TIMEOUT,
     push: bool = False,
     executor_factory: Callable[..., concurrent.futures.Executor] = concurrent.futures.ThreadPoolExecutor,
 ) -> SwarmResult:
@@ -212,7 +216,7 @@ def run_swarm(
 
     with executor_factory(max_workers=len(prepared)) as executor:
         futures = {
-            executor.submit(_run_worker, worker, agent, config): worker
+            executor.submit(_run_worker, worker, agent, config, worker_timeout): worker
             for worker in prepared
         }
         completed: list[Worker] = []
@@ -260,7 +264,12 @@ def cmd_swarm(args, console: Console) -> int:
         console.print("[red]No verify command.[/red] Configure one before starting a swarm.")
         return 2
     result = run_swarm(
-        Path.cwd(), agent=agent, config=config, workers=args.workers, push=args.push
+        Path.cwd(),
+        agent=agent,
+        config=config,
+        workers=args.workers,
+        worker_timeout=args.worker_timeout,
+        push=args.push,
     )
     if args.json:
         print(json.dumps(result.as_dict(), sort_keys=True))
@@ -273,6 +282,6 @@ def cmd_swarm(args, console: Console) -> int:
     for worker in result.workers:
         detail = f": {worker.error}" if worker.error else ""
         console.print(f"worker {worker.number} · {worker.task['id']} · {worker.status}{detail}")
-        if worker.status in {"failed", "conflict"}:
+        if worker.status in {"failed", "timeout", "conflict"}:
             console.print(f"  worktree retained for recovery: {worker.worktree}")
     return 0 if result.passed else 1

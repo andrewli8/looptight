@@ -18,6 +18,8 @@ registering it.
 
 from __future__ import annotations
 
+import os
+import signal
 import subprocess
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -25,17 +27,67 @@ from pathlib import Path
 from ..types import IterationResult
 
 
-def run_command(cmd: list[str], workdir: Path) -> subprocess.CompletedProcess[str]:
+def _stop_process_tree(process: subprocess.Popen[str]) -> None:
+    if os.name == "posix":
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+            return
+        except OSError:
+            pass
+    elif os.name == "nt":
+        try:
+            stopped = subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(process.pid)],
+                capture_output=True,
+                check=False,
+            )
+            if stopped.returncode == 0:
+                return
+        except OSError:
+            pass
+    try:
+        process.kill()
+    except OSError:
+        pass
+
+
+def run_command(
+    cmd: list[str], workdir: Path, *, timeout_s: float | None = None
+) -> subprocess.CompletedProcess[str]:
     """Run an agent CLI, normalizing launch failures as a non-zero result."""
     try:
-        return subprocess.run(
+        if timeout_s is None:
+            return subprocess.run(
+                cmd,
+                cwd=str(workdir),
+                capture_output=True,
+                text=True,
+                errors="replace",
+                check=False,
+            )
+        options: dict[str, object] = {}
+        if os.name == "posix":
+            options["start_new_session"] = True
+        elif os.name == "nt":
+            options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+        process = subprocess.Popen(
             cmd,
             cwd=str(workdir),
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            errors="replace",  # agent CLI output is untrusted bytes; never crash on bad UTF-8
-            check=False,
+            errors="replace",
+            **options,
         )
+        try:
+            stdout, stderr = process.communicate(timeout=timeout_s)
+        except subprocess.TimeoutExpired:
+            _stop_process_tree(process)
+            stdout, stderr = process.communicate()
+            message = f"provider timed out after {timeout_s:g}s"
+            stderr = f"{stderr.rstrip()}\n{message}" if stderr else message
+            return subprocess.CompletedProcess(cmd, 124, stdout, stderr)
+        return subprocess.CompletedProcess(cmd, process.returncode, stdout, stderr)
     except OSError as exc:
         return subprocess.CompletedProcess(
             cmd, 127, stdout="", stderr=f"could not launch {cmd[0]}: {exc}"
@@ -51,6 +103,7 @@ class Adapter(ABC):
     memory_filename: str = "AGENTS.md"
     #: True if the agent ships a headless eval-gated loop we can drive (B1).
     supports_native_loop: bool = False
+    worker_timeout_s: float | None = None
 
     @abstractmethod
     def is_available(self) -> bool:

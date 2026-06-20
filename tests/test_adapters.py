@@ -22,6 +22,23 @@ def test_run_command_tolerates_non_utf8_output(tmp_path):
     assert proc.returncode == 2
 
 
+def test_provider_adapter_passes_worker_timeout_to_command(monkeypatch, tmp_path):
+    captured = {}
+
+    def fake_run_command(cmd, workdir, *, timeout_s):
+        captured["timeout_s"] = timeout_s
+        return subprocess.CompletedProcess(cmd, 124, "", "provider timed out after 3s")
+
+    monkeypatch.setattr("looptight.adapters.codex.run_command", fake_run_command)
+    adapter = get_adapter("codex")
+    adapter.worker_timeout_s = 3
+
+    result = adapter.run_iteration("fix it", "", tmp_path)
+
+    assert captured["timeout_s"] == 3
+    assert result.error == "provider timed out after 3s"
+
+
 def test_native_loop_capability():
     # Claude ships /goal (drivable headlessly); codex/opencode are supply-only.
     assert get_adapter("claude").supports_native_loop is True
