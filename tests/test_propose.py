@@ -227,6 +227,22 @@ def test_from_lint_does_not_invoke_package_manager_when_ruff_is_absent(
     assert from_lint(tmp_path) == []
 
 
+def test_from_lint_disables_ruff_cache(tmp_path, monkeypatch):
+    commands = []
+    monkeypatch.setattr("looptight.discovery.shutil.which", lambda command: "/bin/ruff")
+
+    def run(command, **kwargs):
+        commands.append(command)
+        return type("Result", (), {"stdout": ""})()
+
+    monkeypatch.setattr("looptight.discovery.subprocess.run", run)
+
+    assert from_lint(tmp_path) == []
+    assert commands == [
+        ["/bin/ruff", "check", "--no-cache", "--output-format", "concise", "--quiet"]
+    ]
+
+
 # --- dedup + rank ----------------------------------------------------------
 
 def test_rank_orders_by_source_priority():

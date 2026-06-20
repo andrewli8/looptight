@@ -59,13 +59,13 @@ existing CLI session and makes no model or API calls of its own.
   retaining bounded partial stdout/stderr in the timeout result.
 - Lint discovery uses only an already-installed `ruff` executable; it never
   invokes `uv`, installs packages, writes an environment, or accesses a network.
+- Ruff discovery disables its cache, keeping `propose` free of repository state
+  mutations while preserving the same lint candidates.
 
 ## Next
 
-1. Prevent lint discovery from writing Ruff cache state.
-   Acceptance: the discovery command includes `--no-cache`, a regression test
-   asserts the subprocess contract, proposal results remain unchanged, and the
-   full verifier passes.
+_No grounded task is queued. `next` reports `NO_WORK` until a new repository
+signal or user-facing friction surfaces one._
 
 ## Rules
 
