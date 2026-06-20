@@ -99,3 +99,24 @@ passed / 1 skipped (the legitimate `LOOPTIGHT_E2E` opt-in gate, which discovery
 correctly ignores); `ruff check` clean. No TODO/FIXME markers, no stalled
 STATUS task, no lint debt, no open CONCERN. Nothing safe and valuable to change,
 so no code was touched this run.
+
+---
+
+## AUDIT — 2026-06-20 — fourteenth review
+
+**Commits reviewed (oldest → newest since audit a4c0985):**
+
+| hash | message |
+|------|---------|
+| 5a40cc9 | docs: improver run 2026-06-20 — no changes (idle, main green) |
+
+**Test run:** `uv run pytest` → 190 passed, 1 skipped, 0 failed.
+**Lint:** `uv run ruff check` → all checks passed.
+
+**Verdict: clean. No concerns.**
+
+- 5a40cc9: Docs-only idle run entry appended to `REVIEW-QUEUE.md`. No code
+  touched, no behavior change, no scope creep. Correctly records that the
+  improver found `no_work` on a clean tree and left main untouched. ✅
+
+**Main status: GREEN.**
