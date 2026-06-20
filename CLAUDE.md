@@ -15,7 +15,8 @@ When asked to improve this repository autonomously:
 3. Run `looptight verify --json`; only `pass` authorizes a commit.
 4. Review the diff, update `docs/STATUS.md` by replacement rather than logging,
    commit the coherent change, push when authorized, and repeat from step 1.
-5. Stop successfully on `no_work`. Stop safely on validator `timeout` or `error`.
+5. Stop successfully on `no_work`. Stop safely on a `next` error or validator
+   `timeout` / `error`.
 
 Do not run `looptight run` or `looptight improve` from this workflow: those
 launch child agents. `next` and `verify` make no model or API calls and use this

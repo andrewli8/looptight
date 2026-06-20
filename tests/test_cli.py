@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 
 import pytest
 
@@ -145,6 +146,54 @@ def test_next_json_no_work_contract(tmp_path, monkeypatch, capsys):
         "status": "no_work",
         "task": None,
     }
+
+
+def test_next_json_refuses_dirty_git_worktree_before_claim(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / "docs").mkdir()
+    status = tmp_path / "docs" / "STATUS.md"
+    status.write_text(
+        "## Next\n\n1. Fix it. Acceptance: verification passes.\n",
+        encoding="utf-8",
+    )
+
+    assert main(["next", "--json"]) == 2
+    assert json.loads(capsys.readouterr().out) == {
+        "schema_version": 1,
+        "command": "next",
+        "status": "error",
+        "task": None,
+        "error": "dirty_worktree",
+    }
+    assert not (tmp_path / ".git" / "looptight" / "claims").exists()
+
+
+def test_next_json_claims_from_clean_git_worktree(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text(
+        "## Next\n\n1. Fix it. Acceptance: verification passes.\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "add", "docs/STATUS.md"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Looptight Test",
+            "-c",
+            "user.email=test@looptight.dev",
+            "commit",
+            "-qm",
+            "fixture",
+        ],
+        check=True,
+    )
+
+    assert main(["next", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "task"
 
 
 def test_status_json_is_read_only_and_actionable(tmp_path, monkeypatch, capsys):

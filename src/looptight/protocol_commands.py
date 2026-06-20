@@ -112,12 +112,14 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
     result = next_task(Path.cwd())
     if args.json:
         print(json.dumps(result.as_dict(), sort_keys=True))
+    elif result.status == "error":
+        print(f"ERROR: {result.error}")
     elif result.status == "no_work":
         print("NO_WORK")
     else:
         assert result.task is not None
         print(result.task["goal"])
-    return 0
+    return 2 if result.status == "error" else 0
 
 
 def cmd_status(args: argparse.Namespace, console: Console) -> int:

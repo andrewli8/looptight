@@ -53,7 +53,8 @@ looptight propose        # inspect the ranked grounded task queue
 
 Tasks come from concrete repository signals such as the bounded `Next` list in
 `docs/STATUS.md`, source TODOs, skipped tests, and lint findings. Empty queues do
-not generate speculative audits.
+not generate speculative audits. A dirty Git worktree returns a machine-readable
+error before proposal discovery or claim mutation.
 
 In Git repositories, task claims live under Git's private common directory.
 They are shared across worktrees, never appear as tracked files, and expire

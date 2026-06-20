@@ -49,13 +49,13 @@ existing CLI session and makes no model or API calls of its own.
   executable task order.
 - Package metadata and entry-point docs describe Looptight as a validation-gated
   task protocol, without learning, teaching, or autopilot claims.
+- `next` rejects dirty Git worktrees before proposal or claim mutation, returns
+  a machine-readable error with exit code 2, and remains unchanged outside Git.
 
 ## Next
 
-1. Refuse to claim new work from a dirty Git worktree.
-   Acceptance: `next --json` returns a machine-readable error with a nonzero exit
-   code before proposal or claim mutation, regression tests cover clean and dirty
-   repositories, and the full verifier passes.
+_No grounded task is queued. `next` reports `NO_WORK` until a new repository
+signal or user-facing friction surfaces one._
 
 ## Rules
 

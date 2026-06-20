@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -17,15 +18,19 @@ ProposeFn = Callable[..., list[Candidate]]
 class NextResult:
     status: str
     task: dict[str, str | None] | None = None
+    error: str | None = None
     schema_version: int = 1
 
     def as_dict(self) -> dict[str, object]:
-        return {
+        payload: dict[str, object] = {
             "schema_version": self.schema_version,
             "command": "next",
             "status": self.status,
             "task": self.task,
         }
+        if self.error is not None:
+            payload["error"] = self.error
+        return payload
 
 
 def _grounded_goal(candidate: Candidate) -> str:
@@ -36,8 +41,25 @@ def _grounded_goal(candidate: Candidate) -> str:
     )
 
 
+def _has_dirty_git_worktree(workdir: Path) -> bool:
+    """Treat tracked and untracked changes as unsafe for a new task claim."""
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=workdir,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return False
+    return result.returncode == 0 and bool(result.stdout.strip())
+
+
 def next_task(workdir: Path, *, propose_fn: ProposeFn = propose) -> NextResult:
     """Claim one grounded task without making an agent or network call."""
+    if _has_dirty_git_worktree(workdir):
+        return NextResult(status="error", error="dirty_worktree")
     candidates = propose_fn(workdir, limit=0)
     if not candidates:
         return NextResult(status="no_work")
