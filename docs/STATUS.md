@@ -58,8 +58,10 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_No grounded task is queued. `next` reports `NO_WORK` until a new repository
-signal or user-facing friction surfaces one._
+1. Terminate the verifier process tree on timeout.
+   Acceptance: a timed-out verifier cannot perform delayed child-process work,
+   partial output remains available, timeout JSON stays compatible, regression
+   tests pass, and the full verifier passes.
 
 ## Rules
 
