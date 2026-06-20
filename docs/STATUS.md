@@ -73,15 +73,17 @@ existing CLI session and makes no model or API calls of its own.
   process tree and retains the worker worktree with a distinct timeout result.
 - `ui` serves a dependency-free, read-only, loopback-only node graph from
   versioned Git-private swarm state with polling and restrictive browser headers.
+- The graph supports pointer and keyboard node inspection plus read-only status
+  filters; every projection redraws its dependency arrows without mutating state.
 - Remote mobile management has a security decision record: prefer provider-native
   control, otherwise require an identity-aware tunnel while retaining loopback.
 
 ## Next
 
-1. Add read-only interaction to the orchestration graph.
-   Acceptance: keyboard and pointer selection expose node details, status filters
-   reduce visible workers/tasks without changing swarm state, arrows redraw, and
-   responsive/accessibility contract tests pass.
+1. Publish worker completions as they occur.
+   Acceptance: the swarm manager consumes concurrent worker futures in completion
+   order, publishes each result immediately, preserves deterministic integration
+   ordering, and has a regression test where a later worker finishes first.
 
 ## Rules
 

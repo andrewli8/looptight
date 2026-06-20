@@ -64,6 +64,18 @@ def test_page_is_dependency_free_accessible_polling_node_graph(tmp_path):
     assert "manager" in page and "tasks" in page and "workers" in page
 
 
+def test_page_supports_read_only_keyboard_selection_and_status_filters():
+    page = ui.PAGE
+    assert 'aria-label="Filter nodes by status"' in page
+    assert 'role="status" aria-live="polite"' in page
+    assert "e.key==='Enter'||e.key===' '" in page
+    assert "setAttribute('aria-pressed'" in page
+    assert "filter(t=>visible(t.status))" in page
+    assert "filter(w=>visible(w.status))" in page
+    assert "state=await r.json();render()" in page
+    assert "addEventListener('resize',render)" in page
+
+
 def test_ui_command_passes_port_to_server(tmp_path, monkeypatch):
     called = {}
     monkeypatch.chdir(tmp_path)
