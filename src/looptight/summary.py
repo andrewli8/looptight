@@ -12,7 +12,6 @@ from .types import RunResult, StopReason
 _REASON_TEXT = {
     StopReason.SUCCESS: "done",
     StopReason.ITERATION_CAP: "stopped: hit iteration cap",
-    StopReason.BUDGET_EXCEEDED: "stopped: reached spend threshold",
     StopReason.NO_PROGRESS: "stopped early: no measurable progress (cut losses)",
     StopReason.ESCALATED: "stopped: stuck with no progress, worth a human look",
     StopReason.NO_VERIFY: "stopped: no verify command (no verify, no loop)",
@@ -26,30 +25,18 @@ def header(result: RunResult) -> str:
     return f"looptight · agent: {result.agent} ({verb})"
 
 
-def _cost_fragment(cost_usd: float, reports_cost_usd: bool) -> str:
-    """How a cost is shown: a dollar figure, or an honest note when unreported."""
-    return f"${cost_usd:.2f}" if reports_cost_usd else "cost not reported"
-
-
 def render(result: RunResult) -> str:
     """Full plain-text summary."""
     lines = [header(result), ""]
     for record in result.iterations:
-        suffix = f"   ${record.cost_usd:.2f}" if result.reports_cost_usd else ""
-        lines.append(f"{record.line()}{suffix}")
+        lines.append(record.line())
 
     mark = "✓" if result.passed else "✗"
     tail = _REASON_TEXT.get(result.stop_reason, result.stop_reason.value)
     lines.append("")
-    lines.append(
-        f"{mark} {tail} · {result.iteration_count} iteration(s) · "
-        f"{_cost_fragment(result.total_cost_usd, result.reports_cost_usd)}"
-    )
+    lines.append(f"{mark} {tail} · {result.iteration_count} iteration(s)")
     if result.diffstat:
         lines += ["", "changes:", result.diffstat]
-    if result.lesson:
-        lines.append("")
-        lines.append(f"lesson saved: {result.lesson.text}")
     return "\n".join(lines)
 
 
@@ -61,21 +48,17 @@ def render_rich(result: RunResult, console) -> None:
         style = "green" if record.verify.passed else "red"
         console.print(f"iteration {record.number} → verify: ", end="")
         console.print(record.verify.short(), style=f"bold {style}", end="")
-        suffix = f"   ${record.cost_usd:.2f}" if result.reports_cost_usd else ""
-        console.print(suffix, style="dim")
+        console.print()
 
     passed = result.passed
     mark = "✓" if passed else "✗"
     tail = _REASON_TEXT.get(result.stop_reason, result.stop_reason.value)
     console.print()
     console.print(
-        f"{mark} {tail} · {result.iteration_count} iteration(s) · "
-        f"{_cost_fragment(result.total_cost_usd, result.reports_cost_usd)}",
+        f"{mark} {tail} · {result.iteration_count} iteration(s)",
         style="bold green" if passed else "bold red",
     )
     if result.diffstat:
         console.print()
         console.print("changes:", style="dim")
         console.print(result.diffstat, style="dim")
-    if result.lesson:
-        console.print(f"lesson saved: {result.lesson.text}", style="cyan")

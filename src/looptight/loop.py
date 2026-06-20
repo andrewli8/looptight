@@ -42,9 +42,7 @@ def run_loop(
     *,
     native: bool = False,
     verify_fn: VerifyFn = run_verify,
-    reflect_fn=None,
     checkpointer: Checkpointer | None = None,
-    store=None,
     on_iteration: ProgressFn | None = None,
 ) -> RunResult:
     """Run ``goal`` to a verified stop. Returns a normalized RunResult."""
@@ -76,12 +74,10 @@ def _supply_loop(goal, adapter, config, workdir, *, verify_fn, checkpointer, on_
     stop = StopReason.ITERATION_CAP
     error: str | None = None
 
-    total_cost = 0.0
     for number in range(1, config.max_iterations + 1):
         snapshot = checkpointer.snapshot()
 
         iteration = adapter.run_iteration(goal, context, workdir)
-        total_cost += max(0.0, iteration.cost_usd)
 
         if not iteration.ok:
             stop = StopReason.ERROR
@@ -89,7 +85,7 @@ def _supply_loop(goal, adapter, config, workdir, *, verify_fn, checkpointer, on_
             break
 
         verify = verify_fn(config.verify, workdir)
-        record = IterationRecord(number=number, verify=verify, cost_usd=iteration.cost_usd, checkpoint=snapshot)
+        record = IterationRecord(number=number, verify=verify, checkpoint=snapshot)
         records.append(record)
         if on_iteration:
             on_iteration(record)
@@ -116,8 +112,6 @@ def _supply_loop(goal, adapter, config, workdir, *, verify_fn, checkpointer, on_
         mode="supply",
         stop_reason=stop,
         iterations=tuple(records),
-        total_cost_usd=total_cost,
-        reports_cost_usd=adapter.reports_cost_usd,
         diffstat=checkpointer.diffstat(),
         error=error,
     )
@@ -128,7 +122,7 @@ def _delegate_loop(goal, adapter, config, workdir, *, verify_fn, checkpointer, o
     """Hand off to the agent's native loop, then verify once as the contract."""
     checkpointer.snapshot()
     iteration = adapter.drive_native_loop(
-        goal, config.verify, config.max_iterations, config.budget_usd, workdir
+        goal, config.verify, config.max_iterations, workdir
     )
     if not iteration.ok:
         return RunResult(
@@ -136,13 +130,11 @@ def _delegate_loop(goal, adapter, config, workdir, *, verify_fn, checkpointer, o
             agent=adapter.name,
             mode="delegate",
             stop_reason=StopReason.ERROR,
-            total_cost_usd=iteration.cost_usd,
-            reports_cost_usd=adapter.reports_cost_usd,
             diffstat=checkpointer.diffstat(),
             error=iteration.error or iteration.transcript or "coding agent failed",
         )
     verify = verify_fn(config.verify, workdir)
-    record = IterationRecord(number=1, verify=verify, cost_usd=iteration.cost_usd)
+    record = IterationRecord(number=1, verify=verify)
     if on_iteration:
         on_iteration(record)
 
@@ -153,8 +145,6 @@ def _delegate_loop(goal, adapter, config, workdir, *, verify_fn, checkpointer, o
         mode="delegate",
         stop_reason=stop,
         iterations=(record,),
-        total_cost_usd=iteration.cost_usd,
-        reports_cost_usd=adapter.reports_cost_usd,
         diffstat=checkpointer.diffstat(),
     )
     return result

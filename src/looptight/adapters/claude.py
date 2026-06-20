@@ -27,7 +27,6 @@ class ClaudeAdapter(Adapter):
     name = "claude"
     memory_filename = "CLAUDE.md"
     supports_native_loop = True
-    reports_cost_usd = True
 
     binary = "claude"
 
@@ -56,15 +55,13 @@ class ClaudeAdapter(Adapter):
                 ok=False,
                 error=f"claude exited {proc.returncode}",
             )
-        transcript, cost = _parse_result(proc.stdout)
-        return IterationResult(transcript=transcript, cost_usd=cost, ok=True)
+        return IterationResult(transcript=_parse_result(proc.stdout), ok=True)
 
     def drive_native_loop(
         self,
         goal: str,
         verify: str,
         max_iterations: int,
-        budget_usd: float,
         workdir: Path,
     ) -> IterationResult:
         prompt = (
@@ -72,10 +69,10 @@ class ClaudeAdapter(Adapter):
             f"status 0. Stop after at most {max_iterations} attempts."
         )
         proc = self._invoke(prompt, workdir, None)
-        transcript, cost = _parse_result(proc.stdout)
+        transcript = _parse_result(proc.stdout)
         if proc.returncode != 0 and not transcript:
             transcript = proc.stderr.strip() or "claude /goal exited non-zero"
-        return IterationResult(transcript=transcript, cost_usd=cost, ok=proc.returncode == 0)
+        return IterationResult(transcript=transcript, ok=proc.returncode == 0)
 
 def _build_prompt(goal: str, context: str) -> str:
     """Compose the continuation prompt for one supplied iteration."""
@@ -91,17 +88,13 @@ def _build_prompt(goal: str, context: str) -> str:
     return "\n".join(parts)
 
 
-def _parse_result(stdout: str) -> tuple[str, float]:
-    """Pull (result text, cost_usd) out of Claude Code's JSON output."""
+def _parse_result(stdout: str) -> str:
+    """Pull result text out of Claude Code's JSON output."""
     try:
         data = json.loads(stdout)
     except (ValueError, TypeError):
-        return stdout.strip(), 0.0
+        return stdout.strip()
     if not isinstance(data, dict):
-        return stdout.strip(), 0.0
+        return stdout.strip()
     text = data.get("result") or data.get("text") or ""
-    try:
-        cost = float(data.get("total_cost_usd") or data.get("cost_usd") or 0.0)
-    except (ValueError, TypeError):
-        cost = 0.0
-    return str(text).strip(), cost
+    return str(text).strip()

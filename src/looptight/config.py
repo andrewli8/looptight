@@ -23,10 +23,7 @@ class ConfigError(Exception):
     clear, actionable line instead of a raw traceback.
     """
 
-# Legacy budget/reflection fields remain readable for config compatibility but
-# no longer affect control flow.
 DEFAULT_MAX_ITERATIONS = 6
-DEFAULT_BUDGET_USD = 1.00
 
 
 @dataclass(frozen=True)
@@ -36,8 +33,6 @@ class Config:
     verify: str | None = None
     agent: str | None = None  # None = auto-detect from PATH
     max_iterations: int = DEFAULT_MAX_ITERATIONS
-    budget_usd: float = DEFAULT_BUDGET_USD
-    reflect: bool = False
     native: bool = False  # drive the agent's own loop (e.g. Claude /goal) where it has one
     hook: bool = False  # arm the Claude Code Stop-hook auto-loop in this repo
     patience: int = 0  # stop early after N iterations of no measurable progress (0 = off)
@@ -72,8 +67,6 @@ def load_config(path: Path | None = None) -> Config:
             verify=_optional_string(data, "verify"),
             agent=_optional_string(data, "agent"),
             max_iterations=_positive_integer(data, "max_iterations", DEFAULT_MAX_ITERATIONS),
-            budget_usd=float(data.get("budget_usd", DEFAULT_BUDGET_USD)),
-            reflect=_boolean(data, "reflect", False),
             native=_boolean(data, "native", False),
             hook=_boolean(data, "hook", False),
             patience=int(data.get("patience", 0)),

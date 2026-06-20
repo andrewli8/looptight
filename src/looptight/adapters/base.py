@@ -51,8 +51,6 @@ class Adapter(ABC):
     memory_filename: str = "AGENTS.md"
     #: True if the agent ships a headless eval-gated loop we can drive (B1).
     supports_native_loop: bool = False
-    #: True when iteration results include measured USD cost.
-    reports_cost_usd: bool = False
 
     @abstractmethod
     def is_available(self) -> bool:
@@ -78,13 +76,11 @@ class Adapter(ABC):
         goal: str,
         verify: str,
         max_iterations: int,
-        budget_usd: float,
         workdir: Path,
     ) -> IterationResult:
         """Drive the agent's own eval-gated loop to completion (delegate mode).
 
         Only implemented when ``supports_native_loop`` is True. Returns the final
-        transcript + cost; looptight still runs ``verify`` afterward as the
-        contract (principle 2).
+        transcript; looptight still runs ``verify`` afterward as the contract.
         """
         raise NotImplementedError(f"{self.name} has no native loop to drive")

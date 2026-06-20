@@ -53,7 +53,7 @@ class CodexAdapter(Adapter):
                 ok=False,
                 error=f"codex exited {proc.returncode}",
             )
-        return IterationResult(transcript=proc.stdout.strip(), cost_usd=0.0, ok=True)
+        return IterationResult(transcript=proc.stdout.strip(), ok=True)
 
 def _build_prompt(goal: str, context: str) -> str:
     parts = [

@@ -197,4 +197,4 @@ Release v0.2 only when all are true:
 4. Install thin native-agent integration instructions from `init`.
 5. Make headless spawning explicit and route it through the same protocol.
 6. Remove reflection, cost-estimation, and duplicate orchestration code after
-   compatibility warnings have shipped.
+   compatibility warnings have shipped. **Complete.**

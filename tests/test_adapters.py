@@ -46,30 +46,18 @@ def test_claude_prompt_includes_goal_and_context():
     assert "2 failing" in prompt
 
 
-def test_claude_parses_cost_from_json():
-    text, cost = _parse_result('{"result": "done", "total_cost_usd": 0.12}')
-    assert text == "done"
-    assert cost == 0.12
+def test_claude_parses_result_from_json():
+    assert _parse_result('{"result": "done", "total_cost_usd": 0.12}') == "done"
 
 
 def test_claude_parse_tolerates_non_json():
-    text, cost = _parse_result("plain text, no json")
-    assert "plain text" in text
-    assert cost == 0.0
+    assert "plain text" in _parse_result("plain text, no json")
 
 
 def test_claude_parse_tolerates_non_object_json(tmp_path):
     # Valid JSON that isn't an object (array/scalar) must degrade to text, not
     # crash on a missing .get — the CLI output is untrusted external data.
-    text, cost = _parse_result("[1, 2, 3]")
-    assert text == "[1, 2, 3]"
-    assert cost == 0.0
-
-
-def test_claude_parse_tolerates_non_numeric_cost():
-    text, cost = _parse_result('{"result": "done", "total_cost_usd": "lots"}')
-    assert text == "done"
-    assert cost == 0.0
+    assert _parse_result("[1, 2, 3]") == "[1, 2, 3]"
 
 
 def test_claude_parse_matches_recorded_cli_output():
@@ -77,9 +65,7 @@ def test_claude_parse_matches_recorded_cli_output():
     # If Claude Code's JSON schema drifts, this fails loudly instead of us
     # silently reading $0.00. Refresh the fixture when the CLI changes.
     fixture = Path(__file__).parent / "fixtures" / "claude_result.json"
-    text, cost = _parse_result(fixture.read_text())
-    assert "paginate()" in text
-    assert cost == 0.0142
+    assert "paginate()" in _parse_result(fixture.read_text())
 
 
 def test_claude_builds_goal_prompt_for_native_loop(monkeypatch):
@@ -93,7 +79,7 @@ def test_claude_builds_goal_prompt_for_native_loop(monkeypatch):
         return subprocess.CompletedProcess(args=[], returncode=0, stdout='{"result": "ok", "total_cost_usd": 0.0}', stderr="")
 
     monkeypatch.setattr(ClaudeAdapter, "_invoke", fake_invoke)
-    ClaudeAdapter().drive_native_loop("fix tests", "pytest -q", 4, 1.0, Path("."))
+    ClaudeAdapter().drive_native_loop("fix tests", "pytest -q", 4, Path("."))
     assert "/goal" in captured["prompt"]
     assert "pytest -q" in captured["prompt"]
 
@@ -102,7 +88,7 @@ def test_supply_only_adapters_refuse_native_loop():
     # codex/opencode don't fake a native loop they can't drive.
     for name in ("codex", "opencode"):
         with pytest.raises(NotImplementedError):
-            get_adapter(name).drive_native_loop("g", "v", 3, 1.0, Path("."))
+            get_adapter(name).drive_native_loop("g", "v", 3, Path("."))
 
 
 def test_codex_and_opencode_build_prompts_with_goal_and_context():

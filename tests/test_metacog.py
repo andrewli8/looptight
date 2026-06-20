@@ -78,7 +78,7 @@ def _verify_sequence(outputs):
 
 
 def _cfg(**kw):
-    base = dict(verify="pytest -q", agent="fake", max_iterations=10, budget_usd=10.0)
+    base = dict(verify="pytest -q", agent="fake", max_iterations=10)
     base.update(kw)
     return Config(**base)
 

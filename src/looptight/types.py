@@ -1,13 +1,12 @@
 """Shared, immutable data types.
 
-These are the contract between the loop, the adapters, verify, reflection, and
-the summary. Everything returns new objects; nothing here is mutated in place.
+These are the contract between the loop, adapters, verifier, and summary.
+Everything returns new objects; nothing here is mutated in place.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, replace
-from datetime import datetime, timezone
+from dataclasses import dataclass
 from enum import Enum
 
 
@@ -16,7 +15,6 @@ class StopReason(str, Enum):
 
     SUCCESS = "success"
     ITERATION_CAP = "iteration_cap"
-    BUDGET_EXCEEDED = "budget_exceeded"
     NO_PROGRESS = "no_progress"  # stalled after real progress — cut losses
     ESCALATED = "escalated"  # never moved the needle — a human should look
     NO_VERIFY = "no_verify"
@@ -65,7 +63,6 @@ class IterationResult:
     """What an adapter reports back after running one iteration (supply mode)."""
 
     transcript: str = ""
-    cost_usd: float = 0.0
     ok: bool = True
     error: str | None = None
 
@@ -76,34 +73,11 @@ class IterationRecord:
 
     number: int
     verify: VerifyResult
-    cost_usd: float
     checkpoint: str | None = None
 
     def line(self) -> str:
         """The gif-able ``iteration N → verify: PASS/FAIL`` line (E2)."""
         return f"iteration {self.number} → verify: {self.verify.short()}"
-
-
-@dataclass(frozen=True)
-class Lesson:
-    """A durable, scoped lesson written to the agent's memory file (C1–C4)."""
-
-    text: str
-    scope: str = "*"
-    created_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).date().isoformat()
-    )
-
-    @property
-    def key(self) -> str:
-        """Normalized dedupe key (C4): scope + lowercased, whitespace-collapsed text."""
-        normalized = " ".join(self.text.lower().split())
-        return f"{self.scope}::{normalized}"
-
-    def render(self) -> str:
-        """One markdown bullet for the memory file."""
-        prefix = "" if self.scope in ("*", "") else f"(scope: {self.scope}) "
-        return f"- [{self.created_at}] {prefix}{self.text}"
 
 
 @dataclass(frozen=True)
@@ -115,9 +89,6 @@ class RunResult:
     mode: str  # "supply" | "delegate"
     stop_reason: StopReason
     iterations: tuple[IterationRecord, ...] = ()
-    total_cost_usd: float = 0.0
-    reports_cost_usd: bool = True  # False when the CLI does not report USD cost
-    lesson: Lesson | None = None
     diffstat: str = ""
     error: str | None = None
 
@@ -128,6 +99,3 @@ class RunResult:
     @property
     def iteration_count(self) -> int:
         return len(self.iterations)
-
-    def with_lesson(self, lesson: Lesson | None) -> "RunResult":
-        return replace(self, lesson=lesson)

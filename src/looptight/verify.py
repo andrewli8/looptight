@@ -16,7 +16,7 @@ from .types import VerifyResult
 
 _SCORE_RE = re.compile(r"^\s*SCORE:\s*([-+]?\d*\.?\d+)\s*$", re.MULTILINE)
 
-# Keep transcripts bounded so summaries and reflection prompts stay cheap.
+# Keep verifier evidence bounded for terminal and JSON consumers.
 _MAX_OUTPUT_CHARS = 8000
 
 

@@ -11,7 +11,6 @@ from .commands import (
     cmd_improve,
     cmd_init,
     cmd_install_hook,
-    cmd_lessons,
     cmd_next,
     cmd_propose,
     cmd_revert,
@@ -27,7 +26,6 @@ _COMMANDS = {
     "run",
     "improve",
     "verify",
-    "lessons",
     "doctor",
     "revert",
     "hook",
@@ -55,7 +53,7 @@ def _positive_int(value: str) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="looptight",
-        description="Your coding agent on autopilot — across agents — that gets smarter every run.",
+        description="A portable task and validation loop for native coding-agent sessions.",
     )
     parser.add_argument("--version", action="version", version=f"looptight {__version__}")
     sub = parser.add_subparsers(dest="command")
@@ -69,12 +67,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="install the session loop in AGENTS.md and CLAUDE.md",
     )
 
-    p_run = sub.add_parser("run", help="run your agent until verify passes")
+    p_run = sub.add_parser("run", help="explicit headless compatibility loop")
     p_run.add_argument("goal", help="what you want done, in plain language")
     _add_run_flags(p_run)
 
     p_improve = sub.add_parser(
-        "improve", help="continuously discover and implement verified repository improvements"
+        "improve", help="deprecated; migrate to the native-session loop"
     )
     _add_improve_flags(p_improve)
 
@@ -82,18 +80,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_verify.add_argument("--verify", help="override the verify command")
     p_verify.add_argument("--json", action="store_true", help="emit the versioned verdict as JSON")
 
-    p_lessons = sub.add_parser("lessons", help="show or prune the lessons looptight has learned")
-    p_lessons.add_argument("--agent", choices=KNOWN_AGENTS, help="which agent's memory file to read")
-    p_lessons.add_argument("--clear", action="store_true", help="remove all lessons")
-    p_lessons.add_argument("--prune", metavar="TEXT", help="remove lessons whose text contains TEXT")
-
     sub.add_parser("doctor", help="show the detected agent, verify command, and adapter status")
 
     p_revert = sub.add_parser("revert", help="undo the agent's uncommitted edits (restore to HEAD)")
     p_revert.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
 
     p_propose = sub.add_parser(
-        "propose", help="scan the repo for concrete signals and rank candidate tasks (no agent, no tokens)"
+        "propose", help="rank grounded repository tasks without model or network calls"
     )
     p_propose.add_argument("--json", action="store_true", help="emit the ranked candidates as JSON")
     p_propose.add_argument(
@@ -137,12 +130,6 @@ def _add_run_flags(parser: argparse.ArgumentParser) -> None:
         help="stop early after N iterations with no measurable progress (0 = off)",
     )
     parser.add_argument(
-        "--budget",
-        type=float,
-        help="deprecated compatibility option; ignored",
-    )
-    parser.add_argument("--no-reflect", action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument(
         "--native",
         action="store_true",
         help="drive the agent's own loop where it has one (e.g. Claude /goal); verify still gates",
@@ -153,20 +140,8 @@ def _add_improve_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--headless",
         action="store_true",
-        help="explicitly allow launching agent CLI child processes",
+        help="accepted for migration compatibility; no agent is launched",
     )
-    parser.add_argument("--agent", choices=KNOWN_AGENTS, help="agent to use (auto-detected if omitted)")
-    parser.add_argument("--verify", help="override the per-task verify command")
-    parser.add_argument("--max-iterations", type=_positive_int, help="per-task hard iteration cap")
-    parser.add_argument("--patience", type=int, help="per-task no-progress patience (0 = off)")
-    parser.add_argument(
-        "--budget",
-        type=float,
-        help="deprecated compatibility option; ignored",
-    )
-    parser.add_argument("--no-reflect", action="store_true", help="do not write lessons on failure")
-    parser.add_argument("--native", action="store_true", help="use the agent's native loop where available")
-    parser.add_argument("--push", action="store_true", help="push each verified autonomous commit")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -188,7 +163,6 @@ def main(argv: list[str] | None = None) -> int:
         "run": cmd_run,
         "improve": cmd_improve,
         "verify": cmd_verify,
-        "lessons": cmd_lessons,
         "doctor": cmd_doctor,
         "revert": cmd_revert,
         "hook": cmd_hook,

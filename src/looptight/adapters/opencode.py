@@ -50,7 +50,7 @@ class OpencodeAdapter(Adapter):
                 ok=False,
                 error=f"opencode exited {proc.returncode}",
             )
-        return IterationResult(transcript=proc.stdout.strip(), cost_usd=0.0, ok=True)
+        return IterationResult(transcript=proc.stdout.strip(), ok=True)
 
 def _build_prompt(goal: str, context: str) -> str:
     parts = [

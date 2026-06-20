@@ -11,12 +11,12 @@ from conftest import FakeAdapter, make_verify
 
 
 def _config(**kw) -> Config:
-    base = dict(verify="pytest -q", agent="fake", max_iterations=5, budget_usd=1.0, reflect=True)
+    base = dict(verify="pytest -q", agent="fake", max_iterations=5)
     base.update(kw)
     return Config(**base)
 
 
-def _run(adapter, config, workdir, *, pass_on, store=None):
+def _run(adapter, config, workdir, *, pass_on):
     return run_loop(
         "fix the failing tests",
         adapter,
@@ -24,7 +24,6 @@ def _run(adapter, config, workdir, *, pass_on, store=None):
         workdir,
         verify_fn=make_verify(pass_on),
         checkpointer=Checkpointer(workdir, enabled=False),
-        store=store,
     )
 
 
@@ -42,33 +41,6 @@ def test_hits_iteration_cap(workdir):
     result = _run(adapter, _config(max_iterations=3), workdir, pass_on=99)
     assert result.stop_reason is StopReason.ITERATION_CAP
     assert result.iteration_count == 3
-
-
-def test_legacy_budget_does_not_override_iteration_cap(workdir):
-    adapter = FakeAdapter(cost=0.6)
-    result = _run(adapter, _config(max_iterations=3, budget_usd=0.01), workdir, pass_on=99)
-    assert result.stop_reason is StopReason.ITERATION_CAP
-    assert result.iteration_count == 3
-
-
-def test_legacy_reflection_collaborators_are_ignored(workdir):
-    adapter = FakeAdapter()
-
-    def forbidden(*_args):
-        raise AssertionError("reflection model call should not run")
-
-    result = run_loop(
-        "fix it",
-        adapter,
-        _config(),
-        workdir,
-        verify_fn=make_verify(2),
-        reflect_fn=forbidden,
-        store=object(),
-        checkpointer=Checkpointer(workdir, enabled=False),
-    )
-    assert result.passed
-    assert result.lesson is None
 
 
 def test_context_carries_verify_output_forward(workdir):
@@ -109,7 +81,6 @@ def test_native_records_failure_when_verify_still_fails(workdir):
     )
     assert result.mode == "delegate"
     assert not result.passed
-    assert result.lesson is None
 
 
 def test_native_ignored_when_unsupported(workdir):

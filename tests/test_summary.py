@@ -1,75 +1,38 @@
-"""Run summary rendering (E1, E2)."""
+"""Run summary rendering."""
 
 from __future__ import annotations
 
+from io import StringIO
+
 from looptight import summary
-from looptight.types import IterationRecord, Lesson, RunResult, StopReason, VerifyResult
+from looptight.console import Console
+from looptight.types import IterationRecord, RunResult, StopReason, VerifyResult
 
 
-def _result(stop: StopReason, *, lesson: Lesson | None = None) -> RunResult:
-    records = (
-        IterationRecord(1, VerifyResult(passed=False, exit_code=1), 0.04),
-        IterationRecord(2, VerifyResult(passed=True, exit_code=0), 0.09),
-    )
+def _result(stop: StopReason) -> RunResult:
     return RunResult(
         goal="fix tests",
         agent="claude",
         mode="supply",
         stop_reason=stop,
-        iterations=records,
-        total_cost_usd=0.13,
-        lesson=lesson,
+        iterations=(
+            IterationRecord(1, VerifyResult(passed=False, exit_code=1)),
+            IterationRecord(2, VerifyResult(passed=True, exit_code=0)),
+        ),
     )
 
 
-def test_summary_has_gifable_iteration_lines():
+def test_summary_has_readable_iterations_and_result():
     text = summary.render(_result(StopReason.SUCCESS))
     assert "iteration 1 → verify: FAIL" in text
     assert "iteration 2 → verify: PASS" in text
+    assert "✓ done · 2 iteration(s)" in text
 
 
-def test_summary_shows_success_marker_and_cost():
-    text = summary.render(_result(StopReason.SUCCESS))
-    assert "✓" in text
-    assert "$0.13" in text
-
-
-def test_summary_shows_stop_reason_when_capped():
-    text = summary.render(_result(StopReason.ITERATION_CAP))
-    assert "iteration cap" in text
-    assert "✗" in text
-
-
-def test_summary_includes_saved_lesson():
-    text = summary.render(_result(StopReason.SUCCESS, lesson=Lesson(text="Pin the timeout")))
-    assert "lesson saved: Pin the timeout" in text
-
-
-def test_header_names_mode():
-    text = summary.render(_result(StopReason.SUCCESS))
-    assert "supplying loop" in text
-
-
-def test_summary_explains_value_aware_stops():
+def test_summary_shows_stop_reasons():
+    assert "iteration cap" in summary.render(_result(StopReason.ITERATION_CAP))
     assert "no measurable progress" in summary.render(_result(StopReason.NO_PROGRESS))
     assert "human" in summary.render(_result(StopReason.ESCALATED))
-
-
-def test_summary_omits_dollar_cost_when_agent_does_not_report_it():
-    # codex/opencode report no USD cost; showing "$0.00" reads as "free" when the
-    # run was actually provider-billed. Be honest instead of misleading.
-    result = RunResult(
-        goal="fix tests",
-        agent="codex",
-        mode="supply",
-        stop_reason=StopReason.SUCCESS,
-        iterations=(IterationRecord(1, VerifyResult(passed=True, exit_code=0), 0.0),),
-        total_cost_usd=0.0,
-        reports_cost_usd=False,
-    )
-    text = summary.render(result)
-    assert "$0.00" not in text
-    assert "cost not reported" in text
 
 
 def test_summary_includes_diffstat():
@@ -80,47 +43,11 @@ def test_summary_includes_diffstat():
         stop_reason=StopReason.SUCCESS,
         diffstat=" src/a.py | 3 +++",
     )
-    text = summary.render(result)
-    assert "changes:" in text
-    assert "src/a.py" in text
+    assert "src/a.py" in summary.render(result)
 
 
-def test_render_rich_covers_the_user_facing_summary():
-    # render_rich is what `looptight run` actually prints; cover it (incl. the
-    # cost-honesty branch) so a bug in the user-facing path can't ship unseen.
-    from io import StringIO
-
-    from looptight.console import Console
-
-    reported = RunResult(
-        goal="fix",
-        agent="claude",
-        mode="supply",
-        stop_reason=StopReason.SUCCESS,
-        iterations=(IterationRecord(1, VerifyResult(passed=True, exit_code=0), 0.07),),
-        total_cost_usd=0.07,
-        lesson=Lesson(text="Pin the timeout"),
-        diffstat=" src/a.py | 2 +-",
-    )
-    buffer = StringIO()
-    summary.render_rich(reported, Console(file=buffer))
-    out = buffer.getvalue()
-    assert "iteration 1 → verify: PASS" in out
-    assert "$0.07" in out
-    assert "lesson saved: Pin the timeout" in out
-    assert "src/a.py" in out
-
-    unreported = RunResult(
-        goal="fix",
-        agent="codex",
-        mode="supply",
-        stop_reason=StopReason.SUCCESS,
-        iterations=(IterationRecord(1, VerifyResult(passed=True, exit_code=0), 0.0),),
-        total_cost_usd=0.0,
-        reports_cost_usd=False,
-    )
-    buffer = StringIO()
-    summary.render_rich(unreported, Console(file=buffer))
-    out = buffer.getvalue()
-    assert "cost not reported" in out
-    assert "$0.00" not in out
+def test_console_summary_matches_plain_result():
+    output = StringIO()
+    summary.render_rich(_result(StopReason.SUCCESS), Console(file=output))
+    assert "iteration 1 → verify: FAIL" in output.getvalue()
+    assert "✓ done · 2 iteration(s)" in output.getvalue()

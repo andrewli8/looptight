@@ -35,14 +35,14 @@ existing CLI session and makes no model or API calls of its own.
   orchestrator are removed; legacy flags and `improve` return migration guidance.
 - The runtime is standard-library-only; plain human output and versioned JSON
   require no Rich/Markdown dependency chain.
+- Runtime contracts, summaries, adapters, and CLI contain no lesson or cost
+  telemetry fields; deprecated TOML keys are safely ignored.
 
 ## Next
 
-1. Remove remaining lesson and cost-telemetry compatibility fields after
-   confirming no primary command writes or depends on them.
-2. Validate that every queued task includes actionable evidence and an
+1. Validate that every queued task includes actionable evidence and an
    observable acceptance condition before it can be claimed.
-3. Split the oversized command-handler module without expanding the public CLI.
+2. Split the oversized command-handler module without expanding the public CLI.
 
 ## Rules
 

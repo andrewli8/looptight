@@ -20,7 +20,6 @@ from .config import CONFIG_NAME, Config, ConfigError, find_config, load_config, 
 from .console import Console
 from .detect import detect_agent, detect_verify
 from .integration import install_session_instructions
-from .lessons import LessonStore
 from .loop import run_loop
 from .summary import render_rich
 from .types import StopReason
@@ -93,9 +92,6 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
         console.print('  looptight init   or   looptight run --headless "..." --verify "pytest -q"')
         return 2
 
-    if args.budget is not None:
-        console.print("[yellow]--budget is deprecated and ignored; use provider limits.[/yellow]")
-
     use_native = config.native and adapter.supports_native_loop
     if config.native and not adapter.supports_native_loop:
         console.print(f"[yellow]{agent_name} has no native loop; supplying the loop instead.[/yellow]")
@@ -111,7 +107,6 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
         style = "green" if record.verify.passed else "red"
         console.print(
             f"iteration {record.number} → verify: [{style}]{record.verify.short()}[/{style}]"
-            f"   [dim]${record.cost_usd:.2f}[/dim]"
         )
 
     try:
@@ -199,32 +194,6 @@ def _print_verify_json(
             sort_keys=True,
         )
     )
-
-
-def cmd_lessons(args: argparse.Namespace, console: Console) -> int:
-    workdir = Path.cwd()
-    # CLI flag > configured agent > autodetect, matching how run/improve resolve
-    # it, so lessons reads the same memory file the run wrote to.
-    agent_name = args.agent or load_config().agent or detect_agent() or "claude"
-    store = LessonStore(get_adapter(agent_name).memory_file(workdir))
-
-    if args.clear:
-        removed = store.prune()
-        console.print(f"removed {removed} lesson(s) from {store.memory_file.name}")
-        return 0
-    if args.prune:
-        removed = store.prune(contains=args.prune)
-        console.print(f"removed {removed} lesson(s) matching '{args.prune}'")
-        return 0
-
-    lessons = store.list()
-    if not lessons:
-        console.print("No lessons yet. They'll appear here after a failed-then-fixed run.")
-        return 0
-    console.print(f"[bold]{len(lessons)} lesson(s)[/bold] in {store.memory_file.name}:")
-    for lesson in lessons:
-        console.print(f"  {lesson.render()}")
-    return 0
 
 
 def cmd_doctor(args: argparse.Namespace, console: Console) -> int:

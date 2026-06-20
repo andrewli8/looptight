@@ -82,22 +82,9 @@ def test_run_banner_omits_budget(tmp_path, monkeypatch, capsys):
         "looptight.commands.get_adapter",
         lambda name: __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter(),
     )
-    main(["run", "--headless", "fix it", "--verify", "exit 0", "--no-reflect"])
+    main(["run", "--headless", "fix it", "--verify", "exit 0"])
     out = " ".join(capsys.readouterr().out.lower().split())  # collapse rich line-wrapping
     assert "budget" not in out
-
-
-def test_run_warns_that_legacy_budget_is_ignored(tmp_path, monkeypatch, capsys):
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: "claude")
-    monkeypatch.setattr(
-        "looptight.commands.get_adapter",
-        lambda name: __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter(),
-    )
-    main(["run", "--headless", "fix it", "--verify", "exit 0", "--budget", "0.5"])
-    out = capsys.readouterr().out.lower()
-    assert "deprecated" in out
-    assert "ignored" in out
 
 
 def test_run_exits_one_when_verify_never_passes(tmp_path, monkeypatch):
@@ -109,7 +96,7 @@ def test_run_exits_one_when_verify_never_passes(tmp_path, monkeypatch):
         "looptight.commands.get_adapter",
         lambda name: __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter(),
     )
-    assert main(["run", "--headless", "fix it", "--verify", "exit 1", "--max-iterations", "1", "--no-reflect"]) == 1
+    assert main(["run", "--headless", "fix it", "--verify", "exit 1", "--max-iterations", "1"]) == 1
 
 
 def test_next_prints_a_grounded_task(tmp_path, monkeypatch, capsys):
@@ -200,11 +187,6 @@ def test_malformed_config_exits_cleanly_not_traceback(tmp_path, monkeypatch):
     assert main(["doctor"]) == 2
 
 
-def test_lessons_empty(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    assert main(["lessons", "--agent", "claude"]) == 0
-
-
 def test_version_exits_zero(capsys):
     try:
         main(["--version"])
@@ -282,11 +264,10 @@ def test_propose_rejects_negative_cli_limit():
     assert exc.value.code == 2
 
 
-@pytest.mark.parametrize("command", [["run", "goal"], ["improve"]])
 @pytest.mark.parametrize("value", ["0", "-1"])
-def test_loop_commands_reject_non_positive_max_iterations(command, value):
+def test_run_rejects_non_positive_max_iterations(value):
     with pytest.raises(SystemExit) as exc:
-        main([*command, "--max-iterations", value])
+        main(["run", "goal", "--max-iterations", value])
 
     assert exc.value.code == 2
 
@@ -308,25 +289,15 @@ def test_propose_text_output_describes_autonomous_flow(tmp_path, monkeypatch, ca
     assert "push" in out
 
 
-def test_budget_flag_help_marks_compatibility_option_deprecated(capsys):
-    try:
-        main(["run", "--headless", "--help"])
-    except SystemExit:
-        pass
-    out = capsys.readouterr().out.lower()
-    assert "deprecated" in out
-    assert "ignored" in out
-
-
-def test_improve_help_exposes_continuous_controls(capsys):
+def test_improve_help_has_only_migration_compatibility(capsys):
     try:
         main(["improve", "--headless", "--help"])
     except SystemExit as exc:
         assert exc.code == 0
     out = capsys.readouterr().out
-    assert "--budget" in out
-    assert "--push" in out
-    assert "--max-iterations" in out
+    assert "--headless" in out
+    assert "--push" not in out
+    assert "--max-iterations" not in out
 
 
 def test_revert_survives_oserror_when_listing_untracked(tmp_path, monkeypatch, capsys):
@@ -403,44 +374,3 @@ def test_revert_notes_untracked_files_left_in_place(tmp_path, monkeypatch, capsy
     out = capsys.readouterr().out.lower()
     assert "reverted" in out
     assert "untracked" in out
-
-
-def test_lessons_respects_configured_agent(tmp_path, monkeypatch, capsys):
-    # With agent=codex in config, lessons must read AGENTS.md (codex's memory),
-    # not fall back to a detected claude and read the wrong (empty) CLAUDE.md.
-    from looptight.config import Config, write_config
-    from looptight.lessons import LessonStore
-    from looptight.types import Lesson
-
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: "claude")
-    write_config(Config(verify="pytest -q", agent="codex"), tmp_path)
-    LessonStore(tmp_path / "AGENTS.md").add(Lesson(text="Pin codex retries"))
-
-    assert main(["lessons"]) == 0
-    assert "Pin codex retries" in capsys.readouterr().out
-
-
-def test_lessons_clear_removes_all(tmp_path, monkeypatch):
-    from looptight.lessons import LessonStore
-    from looptight.types import Lesson
-
-    monkeypatch.chdir(tmp_path)
-    store = LessonStore(tmp_path / "CLAUDE.md")
-    store.add(Lesson(text="Pin the timeout in client.py"))
-    assert main(["lessons", "--clear", "--agent", "claude"]) == 0
-    assert store.list() == []
-
-
-def test_lessons_prune_removes_matching(tmp_path, monkeypatch):
-    from looptight.lessons import LessonStore
-    from looptight.types import Lesson
-
-    monkeypatch.chdir(tmp_path)
-    store = LessonStore(tmp_path / "CLAUDE.md")
-    store.add(Lesson(text="Pin the timeout in client.py"))
-    store.add(Lesson(text="Always run the linter before committing"))
-    assert main(["lessons", "--prune", "timeout", "--agent", "claude"]) == 0
-    remaining = store.list()
-    assert len(remaining) == 1
-    assert "linter" in remaining[0].text
