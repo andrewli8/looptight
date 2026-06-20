@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 from . import __version__
 from .console import Console
@@ -21,6 +22,7 @@ from .commands import (
 )
 from .config import ConfigError
 from .detect import KNOWN_AGENTS
+from .ui import serve_ui
 
 _COMMANDS = {
     "init",
@@ -35,6 +37,7 @@ _COMMANDS = {
     "next",
     "status",
     "swarm",
+    "ui",
 }
 
 
@@ -56,6 +59,13 @@ def _positive_float(value: str) -> float:
     parsed = float(value)
     if parsed <= 0:
         raise argparse.ArgumentTypeError("must be greater than zero")
+    return parsed
+
+
+def _port(value: str) -> int:
+    parsed = _non_negative_int(value)
+    if parsed > 65535:
+        raise argparse.ArgumentTypeError("must be between 0 and 65535")
     return parsed
 
 
@@ -126,6 +136,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_swarm.add_argument("--push", action="store_true", help="push integrated commits after the swarm")
     p_swarm.add_argument("--json", action="store_true", help="emit the versioned swarm result as JSON")
 
+    p_ui = sub.add_parser("ui", help="serve the read-only swarm view on localhost")
+    p_ui.add_argument("--port", type=_port, default=8765, help="loopback port (default 8765)")
+
     sub.add_parser("hook", help="Claude Code Stop-hook handler (reads the hook event on stdin)")
 
     p_install = sub.add_parser(
@@ -182,6 +195,10 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 0
 
+    def cmd_ui(args, console):
+        serve_ui(Path.cwd(), args.port)
+        return 0
+
     handler = {
         "init": cmd_init,
         "run": cmd_run,
@@ -195,6 +212,7 @@ def main(argv: list[str] | None = None) -> int:
         "next": cmd_next,
         "status": cmd_status,
         "swarm": cmd_swarm,
+        "ui": cmd_ui,
     }[args.command]
     try:
         return handler(args, console)

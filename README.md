@@ -97,6 +97,20 @@ Swarm mode invokes the installed provider CLI. Looptight neither supplies API
 keys nor guarantees billing mode: Codex or Claude authentication determines
 whether work consumes subscription allowance, credits, or another account.
 
+### Local orchestration view
+
+```bash
+looptight ui                 # http://127.0.0.1:8765
+looptight ui --port 9123
+```
+
+The dependency-free, read-only signal map polls Git-private swarm state and
+shows the manager, grounded tasks, workers, arrows, and live outcomes. It binds
+only to loopback and sends restrictive browser headers. See the
+[remote mobile management decision](docs/remote-mobile-management.md) before
+placing any authenticated tunnel in front of it; Looptight never opens a public
+listener itself.
+
 ## Safety
 
 - Objective verifier output outranks model confidence.

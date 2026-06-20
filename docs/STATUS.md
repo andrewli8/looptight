@@ -69,21 +69,19 @@ existing CLI session and makes no model or API calls of its own.
   IDs/status/errors/worktree paths, and the push outcome for automation.
 - Human swarm output prints retained failed/conflicting worktree paths, and
   preparation errors remove only detached worktrees that never started a task.
+- Provider invocations have an explicit wall-clock timeout that terminates the
+  process tree and retains the worker worktree with a distinct timeout result.
+- `ui` serves a dependency-free, read-only, loopback-only node graph from
+  versioned Git-private swarm state with polling and restrictive browser headers.
+- Remote mobile management has a security decision record: prefer provider-native
+  control, otherwise require an identity-aware tunnel while retaining loopback.
 
 ## Next
 
-1. Bound each provider invocation with an explicit worker timeout.
-   Acceptance: `swarm --worker-timeout` terminates a timed-out provider process
-   tree, reports a distinct failure, and leaves its worktree for recovery.
-2. Add a read-only localhost orchestration view with a distinctive node graph.
-   Acceptance: `looptight ui` binds to loopback, serves a dependency-free page
-   showing manager/tasks/workers as accessible nodes and arrows from versioned
-   swarm state, polls for updates, and server/UI contract tests pass.
-3. Define a secure path for remote mobile swarm management.
-   Acceptance: a concise decision record compares provider-native remote control
-   with authenticated tunnels, specifies identity/authorization/CSRF/replay and
-   secret-handling boundaries, and recommends a minimal opt-in implementation
-   without exposing an unauthenticated listener.
+1. Add read-only interaction to the orchestration graph.
+   Acceptance: keyboard and pointer selection expose node details, status filters
+   reduce visible workers/tasks without changing swarm state, arrows redraw, and
+   responsive/accessibility contract tests pass.
 
 ## Rules
 
