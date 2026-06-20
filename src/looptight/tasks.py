@@ -61,8 +61,6 @@ def next_task(workdir: Path, *, propose_fn: ProposeFn = propose) -> NextResult:
     if _has_dirty_git_worktree(workdir):
         return NextResult(status="error", error="dirty_worktree")
     candidates = propose_fn(workdir, limit=0)
-    if not candidates:
-        return NextResult(status="no_work")
 
     tasks: list[dict[str, str | None]] = []
     for candidate in candidates:
@@ -83,7 +81,7 @@ def next_task(workdir: Path, *, propose_fn: ProposeFn = propose) -> NextResult:
 
     private_dir = claim_dir(workdir)
     task = (
-        tasks[0]
+        tasks[0] if tasks else None
         if private_dir is None
         else ClaimStore(private_dir, owner_id(workdir)).select(tasks)
     )

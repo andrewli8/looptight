@@ -51,13 +51,13 @@ existing CLI session and makes no model or API calls of its own.
   task protocol, without learning, teaching, or autopilot claims.
 - `next` rejects dirty Git worktrees before proposal or claim mutation, returns
   a machine-readable error with exit code 2, and remains unchanged outside Git.
+- `next` reconciles claims against current task evidence even when the queue is
+  empty, so completed work cannot leave contradictory active-claim status.
 
 ## Next
 
-1. Clear completed claims before returning `NO_WORK`.
-   Acceptance: after a claimed task disappears, `next --json` returns `no_work`,
-   `status --json` reports zero active claims, a regression test passes, and the
-   full verifier passes.
+_No grounded task is queued. `next` reports `NO_WORK` until a new repository
+signal or user-facing friction surfaces one._
 
 ## Rules
 

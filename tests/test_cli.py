@@ -196,6 +196,41 @@ def test_next_json_claims_from_clean_git_worktree(tmp_path, monkeypatch, capsys)
     assert json.loads(capsys.readouterr().out)["status"] == "task"
 
 
+def test_next_no_work_clears_claim_when_task_disappears(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / "docs").mkdir()
+    status = tmp_path / "docs" / "STATUS.md"
+    status.write_text(
+        "## Next\n\n1. Fix it. Acceptance: verification passes.\n",
+        encoding="utf-8",
+    )
+    commit = [
+        "git",
+        "-c",
+        "user.name=Looptight Test",
+        "-c",
+        "user.email=test@looptight.dev",
+        "commit",
+        "-qm",
+    ]
+    subprocess.run(["git", "add", "docs/STATUS.md"], check=True)
+    subprocess.run([*commit, "task"], check=True)
+    assert main(["next", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "task"
+
+    status.write_text("## Next\n\n_No work._\n", encoding="utf-8")
+    subprocess.run(["git", "add", "docs/STATUS.md"], check=True)
+    subprocess.run([*commit, "complete task"], check=True)
+
+    assert main(["next", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "no_work"
+    assert main(["status", "--json"]) == 0
+    status_payload = json.loads(capsys.readouterr().out)
+    assert status_payload["active_claims"] == 0
+    assert status_payload["claimed_task"] is None
+
+
 def test_status_json_is_read_only_and_actionable(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
 
