@@ -62,11 +62,17 @@ def cmd_init(args: argparse.Namespace, console: Console) -> int:
         console.print(f"[green]{state}[/green] session loop for Codex, Claude Code, and OpenCode")
     elif not config_exists:
         console.print()
-        console.print("For the subscription-only native loop: [bold]looptight init --integrate[/bold]")
+        console.print("For the native current-session loop: [bold]looptight init --integrate[/bold]")
     return 0
 
 
 def cmd_run(args: argparse.Namespace, console: Console) -> int:
+    if not args.headless:
+        console.print(
+            "[red]run launches an agent child process.[/red] Pass --headless explicitly, "
+            "or use `looptight init --integrate` for the current-session loop."
+        )
+        return 2
     workdir = Path.cwd()
     config = load_config().merged(
         agent=args.agent,
@@ -88,7 +94,7 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
         config = config.merged(verify=detect_verify(workdir))
     if not config.verify:
         console.print("[red]No verify command.[/red] No verify, no loop — set one:")
-        console.print('  looptight init   (auto-detects)   or   looptight run "..." --verify "pytest -q"')
+        console.print('  looptight init   or   looptight run --headless "..." --verify "pytest -q"')
         return 2
 
     if args.budget is not None and not adapter.reports_cost_usd:
@@ -133,6 +139,12 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
 
 
 def cmd_improve(args: argparse.Namespace, console: Console) -> int:
+    if not args.headless:
+        console.print(
+            "[red]improve launches agent child processes.[/red] Pass --headless explicitly, "
+            "or use `looptight next` and `looptight verify` in the current session."
+        )
+        return 2
     workdir = Path.cwd()
     config = load_config().merged(
         agent=args.agent,
@@ -157,7 +169,7 @@ def cmd_improve(args: argparse.Namespace, console: Console) -> int:
     if args.budget is not None and not adapter.reports_cost_usd:
         console.print(
             f"[yellow]{agent_name} does not report USD cost; looptight cannot enforce the "
-            "session budget and will use the provider's limit.[/yellow]"
+            "session budget; provider behavior is outside looptight's visibility.[/yellow]"
         )
 
     store = LessonStore(adapter.memory_file(workdir))
@@ -184,7 +196,7 @@ def cmd_improve(args: argparse.Namespace, console: Console) -> int:
     console.print(
         f"[bold]looptight improve[/bold] · agent: [cyan]{agent_name}[/cyan] · "
         f"verify: [cyan]{config.verify}[/cyan] · "
-        f"session budget: {'provider limit' if args.budget is None else f'${args.budget:.2f}'}"
+        f"session budget: {'not set' if args.budget is None else f'${args.budget:.2f}'}"
     )
     result = run_improve(
         workdir,
@@ -196,7 +208,7 @@ def cmd_improve(args: argparse.Namespace, console: Console) -> int:
     cost = (
         f"${result.total_cost_usd:.2f} reported"
         if adapter.reports_cost_usd
-        else "cost not reported (provider-billed)"
+        else "cost not reported"
     )
     console.print(
         f"stopped: {result.stop_reason.value.replace('_', ' ')} · "
@@ -391,9 +403,8 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
     console.print()
     console.print(
         "[dim]Ranking is a source-priority heuristic. The operating agent selects the "
-        "highest-value actionable task, runs it through[/dim] [bold]looptight run "
-        '"<task>"[/bold][dim], reviews and verifies the result, then commits and pushes a '
-        "coherent change to main.[/dim]"
+        "highest-value actionable task in the current session, validates it with[/dim] "
+        "[bold]looptight verify[/bold][dim], then commits and pushes a coherent change.[/dim]"
     )
     return 0
 

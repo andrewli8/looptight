@@ -124,6 +124,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _add_run_flags(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="explicitly allow launching the configured agent CLI as a child process",
+    )
     parser.add_argument("--agent", choices=KNOWN_AGENTS, help="agent to use (auto-detected if omitted)")
     parser.add_argument("--verify", help="verify command (auto-detected if omitted)")
     parser.add_argument("--max-iterations", type=_positive_int, help="hard iteration cap")
@@ -147,6 +152,11 @@ def _add_run_flags(parser: argparse.ArgumentParser) -> None:
 
 
 def _add_improve_flags(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        help="explicitly allow launching agent CLI child processes",
+    )
     parser.add_argument("--agent", choices=KNOWN_AGENTS, help="agent to use (auto-detected if omitted)")
     parser.add_argument("--verify", help="override the per-task verify command")
     parser.add_argument("--max-iterations", type=_positive_int, help="per-task hard iteration cap")

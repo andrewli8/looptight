@@ -23,7 +23,7 @@ supplies one. It builds on those loops instead of working around them.
 
 ```bash
 uvx looptight init                       # writes a minimal config, explains `verify`
-uvx looptight init --integrate           # installs the native subscription-only loop
+uvx looptight init --integrate           # installs the native current-session loop
 uvx looptight "fix the failing tests"    # runs your agent until verify passes
 uvx looptight lessons                    # see what it learned for next time
 ```
@@ -193,23 +193,23 @@ evidence-based repository audits and continues until interrupted or the provider
 stops accepting work.
 
 ```bash
-looptight improve                 # continue to the provider's usage limit
-looptight improve --budget 10     # optional cumulative reported-USD threshold
-looptight improve --push          # push every verified autonomous commit
+looptight improve --headless      # explicitly launch agent child processes
+looptight improve --headless --budget 10  # optional reported-USD threshold
+looptight improve --headless --push       # push every verified autonomous commit
 ```
 
 The command requires a clean Git tree, commits only verified diffs, and rolls
 failed task edits back before continuing. Commits are local by default; pushing
 is explicit. The config's `budget_usd` still limits each task. The command-line
 `improve --budget` is session-wide and can only be enforced for adapters that
-report USD cost; otherwise looptight states that it is using the provider limit.
+report USD cost; otherwise looptight reports that the threshold is unavailable.
 Ctrl-C stops the session cleanly.
 
-### Drive it from the session you're already in (no extra spend)
+### Drive it from the session you're already in (no child agent)
 
-`improve` *spawns* a coding agent (`claude -p` / `codex exec`) per task, which
-bills against **API credits**. If you're already inside an agent session, you
-usually want the opposite: spend that **session's** tokens, not new API credit.
+`improve --headless` spawns a coding-agent CLI (`claude -p` / `codex exec`) per
+task. Looptight cannot determine how a provider authenticates or bills those
+processes. If you're already inside an agent session, use the in-session path:
 `looptight next` is that path — it prints one grounded task, or `NO_WORK` when
 the queue is empty, for the agent you're already running to execute. In Git
 repositories it atomically claims the task under Git-private state, preventing

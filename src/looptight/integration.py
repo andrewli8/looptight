@@ -21,7 +21,7 @@ When asked to improve this repository autonomously:
 
 Do not run `looptight run` or `looptight improve` from this workflow: those
 launch child agents. `next` and `verify` make no model or API calls and use this
-session's existing provider subscription.
+already-running session; the provider controls authentication and billing.
 {END}
 """
 

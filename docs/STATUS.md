@@ -29,14 +29,14 @@ existing CLI session and makes no model or API calls of its own.
   OpenCode (`AGENTS.md`) and Claude Code (`CLAUDE.md`) without child agents.
 - `status --json` reports validation readiness, workspace safety, claims, and
   the next action without running checks or changing state.
+- `run` and `improve` refuse to launch agent CLIs unless `--headless` is
+  explicit; current-session docs make no provider-billing promises.
 
 ## Next
 
-1. Make every agent-spawning path explicitly headless and remove claims about
-   provider billing that looptight cannot verify.
-2. Remove generated reflection, cost estimation, and duplicate continuous-loop
+1. Remove generated reflection, cost estimation, and duplicate continuous-loop
    machinery after compatibility warnings.
-3. Remove the Rich runtime dependency and keep human and JSON output legible
+2. Remove the Rich runtime dependency and keep human and JSON output legible
    with the standard library.
 
 ## Rules
