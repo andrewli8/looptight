@@ -39,12 +39,14 @@ existing CLI session and makes no model or API calls of its own.
   telemetry fields; deprecated TOML keys are safely ignored.
 - Queued tasks require nonempty source evidence and an explicit observable
   acceptance condition before `next` can claim them.
+- Command handlers are separated from the machine-facing protocol; the stable
+  CLI surface is unchanged and `commands.py` remains below 250 lines.
 
 ## Next
 
-1. Split the oversized command-handler module without expanding the public CLI.
-   Acceptance: `commands.py` is below 250 lines, CLI help is unchanged, and the
-   full verifier passes.
+1. Split proposal discovery from proposal ranking without changing results.
+   Acceptance: `propose.py` is below 250 lines, representative JSON output is
+   unchanged, and the full verifier passes.
 
 ## Rules
 
