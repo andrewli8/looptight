@@ -48,6 +48,13 @@ class TimingOutAdapter(EditingAdapter):
         )
 
 
+class OutOfOrderAdapter(EditingAdapter):
+    def run_iteration(self, goal, context, workdir, model=None):
+        if "a.py" in goal:
+            time.sleep(0.15)
+        return super().run_iteration(goal, context, workdir, model)
+
+
 def _git(root: Path, *args: str) -> None:
     subprocess.run(["git", *args], cwd=root, check=True, capture_output=True)
 
@@ -265,3 +272,27 @@ def test_swarm_publishes_versioned_orchestration_state(tmp_path, monkeypatch):
         worker.task["id"] for worker in result.workers
     }
     assert [worker["status"] for worker in state["workers"]] == ["merged", "merged"]
+
+
+def test_swarm_publishes_worker_results_in_completion_order(tmp_path, monkeypatch):
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: OutOfOrderAdapter())
+    snapshots = []
+    publish = swarm._publish_state
+
+    def capture(root, workers, manager_status):
+        snapshots.append([worker.status for worker in workers])
+        publish(root, workers, manager_status)
+
+    monkeypatch.setattr("looptight.swarm._publish_state", capture)
+
+    result = run_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0", max_iterations=1),
+        workers=2,
+    )
+
+    assert result.passed
+    assert ["ready", "verified"] in snapshots
+    assert [worker.number for worker in result.workers] == [1, 2]

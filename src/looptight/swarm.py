@@ -261,7 +261,8 @@ def run_swarm(
             for worker in prepared
         }
         completed: list[Worker] = []
-        for future, worker in futures.items():
+        for future in concurrent.futures.as_completed(futures):
+            worker = futures[future]
             try:
                 completed.append(future.result())
             except Exception as exc:  # provider/runtime isolation boundary
@@ -269,7 +270,8 @@ def run_swarm(
                 worker.error = f"worker crashed: {exc}"
                 completed.append(worker)
             _publish_state(root, prepared, "running")
-    for worker in sorted(completed, key=lambda item: item.number):
+    completed.sort(key=lambda item: item.number)
+    for worker in completed:
         _integrate(root, worker, config.verify)
         _publish_state(root, prepared, "running")
     if push and any(worker.status == "merged" for worker in completed):

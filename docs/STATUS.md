@@ -75,15 +75,17 @@ existing CLI session and makes no model or API calls of its own.
   versioned Git-private swarm state with polling and restrictive browser headers.
 - The graph supports pointer and keyboard node inspection plus read-only status
   filters; every projection redraws its dependency arrows without mutating state.
+- Concurrent worker results publish in completion order for timely observation;
+  verified integration and returned results remain ordered by worker number.
 - Remote mobile management has a security decision record: prefer provider-native
   control, otherwise require an identity-aware tunnel while retaining loopback.
 
 ## Next
 
-1. Publish worker completions as they occur.
-   Acceptance: the swarm manager consumes concurrent worker futures in completion
-   order, publishes each result immediately, preserves deterministic integration
-   ordering, and has a regression test where a later worker finishes first.
+1. Report active workers as running.
+   Acceptance: prepared workers transition from ready to running when submitted,
+   the state file publishes that transition before any result, terminal states
+   remain unchanged, and a deterministic orchestration-state test covers it.
 
 ## Rules
 
