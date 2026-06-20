@@ -5,11 +5,16 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 STATE_SCHEMA_VERSION = 1
 STATE_FILE = "swarm-state.json"
+
+
+def _utc_timestamp() -> str:
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _state_path(root: Path) -> Path:
@@ -34,6 +39,7 @@ def empty_state() -> dict[str, object]:
         "manager": {"status": "idle"},
         "tasks": [],
         "workers": [],
+        "updated_at": None,
     }
 
 
@@ -42,7 +48,8 @@ def write_state(root: Path, state: dict[str, object]) -> None:
     path = _state_path(root)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".tmp")
-    temporary.write_text(json.dumps(state, sort_keys=True) + "\n", encoding="utf-8")
+    payload = {**state, "updated_at": _utc_timestamp()}
+    temporary.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
     os.replace(temporary, path)
 
 
@@ -75,17 +82,18 @@ main{padding:28px 32px}.controls{display:flex;align-items:center;justify-content
 <body>
 <header><h1><span>LOOPTIGHT // LOCAL CONTROL</span>Swarm Signal</h1><div class="live" id="connection">connecting</div></header>
 <main><div class="controls"><div class="filters" aria-label="Filter nodes by status"><button class="filter" data-filter="all" aria-pressed="true">all</button><button class="filter" data-filter="active" aria-pressed="false">active</button><button class="filter" data-filter="attention" aria-pressed="false">attention</button><button class="filter" data-filter="complete" aria-pressed="false">complete</button></div><div class="inspector" id="inspector" role="status" aria-live="polite"><strong>No node selected</strong><span>Choose a node for details.</span></div></div><section class="graph" id="graph" aria-label="Swarm orchestration graph"><svg class="wires" aria-hidden="true"><defs><marker id="arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7z" fill="#405047"/></marker></defs><g id="wires"></g></svg><div class="lane" id="manager"><div class="lane-title">manager</div></div><div class="lane" id="tasks"><div class="lane-title">tasks</div></div><div class="lane" id="workers"><div class="lane-title">workers</div></div></section></main>
-<footer>READ ONLY · LOOPBACK INTERFACE · STATE SCHEMA <span id="schema">—</span></footer>
+<footer>READ ONLY · LOOPBACK INTERFACE · STATE SCHEMA <span id="schema">—</span> · LAST EVENT <span id="age">UNKNOWN</span></footer>
 <script>
 const $=id=>document.getElementById(id);
 let state={schema_version:1,manager:{status:'idle'},tasks:[],workers:[]},filter='all',selected=null;
 const groups={active:new Set(['ready','running','claimed','integrating']),attention:new Set(['failed','error','conflict','timeout']),complete:new Set(['complete','completed','passed','merged'])};
 function visible(status){return filter==='all'||groups[filter].has((status||'').toLowerCase())}
+function eventAge(timestamp,now=Date.now()){const age=now-Date.parse(timestamp);if(!timestamp||!Number.isFinite(age)||age<0)return'UNKNOWN';const seconds=Math.floor(age/1000);return seconds<60?`${seconds}S AGO`:`${Math.floor(seconds/60)}M AGO`}
 function select(record){selected=record;document.querySelectorAll('.node').forEach(n=>n.setAttribute('aria-pressed',String(n.dataset.node===record.id)));const panel=$('inspector');panel.replaceChildren();const title=document.createElement('strong'),detail=document.createElement('span');title.textContent=`${record.kind} · ${record.title}`;detail.textContent=`status ${record.status||'unknown'} · ${record.detail||'no additional detail'}`;panel.append(title,detail)}
 function node(kind,title,status,detail,id){const el=document.createElement('article');el.className=`node ${kind} ${status||''}`;el.tabIndex=0;el.dataset.node=id;el.setAttribute('role','button');el.setAttribute('aria-pressed',String(selected?.id===id));el.setAttribute('aria-label',`${kind} ${title}, status ${status}`);const record={kind,title,status,detail,id};el.addEventListener('click',()=>select(record));el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(record)}});for(const [cls,text] of [['eyebrow',kind],['title',title],['status',status],['detail',detail]]){const child=document.createElement(cls==='title'?'h2':'div');child.className=cls;child.textContent=text||'';el.append(child)}return el}
 function fill(id,items,make){const lane=$(id);lane.querySelectorAll('.node,.empty').forEach(n=>n.remove());if(!items.length){const empty=document.createElement('div');empty.className='empty';empty.textContent=`no ${id}`;lane.append(empty)}else items.forEach(item=>lane.append(make(item)))}
 function wire(from,to){const a=document.querySelector(`[data-node="${CSS.escape(from)}"]`),b=document.querySelector(`[data-node="${CSS.escape(to)}"]`);if(!a||!b)return;const g=$('graph').getBoundingClientRect(),x1=a.getBoundingClientRect(),x2=b.getBoundingClientRect(),p=document.createElementNS('http://www.w3.org/2000/svg','path');const ax=x1.right-g.left,ay=x1.top+x1.height/2-g.top,bx=x2.left-g.left,by=x2.top+x2.height/2-g.top,m=(ax+bx)/2;p.setAttribute('d',`M${ax},${ay} C${m},${ay} ${m},${by} ${bx},${by}`);p.setAttribute('class','wire');$('wires').append(p)}
-function render(){const manager=state.manager||{status:'idle'};$('manager').querySelectorAll('.node').forEach(n=>n.remove());$('manager').append(node('manager','orchestrator',manager.status,'deterministic integration gate','manager'));const tasks=(state.tasks||[]).filter(t=>visible(t.status)),workers=(state.workers||[]).filter(w=>visible(w.status));fill('tasks',tasks,t=>node('task',t.goal||t.id,t.status,t.id,`task-${t.id}`));fill('workers',workers,w=>node('worker',`worker ${w.number}`,w.status,w.error||w.task_id||'',`worker-${w.number}`));$('schema').textContent=state.schema_version;$('wires').replaceChildren();tasks.forEach(t=>wire('manager',`task-${t.id}`));workers.forEach(w=>wire(`task-${w.task_id}`,`worker-${w.number}`))}
+function render(){const manager=state.manager||{status:'idle'};$('manager').querySelectorAll('.node').forEach(n=>n.remove());$('manager').append(node('manager','orchestrator',manager.status,'deterministic integration gate','manager'));const tasks=(state.tasks||[]).filter(t=>visible(t.status)),workers=(state.workers||[]).filter(w=>visible(w.status));fill('tasks',tasks,t=>node('task',t.goal||t.id,t.status,t.id,`task-${t.id}`));fill('workers',workers,w=>node('worker',`worker ${w.number}`,w.status,w.error||w.task_id||'',`worker-${w.number}`));$('schema').textContent=state.schema_version;$('age').textContent=eventAge(state.updated_at);$('wires').replaceChildren();tasks.forEach(t=>wire('manager',`task-${t.id}`));workers.forEach(w=>wire(`task-${w.task_id}`,`worker-${w.number}`))}
 async function update(){try{const r=await fetch('/api/state',{cache:'no-store'});if(!r.ok)throw Error(r.status);state=await r.json();render();$('connection').textContent='live / polling'}catch(e){$('connection').textContent='state unavailable'}}
 document.querySelectorAll('.filter').forEach(button=>button.addEventListener('click',()=>{filter=button.dataset.filter;document.querySelectorAll('.filter').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));render()}));
 update();setInterval(update,1500);addEventListener('resize',render);

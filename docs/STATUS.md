@@ -79,16 +79,17 @@ existing CLI session and makes no model or API calls of its own.
   verified integration and returned results remain ordered by worker number.
 - Submitted workers publish a running state before result collection, so the UI
   distinguishes queued preparation from active provider execution.
+- Atomic state publications include a backward-compatible UTC event timestamp;
+  the UI reports its age without inferring provider health from elapsed time.
 - Remote mobile management has a security decision record: prefer provider-native
   control, otherwise require an identity-aware tunnel while retaining loopback.
 
 ## Next
 
-1. Expose swarm-state freshness in the localhost UI.
-   Acceptance: each atomic state publication includes a UTC timestamp, the UI
-   reports last-event age without treating a long-running worker as unhealthy,
-   schema compatibility is explicit, and deterministic tests avoid wall-clock
-   timing assumptions.
+1. Verify provider-native remote management paths.
+   Acceptance: the mobile decision record links current official Codex, Claude
+   Code, and OpenCode guidance, distinguishes native capabilities from absent or
+   unverified ones, and keeps authenticated tunnels as the explicit fallback.
 
 ## Rules
 

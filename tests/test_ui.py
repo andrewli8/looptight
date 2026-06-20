@@ -12,13 +12,14 @@ from looptight import ui
 from looptight.cli import main
 
 
-def test_server_binds_loopback_and_serves_versioned_state(tmp_path):
+def test_server_binds_loopback_and_serves_versioned_state(tmp_path, monkeypatch):
     state = {
         "schema_version": 1,
         "manager": {"status": "running"},
         "tasks": [{"id": "task-a", "goal": "Build the graph", "status": "running"}],
         "workers": [{"number": 1, "task_id": "task-a", "status": "ready", "error": None}],
     }
+    monkeypatch.setattr("looptight.ui._utc_timestamp", lambda: "2026-06-20T12:00:00Z")
     ui.write_state(tmp_path, state)
     handler_type = ui._handler(tmp_path)
     handler = object.__new__(handler_type)
@@ -37,7 +38,10 @@ def test_server_binds_loopback_and_serves_versioned_state(tmp_path):
     assert response["headers"]["Cache-Control"] == "no-store"
     assert response["headers"]["X-Frame-Options"] == "DENY"
     assert "frame-ancestors 'none'" in response["headers"]["Content-Security-Policy"]
-    assert json.loads(handler.wfile.getvalue()) == state
+    assert json.loads(handler.wfile.getvalue()) == {
+        **state,
+        "updated_at": "2026-06-20T12:00:00Z",
+    }
 
     constructed = {}
 
@@ -74,6 +78,23 @@ def test_page_supports_read_only_keyboard_selection_and_status_filters():
     assert "filter(w=>visible(w.status))" in page
     assert "state=await r.json();render()" in page
     assert "addEventListener('resize',render)" in page
+
+
+def test_page_reports_event_age_without_health_inference():
+    page = ui.PAGE
+    assert 'id="age">UNKNOWN' in page
+    assert "function eventAge(timestamp,now=Date.now())" in page
+    assert "eventAge(state.updated_at)" in page
+    assert "stale" not in page.lower()
+
+
+def test_legacy_state_without_timestamp_remains_readable(tmp_path):
+    state = {"schema_version": 1, "manager": {"status": "idle"}, "tasks": [], "workers": []}
+    path = ui._state_path(tmp_path)
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps(state), encoding="utf-8")
+
+    assert ui.read_state(tmp_path) == state
 
 
 def test_ui_command_passes_port_to_server(tmp_path, monkeypatch):
