@@ -88,7 +88,9 @@ def test_summary_includes_diffstat():
 def test_render_rich_covers_the_user_facing_summary():
     # render_rich is what `looptight run` actually prints; cover it (incl. the
     # cost-honesty branch) so a bug in the user-facing path can't ship unseen.
-    from rich.console import Console
+    from io import StringIO
+
+    from looptight.console import Console
 
     reported = RunResult(
         goal="fix",
@@ -100,10 +102,9 @@ def test_render_rich_covers_the_user_facing_summary():
         lesson=Lesson(text="Pin the timeout"),
         diffstat=" src/a.py | 2 +-",
     )
-    console = Console(force_terminal=False)
-    with console.capture() as cap:
-        summary.render_rich(reported, console)
-    out = cap.get()
+    buffer = StringIO()
+    summary.render_rich(reported, Console(file=buffer))
+    out = buffer.getvalue()
     assert "iteration 1 → verify: PASS" in out
     assert "$0.07" in out
     assert "lesson saved: Pin the timeout" in out
@@ -118,8 +119,8 @@ def test_render_rich_covers_the_user_facing_summary():
         total_cost_usd=0.0,
         reports_cost_usd=False,
     )
-    with console.capture() as cap:
-        summary.render_rich(unreported, console)
-    out = cap.get()
+    buffer = StringIO()
+    summary.render_rich(unreported, Console(file=buffer))
+    out = buffer.getvalue()
     assert "cost not reported" in out
     assert "$0.00" not in out

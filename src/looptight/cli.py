@@ -3,9 +3,8 @@ from __future__ import annotations
 import argparse
 import sys
 
-from rich.console import Console
-
 from . import __version__
+from .console import Console
 from .commands import (
     cmd_doctor,
     cmd_hook,

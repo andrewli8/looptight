@@ -33,11 +33,16 @@ existing CLI session and makes no model or API calls of its own.
   agents. Current-session docs make no provider-billing promises.
 - Generated reflection, local cost gating, and the duplicate autonomous
   orchestrator are removed; legacy flags and `improve` return migration guidance.
+- The runtime is standard-library-only; plain human output and versioned JSON
+  require no Rich/Markdown dependency chain.
 
 ## Next
 
-1. Remove the Rich runtime dependency and keep human and JSON output legible
-   with the standard library.
+1. Remove remaining lesson and cost-telemetry compatibility fields after
+   confirming no primary command writes or depends on them.
+2. Validate that every queued task includes actionable evidence and an
+   observable acceptance condition before it can be claimed.
+3. Split the oversized command-handler module without expanding the public CLI.
 
 ## Rules
 

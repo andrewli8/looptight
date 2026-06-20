@@ -13,12 +13,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-from rich.console import Console
-
 from .adapters import available_adapter_names, get_adapter
 from .checkpoint import is_git_repo
 from .claims import ClaimStore, claim_dir, owner_id
 from .config import CONFIG_NAME, Config, ConfigError, find_config, load_config, write_config
+from .console import Console
 from .detect import detect_agent, detect_verify
 from .integration import install_session_instructions
 from .lessons import LessonStore

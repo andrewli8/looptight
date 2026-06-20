@@ -23,6 +23,7 @@ next → implement → verify → review → update status → commit → repeat
 It stops successfully when `next` returns `NO_WORK`. The current agent CLI owns
 authentication, models, context, and usage limits. `next`, `verify`, and
 `status` make no model or network calls.
+The installed package has no third-party runtime dependencies.
 
 ## Verification is the contract
 

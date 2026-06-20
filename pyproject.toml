@@ -20,9 +20,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Software Development :: Build Tools",
 ]
-dependencies = [
-    "rich>=13.0",
-]
+dependencies = []
 
 [project.urls]
 Homepage = "https://github.com/andrewli8/looptight"
