@@ -11,7 +11,9 @@ commit ← passing verdict ← verify command ← review
 
 ## Decision boundaries
 
-- `propose.py` reads concrete repository signals and ranks candidates.
+- `discovery.py` reads concrete repository signals into candidate tasks.
+- `ranking.py` dedupes and orders those candidates by a transparent heuristic.
+- `propose.py` composes discovery and ranking into the public candidate list.
 - `tasks.py` turns the first available candidate into versioned `next` output.
 - `claims.py` prevents duplicate work across Git worktrees using private atomic
   files under the repository's common Git directory.

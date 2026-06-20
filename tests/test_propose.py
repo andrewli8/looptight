@@ -4,15 +4,15 @@ from __future__ import annotations
 
 import shutil
 
-from looptight.propose import (
+from looptight.discovery import (
     Candidate,
     from_lint,
     from_skipped_tests,
     from_status_next,
     from_todos,
-    propose,
-    rank,
 )
+from looptight.propose import propose
+from looptight.ranking import rank
 
 
 def _write(root, rel, text):

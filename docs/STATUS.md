@@ -41,12 +41,14 @@ existing CLI session and makes no model or API calls of its own.
   acceptance condition before `next` can claim them.
 - Command handlers are separated from the machine-facing protocol; the stable
   CLI surface is unchanged and `commands.py` remains below 250 lines.
+- Proposal discovery (`discovery.py`) and ranking (`ranking.py`) are separate
+  single-concern modules; `propose.py` only composes them, and `propose`/`next`
+  JSON output is byte-for-byte unchanged.
 
 ## Next
 
-1. Split proposal discovery from proposal ranking without changing results.
-   Acceptance: `propose.py` is below 250 lines, representative JSON output is
-   unchanged, and the full verifier passes.
+_No grounded task is queued. `next` reports `NO_WORK` until a new repository
+signal or user-facing friction surfaces one._
 
 ## Rules
 
