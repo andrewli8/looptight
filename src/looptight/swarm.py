@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import concurrent.futures
+import json
 import secrets
 import subprocess
 from dataclasses import dataclass
@@ -19,6 +20,7 @@ from .types import StopReason
 from .verify import run_verify
 
 MAX_WORKERS = 50
+SCHEMA_VERSION = 1
 
 
 @dataclass
@@ -36,10 +38,38 @@ class Worker:
 class SwarmResult:
     workers: tuple[Worker, ...]
     error: str | None = None
+    pushed: str | None = None
 
     @property
     def passed(self) -> bool:
         return self.error is None and all(worker.status == "merged" for worker in self.workers)
+
+    @property
+    def status(self) -> str:
+        if self.error:
+            return "error"
+        if not self.workers:
+            return "no_work"
+        return "pass" if self.passed else "fail"
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "schema_version": SCHEMA_VERSION,
+            "command": "swarm",
+            "status": self.status,
+            "error": self.error,
+            "push": self.pushed,
+            "workers": [
+                {
+                    "number": worker.number,
+                    "task_id": worker.task["id"] if worker.task else None,
+                    "status": worker.status,
+                    "error": worker.error,
+                    "worktree": str(worker.worktree),
+                }
+                for worker in self.workers
+            ],
+        }
 
 
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -197,8 +227,11 @@ def run_swarm(
         pushed = _git(root, "push")
         if pushed.returncode != 0:
             return SwarmResult(
-                tuple(completed), pushed.stderr.strip() or "could not push integrated swarm commits"
+                tuple(completed),
+                pushed.stderr.strip() or "could not push integrated swarm commits",
+                pushed="failed",
             )
+        return SwarmResult(tuple(completed), pushed="pushed")
     return SwarmResult(tuple(completed))
 
 
@@ -227,6 +260,9 @@ def cmd_swarm(args, console: Console) -> int:
     result = run_swarm(
         Path.cwd(), agent=agent, config=config, workers=args.workers, push=args.push
     )
+    if args.json:
+        print(json.dumps(result.as_dict(), sort_keys=True))
+        return 0 if result.passed else 1
     if result.error:
         console.print(f"[red]swarm error:[/red] {result.error}")
     if not result.workers and not result.error:

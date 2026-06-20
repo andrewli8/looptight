@@ -111,6 +111,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_swarm.add_argument("--verify", help="override the project verify command")
     p_swarm.add_argument("--max-iterations", type=_positive_int, help="iteration cap per worker")
     p_swarm.add_argument("--push", action="store_true", help="push integrated commits after the swarm")
+    p_swarm.add_argument("--json", action="store_true", help="emit the versioned swarm result as JSON")
 
     sub.add_parser("hook", help="Claude Code Stop-hook handler (reads the hook event on stdin)")
 

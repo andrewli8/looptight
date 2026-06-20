@@ -65,19 +65,18 @@ existing CLI session and makes no model or API calls of its own.
   claims, isolated worktrees, bounded concurrency, and serialized verified merges.
 - Cross-worktree tests prove nonempty queues pass through `ClaimStore`; explicit
   task-selection control flow prevents duplicate workers from receiving one task.
+- `swarm --json` emits a versioned schema with overall status, per-worker task
+  IDs/status/errors/worktree paths, and the push outcome for automation.
 
 ## Next
 
-1. Add versioned JSON output for swarm automation.
-   Acceptance: `swarm --json` reports schema version, overall status, worker task
-   IDs/status/errors/worktree paths, push outcome, and regression tests pass.
-2. Make retained worker locations actionable in human output.
+1. Make retained worker locations actionable in human output.
    Acceptance: failed and conflicting workers print their worktree path and a
    regression test covers the output.
-3. Clean up unstarted worktrees when swarm preparation fails.
+2. Clean up unstarted worktrees when swarm preparation fails.
    Acceptance: a setup failure removes detached/unstarted worktrees without
    deleting task branches, preserves actionable failures, and tests pass.
-4. Bound each provider invocation with an explicit worker timeout.
+3. Bound each provider invocation with an explicit worker timeout.
    Acceptance: `swarm --worker-timeout` terminates a timed-out provider process
    tree, reports a distinct failure, and leaves its worktree for recovery.
 
