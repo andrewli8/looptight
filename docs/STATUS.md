@@ -68,8 +68,18 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_No grounded task is queued. `next` reports `NO_WORK` until a new repository
-signal or user-facing friction surfaces one._
+1. Add versioned JSON output for swarm automation.
+   Acceptance: `swarm --json` reports schema version, overall status, worker task
+   IDs/status/errors/worktree paths, push outcome, and regression tests pass.
+2. Make retained worker locations actionable in human output.
+   Acceptance: failed and conflicting workers print their worktree path and a
+   regression test covers the output.
+3. Clean up unstarted worktrees when swarm preparation fails.
+   Acceptance: a setup failure removes detached/unstarted worktrees without
+   deleting task branches, preserves actionable failures, and tests pass.
+4. Bound each provider invocation with an explicit worker timeout.
+   Acceptance: `swarm --worker-timeout` terminates a timed-out provider process
+   tree, reports a distinct failure, and leaves its worktree for recovery.
 
 ## Rules
 

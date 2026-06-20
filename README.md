@@ -86,6 +86,12 @@ are shared and repository tasks rarely scale linearly. Failed or conflicting
 worktrees are retained; successfully merged worktrees are removed.
 Pushing is opt-in with `--push`.
 
+One invocation drains one snapshot of the grounded queue and then exits. Run it
+again to consume tasks exposed by merged changes; `NO_WORK` means no provider
+process was launched. Worker branches use `looptight/swarm/...`. On failure,
+inspect retained workers with `git worktree list`; successful branches remain as
+an audit/recovery point even after their worktrees are removed.
+
 Swarm mode invokes the installed provider CLI. Looptight neither supplies API
 keys nor guarantees billing mode: Codex or Claude authentication determines
 whether work consumes subscription allowance, credits, or another account.
