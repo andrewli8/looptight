@@ -77,15 +77,17 @@ existing CLI session and makes no model or API calls of its own.
   filters; every projection redraws its dependency arrows without mutating state.
 - Concurrent worker results publish in completion order for timely observation;
   verified integration and returned results remain ordered by worker number.
+- Submitted workers publish a running state before result collection, so the UI
+  distinguishes queued preparation from active provider execution.
 - Remote mobile management has a security decision record: prefer provider-native
   control, otherwise require an identity-aware tunnel while retaining loopback.
 
 ## Next
 
-1. Report active workers as running.
-   Acceptance: prepared workers transition from ready to running when submitted,
-   the state file publishes that transition before any result, terminal states
-   remain unchanged, and a deterministic orchestration-state test covers it.
+1. Expose swarm-state freshness in the localhost UI.
+   Acceptance: each atomic state publication includes a UTC timestamp, the UI
+   reports last-update age and a distinct stale state, schema compatibility is
+   explicit, and deterministic tests avoid wall-clock timing assumptions.
 
 ## Rules
 

@@ -256,10 +256,12 @@ def run_swarm(
     _publish_state(root, prepared, "running")
 
     with executor_factory(max_workers=len(prepared)) as executor:
-        futures = {
-            executor.submit(_run_worker, worker, agent, config, worker_timeout): worker
-            for worker in prepared
-        }
+        futures = {}
+        for worker in prepared:
+            worker.status = "running"
+            future = executor.submit(_run_worker, worker, agent, config, worker_timeout)
+            futures[future] = worker
+        _publish_state(root, prepared, "running")
         completed: list[Worker] = []
         for future in concurrent.futures.as_completed(futures):
             worker = futures[future]
