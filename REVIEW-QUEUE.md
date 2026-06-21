@@ -157,3 +157,23 @@ feature (3e35ecb) is the most substantive addition and is logically sound.
 Carried-forward timeout-string concern (C1) remains unresolved; still low risk.
 The gitignored REVIEW-QUEUE.md (meta-concern C4) is the most significant
 process issue and needs a decision from the project owner.
+
+---
+
+## AUDIT 2026-06-21 (improver run)
+
+**Landed:** b1e7eb5 — test: cover git worktree detection in checkpoint.py.
+Added direct unit tests for `is_git_repo` (True inside a repo, False outside)
+and `is_git_primary_worktree` (True in primary, False outside a repo, and False
+in a linked worktree where `is_git_repo` is still True). Test-only; no
+production code change. `pytest -q` and `ruff check` clean; `looptight verify`
+returned pass. STATUS.md Next cleared (NO_WORK).
+
+**Environment note:** the container checked out a detached HEAD that initially
+appeared unrelated to the local `main` ref (stale clone artifact pointing at an
+orphan lineage, root 050cdc3). `git ls-remote` confirmed the real remote
+`main` tip equals the checked-out HEAD (2b06a49); a `git fetch origin main`
+corrected the stale tracking ref. Reset local `main` to HEAD and pushed as a
+clean fast-forward. No force-push, no history reconciliation performed.
+
+**Escalated:** none this run.
