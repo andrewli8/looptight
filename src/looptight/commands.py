@@ -10,7 +10,7 @@ from .adapters import available_adapter_names, get_adapter
 from .checkpoint import is_git_primary_worktree, is_git_repo
 from .config import CONFIG_NAME, Config, find_config, load_config, write_config
 from .console import Console
-from .detect import detect_agent, detect_verify
+from .detect import KNOWN_AGENTS, detect_agent, detect_verify
 from .integration import install_session_instructions
 from .loop import run_loop
 from .protocol_commands import (
@@ -170,6 +170,17 @@ def cmd_doctor(args: argparse.Namespace, console: Console) -> int:
         status = "available" if adapter.is_available() else "not installed"
         loop = "supply + native loop (--native)" if adapter.supports_native_loop else "supply"
         console.print(f"    - {name}: {loop}, {status}")
+    # Point the operator at the fix when a prerequisite is missing; stay silent
+    # (lines unchanged) when both are present.
+    if not verify:
+        console.print(
+            "  [yellow]hint:[/yellow] no verify command — run `looptight init` to detect one."
+        )
+    if not agent:
+        supported = ", ".join(KNOWN_AGENTS)
+        console.print(
+            f"  [yellow]hint:[/yellow] no agent on PATH — install one of: {supported}."
+        )
     return 0
 
 

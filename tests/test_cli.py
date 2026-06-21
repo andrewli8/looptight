@@ -398,6 +398,25 @@ def test_doctor_reports_no_config(tmp_path, monkeypatch, capsys):
     assert "default" in out  # "none (using defaults)"
 
 
+def test_doctor_hints_when_prerequisites_missing(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    # No verify command can be detected (empty dir) and no agent on PATH.
+    monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: None)
+    assert main(["doctor"]) == 0
+    out = capsys.readouterr().out
+    assert "looptight init" in out  # remediation for missing verify
+    assert "install one of" in out  # remediation for missing agent
+
+
+def test_doctor_omits_hints_when_prerequisites_present(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".looptight.toml").write_text('verify = "pytest -q"\n')
+    monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: "claude")
+    assert main(["doctor"]) == 0
+    out = capsys.readouterr().out
+    assert "hint:" not in out  # both present → existing lines unchanged
+
+
 def test_malformed_config_exits_cleanly_not_traceback(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / ".looptight.toml").write_text('verify = "pytest"\nbad = = toml\n')
