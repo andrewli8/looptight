@@ -588,6 +588,10 @@ def cmd_swarm(args, console: Console) -> int:
     }
     if args.continuous:
         options["max_rounds"] = args.max_rounds
+    if not args.json:
+        console.print(
+            _swarm_banner(args.workers, agent, config.verify, args.continuous, args.max_rounds)
+        )
     result = runner(Path.cwd(), **options)
     if args.json:
         print(json.dumps(result.as_dict(), sort_keys=True))
@@ -606,6 +610,12 @@ def cmd_swarm(args, console: Console) -> int:
             console.print(f"  worktree retained for recovery: {worker.worktree}")
     console.print(_swarm_tally(result.workers))
     return 0 if result.passed else 1
+
+
+def _swarm_banner(workers, agent, verify, continuous, max_rounds) -> str:
+    """One-line start banner naming what the swarm is about to run."""
+    plan = f"continuous · max {max_rounds} rounds" if continuous else "single round"
+    return f"swarm · {workers} workers · agent {agent} · verify {verify} · {plan}"
 
 
 def _swarm_tally(workers) -> str:

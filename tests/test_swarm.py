@@ -294,6 +294,40 @@ def test_swarm_human_output_ends_with_outcome_tally(tmp_path, monkeypatch, capsy
     assert lines[-1] == "2 workers · merged 2"
 
 
+def test_swarm_prints_start_banner_in_human_mode_but_not_json(tmp_path, monkeypatch, capsys):
+    _repo(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+
+    base = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+    assert main(
+        ["swarm", "--headless", "--agent", "codex", "--verify", "exit 0", "--workers", "2"]
+    ) == 0
+    human = capsys.readouterr().out
+    assert "swarm · 2 workers · agent codex · verify exit 0 · single round" in human
+
+    # The human run merged worker changes, erasing the fixture's task markers;
+    # restore the original commit so the JSON run starts from the same state.
+    _git(tmp_path, "reset", "--hard", base)
+    assert main(
+        ["swarm", "--headless", "--agent", "codex", "--verify", "exit 0", "--json"]
+    ) == 0
+    assert "swarm ·" not in capsys.readouterr().out
+
+
+def test_swarm_banner_describes_continuous_round_plan():
+    assert swarm._swarm_banner(3, "codex", "exit 0", True, 5) == (
+        "swarm · 3 workers · agent codex · verify exit 0 · continuous · max 5 rounds"
+    )
+
+
 def test_swarm_tally_counts_each_terminal_status_once():
     workers = [
         Worker(1, {"id": "a"}, "b1", Path("w1"), "base", status="merged"),
