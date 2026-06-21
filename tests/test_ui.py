@@ -145,6 +145,30 @@ def test_page_serves_status_tally_strip_under_csp(tmp_path):
     assert headers["Content-Security-Policy"] == ui.CONTENT_SECURITY_POLICY
 
 
+def test_page_serves_idle_empty_state_guidance(tmp_path):
+    page = ui.PAGE
+    # An idle, empty dashboard explains its own next step instead of bare "no" lanes.
+    assert "looptight swarm --headless" in page
+    assert "function guide(" in page
+    # Guidance only replaces the lanes when the manager is idle and nothing is queued.
+    assert "const idle=(manager.status||'').toLowerCase()==='idle'" in page
+    assert "guide('tasks'" in page
+
+    ui.write_state(tmp_path, {"schema_version": 1, "manager": {"status": "idle"}, "tasks": [], "workers": []})
+    handler = object.__new__(ui._handler(tmp_path))
+    handler.path = "/"
+    handler.wfile = BytesIO()
+    headers: dict[str, str] = {}
+    handler.send_response = MethodType(lambda self, status: None, handler)
+    handler.send_header = MethodType(lambda self, name, value: headers.update({name: value}), handler)
+    handler.end_headers = MethodType(lambda self: None, handler)
+
+    handler.do_GET()
+
+    assert b"looptight swarm --headless" in handler.wfile.getvalue()
+    assert headers["Content-Security-Policy"] == ui.CONTENT_SECURITY_POLICY
+
+
 def test_legacy_state_without_timestamp_remains_readable(tmp_path):
     state = {"schema_version": 1, "manager": {"status": "idle"}, "tasks": [], "workers": []}
     path = ui._state_path(tmp_path)
