@@ -230,3 +230,30 @@ consistent with the project's replacement-not-logging rule.
 C1 (timeout string matching), C2 (infinite-loop under --continuous --max-rounds 0),
 C3 (_task_paths stem-only heuristic), C4 (REVIEW-QUEUE.md gitignore) — none
 resolved this cycle; all remain low-to-minor severity.
+
+---
+
+## IMPROVER 2026-06-21 — no changes; carried concerns triaged
+
+`looptight next` → `no_work`, `propose` → no candidates, tree clean; `pytest`
+(231 passed, 1 skipped) and `ruff` clean. No grounded, verifiable improvement
+was available, so no code changed. Triage of the four carried-forward concerns:
+
+- **C1 (timeout string match):** keep open but de-prioritize. The coupling is
+  already exercised end-to-end — `TimingOutAdapter` drives the real
+  `run_command`, so `test_swarm_worker_timeout_stops_provider_tree_and_retains_worktree`
+  asserts `status == "timeout"` against the genuine base.py message; a wording
+  change there fails that test. A structural fix would ripple across
+  `IterationResult`, three adapters, `loop.py`, `RunResult`/`StopReason`, and
+  `summary.py` — disproportionate to a minor, headless-only, already-covered risk.
+- **C2 (infinite loop under `--continuous --max-rounds 0`):** keep open. A guard
+  is reasonable but would be speculative defensive code for an opt-in path with
+  no current trigger; not worth manufacturing this cycle.
+- **C3 (`_task_paths` stem-only heuristic):** keep open. Suggested fix is a
+  task-seeding doc note; low value, borderline churn — defer until a real
+  misclassification is observed.
+- **C4 (REVIEW-QUEUE.md gitignore):** ESCALATE to human. The file is currently
+  force-tracked despite the `.gitignore` entry (so commits persist), but the
+  ignore rule was set by a deliberate human commit (fe892fa). Resolving the
+  tension (untrack vs. move audit log to `docs/REVIEW.md` vs. GitHub Issues) is
+  a project-policy decision, not an autonomous code change.
