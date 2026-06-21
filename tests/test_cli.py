@@ -183,10 +183,27 @@ def test_next_human_output_shows_acceptance_without_changing_json(
     assert set(data) == {"schema_version", "command", "status", "task"}
 
 
-def test_next_returns_no_work_when_no_signals(tmp_path, monkeypatch, capsys):
+def test_next_no_work_directs_idea_generation_by_default(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     assert main(["next"]) == 0
+    out = capsys.readouterr().out
+    assert "NO_WORK" in out
+    assert "--no-ideas" in out  # the default offers idea generation rather than stopping
+
+
+def test_next_no_work_is_bare_with_no_ideas(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    assert main(["next", "--no-ideas"]) == 0
     assert capsys.readouterr().out.strip() == "NO_WORK"
+
+
+def test_next_json_no_work_directs_idea_generation_by_default(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    assert main(["next", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["status"] == "no_work"
+    assert data["directive"]["action"] == "generate_ideas"
+    assert "docs/STATUS.md" in data["directive"]["prompt"]
 
 
 def test_next_json_contract_is_grounded_and_stable(tmp_path, monkeypatch, capsys):
@@ -211,8 +228,9 @@ def test_next_json_contract_is_grounded_and_stable(tmp_path, monkeypatch, capsys
 
 
 def test_next_json_no_work_contract(tmp_path, monkeypatch, capsys):
+    # With idea generation off, the no_work payload is the bare, stable contract.
     monkeypatch.chdir(tmp_path)
-    assert main(["next", "--json"]) == 0
+    assert main(["next", "--json", "--no-ideas"]) == 0
     data = json.loads(capsys.readouterr().out)
     assert data == {
         "schema_version": 1,
@@ -220,6 +238,32 @@ def test_next_json_no_work_contract(tmp_path, monkeypatch, capsys):
         "status": "no_work",
         "task": None,
     }
+
+
+def test_next_json_trims_redundant_goal_for_grounded_status_task(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "thing.py").write_text("x = 1\n")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text(
+        "# S\n\n## Next\n\n"
+        "1. Cover the thing module. Evidence: src/thing.py:1; "
+        "Acceptance: a test imports thing and passes.\n",
+        encoding="utf-8",
+    )
+
+    assert main(["next", "--json"]) == 0
+    task = json.loads(capsys.readouterr().out)["task"]
+    assert "Cover the thing module" in task["goal"]
+    assert "Evidence:" not in task["goal"]  # grounding no longer duplicated into goal
+    assert "Acceptance:" not in task["goal"]
+    assert task["evidence"] == "Evidence: src/thing.py:1"
+    assert "a test imports thing" in task["acceptance"]
+
+
+def test_next_and_swarm_parsers_accept_no_ideas():
+    assert build_parser().parse_args(["next", "--no-ideas"]).no_ideas is True
+    assert build_parser().parse_args(["swarm", "--headless", "--no-ideas"]).no_ideas is True
 
 
 def test_next_json_reads_each_configured_task_file(tmp_path, monkeypatch, capsys):

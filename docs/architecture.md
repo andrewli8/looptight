@@ -64,6 +64,25 @@ A continuous run has three roles, and only two are provider agents:
 The orchestrator is not an agent reasoning about what to do next; the agents are
 the workers and the occasional planner it launches.
 
+## Idea generation
+
+A self-improvement loop should not stop the moment the grounded queue empties.
+By default, both queue-driven loops generate new evidence-backed tasks instead:
+
+- **Session-native loop:** when `next` finds no grounded work it returns `no_work`
+  with a `generate_ideas` directive (the shared `prompts.PLANNING_GOAL`). The
+  installed instructions tell the **host session agent** to write 1-6 grounded
+  `## Next` tasks and continue. looptight makes no model call — the host session,
+  already running, does the thinking, preserving the no-calls contract.
+- **`swarm --continuous`:** the deterministic orchestrator invokes the **planner
+  subagent** when work is exhausted (existing behavior).
+
+`ranking.py` weights human/planner-curated sources (`task-file`, `status-next`)
+above automated signals (`lint`, `todo`) so generated and curated intent is
+claimed before incidental nits. Generation is bounded by the planner prompt's
+grounding rail — no evidence, no task — so the loop still terminates honestly, and
+`--no-ideas` / `idea_generation = false` restores stop-on-empty everywhere.
+
 ## Usage-limit resume
 
 Provider-native usage limits stay authoritative (`SPEC.md`): looptight never

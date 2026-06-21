@@ -54,15 +54,23 @@ repeat in the current agent session:
   implement the returned task
   looptight verify --json
   commit only when verification passes
-until next returns NO_WORK
+  on an empty queue, generate grounded tasks (unless --no-ideas), else stop
 ```
 
 Native integration instructions for Codex, Claude Code, and OpenCode perform
 this protocol without requiring the user to re-prompt after each task.
 
-`NO_WORK` is successful completion. Provider exhaustion, a dirty or conflicting
-workspace, invalid configuration, and an unexecutable verifier are failures.
-Consuming the rest of a provider allowance is never a success criterion.
+By default, an empty queue is not the end: `next` returns `no_work` with a
+`generate_ideas` directive, and the loop adds 1-6 evidence-backed tasks to
+`docs/STATUS.md` before continuing. Crucially, looptight makes no model call to do
+this — in the session-native loop the **host agent** generates (it is already
+running and billed); in the swarm the existing **planner subagent** does. The
+directive's grounding rail ("if no evidence-backed improvement exists, make no
+changes") keeps generation honest and lets the loop terminate. `--no-ideas` (or
+`idea_generation = false`) restores stop-on-empty. `NO_WORK` with idea generation
+disabled is successful completion. A dirty or conflicting workspace, invalid
+configuration, and an unexecutable verifier are failures. Consuming the rest of a
+provider allowance is never a success criterion.
 
 ## Validation model
 

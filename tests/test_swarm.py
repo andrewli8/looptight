@@ -569,6 +569,26 @@ def test_continuous_swarm_replans_and_repeats_rounds(tmp_path, monkeypatch):
     assert result.plans == 1
 
 
+def test_continuous_swarm_no_ideas_stops_instead_of_planning(tmp_path, monkeypatch):
+    planned: list[bool] = []
+    monkeypatch.setattr("looptight.swarm.run_swarm", lambda *a, **k: SwarmResult(()))
+    monkeypatch.setattr(
+        "looptight.swarm.plan_next_tasks",
+        lambda *a, **k: planned.append(True) or PlanningResult("planned"),
+    )
+
+    result = run_continuous_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0"),
+        workers=1,
+        generate_ideas=False,
+    )
+
+    assert result.status == "no_work"
+    assert planned == []  # planner subagent never invoked when idea generation is off
+
+
 def _limited_worker(retry: str = "; retry after 5s") -> Worker:
     return Worker(
         1,

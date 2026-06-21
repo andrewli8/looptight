@@ -12,6 +12,9 @@ def test_installs_same_small_loop_for_all_agents(tmp_path):
     assert "looptight next --json" in SESSION_LOOP
     assert "looptight verify --json" in SESSION_LOOP
     assert "Do not run `looptight run` or `looptight improve`" in SESSION_LOOP
+    # The loop generates grounded tasks on an empty queue by default, with an escape.
+    assert "generate_ideas" in SESSION_LOOP
+    assert "--no-ideas" in SESSION_LOOP
 
 
 def test_install_repairs_start_marker_without_matching_end(tmp_path):

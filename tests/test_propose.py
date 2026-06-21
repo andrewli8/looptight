@@ -259,6 +259,16 @@ def test_rank_configured_task_file_outranks_todo():
     assert [c.source for c in ranked] == ["task-file", "todo"]  # configured file outranks ad-hoc todo
 
 
+def test_rank_human_curated_sources_outrank_automated_lint():
+    # Human/planner-curated intent (task-file, status-next) should run before an
+    # automated lint nit; task-file stays above status-next.
+    lint = Candidate(title="l", source="lint", location="b.py:2", suggested_verify=None, score=0, detail="")
+    status = Candidate(title="s", source="status-next", location="docs/STATUS.md:5", suggested_verify=None, score=0, detail="")
+    task_file = Candidate(title="f", source="task-file", location="TASKS.md:1", suggested_verify=None, score=0, detail="")
+    ranked = rank([lint, status, task_file])
+    assert [c.source for c in ranked] == ["task-file", "status-next", "lint"]
+
+
 def test_propose_dedups_by_location_and_title(tmp_path):
     _write(tmp_path, "src/a.py", "# TODO: same thing\n")
     _write(tmp_path, "docs/STATUS.md", "## Next\n\n1. same thing\n")

@@ -52,9 +52,18 @@ looptight propose        # inspect the ranked grounded task queue
 ```
 
 Tasks come from concrete repository signals such as the bounded `Next` list in
-`docs/STATUS.md`, source TODOs, skipped tests, and lint findings. Empty queues do
-not generate speculative audits. A dirty Git worktree returns a machine-readable
-error before proposal discovery or claim mutation.
+`docs/STATUS.md`, source TODOs, skipped tests, and lint findings; human-curated
+sources (`docs/STATUS.md` Next, configured task files) rank above automated lint
+and TODO signals. A dirty Git worktree returns a machine-readable error before
+proposal discovery or claim mutation.
+
+By default an empty queue does not end the loop: `next` returns `no_work` carrying
+a `generate_ideas` directive, and the session is instructed to add 1-6
+evidence-backed tasks to `docs/STATUS.md` Next and continue. looptight makes no
+model call to do this — the host session generates; only grounded, evidence-backed
+tasks are added, so the loop still terminates when nothing real remains. Pass
+`looptight next --no-ideas` (or set `idea_generation = false` in `.looptight.toml`)
+to restore stop-on-empty. The continuous swarm honors the same `--no-ideas`.
 
 In Git repositories, task claims live under Git's private common directory.
 They are shared across worktrees, never appear as tracked files, and expire

@@ -27,6 +27,7 @@ from .limits import (
     retry_after_from_error,
 )
 from .loop import run_loop
+from .prompts import PLANNING_GOAL
 from .tasks import next_task
 from .types import StopReason
 from .ui import STATE_SCHEMA_VERSION, write_state
@@ -97,16 +98,6 @@ class PlanningResult:
     status: str
     error: str | None = None
     worktree: Path | None = None
-
-
-PLANNING_GOAL = """Act as the planning manager for this repository.
-Inspect the implementation, tests, verifier output, and docs/STATUS.md. Update only
-the bounded `## Next` section of docs/STATUS.md with 1-6 necessary, evidence-backed
-tasks. Every numbered item must include `Evidence: relative/path[:line];` pointing to
-an existing repository file and an `Acceptance:` clause with an observable outcome.
-Replace stale items; do not append a changelog, implement tasks, or edit any other
-file or run Git commands. If no necessary improvement is supported by repository
-evidence, make no changes."""
 
 
 def _planned_tasks_are_grounded(root: Path, candidates: list[Candidate]) -> bool:
@@ -525,6 +516,7 @@ def run_continuous_swarm(
     limit_backoff_seconds: float = DEFAULT_LIMIT_BACKOFF,
     limit_max_wait_seconds: float = DEFAULT_LIMIT_MAX_WAIT,
     sleep: Callable[[float], None] = time.sleep,
+    generate_ideas: bool = True,
 ) -> SwarmResult:
     """Repeat verified swarm rounds, planning only when grounded work is exhausted.
 
@@ -533,6 +525,9 @@ def run_continuous_swarm(
     sleeps (preferring the provider's named reset, else exponential back-off
     capped at ``limit_max_wait_seconds``) and resumes. Genuine verify failures and
     crashes still stop the run.
+
+    When ``generate_ideas`` is False (``--no-ideas``), an exhausted queue ends the
+    run instead of invoking the planner subagent to propose new grounded tasks.
     """
     completed: list[Worker] = []
     rounds = 0
@@ -577,6 +572,8 @@ def run_continuous_swarm(
             continue
         if max_rounds and rounds >= max_rounds:
             return SwarmResult(tuple(completed), pushed=pushed, rounds=rounds, plans=plans, resumes=resumes)
+        if not generate_ideas:
+            return SwarmResult(tuple(completed), pushed=pushed, rounds=rounds, plans=plans, resumes=resumes)
         planning = plan_next_tasks(
             root,
             agent=agent,
@@ -620,6 +617,7 @@ def cmd_swarm(args, console: Console) -> int:
         agent=args.agent,
         verify=args.verify,
         max_iterations=args.max_iterations,
+        idea_generation=False if args.no_ideas else None,
     )
     agent = config.agent or detect_agent()
     if not agent:
@@ -643,6 +641,7 @@ def cmd_swarm(args, console: Console) -> int:
         options["resume_on_limit"] = args.resume_on_limit
         options["limit_backoff_seconds"] = args.limit_backoff_seconds
         options["limit_max_wait_seconds"] = args.limit_max_wait_seconds
+        options["generate_ideas"] = config.idea_generation
     if not args.json:
         console.print(
             _swarm_banner(

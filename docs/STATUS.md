@@ -125,6 +125,13 @@ existing CLI session and makes no model or API calls of its own.
 - Usage-limit detection honors an absolute wall-clock reset ("resets at 3:00pm")
   relative to an injected current time, rolling to the next day when already past,
   and falls back to relative/back-off otherwise — covered by tests.
+- Idea generation is the default on an empty queue: `next` returns `no_work` with a
+  `generate_ideas` directive (shared `prompts.PLANNING_GOAL`) so the host session
+  generates grounded tasks; `swarm --continuous` plans via its subagent. `--no-ideas`
+  / `idea_generation = false` restores stop-on-empty. looptight makes no model call.
+- Ranking places human-curated `task-file`/`status-next` above automated `lint`/
+  `todo`; `next` task JSON no longer triplicates the task text (`goal` is the
+  summary, `evidence` the pointers, `acceptance` separate). Each covered by tests.
 - `owner_id` (env override and default identity) and config.py's `find_config` and
   `render_config` now have direct unit coverage.
 - Continuous swarm can wait out a provider-reported usage/rate limit and resume
@@ -140,9 +147,14 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-(No grounded status-next tasks queued. `next` will fall through to other grounded
-evidence — lint findings, real TODO/FIXME comments, skipped tests — or report
-`NO_WORK`.)
+1. Extend usage-limit resume to the native delegate loop: `run --native`'s
+   `_delegate_loop` ignores `resume_on_limit`, so a provider limit during a driven
+   loop stops instead of waiting out and retrying like the supply loop does.
+   Evidence: src/looptight/loop.py:128; Evidence: src/looptight/limits.py:99;
+   Acceptance: a `provider rate limit reached` outcome from `drive_native_loop`
+   under an opt-in flag waits (injected sleep) and retries once before returning,
+   proven by a test with a fake adapter, supply-loop and default behavior
+   unchanged, and the suite passes.
 
 ## Rules
 

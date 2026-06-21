@@ -15,11 +15,11 @@ from .discovery import Candidate
 _SOURCE_WEIGHT = {
     "verify": 100,  # reserved for a future failing-verify extractor
     "types": 80,    # reserved for a future mypy extractor
+    "task-file": 70,    # human-curated intent outranks automated signals
+    "status-next": 65,  # human/planner-curated plan; kept just below task-file
     "lint": 60,
     "skipped-test": 40,
-    "task-file": 30,  # explicitly configured task files outrank ad-hoc signals
     "todo": 20,
-    "status-next": 10,
 }
 
 

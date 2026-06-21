@@ -117,6 +117,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="return one grounded task or NO_WORK for the current agent session",
     )
     p_next.add_argument("--json", action="store_true", help="emit the versioned task decision as JSON")
+    p_next.add_argument(
+        "--no-ideas",
+        action="store_true",
+        help="on an empty queue, report no_work instead of directing idea generation",
+    )
 
     p_status = sub.add_parser("status", help="show validation readiness and the next safe action")
     p_status.add_argument("--json", action="store_true", help="emit the versioned status as JSON")
@@ -161,6 +166,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=_positive_float,
         default=3600.0,
         help="continuous: cap on a single usage-limit wait before re-polling (default 3600)",
+    )
+    p_swarm.add_argument(
+        "--no-ideas",
+        action="store_true",
+        help="continuous: stop when the queue empties instead of planning new grounded tasks",
     )
     p_swarm.add_argument("--json", action="store_true", help="emit the versioned swarm result as JSON")
 

@@ -133,7 +133,23 @@ def test_rendered_config_contains_only_supported_settings(tmp_path):
         for line in text.splitlines()
         if line.strip() and not line.lstrip().startswith("#") and "=" in line
     }
-    assert settings == {"verify", "tasks", "direct_main"}
+    assert settings == {"verify", "tasks", "direct_main", "idea_generation"}
+
+
+def test_write_then_load_preserves_idea_generation(tmp_path):
+    config = Config(verify="pytest -q", idea_generation=False)
+    path = write_config(config, tmp_path)
+    assert load_config(path) == config
+
+
+def test_idea_generation_defaults_on_and_rejects_non_boolean(tmp_path):
+    assert Config().idea_generation is True
+
+    path = tmp_path / ".looptight.toml"
+    path.write_text('idea_generation = "no"\n', encoding="utf-8")
+    with pytest.raises(ConfigError) as exc:
+        load_config(path)
+    assert "idea_generation" in str(exc.value)
 
 
 def test_find_config_locates_config_in_parent_directory(tmp_path):

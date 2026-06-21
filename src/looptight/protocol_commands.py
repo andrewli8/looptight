@@ -119,13 +119,21 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
     """Print the single next task for the current session to execute."""
     from .tasks import next_task
 
-    result = next_task(Path.cwd())
+    idea_generation = load_config().idea_generation and not args.no_ideas
+    result = next_task(Path.cwd(), idea_generation=idea_generation)
     if args.json:
         print(json.dumps(result.as_dict(), sort_keys=True))
     elif result.status == "error":
         print(f"ERROR: {result.error}")
     elif result.status == "no_work":
-        print("NO_WORK")
+        if result.directive is not None:
+            print(
+                "NO_WORK · queue empty — generate grounded tasks for docs/STATUS.md "
+                "Next (each with Evidence and Acceptance) and continue, or pass "
+                "--no-ideas to stop."
+            )
+        else:
+            print("NO_WORK")
     else:
         assert result.task is not None
         print(result.task["goal"])

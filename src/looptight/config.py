@@ -33,6 +33,7 @@ class Config:
     verify: str | None = None
     tasks: tuple[str, ...] = ()
     direct_main: bool = False  # explicitly permit unattended execution in the primary worktree
+    idea_generation: bool = True  # generate grounded tasks when the queue is empty (off: --no-ideas)
 
     # Runtime-only controls retained for the explicit headless commands. These
     # are not part of the project configuration file contract.
@@ -72,6 +73,7 @@ def load_config(path: Path | None = None) -> Config:
             verify=_optional_string(data, "verify"),
             tasks=_string_list(data, "tasks"),
             direct_main=_boolean(data, "direct_main", False),
+            idea_generation=_boolean(data, "idea_generation", True),
         )
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{resolved} has an invalid value: {exc}") from exc
@@ -112,6 +114,9 @@ verify = {_toml_string(verify)}
 # Optional grounded task files and unattended primary-worktree permission.
 tasks = [{tasks}]
 direct_main = {str(config.direct_main).lower()}
+
+# Generate grounded tasks when the queue empties (set false, or pass --no-ideas).
+idea_generation = {str(config.idea_generation).lower()}
 """
 
 
