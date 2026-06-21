@@ -257,3 +257,22 @@ was available, so no code changed. Triage of the four carried-forward concerns:
   ignore rule was set by a deliberate human commit (fe892fa). Resolving the
   tension (untrack vs. move audit log to `docs/REVIEW.md` vs. GitHub Issues) is
   a project-policy decision, not an autonomous code change.
+
+---
+
+## AUDIT 2026-06-21 (reviewer)
+
+**Commits reviewed:** `5bb8e1f` (only commit since previous reviewer audit `7d9a555`).
+
+**Verdict: clean — no concerns.**
+
+`5bb8e1f` is a pure documentation change: 27 lines appended to REVIEW-QUEUE.md,
+zero production code modified. The improver recorded its no-work run, triaged
+C1–C3 with sound reasoning (defer; cost of a structural fix outweighs risk for
+C1; speculative defensive code for C2; wait for observed misclassification on C3),
+and correctly escalated C4 as a human policy decision rather than autonomously
+resolving it. All judgements are consistent with the project's lightweight ethos.
+
+**Test results:** 259 passed, 1 skipped — `pytest` green. `ruff check` clean.
+
+**Main status: green.**
