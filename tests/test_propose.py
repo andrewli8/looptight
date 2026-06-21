@@ -252,6 +252,13 @@ def test_rank_orders_by_source_priority():
     assert [c.source for c in ranked] == ["lint", "todo"]  # lint outranks todo
 
 
+def test_rank_configured_task_file_outranks_todo():
+    todo = Candidate(title="t", source="todo", location="a.py:1", suggested_verify=None, score=0, detail="")
+    task_file = Candidate(title="f", source="task-file", location="TASKS.md:1", suggested_verify=None, score=0, detail="")
+    ranked = rank([todo, task_file])
+    assert [c.source for c in ranked] == ["task-file", "todo"]  # configured file outranks ad-hoc todo
+
+
 def test_propose_dedups_by_location_and_title(tmp_path):
     _write(tmp_path, "src/a.py", "# TODO: same thing\n")
     _write(tmp_path, "docs/STATUS.md", "## Next\n\n1. same thing\n")

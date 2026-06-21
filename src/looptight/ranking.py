@@ -17,6 +17,7 @@ _SOURCE_WEIGHT = {
     "types": 80,    # reserved for a future mypy extractor
     "lint": 60,
     "skipped-test": 40,
+    "task-file": 30,  # explicitly configured task files outrank ad-hoc signals
     "todo": 20,
     "status-next": 10,
 }
