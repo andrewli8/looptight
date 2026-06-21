@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 import pytest
 
 from looptight.limits import (
@@ -64,6 +66,42 @@ def test_classify_limit_parses_relative_reset(text, expected):
 def test_classify_limit_without_reset_has_no_retry_after():
     signal = classify_limit("usage limit reached")
     assert signal == LimitSignal(retry_after_s=None)
+
+
+def test_classify_limit_parses_absolute_reset_time():
+    now = datetime(2026, 6, 21, 14, 0, 0)  # 2:00pm
+    signal = classify_limit("usage limit reached; resets at 3:00pm", now=now)
+    assert signal is not None
+    assert signal.retry_after_s == 3600.0
+
+
+def test_absolute_reset_rolls_to_next_day_when_already_past():
+    now = datetime(2026, 6, 21, 16, 0, 0)  # 4:00pm, after a 3pm reset
+    signal = classify_limit("rate limit exceeded; try again at 3pm", now=now)
+    assert signal is not None
+    assert signal.retry_after_s == 23 * 3600.0
+
+
+def test_absolute_reset_handles_24_hour_clock():
+    now = datetime(2026, 6, 21, 14, 30, 0)
+    signal = classify_limit("quota exceeded, available again at 15:00", now=now)
+    assert signal is not None
+    assert signal.retry_after_s == 30 * 60.0
+
+
+def test_relative_reset_takes_precedence_over_absolute():
+    now = datetime(2026, 6, 21, 14, 0, 0)
+    signal = classify_limit("rate limit; retry after 30", now=now)
+    assert signal is not None
+    assert signal.retry_after_s == 30.0
+
+
+def test_absolute_reset_ignored_without_reset_context():
+    # A bare clock time with no reset/again wording must not be treated as a reset.
+    now = datetime(2026, 6, 21, 14, 0, 0)
+    signal = classify_limit("rate limit hit while polling endpoint at 3pm", now=now)
+    assert signal is not None
+    assert signal.retry_after_s is None
 
 
 def test_format_and_parse_round_trip():

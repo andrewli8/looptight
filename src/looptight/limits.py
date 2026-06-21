@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 #: Stable marker prefix carried on an ``IterationResult``/worker error when a
 #: failed provider invocation was a usage/rate limit. The continuous swarm keys
@@ -55,14 +56,18 @@ _UNIT_SECONDS = {
     "hours": 3600.0,
 }
 
-# "retry after 30", "retry-after: 90s", "try again in 5 minutes". Absolute clock
-# times ("resets at 3pm") are intentionally out of scope — callers fall back to
-# exponential back-off when no relative interval is named.
-_RESET_RE = re.compile(
+# "retry after 30", "retry-after: 90s", "try again in 5 minutes".
+_RELATIVE_RE = re.compile(
     r"(?:retry[ -]?after|try again in)[:\s]+(\d+(?:\.\d+)?)\s*"
     r"(seconds?|secs?|minutes?|mins?|hours?|hrs?|[smh])?\b",
     re.IGNORECASE,
 )
+
+# Absolute wall-clock reset ("resets at 3:00pm", "available again at 15:00"),
+# used only when no relative interval is named and the text actually talks about
+# a reset — so a bare "at 3pm" elsewhere is not mistaken for one.
+_AT_TIME_RE = re.compile(r"\bat\s+(\d{1,2})(?::(\d{2}))?\s*([ap]\.?m\.?)?", re.IGNORECASE)
+_RESET_CONTEXT_RE = re.compile(r"reset|again|available|back online", re.IGNORECASE)
 
 _ERROR_RETRY_RE = re.compile(r"retry after (\d+)s")
 
@@ -74,22 +79,55 @@ class LimitSignal:
     retry_after_s: float | None = None
 
 
-def _parse_reset(text: str) -> float | None:
-    match = _RESET_RE.search(text)
+def _parse_relative_reset(text: str) -> float | None:
+    match = _RELATIVE_RE.search(text)
     if not match:
         return None
     seconds = float(match.group(1)) * _UNIT_SECONDS.get((match.group(2) or "").lower(), 1.0)
     return seconds if seconds > 0 else None
 
 
-def classify_limit(text: str) -> LimitSignal | None:
-    """Return a ``LimitSignal`` if ``text`` reports a usage/rate limit, else None."""
+def _parse_absolute_reset(text: str, now: datetime | None) -> float | None:
+    if not _RESET_CONTEXT_RE.search(text):
+        return None
+    match = _AT_TIME_RE.search(text)
+    if not match:
+        return None
+    hour = int(match.group(1))
+    minute = int(match.group(2) or 0)
+    meridiem = (match.group(3) or "").lower().replace(".", "")
+    if meridiem == "pm" and hour != 12:
+        hour += 12
+    elif meridiem == "am" and hour == 12:
+        hour = 0
+    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+        return None
+    current = now or datetime.now()
+    target = current.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    if target <= current:
+        target += timedelta(days=1)
+    return (target - current).total_seconds()
+
+
+def _parse_reset(text: str, now: datetime | None) -> float | None:
+    relative = _parse_relative_reset(text)
+    if relative is not None:
+        return relative
+    return _parse_absolute_reset(text, now)
+
+
+def classify_limit(text: str, now: datetime | None = None) -> LimitSignal | None:
+    """Return a ``LimitSignal`` if ``text`` reports a usage/rate limit, else None.
+
+    ``now`` (injected for testing; defaults to the current time) anchors any
+    absolute wall-clock reset the provider named.
+    """
     if not text:
         return None
     lowered = text.lower()
     if not any(re.search(pattern, lowered) for pattern in _LIMIT_PATTERNS):
         return None
-    return LimitSignal(retry_after_s=_parse_reset(text))
+    return LimitSignal(retry_after_s=_parse_reset(text, now))
 
 
 def format_limit_error(signal: LimitSignal) -> str:
