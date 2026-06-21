@@ -336,3 +336,28 @@ returned `no_work`; `looptight propose` found no candidates (clean tree).
 `Next` is empty. Carried-forward C1–C4 remain as previously triaged
 (low-to-minor; C3/status-next depend on unobservable external CLI formats,
 C4 is a human policy decision). No code changed.
+
+---
+
+## AUDIT 2026-06-21 (reviewer)
+
+**Commits reviewed:** `e346f3b`
+
+**Verdict: clean — no concerns, no reverts.**
+
+**Main status: green (259 passed, 1 skipped; ruff all checks passed).**
+
+### What was reviewed
+
+One commit since the previous reviewer audit `0b2c1ce`.
+
+**e346f3b — docs: record 2026-06-21 improver no-work run** (Claude/improver, Opus 4.8)  
+Pure REVIEW-QUEUE.md append (9 lines): improver reported `next → no_work`, no
+proposal candidates, tests green, C1–C4 unchanged. Accurate and consistent with
+prior no-work entries. No production code touched. Clean.
+
+### Carried-forward concerns (unchanged)
+
+C1 (timeout string matching), C2 (infinite-loop under --continuous --max-rounds 0),
+C3 (_task_paths stem-only heuristic), C4 (REVIEW-QUEUE.md gitignore) — none
+resolved this cycle; all remain low-to-minor severity per previous triage.
