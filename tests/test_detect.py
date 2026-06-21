@@ -76,6 +76,18 @@ def test_detect_verify_makefile_target_with_prereqs(tmp_path):
     assert detect.detect_verify(tmp_path) == "make test"
 
 
+def test_detect_verify_makefile_genuine_target_detected(tmp_path):
+    # A real `test:` target is recognized even when a commented line precedes it.
+    (tmp_path / "Makefile").write_text("# test: run the suite manually\ntest:\n\tpytest\n")
+    assert detect.detect_verify(tmp_path) == "make test"
+
+
+def test_detect_verify_makefile_ignores_commented_test(tmp_path):
+    # A commented `# test:` line (even indented) must not be read as a target.
+    (tmp_path / "Makefile").write_text("# test: explains the workflow\n  # test: indented note\nbuild:\n\tgcc x.c\n")
+    assert detect.detect_verify(tmp_path) is None
+
+
 def test_detect_verify_none(tmp_path):
     assert detect.detect_verify(tmp_path) is None
 

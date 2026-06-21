@@ -71,7 +71,11 @@ def detect_verify(root: Path | None = None) -> str | None:
     if makefile.is_file():
         try:
             if any(
-                _MAKE_TEST_TARGET.match(line) for line in makefile.read_text(encoding="utf-8").splitlines()
+                _MAKE_TEST_TARGET.match(line)
+                for line in makefile.read_text(encoding="utf-8").splitlines()
+                # A comment (optionally indented) is never a target, so skip it
+                # before matching rather than relying on the anchor alone.
+                if not line.lstrip().startswith("#")
             ):
                 return "make test"
         except OSError:
