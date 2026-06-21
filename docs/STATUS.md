@@ -101,32 +101,34 @@ existing CLI session and makes no model or API calls of its own.
 - `install_session_instructions` tolerates a START marker without END, `parse_score`
   is typed for optional output, and `Checkpointer.diffstat` returns empty on git
   failure — each covered by a regression test.
+- The read-only dashboard shows an at-a-glance status tally, `swarm` prints a
+  one-line outcome count after per-worker lines, and `next` human output includes
+  each task's acceptance condition — each covered by a test, JSON unchanged.
 
 ## Next
 
-1. Add an at-a-glance status tally to the read-only swarm dashboard: a compact
-   strip that recomputes counts by state from the polled state on each render
-   (for example total tasks, merged/complete, active, and attention), so the
-   operator does not have to count nodes by eye.
-   Evidence: src/looptight/ui.py:98; Evidence: tests/test_ui.py:1;
-   Acceptance: the served page exposes a summary element that render() fills with
-   per-status counts derived from state.tasks and state.workers, a new test in
-   tests/test_ui.py asserts the summary element is served and the page still
-   loads under the existing Content-Security-Policy, and the suite passes.
-2. Make `cmd_swarm` print a one-line outcome tally after the per-worker lines
-   (counting workers by terminal status, e.g. merged, failed, timeout, conflict)
-   so the result is legible without counting lines, without changing JSON output.
-   Evidence: src/looptight/swarm.py:601; Evidence: tests/test_swarm.py:1;
-   Acceptance: non-JSON `swarm` output ends with a summary line whose counts match
-   the worker statuses, a new test in tests/test_swarm.py asserts the tally, the
-   `--json` result stays byte-for-byte unchanged, and the suite passes.
-3. Include each task's acceptance condition in `cmd_next` human output so a person
-   running `looptight next` sees the observable done-criterion, not just the goal,
-   while leaving the `--json` decision unchanged.
-   Evidence: src/looptight/protocol_commands.py:119; Evidence: tests/test_cli.py:1;
-   Acceptance: when a task is returned, non-JSON `next` output shows both the goal
-   and its acceptance text, a new test in tests/test_cli.py asserts the acceptance
-   appears in human output while `--json` output is unchanged, and the suite passes.
+1. Give the read-only dashboard a helpful idle empty-state: when the manager is
+   idle and there are no tasks or workers, replace the bare "no tasks"/"no
+   workers" lanes with one guidance message pointing the operator at
+   `looptight swarm --headless` so a fresh view explains its own next step.
+   Evidence: src/looptight/ui.py:96; Evidence: tests/test_ui.py:1;
+   Acceptance: the served page contains idle guidance referencing the swarm
+   command, non-empty states still render their nodes unchanged, a new test in
+   tests/test_ui.py asserts the guidance text is served, and the suite passes.
+2. Show the resolved verify command in `cmd_status` human output so the operator
+   can confirm which command gates the loop, while leaving the `--json` payload
+   byte-for-byte unchanged.
+   Evidence: src/looptight/protocol_commands.py:172; Evidence: tests/test_cli.py:1;
+   Acceptance: when validation is configured, non-JSON `status` output prints the
+   resolved verify command, a new test in tests/test_cli.py asserts it appears in
+   human output while the JSON payload is unchanged, and the suite passes.
+3. Print a start banner before `cmd_swarm` launches workers (worker count, agent,
+   verify command, and continuous/round plan) so the operator knows what is
+   running during the otherwise silent execution, without emitting it in JSON mode.
+   Evidence: src/looptight/swarm.py:590; Evidence: tests/test_swarm.py:1;
+   Acceptance: non-JSON `swarm` prints a banner naming workers, agent, and verify
+   before workers start, `--json` mode prints no banner, a new test in
+   tests/test_swarm.py asserts both behaviors, and the suite passes.
 
 ## Rules
 
