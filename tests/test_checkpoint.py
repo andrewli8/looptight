@@ -91,3 +91,18 @@ def test_clean_snapshot_returns_none_when_head_lookup_fails(tmp_path, monkeypatc
 
     assert cp.snapshot() is None
     assert cp.snapshots == []
+
+
+def test_diffstat_returns_empty_when_diff_command_fails(tmp_path, monkeypatch):
+    _init_repo(tmp_path)
+    cp = Checkpointer(tmp_path)
+    cp.snapshots.append("deadbeef")
+
+    def failing_git(args, cwd):
+        return subprocess.CompletedProcess(
+            ["git", *args], 1, stdout="stale diff output", stderr="bad revision"
+        )
+
+    monkeypatch.setattr(checkpoint_module, "_git", failing_git)
+
+    assert cp.diffstat() == ""

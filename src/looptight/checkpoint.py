@@ -105,4 +105,6 @@ class Checkpointer:
         if not base:
             return ""
         result = _git(["diff", "--stat", base], self.cwd)
+        if result.returncode != 0:
+            return ""
         return result.stdout.strip()
