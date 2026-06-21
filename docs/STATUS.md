@@ -114,23 +114,15 @@ existing CLI session and makes no model or API calls of its own.
   adapter names the return code on native non-zero exits, the continuation context
   marks truncated verify output, settings hook errors name the actual type, and
   Makefile `test:` detection ignores commented lines.
+- The dashboard event age reads in hours and days past an hour, and `propose`
+  human output groups candidates by source priority — each covered by a test,
+  JSON output unchanged.
 
 ## Next
 
-1. Make the dashboard event age readable past an hour: `eventAge` caps at minutes,
-   so a stale view shows "120M AGO" instead of "2H AGO". Add hour (and day) ranges
-   while keeping the seconds and minutes output unchanged.
-   Evidence: src/looptight/ui.py:93; Evidence: tests/test_ui.py:1;
-   Acceptance: the served page formats hour and day ranges, the existing
-   seconds/minutes output is unchanged, a new test in tests/test_ui.py asserts the
-   page wires the longer ranges, and the suite passes.
-2. Make `cmd_propose` human output scannable by surfacing each candidate's source
-   priority: group or annotate the ranked list by source so the operator sees why
-   one task outranks another, without changing the `--json` output.
-   Evidence: src/looptight/protocol_commands.py:82; Evidence: tests/test_cli.py:1;
-   Acceptance: non-JSON `propose` output groups or annotates candidates by source,
-   the `--json` output is unchanged, a new test in tests/test_cli.py asserts the
-   grouping/annotation appears in human output, and the suite passes.
+No grounded follow-up is currently queued. Continuous mode delegates the next
+evidence-backed planning pass to the selected provider only after this queue is
+empty.
 
 ## Rules
 
