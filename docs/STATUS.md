@@ -121,13 +121,30 @@ existing CLI session and makes no model or API calls of its own.
   of raising `TypeError`, covered by a regression test.
 - `owner_id` (env override and default identity) and config.py's `find_config` and
   `render_config` now have direct unit coverage.
-- `is_git_repo` and `is_git_primary_worktree` have direct tests against real
-  repositories: True inside a repo, False outside, and `is_git_primary_worktree`
-  returns False in a linked worktree where `is_git_repo` is still True.
+- Continuous swarm can wait out a provider-reported usage/rate limit and resume
+  (`--resume-on-limit`, off by default): a shared adapter failure helper classifies
+  the limit, back-off prefers the provider's named reset and is capped so the loop
+  re-polls a long reset instead of sleeping unbounded. No token or billing tracking;
+  `limits.py` is pure stdlib. Each piece covered by a test, default behavior unchanged.
 
 ## Next
 
 (no grounded tasks; `looptight next` returns NO_WORK)
+
+2. Extend usage-limit back-off to the single-agent headless loop so `run` waits
+   out and resumes after a provider limit the way the continuous swarm already does.
+   Evidence: src/looptight/loop.py:44; Evidence: src/looptight/limits.py:99;
+   Acceptance: under an opt-in flag, the supply loop retries after an iteration
+   whose error is a `provider rate limit reached` signal, proven by a test using a
+   fake adapter and an injected sleep, with single-round and continuous-swarm
+   behavior unchanged and the suite passing.
+
+3. Honor absolute wall-clock reset times in limit detection so a provider message
+   like "resets at 3:00pm" yields a wait, not a fall-through to back-off.
+   Evidence: src/looptight/limits.py:79; Acceptance: classify_limit returns a
+   retry_after_s computed from a wall-clock reset string relative to an injected
+   current time, covered by a new test in tests/test_limits.py, with the existing
+   limit tests unchanged and the suite passing.
 
 ## Rules
 

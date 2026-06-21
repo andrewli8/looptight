@@ -145,6 +145,23 @@ def build_parser() -> argparse.ArgumentParser:
         default=0,
         help="continuous swarm round cap (0 = until no work, failure, or interruption)",
     )
+    p_swarm.add_argument(
+        "--resume-on-limit",
+        action="store_true",
+        help="continuous: wait out a provider usage/rate limit and resume instead of stopping",
+    )
+    p_swarm.add_argument(
+        "--limit-backoff-seconds",
+        type=_positive_float,
+        default=30.0,
+        help="continuous: initial back-off when the provider names no reset (default 30)",
+    )
+    p_swarm.add_argument(
+        "--limit-max-wait-seconds",
+        type=_positive_float,
+        default=3600.0,
+        help="continuous: cap on a single usage-limit wait before re-polling (default 3600)",
+    )
     p_swarm.add_argument("--json", action="store_true", help="emit the versioned swarm result as JSON")
 
     p_ui = sub.add_parser("ui", help="serve the read-only swarm view on localhost")

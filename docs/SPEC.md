@@ -159,7 +159,10 @@ direct_main = false
 ```
 
 Provider credentials, models, pricing, and token budgets do not belong in this
-file. Provider-native usage limits are authoritative.
+file. Provider-native usage limits are authoritative. looptight never counts
+tokens or tracks billing; the continuous swarm may, when explicitly opted in,
+*react* to a usage limit the provider itself reports — waiting it out and
+resuming — which honors that authority rather than modeling it.
 
 ## Output contract
 

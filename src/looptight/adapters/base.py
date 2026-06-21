@@ -25,10 +25,38 @@ import threading
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+from ..limits import classify_limit, format_limit_error
 from ..types import IterationResult
 
 _ACTIVE_PROCESSES: set[subprocess.Popen[str]] = set()
 _ACTIVE_LOCK = threading.Lock()
+
+
+def failure_iteration(
+    proc: subprocess.CompletedProcess[str], name: str
+) -> IterationResult:
+    """Map a non-zero provider invocation to an ``IterationResult``.
+
+    Three cases, shared by every supply-path adapter: a timeout (code 124) keeps
+    the timeout message so the swarm can tag it; a provider-reported usage/rate
+    limit is surfaced with a stable marker so the continuous swarm can wait it out
+    and resume; anything else is a generic non-zero failure.
+    """
+    stderr = (proc.stderr or "").strip()
+    if proc.returncode == 124:
+        return IterationResult(transcript=stderr or f"{name} timed out", ok=False, error=stderr)
+    signal = classify_limit(f"{proc.stdout or ''}\n{proc.stderr or ''}")
+    if signal is not None:
+        return IterationResult(
+            transcript=stderr or f"{name} reported a usage limit",
+            ok=False,
+            error=format_limit_error(signal),
+        )
+    return IterationResult(
+        transcript=stderr or f"{name} exited non-zero",
+        ok=False,
+        error=f"{name} exited {proc.returncode}",
+    )
 
 
 def _stop_process_tree(process: subprocess.Popen[str]) -> None:

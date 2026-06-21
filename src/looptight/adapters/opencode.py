@@ -18,7 +18,7 @@ from pathlib import Path
 from subprocess import CompletedProcess
 
 from ..types import IterationResult
-from .base import Adapter, run_command
+from .base import Adapter, failure_iteration, run_command
 
 
 class OpencodeAdapter(Adapter):
@@ -45,12 +45,7 @@ class OpencodeAdapter(Adapter):
     ) -> IterationResult:
         proc = self._run(_build_prompt(goal, context), workdir)
         if proc.returncode != 0:
-            error = proc.stderr.strip() if proc.returncode == 124 else f"opencode exited {proc.returncode}"
-            return IterationResult(
-                transcript=proc.stderr.strip() or "opencode exited non-zero",
-                ok=False,
-                error=error,
-            )
+            return failure_iteration(proc, self.name)
         return IterationResult(transcript=proc.stdout.strip(), ok=True)
 
 def _build_prompt(goal: str, context: str) -> str:

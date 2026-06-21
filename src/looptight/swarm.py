@@ -7,6 +7,7 @@ import json
 import re
 import secrets
 import subprocess
+import time
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,6 +19,7 @@ from .config import Config, load_config
 from .console import Console
 from .detect import detect_agent, detect_verify
 from .discovery import Candidate, from_status_next
+from .limits import is_limit_error, retry_after_from_error
 from .loop import run_loop
 from .tasks import next_task
 from .types import StopReason
@@ -26,6 +28,8 @@ from .verify import run_verify
 
 MAX_WORKERS = 50
 DEFAULT_WORKER_TIMEOUT = 3600.0
+DEFAULT_LIMIT_BACKOFF = 30.0
+DEFAULT_LIMIT_MAX_WAIT = 3600.0
 SCHEMA_VERSION = 1
 
 
@@ -47,6 +51,7 @@ class SwarmResult:
     pushed: str | None = None
     rounds: int = 1
     plans: int = 0
+    resumes: int = 0  # times the continuous run waited out a provider usage limit
 
     @property
     def passed(self) -> bool:
@@ -69,6 +74,7 @@ class SwarmResult:
             "push": self.pushed,
             "rounds": self.rounds,
             "plans": self.plans,
+            "resumes": self.resumes,
             "workers": [
                 {
                     "number": worker.number,
@@ -255,8 +261,13 @@ def _run_worker(worker: Worker, agent: str, config: Config, worker_timeout: floa
         native=False,
     )
     if result.stop_reason is not StopReason.SUCCESS:
-        worker.status = "timeout" if result.error and "provider timed out after" in result.error else "failed"
         worker.error = result.error or result.stop_reason.value
+        if is_limit_error(worker.error):
+            worker.status = "limited"
+        elif result.error and "provider timed out after" in result.error:
+            worker.status = "timeout"
+        else:
+            worker.status = "failed"
         return worker
 
     changed_paths, error = _worker_changed_paths(worker)
@@ -497,6 +508,19 @@ def run_swarm(
     return _result(root, SwarmResult(tuple(completed)))
 
 
+def _limit_wait(
+    retry_after: float | None, attempt: int, base: float, cap: float
+) -> float:
+    """Seconds to wait before resuming after a usage limit.
+
+    Prefer the reset interval the provider named; otherwise back off
+    exponentially from ``base``. Always bounded by ``cap`` so a single sleep can
+    never run away — a longer real reset is handled by re-polling, not one wait.
+    """
+    wait = retry_after if retry_after and retry_after > 0 else base * (2 ** (attempt - 1))
+    return min(wait, cap)
+
+
 def run_continuous_swarm(
     root: Path,
     *,
@@ -506,11 +530,24 @@ def run_continuous_swarm(
     worker_timeout: float = DEFAULT_WORKER_TIMEOUT,
     push: bool = False,
     max_rounds: int = 0,
+    resume_on_limit: bool = False,
+    limit_backoff_seconds: float = DEFAULT_LIMIT_BACKOFF,
+    limit_max_wait_seconds: float = DEFAULT_LIMIT_MAX_WAIT,
+    sleep: Callable[[float], None] = time.sleep,
 ) -> SwarmResult:
-    """Repeat verified swarm rounds, planning only when grounded work is exhausted."""
+    """Repeat verified swarm rounds, planning only when grounded work is exhausted.
+
+    With ``resume_on_limit``, a round (or planning pass) that fails *solely*
+    because the provider reported a usage/rate limit is not terminal: the run
+    sleeps (preferring the provider's named reset, else exponential back-off
+    capped at ``limit_max_wait_seconds``) and resumes. Genuine verify failures and
+    crashes still stop the run.
+    """
     completed: list[Worker] = []
     rounds = 0
     plans = 0
+    resumes = 0
+    limit_attempt = 0
     pushed: str | None = None
     while max_rounds == 0 or rounds < max_rounds:
         result = run_swarm(
@@ -522,16 +559,33 @@ def run_continuous_swarm(
             push=push,
         )
         rounds += 1
-        completed.extend(result.workers)
         pushed = result.pushed or pushed
-        if result.error or (result.workers and not result.passed):
+        if result.error:
+            completed.extend(result.workers)
             return SwarmResult(
-                tuple(completed), result.error, pushed, rounds=rounds, plans=plans
+                tuple(completed), result.error, pushed, rounds=rounds, plans=plans, resumes=resumes
             )
+        if result.workers and not result.passed:
+            non_merged = [w for w in result.workers if w.status != "merged"]
+            if resume_on_limit and non_merged and all(w.status == "limited" for w in non_merged):
+                # Keep work that already merged this round; the limited workers'
+                # tasks stay grounded and are re-claimed on the next round.
+                completed.extend(w for w in result.workers if w.status == "merged")
+                limit_attempt += 1
+                named = max((retry_after_from_error(w.error) or 0.0) for w in non_merged)
+                sleep(_limit_wait(named or None, limit_attempt, limit_backoff_seconds, limit_max_wait_seconds))
+                resumes += 1
+                continue
+            completed.extend(result.workers)
+            return SwarmResult(
+                tuple(completed), result.error, pushed, rounds=rounds, plans=plans, resumes=resumes
+            )
+        completed.extend(result.workers)
+        limit_attempt = 0
         if result.workers:
             continue
         if max_rounds and rounds >= max_rounds:
-            return SwarmResult(tuple(completed), pushed=pushed, rounds=rounds, plans=plans)
+            return SwarmResult(tuple(completed), pushed=pushed, rounds=rounds, plans=plans, resumes=resumes)
         planning = plan_next_tasks(
             root,
             agent=agent,
@@ -544,7 +598,13 @@ def run_continuous_swarm(
             pushed = "pushed" if push else pushed
             continue
         if planning.status == "no_work":
-            return SwarmResult(tuple(completed), pushed=pushed, rounds=rounds, plans=plans)
+            return SwarmResult(tuple(completed), pushed=pushed, rounds=rounds, plans=plans, resumes=resumes)
+        if resume_on_limit and is_limit_error(planning.error):
+            limit_attempt += 1
+            named = retry_after_from_error(planning.error)
+            sleep(_limit_wait(named, limit_attempt, limit_backoff_seconds, limit_max_wait_seconds))
+            resumes += 1
+            continue
         retained = f"; planner worktree retained: {planning.worktree}" if planning.worktree else ""
         return SwarmResult(
             tuple(completed),
@@ -552,8 +612,9 @@ def run_continuous_swarm(
             pushed,
             rounds=rounds,
             plans=plans,
+            resumes=resumes,
         )
-    return SwarmResult(tuple(completed), pushed=pushed, rounds=rounds, plans=plans)
+    return SwarmResult(tuple(completed), pushed=pushed, rounds=rounds, plans=plans, resumes=resumes)
 
 
 def cmd_swarm(args, console: Console) -> int:
@@ -588,9 +649,19 @@ def cmd_swarm(args, console: Console) -> int:
     }
     if args.continuous:
         options["max_rounds"] = args.max_rounds
+        options["resume_on_limit"] = args.resume_on_limit
+        options["limit_backoff_seconds"] = args.limit_backoff_seconds
+        options["limit_max_wait_seconds"] = args.limit_max_wait_seconds
     if not args.json:
         console.print(
-            _swarm_banner(args.workers, agent, config.verify, args.continuous, args.max_rounds)
+            _swarm_banner(
+                args.workers,
+                agent,
+                config.verify,
+                args.continuous,
+                args.max_rounds,
+                args.continuous and args.resume_on_limit,
+            )
         )
     result = runner(Path.cwd(), **options)
     if args.json:
@@ -599,7 +670,9 @@ def cmd_swarm(args, console: Console) -> int:
     if result.error:
         console.print(f"[red]swarm error:[/red] {result.error}")
     if args.continuous:
-        console.print(f"continuous · {result.rounds} rounds · {result.plans} plans")
+        console.print(
+            f"continuous · {result.rounds} rounds · {result.plans} plans · {result.resumes} resumes"
+        )
     if not result.workers and not result.error:
         console.print("NO_WORK")
         return 0
@@ -612,9 +685,11 @@ def cmd_swarm(args, console: Console) -> int:
     return 0 if result.passed else 1
 
 
-def _swarm_banner(workers, agent, verify, continuous, max_rounds) -> str:
+def _swarm_banner(workers, agent, verify, continuous, max_rounds, resume_on_limit=False) -> str:
     """One-line start banner naming what the swarm is about to run."""
     plan = f"continuous · max {max_rounds} rounds" if continuous else "single round"
+    if resume_on_limit:
+        plan += " · resume-on-limit"
     return f"swarm · {workers} workers · agent {agent} · verify {verify} · {plan}"
 
 

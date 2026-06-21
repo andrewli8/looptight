@@ -567,3 +567,170 @@ def test_continuous_swarm_replans_and_repeats_rounds(tmp_path, monkeypatch):
     assert result.workers == (worker,)
     assert result.rounds == 3
     assert result.plans == 1
+
+
+def _limited_worker(retry: str = "; retry after 5s") -> Worker:
+    return Worker(
+        1,
+        {"id": "task-1", "source": "status-next", "goal": "do", "location": None},
+        "branch",
+        Path("worker"),
+        "base",
+        status="limited",
+        error="provider rate limit reached" + retry,
+    )
+
+
+def _merged_worker() -> Worker:
+    return Worker(
+        1,
+        {"id": "task-1", "source": "status-next", "goal": "do", "location": None},
+        "branch",
+        Path("worker"),
+        "base",
+        status="merged",
+    )
+
+
+def test_continuous_swarm_waits_out_provider_limit_and_resumes(tmp_path, monkeypatch):
+    rounds = iter([SwarmResult((_limited_worker(),)), SwarmResult((_merged_worker(),)), SwarmResult(())])
+    monkeypatch.setattr("looptight.swarm.run_swarm", lambda *a, **k: next(rounds))
+    monkeypatch.setattr("looptight.swarm.plan_next_tasks", lambda *a, **k: PlanningResult("no_work"))
+    waits: list[float] = []
+
+    result = run_continuous_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0"),
+        workers=1,
+        resume_on_limit=True,
+        sleep=waits.append,
+    )
+
+    assert result.passed
+    assert result.resumes == 1
+    assert result.workers == (_merged_worker(),)  # the stale limited worker is not retained
+    assert waits == [5.0]  # honored the provider's named reset interval
+
+
+def test_continuous_swarm_limit_is_terminal_without_resume(tmp_path, monkeypatch):
+    rounds = iter([SwarmResult((_limited_worker(),))])
+    monkeypatch.setattr("looptight.swarm.run_swarm", lambda *a, **k: next(rounds))
+
+    result = run_continuous_swarm(tmp_path, agent="fake", config=Config(verify="exit 0"), workers=1)
+
+    assert not result.passed
+    assert result.resumes == 0
+    assert result.rounds == 1
+
+
+def test_continuous_swarm_stops_on_genuine_failure_after_resuming(tmp_path, monkeypatch):
+    failed = Worker(
+        1,
+        {"id": "task-1", "source": "status-next", "goal": "do", "location": None},
+        "branch",
+        Path("worker"),
+        "base",
+        status="failed",
+        error="integration verify: fail",
+    )
+    rounds = iter([SwarmResult((_limited_worker(),)), SwarmResult((failed,))])
+    monkeypatch.setattr("looptight.swarm.run_swarm", lambda *a, **k: next(rounds))
+    waits: list[float] = []
+
+    result = run_continuous_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0"),
+        workers=1,
+        resume_on_limit=True,
+        sleep=waits.append,
+    )
+
+    assert not result.passed
+    assert result.resumes == 1
+    assert result.rounds == 2
+    assert failed in result.workers
+
+
+def test_continuous_swarm_caps_a_single_limit_wait(tmp_path, monkeypatch):
+    rounds = iter([SwarmResult((_limited_worker("; retry after 99999s"),)), SwarmResult(())])
+    monkeypatch.setattr("looptight.swarm.run_swarm", lambda *a, **k: next(rounds))
+    monkeypatch.setattr("looptight.swarm.plan_next_tasks", lambda *a, **k: PlanningResult("no_work"))
+    waits: list[float] = []
+
+    run_continuous_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0"),
+        workers=1,
+        resume_on_limit=True,
+        limit_max_wait_seconds=600.0,
+        sleep=waits.append,
+    )
+
+    assert waits == [600.0]  # a multi-hour reset is clamped; the loop re-polls instead
+
+
+def test_continuous_swarm_backs_off_when_no_reset_named(tmp_path, monkeypatch):
+    rounds = iter(
+        [SwarmResult((_limited_worker(retry=""),)), SwarmResult((_limited_worker(retry=""),)), SwarmResult(())]
+    )
+    monkeypatch.setattr("looptight.swarm.run_swarm", lambda *a, **k: next(rounds))
+    monkeypatch.setattr("looptight.swarm.plan_next_tasks", lambda *a, **k: PlanningResult("no_work"))
+    waits: list[float] = []
+
+    run_continuous_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0"),
+        workers=1,
+        resume_on_limit=True,
+        limit_backoff_seconds=10.0,
+        sleep=waits.append,
+    )
+
+    assert waits == [10.0, 20.0]  # exponential back-off across consecutive limited rounds
+
+
+def test_continuous_swarm_resumes_on_planner_limit(tmp_path, monkeypatch):
+    planning = iter([PlanningResult("failed", "provider rate limit reached; retry after 7s"), PlanningResult("no_work")])
+    monkeypatch.setattr("looptight.swarm.run_swarm", lambda *a, **k: SwarmResult(()))
+    monkeypatch.setattr("looptight.swarm.plan_next_tasks", lambda *a, **k: next(planning))
+    waits: list[float] = []
+
+    result = run_continuous_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0"),
+        workers=1,
+        resume_on_limit=True,
+        sleep=waits.append,
+    )
+
+    assert result.resumes == 1
+    assert waits == [7.0]
+
+
+def test_swarm_parser_accepts_resume_on_limit_flags():
+    args = build_parser().parse_args(
+        [
+            "swarm",
+            "--headless",
+            "--continuous",
+            "--resume-on-limit",
+            "--limit-backoff-seconds",
+            "15",
+            "--limit-max-wait-seconds",
+            "120",
+        ]
+    )
+    assert args.resume_on_limit is True
+    assert args.limit_backoff_seconds == 15.0
+    assert args.limit_max_wait_seconds == 120.0
+
+
+def test_swarm_banner_notes_resume_on_limit():
+    assert swarm._swarm_banner(2, "claude", "exit 0", True, 0, True) == (
+        "swarm · 2 workers · agent claude · verify exit 0 · continuous · max 0 rounds · resume-on-limit"
+    )

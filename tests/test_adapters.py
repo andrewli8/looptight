@@ -119,6 +119,34 @@ def test_codex_and_opencode_build_prompts_with_goal_and_context():
 
 
 @pytest.mark.parametrize("name", available_adapter_names())
+def test_provider_usage_limit_is_surfaced_with_stable_marker(name, monkeypatch, tmp_path):
+    # A usage/rate-limit exit must be distinguishable from a plain failure so the
+    # continuous swarm can wait it out instead of stopping.
+    def fake_run_command(cmd, workdir, *, timeout_s=None):
+        return subprocess.CompletedProcess(cmd, 1, "", "Error: usage limit reached; retry after 60")
+
+    monkeypatch.setattr(f"looptight.adapters.{name}.run_command", fake_run_command)
+
+    result = get_adapter(name).run_iteration("fix it", "", tmp_path)
+
+    assert result.ok is False
+    assert result.error == "provider rate limit reached; retry after 60s"
+
+
+@pytest.mark.parametrize("name", available_adapter_names())
+def test_plain_nonzero_exit_is_not_mistaken_for_a_limit(name, monkeypatch, tmp_path):
+    def fake_run_command(cmd, workdir, *, timeout_s=None):
+        return subprocess.CompletedProcess(cmd, 1, "", "AssertionError: boom")
+
+    monkeypatch.setattr(f"looptight.adapters.{name}.run_command", fake_run_command)
+
+    result = get_adapter(name).run_iteration("fix it", "", tmp_path)
+
+    assert result.ok is False
+    assert result.error == f"{name} exited 1"
+
+
+@pytest.mark.parametrize("name", available_adapter_names())
 def test_agent_launch_failure_is_returned_as_iteration_error(name, monkeypatch, tmp_path):
     def fail_to_launch(*args, **kwargs):
         raise PermissionError("permission denied")

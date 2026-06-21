@@ -21,7 +21,7 @@ from pathlib import Path
 from subprocess import CompletedProcess
 
 from ..types import IterationResult
-from .base import Adapter, run_command
+from .base import Adapter, failure_iteration, run_command
 
 class ClaudeAdapter(Adapter):
     name = "claude"
@@ -50,12 +50,7 @@ class ClaudeAdapter(Adapter):
     ) -> IterationResult:
         proc = self._invoke(_build_prompt(goal, context), workdir, model)
         if proc.returncode != 0:
-            error = proc.stderr.strip() if proc.returncode == 124 else f"claude exited {proc.returncode}"
-            return IterationResult(
-                transcript=proc.stderr.strip() or "claude exited non-zero",
-                ok=False,
-                error=error,
-            )
+            return failure_iteration(proc, self.name)
         return IterationResult(transcript=_parse_result(proc.stdout), ok=True)
 
     def drive_native_loop(
