@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
+import socket
 import subprocess
 
-from looptight.claims import ClaimStore, claim_dir
+from looptight.claims import ClaimStore, claim_dir, owner_id
 
 
 def _task(task_id: str) -> dict[str, str | None]:
@@ -77,6 +78,18 @@ def test_summary_reads_claims_without_mutating_them(tmp_path):
 
     assert (owned, active) == ("one", 2)
     assert {path: path.read_text() for path in tmp_path.glob("*.json")} == before
+
+
+def test_owner_id_prefers_explicit_session_id(tmp_path, monkeypatch):
+    monkeypatch.setenv("LOOPTIGHT_SESSION_ID", "ci-session-7")
+
+    assert owner_id(tmp_path) == "ci-session-7"
+
+
+def test_owner_id_defaults_to_host_and_resolved_path(tmp_path, monkeypatch):
+    monkeypatch.delenv("LOOPTIGHT_SESSION_ID", raising=False)
+
+    assert owner_id(tmp_path) == f"{socket.gethostname()}:{tmp_path.resolve()}"
 
 
 def test_claim_dir_uses_git_private_state(tmp_path):
