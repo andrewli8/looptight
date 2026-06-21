@@ -3,9 +3,6 @@
 # Exit code 0 means pass; anything else means keep going.
 verify = "uv run pytest -q"
 
-# Everything below is optional and has a safe default.
-agent = "claude"
-max_iterations = 6   # hard cap; the loop stops here no matter what
-native = false               # drive the agent's own loop (e.g. Claude /goal) where it has one
-hook = true                 # arm the Claude Code Stop-hook auto-loop in this repo
-patience = 2                # stop early after 2 iterations with no measurable progress (value-aware stopping)
+# Optional grounded task files and unattended primary-worktree permission.
+tasks = ["docs/STATUS.md"]
+direct_main = false

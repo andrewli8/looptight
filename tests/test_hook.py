@@ -65,13 +65,14 @@ def test_run_hook_dormant_without_opt_in(tmp_path):
     assert code == 0
 
 
-def test_run_hook_blocks_when_armed_and_failing(tmp_path):
-    write_config(Config(verify="pytest -q", hook=True), tmp_path)
+def test_run_hook_ignores_legacy_hook_setting(tmp_path):
+    (tmp_path / ".looptight.toml").write_text(
+        'verify = "pytest -q"\nhook = true\nmax_iterations = 2\n'
+    )
     event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
     output, code = run_hook(event, verify_fn=lambda c, w: _fail("boom in test_x"))
+    assert output is None
     assert code == 0
-    assert json.loads(output)["decision"] == "block"
-    assert "boom in test_x" in json.loads(output)["reason"]
 
 
 def test_run_hook_allows_when_passing(tmp_path):
@@ -79,21 +80,6 @@ def test_run_hook_allows_when_passing(tmp_path):
     event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
     output, _ = run_hook(event, verify_fn=lambda c, w: _pass())
     assert output is None
-
-
-def test_run_hook_counts_continuations_then_gives_up(tmp_path):
-    write_config(Config(verify="pytest -q", hook=True, max_iterations=2), tmp_path)
-    base = {"cwd": str(tmp_path), "session_id": "s2", "stop_hook_active": True}
-
-    # Fresh user turn (stop_hook_active falsey) → block #1.
-    out1, _ = run_hook(json.dumps({**base, "stop_hook_active": False}), verify_fn=lambda c, w: _fail())
-    assert json.loads(out1)["decision"] == "block"
-    # Continuation → block #2 (cap is 2).
-    out2, _ = run_hook(json.dumps(base), verify_fn=lambda c, w: _fail())
-    assert json.loads(out2)["decision"] == "block"
-    # Continuation → cap reached, allow the stop.
-    out3, _ = run_hook(json.dumps(base), verify_fn=lambda c, w: _fail())
-    assert out3 is None
 
 
 def test_run_hook_tolerates_malformed_event():
