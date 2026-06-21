@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import dataclasses
+
 import pytest
 
 from looptight.config import (
@@ -10,6 +12,20 @@ from looptight.config import (
     load_config,
     write_config,
 )
+
+
+def test_config_is_frozen_with_each_field_declared_once():
+    field_names = [field.name for field in dataclasses.fields(Config)]
+
+    # A field declared twice in the source collapses to a single dataclass field,
+    # so a regression (re-adding the duplicate) shows up as the wrong default,
+    # not a duplicate name. Pin both: unique names and the frozen contract.
+    assert len(field_names) == len(set(field_names))
+    assert field_names.count("direct_main") == 1
+
+    config = Config()
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        config.direct_main = True  # type: ignore[misc]
 
 
 def test_defaults_are_safe():
