@@ -154,6 +154,26 @@ def test_next_prints_a_grounded_task(tmp_path, monkeypatch, capsys):
     assert "fix the timeout" in capsys.readouterr().out
 
 
+def test_next_human_output_shows_acceptance_without_changing_json(
+    tmp_path, monkeypatch, capsys
+):
+    # A person running `looptight next` should see the observable done-criterion,
+    # not just the goal, while the machine `--json` decision stays unchanged.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# TODO: fix the timeout\n")
+
+    assert main(["next"]) == 0
+    human = capsys.readouterr().out
+    assert "fix the timeout" in human
+    assert "Remove the marker" in human
+
+    assert main(["next", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert "Remove the marker" in data["task"]["acceptance"]
+    assert set(data) == {"schema_version", "command", "status", "task"}
+
+
 def test_next_returns_no_work_when_no_signals(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     assert main(["next"]) == 0

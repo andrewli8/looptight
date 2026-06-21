@@ -119,6 +119,9 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
     else:
         assert result.task is not None
         print(result.task["goal"])
+        acceptance = result.task.get("acceptance")
+        if acceptance:
+            print(f"Acceptance: {acceptance}")
     return 2 if result.status == "error" else 0
 
 
