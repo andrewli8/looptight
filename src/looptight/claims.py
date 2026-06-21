@@ -55,7 +55,7 @@ class ClaimStore:
             claim = self._read(path)
             task_id = claim.get("task_id") if claim else None
             expired = not claim or self.now - float(claim.get("claimed_at", 0)) > _STALE_AFTER_S
-            if expired or task_id not in active:
+            if expired or not isinstance(task_id, str) or task_id not in active:
                 path.unlink(missing_ok=True)
                 continue
             if claim.get("owner") == self.owner:

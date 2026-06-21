@@ -48,6 +48,25 @@ def test_claim_disappears_when_task_is_no_longer_grounded(tmp_path):
     assert not (tmp_path / "old.json").exists()
 
 
+def test_corrupt_non_string_task_id_is_treated_as_stale(tmp_path):
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    corrupt = tmp_path / "corrupt.json"
+    corrupt.write_text(
+        json.dumps(
+            {"schema_version": 1, "task_id": ["not", "a", "string"],
+             "owner": "session", "claimed_at": 100},
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+    task = _task("one")
+
+    selected = ClaimStore(tmp_path, "session", now=101).select([task])
+
+    assert selected == task
+    assert not corrupt.exists()
+
+
 def test_summary_reads_claims_without_mutating_them(tmp_path):
     tasks = [_task("one"), _task("two")]
     ClaimStore(tmp_path, "session-a", now=100).select(tasks)
