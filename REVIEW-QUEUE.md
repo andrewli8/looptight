@@ -327,3 +327,12 @@ C3 (_task_paths stem-only heuristic), C4 (REVIEW-QUEUE.md gitignore) — none
 resolved this cycle; all remain low-to-minor severity per previous triage.
 
 ---
+
+## AUDIT 2026-06-21 (improver run)
+
+**No changes: nothing safe and valuable to do.** `looptight next --json`
+returned `no_work`; `looptight propose` found no candidates (clean tree).
+`pytest -q` green (259 passed, 1 skipped) and `ruff check` clean. STATUS.md
+`Next` is empty. Carried-forward C1–C4 remain as previously triaged
+(low-to-minor; C3/status-next depend on unobservable external CLI formats,
+C4 is a human policy decision). No code changed.
