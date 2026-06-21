@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from .adapters import available_adapter_names, get_adapter
-from .checkpoint import is_git_repo
+from .checkpoint import is_git_primary_worktree, is_git_repo
 from .config import CONFIG_NAME, Config, find_config, load_config, write_config
 from .console import Console
 from .detect import detect_agent, detect_verify
@@ -91,6 +91,12 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
         patience=args.patience,
         native=True if args.native else None,
     )
+    if is_git_primary_worktree(workdir) and not config.direct_main:
+        console.print(
+            "[red]run --headless refuses a Git primary worktree by default.[/red] "
+            "Use an isolated worktree, or set `direct_main = true` explicitly."
+        )
+        return 2
 
     agent_name = config.agent or detect_agent()
     if not agent_name:

@@ -52,6 +52,50 @@ def test_run_requires_explicit_headless(capsys):
     assert "--headless" in capsys.readouterr().out
 
 
+def test_headless_run_refuses_git_primary_worktree_before_provider(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    monkeypatch.setattr(
+        "looptight.commands.get_adapter",
+        lambda *args: pytest.fail("provider adapter must not be loaded"),
+    )
+
+    assert main(["run", "--headless", "fix it", "--agent", "codex", "--verify", "true"]) == 2
+    assert "primary worktree" in capsys.readouterr().out.lower()
+
+
+def test_headless_run_allows_primary_worktree_with_direct_main(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / ".looptight.toml").write_text("direct_main = true\n")
+    adapter = __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter()
+    monkeypatch.setattr("looptight.commands.get_adapter", lambda *args: adapter)
+
+    assert main(["run", "--headless", "fix it", "--agent", "codex", "--verify", "true"]) == 0
+    assert adapter.iterations_run == 1
+
+
+def test_headless_run_allows_isolated_git_worktree(tmp_path, monkeypatch):
+    primary = tmp_path / "primary"
+    isolated = tmp_path / "isolated"
+    primary.mkdir()
+    subprocess.run(["git", "init", "-q"], cwd=primary, check=True)
+    subprocess.run(["git", "config", "user.email", "t@example.com"], cwd=primary, check=True)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=primary, check=True)
+    (primary / "tracked").write_text("content\n")
+    subprocess.run(["git", "add", "tracked"], cwd=primary, check=True)
+    subprocess.run(["git", "commit", "-qm", "initial"], cwd=primary, check=True)
+    subprocess.run(["git", "worktree", "add", "-q", "--detach", str(isolated)], cwd=primary, check=True)
+    monkeypatch.chdir(isolated)
+    adapter = __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter()
+    monkeypatch.setattr("looptight.commands.get_adapter", lambda *args: adapter)
+
+    assert main(["run", "--headless", "fix it", "--agent", "codex", "--verify", "true"]) == 0
+    assert adapter.iterations_run == 1
+
+
 def test_improve_is_deprecated_without_launching_agent(capsys):
     assert main(["improve", "--headless"]) == 2
     out = capsys.readouterr().out.lower()
