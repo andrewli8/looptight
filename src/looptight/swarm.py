@@ -172,6 +172,42 @@ def _git_clean(root: Path) -> bool:
     return status.returncode == 0 and not status.stdout.strip()
 
 
+def _task_paths(root: Path, task: dict[str, str | None]) -> set[str]:
+    """Return grounded paths that may be changed while completing ``task``."""
+    paths: set[str] = set()
+    references = [task.get("location")]
+    evidence = task.get("evidence") or ""
+    references.extend(re.findall(r"\bEvidence:\s+([^;\s]+)", evidence))
+    for reference in references:
+        if not reference:
+            continue
+        path_text, separator, line_text = reference.rpartition(":")
+        if not separator or not line_text.isdigit():
+            path_text = reference
+        path = Path(path_text)
+        if path.is_absolute() or ".." in path.parts:
+            continue
+        relative = path.as_posix()
+        paths.add(relative)
+        if len(path.parts) >= 2 and path.parts[0] == "src" and path.suffix == ".py":
+            counterpart = Path("tests") / f"test_{path.stem}.py"
+            if (root / counterpart).is_file():
+                paths.add(counterpart.as_posix())
+    return paths
+
+
+def _worker_changed_paths(worker: Worker) -> tuple[list[str] | None, str | None]:
+    changed = _git(worker.worktree, "diff", "--name-only", "-z", worker.base, "--")
+    untracked = _git(
+        worker.worktree, "ls-files", "--others", "--exclude-standard", "-z"
+    )
+    if changed.returncode != 0 or untracked.returncode != 0:
+        error = changed.stderr.strip() or untracked.stderr.strip()
+        return None, error or "could not inspect worker changes"
+    paths = sorted(set((changed.stdout + untracked.stdout).rstrip("\0").split("\0")))
+    return ([path for path in paths if path], None)
+
+
 def _prepare_workers(root: Path, count: int) -> tuple[list[Worker], str | None]:
     common = _git(root, "rev-parse", "--git-common-dir")
     head = _git(root, "rev-parse", "HEAD")
@@ -221,13 +257,24 @@ def _run_worker(worker: Worker, agent: str, config: Config, worker_timeout: floa
         worker.error = result.error or result.stop_reason.value
         return worker
 
+    changed_paths, error = _worker_changed_paths(worker)
+    if changed_paths is None:
+        worker.status = "failed"
+        worker.error = error
+        return worker
+    outside_scope = sorted(set(changed_paths) - _task_paths(worker.worktree, worker.task))
+    if outside_scope:
+        worker.status = "failed"
+        worker.error = "worker changed files outside task scope: " + ", ".join(outside_scope)
+        return worker
+
     status = _git(worker.worktree, "status", "--porcelain")
     if status.returncode != 0:
         worker.status = "failed"
         worker.error = status.stderr.strip() or "could not inspect worker changes"
         return worker
     if status.stdout.strip():
-        added = _git(worker.worktree, "add", "-A")
+        added = _git(worker.worktree, "add", "-A", "--", *changed_paths)
         committed = _git(
             worker.worktree,
             "commit",

@@ -32,8 +32,15 @@ class EditingAdapter(Adapter):
 
     def run_iteration(self, goal, context, workdir, model=None):
         source = "a" if "a.py" in goal else "b"
-        (workdir / f"worker-{source}.txt").write_text(goal, encoding="utf-8")
+        (workdir / "src" / f"{source}.py").write_text(goal, encoding="utf-8")
         return IterationResult(transcript="done")
+
+
+class UnrelatedEditingAdapter(EditingAdapter):
+    def run_iteration(self, goal, context, workdir, model=None):
+        result = super().run_iteration(goal, context, workdir, model)
+        (workdir / "unrelated.txt").write_text("outside task scope", encoding="utf-8")
+        return result
 
 
 class CrashingAdapter(EditingAdapter):
@@ -157,11 +164,44 @@ def test_swarm_runs_isolated_workers_and_serializes_verified_merges(tmp_path, mo
     assert result.passed
     assert [worker.status for worker in result.workers] == ["merged", "merged"]
     assert len({worker.task["id"] for worker in result.workers}) == 2
-    assert (tmp_path / "worker-a.txt").is_file()
-    assert (tmp_path / "worker-b.txt").is_file()
+    assert "task a" in (tmp_path / "src" / "a.py").read_text(encoding="utf-8")
+    assert "task b" in (tmp_path / "src" / "b.py").read_text(encoding="utf-8")
     assert not subprocess.run(
         ["git", "status", "--porcelain"], cwd=tmp_path, capture_output=True, text=True
     ).stdout
+
+
+def test_swarm_rejects_worker_changes_outside_claimed_task_scope(tmp_path, monkeypatch):
+    _repo(tmp_path)
+    base = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    monkeypatch.setattr(
+        "looptight.swarm.get_adapter", lambda name: UnrelatedEditingAdapter()
+    )
+
+    result = run_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0", max_iterations=1),
+        workers=1,
+    )
+
+    assert result.workers[0].status == "failed"
+    assert result.workers[0].error == "worker changed files outside task scope: unrelated.txt"
+    assert result.workers[0].worktree.is_dir()
+    assert subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=result.workers[0].worktree,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip() == base
+    assert not (tmp_path / "unrelated.txt").exists()
 
 
 def test_swarm_json_reports_versioned_result(tmp_path, monkeypatch, capsys):
