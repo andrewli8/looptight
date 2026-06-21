@@ -354,6 +354,30 @@ def test_status_json_is_read_only_and_actionable(tmp_path, monkeypatch, capsys):
     assert list(tmp_path.iterdir()) == []
 
 
+def test_status_human_shows_verify_command_without_changing_json(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".looptight.toml").write_text('verify = "make check"\n')
+
+    assert main(["status"]) == 0
+    human = capsys.readouterr().out
+    assert "verify: make check" in human
+
+    assert main(["status", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert set(data) == {
+        "schema_version",
+        "command",
+        "validation",
+        "workspace",
+        "claimed_task",
+        "active_claims",
+        "next_action",
+    }
+    assert "verify" not in data
+
+
 def test_doctor_runs(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert main(["doctor"]) == 0

@@ -173,6 +173,8 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         print(json.dumps(payload, sort_keys=True))
     else:
         console.print(f"validation: {payload['validation']}")
+        if verify:
+            console.print(f"verify: {verify}")
         console.print(f"workspace: {workspace}")
         owner = f" · yours: {claimed_task}" if claimed_task else ""
         console.print(f"claims: {active_claims} active{owner}")
