@@ -121,17 +121,13 @@ existing CLI session and makes no model or API calls of its own.
   of raising `TypeError`, covered by a regression test.
 - `owner_id` (env override and default identity) and config.py's `find_config` and
   `render_config` now have direct unit coverage.
+- `is_git_repo` and `is_git_primary_worktree` have direct tests against real
+  repositories: True inside a repo, False outside, and `is_git_primary_worktree`
+  returns False in a linked worktree where `is_git_repo` is still True.
 
 ## Next
 
-1. Add direct unit coverage for git worktree detection in checkpoint.py:
-   `is_git_primary_worktree` has no tests and `is_git_repo` is only exercised
-   through mocks.
-   Evidence: src/looptight/checkpoint.py:38; Evidence: tests/test_checkpoint.py:1;
-   Acceptance: new tests in tests/test_checkpoint.py prove `is_git_repo` returns
-   True inside a real git repository and False outside one, and
-   `is_git_primary_worktree` returns True in a primary worktree and False outside
-   a git repository, with no production code change, and the suite passes.
+(no grounded tasks; `looptight next` returns NO_WORK)
 
 ## Rules
 

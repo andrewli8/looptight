@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 
 import looptight.checkpoint as checkpoint_module
-from looptight.checkpoint import Checkpointer
+from looptight.checkpoint import Checkpointer, is_git_primary_worktree, is_git_repo
 
 
 def _git(args: list[str], cwd: Path) -> None:
@@ -26,6 +26,32 @@ def _init_repo(path: Path) -> None:
     (path / "f.txt").write_text("committed")
     _git(["add", "-A"], path)
     _git(["commit", "-q", "--no-gpg-sign", "-m", "init"], path)
+
+
+def test_is_git_repo_true_inside_repository(tmp_path):
+    _init_repo(tmp_path)
+    assert is_git_repo(tmp_path) is True
+
+
+def test_is_git_repo_false_outside_repository(tmp_path):
+    assert is_git_repo(tmp_path) is False  # tmp_path is not a git repo
+
+
+def test_is_git_primary_worktree_true_in_primary(tmp_path):
+    _init_repo(tmp_path)
+    assert is_git_primary_worktree(tmp_path) is True
+
+
+def test_is_git_primary_worktree_false_outside_repository(tmp_path):
+    assert is_git_primary_worktree(tmp_path) is False  # tmp_path is not a git repo
+
+
+def test_is_git_primary_worktree_false_in_linked_worktree(tmp_path):
+    _init_repo(tmp_path)
+    linked = tmp_path / "linked"
+    _git(["worktree", "add", "-q", str(linked)], tmp_path)
+    assert is_git_primary_worktree(linked) is False
+    assert is_git_repo(linked) is True
 
 
 def test_snapshot_then_restore_recovers_uncommitted_work(tmp_path):
