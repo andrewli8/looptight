@@ -119,6 +119,32 @@ def test_page_reports_event_age_without_health_inference():
     assert "stale" not in page.lower()
 
 
+def test_page_serves_status_tally_strip_under_csp(tmp_path):
+    page = ui.PAGE
+    # The summary strip is part of the served markup and render() fills it from
+    # per-status counts derived from state.tasks and state.workers.
+    assert 'id="tally"' in page
+    assert "function tally()" in page
+    assert "render(){tally();" in page
+    assert "[...(state.tasks||[]),...(state.workers||[])]" in page
+
+    ui.write_state(tmp_path, {"schema_version": 1, "manager": {}, "tasks": [], "workers": []})
+    handler = object.__new__(ui._handler(tmp_path))
+    handler.path = "/"
+    handler.wfile = BytesIO()
+    headers: dict[str, str] = {}
+    response: dict[str, int] = {}
+    handler.send_response = MethodType(lambda self, status: response.update(status=status), handler)
+    handler.send_header = MethodType(lambda self, name, value: headers.update({name: value}), handler)
+    handler.end_headers = MethodType(lambda self: None, handler)
+
+    handler.do_GET()
+
+    assert response["status"] == 200
+    assert b'id="tally"' in handler.wfile.getvalue()
+    assert headers["Content-Security-Policy"] == ui.CONTENT_SECURITY_POLICY
+
+
 def test_legacy_state_without_timestamp_remains_readable(tmp_path):
     state = {"schema_version": 1, "manager": {"status": "idle"}, "tasks": [], "workers": []}
     path = ui._state_path(tmp_path)
