@@ -36,6 +36,7 @@ class Config:
     native: bool = False  # drive the agent's own loop (e.g. Claude /goal) where it has one
     hook: bool = False  # arm the Claude Code Stop-hook auto-loop in this repo
     patience: int = 0  # stop early after N iterations of no measurable progress (0 = off)
+    direct_main: bool = False  # explicitly permit unattended execution in the primary worktree
 
     def merged(self, **overrides: object) -> "Config":
         """Return a new Config with any non-None overrides applied (CLI > file)."""
@@ -70,6 +71,7 @@ def load_config(path: Path | None = None) -> Config:
             native=_boolean(data, "native", False),
             hook=_boolean(data, "hook", False),
             patience=int(data.get("patience", 0)),
+            direct_main=_boolean(data, "direct_main", False),
         )
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{resolved} has an invalid value: {exc}") from exc

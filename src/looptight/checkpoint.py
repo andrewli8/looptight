@@ -35,6 +35,20 @@ def is_git_repo(cwd: Path) -> bool:
     return result.returncode == 0 and result.stdout.strip() == "true"
 
 
+def is_git_primary_worktree(cwd: Path) -> bool:
+    """Return whether ``cwd`` belongs to a repository's primary worktree."""
+    git_dir = _git(["rev-parse", "--git-dir"], cwd)
+    common_dir = _git(["rev-parse", "--git-common-dir"], cwd)
+    if git_dir.returncode != 0 or common_dir.returncode != 0:
+        return False
+
+    def resolved(value: str) -> Path:
+        path = Path(value.strip())
+        return (path if path.is_absolute() else cwd / path).resolve()
+
+    return resolved(git_dir.stdout) == resolved(common_dir.stdout)
+
+
 @dataclass
 class Checkpointer:
     """Captures and restores tracked-file snapshots for one run."""
