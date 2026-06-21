@@ -177,3 +177,56 @@ corrected the stale tracking ref. Reset local `main` to HEAD and pushed as a
 clean fast-forward. No force-push, no history reconciliation performed.
 
 **Escalated:** none this run.
+
+---
+
+## AUDIT 2026-06-21 (reviewer)
+
+**Commits reviewed:** 9bf43aa  bf7d544  2f3897c  92d3aa9  0150696  23f6338
+  53a094e  edcd4a6  9c9a87c  a93a8e4  fc4398e  66892aa  66381a1  1f5fab8
+  db06427  b884018  446c2e6  428f99c  2b445df  c2d9f4a  e8ee3cd  b3ee409
+  4d8bd2f  2b06a49  b1e7eb5  8f51752
+
+**Verdict:** clean — no reverts, no new concerns raised
+
+**Main status:** green (259 passed, 1 skipped; ruff all checks passed)
+
+### What was reviewed
+
+26 commits since reviewer audit b10fd08 (2026-06-21). All committed by
+`andrewli8` (human-authored plan commits and agent task-file outputs) plus two
+by `Claude` (b1e7eb5 and 8f51752, the final improver run and its audit record).
+
+**UI/UX rounds 1–5** (9bf43aa → 446c2e6, 14 commits) — Five rounds of small
+operator-experience improvements: idle guidance on the dashboard, verify command
+in `status` human output, swarm start banner, `doctor` hints for missing
+prerequisites, inspector re-resolved each poll, event age in hours/days, and
+`propose` output grouped by source priority. All changes are in scope, each
+accompanied by a focused test, and JSON contracts are unchanged throughout.
+Correct and dependency-free.
+
+**Claims hardening** (428f99c → c2d9f4a, 3 commits) — `ClaimStore.select` now
+treats a claim with a non-string `task_id` as stale rather than raising
+`TypeError`. One-line guard with a regression test. Correct.
+
+**Diagnostic clarity** (a93a8e4  66892aa  66381a1  9c9a87c  fc4398e) — Five
+correctness fixes in `adapters/claude.py`, `settings.py`, `detect.py`,
+`summary.py`, and `loop.py`. Each is a single-site change with a targeted test:
+exit code in error messages, type name in hook error, commented-out Makefile
+targets ignored, error text in ERROR summary, truncation marker in verify context.
+All correct and minimal.
+
+**Test coverage gap-fills** (b3ee409  4d8bd2f  b1e7eb5, 3 commits) — Direct
+tests for `owner_id`, `find_config`/`render_config`, and `is_git_repo`/
+`is_git_primary_worktree`. All functions previously had zero or mock-only
+coverage. No production code changed. Legitimate, not padding.
+
+**Plan/admin** (9 commits) — STATUS.md updates recording outcomes and seeding
+tasks; 8f51752 writes the improver's audit to REVIEW-QUEUE.md. Accurate and
+consistent with the project's replacement-not-logging rule.
+
+### Carried-forward concerns (unchanged)
+
+C1 (timeout string matching), C2 (infinite-loop under --continuous --max-rounds 0),
+C3 (_task_paths stem-only heuristic), C4 (REVIEW-QUEUE.md gitignore) — none
+resolved this cycle; all remain low-to-minor severity.
