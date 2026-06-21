@@ -21,10 +21,14 @@ from __future__ import annotations
 import os
 import signal
 import subprocess
+import threading
 from abc import ABC, abstractmethod
 from pathlib import Path
 
 from ..types import IterationResult
+
+_ACTIVE_PROCESSES: set[subprocess.Popen[str]] = set()
+_ACTIVE_LOCK = threading.Lock()
 
 
 def _stop_process_tree(process: subprocess.Popen[str]) -> None:
@@ -49,6 +53,14 @@ def _stop_process_tree(process: subprocess.Popen[str]) -> None:
         process.kill()
     except OSError:
         pass
+
+
+def stop_active_processes() -> None:
+    """Terminate provider process trees owned by this Looptight process."""
+    with _ACTIVE_LOCK:
+        active = tuple(_ACTIVE_PROCESSES)
+    for process in active:
+        _stop_process_tree(process)
 
 
 def run_command(
@@ -79,14 +91,20 @@ def run_command(
             errors="replace",
             **options,
         )
+        with _ACTIVE_LOCK:
+            _ACTIVE_PROCESSES.add(process)
         try:
-            stdout, stderr = process.communicate(timeout=timeout_s)
-        except subprocess.TimeoutExpired:
-            _stop_process_tree(process)
-            stdout, stderr = process.communicate()
-            message = f"provider timed out after {timeout_s:g}s"
-            stderr = f"{stderr.rstrip()}\n{message}" if stderr else message
-            return subprocess.CompletedProcess(cmd, 124, stdout, stderr)
+            try:
+                stdout, stderr = process.communicate(timeout=timeout_s)
+            except subprocess.TimeoutExpired:
+                _stop_process_tree(process)
+                stdout, stderr = process.communicate()
+                message = f"provider timed out after {timeout_s:g}s"
+                stderr = f"{stderr.rstrip()}\n{message}" if stderr else message
+                return subprocess.CompletedProcess(cmd, 124, stdout, stderr)
+        finally:
+            with _ACTIVE_LOCK:
+                _ACTIVE_PROCESSES.discard(process)
         return subprocess.CompletedProcess(cmd, process.returncode, stdout, stderr)
     except OSError as exc:
         return subprocess.CompletedProcess(

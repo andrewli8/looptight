@@ -66,7 +66,10 @@ def next_task(workdir: Path, *, propose_fn: ProposeFn = propose) -> NextResult:
     for candidate in candidates:
         if not all((candidate.title.strip(), candidate.detail.strip(), candidate.acceptance.strip())):
             continue
-        identity = "\0".join((candidate.source, candidate.location or "", candidate.title))
+        # Discovery routing may change (for example, a status file can become an
+        # explicitly configured task file) without changing the underlying task.
+        # Keep claims stable across those equivalent sources.
+        identity = "\0".join((candidate.location or "", candidate.title))
         tasks.append(
             {
                 "id": hashlib.sha256(identity.encode()).hexdigest()[:12],

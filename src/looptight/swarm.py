@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Callable
 
 from .adapters import get_adapter
+from .adapters.base import stop_active_processes
 from .config import Config, load_config
 from .console import Console
 from .detect import detect_agent, detect_verify
@@ -464,15 +465,21 @@ def run_swarm(
             futures[future] = worker
         _publish_state(root, prepared, "running")
         completed: list[Worker] = []
-        for future in concurrent.futures.as_completed(futures):
-            worker = futures[future]
-            try:
-                completed.append(future.result())
-            except Exception as exc:  # provider/runtime isolation boundary
-                worker.status = "failed"
-                worker.error = f"worker crashed: {exc}"
-                completed.append(worker)
-            _publish_state(root, prepared, "running")
+        try:
+            for future in concurrent.futures.as_completed(futures):
+                worker = futures[future]
+                try:
+                    completed.append(future.result())
+                except Exception as exc:  # provider/runtime isolation boundary
+                    worker.status = "failed"
+                    worker.error = f"worker crashed: {exc}"
+                    completed.append(worker)
+                _publish_state(root, prepared, "running")
+        except KeyboardInterrupt:
+            stop_active_processes()
+            for future in futures:
+                future.cancel()
+            raise
     completed.sort(key=lambda item: item.number)
     for worker in completed:
         _integrate(root, worker, config.verify)

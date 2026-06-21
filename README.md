@@ -107,7 +107,9 @@ references and observable `Acceptance:` clauses, and passes verification in the
 planner worktree and again during integration. It then starts another swarm
 round. It stops on an evidence-backed `NO_WORK`, provider or verification
 failure, the optional round cap, or interruption. Invalid planner worktrees are
-retained for inspection.
+retained for inspection. Task fingerprints remain stable when the same task is
+found through another configured source, and interruption terminates active
+provider process trees before returning control.
 
 Swarm mode invokes the installed provider CLI. Looptight neither supplies API
 keys nor guarantees billing mode: provider authentication determines whether

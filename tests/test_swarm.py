@@ -7,6 +7,8 @@ import subprocess
 import time
 from pathlib import Path
 
+import pytest
+
 from looptight import swarm
 from looptight.adapters.base import Adapter, run_command
 from looptight.cli import build_parser, main
@@ -46,6 +48,11 @@ class UnrelatedEditingAdapter(EditingAdapter):
 class CrashingAdapter(EditingAdapter):
     def run_iteration(self, goal, context, workdir, model=None):
         raise RuntimeError("provider crashed")
+
+
+class InterruptingAdapter(EditingAdapter):
+    def run_iteration(self, goal, context, workdir, model=None):
+        raise KeyboardInterrupt
 
 
 class TimingOutAdapter(EditingAdapter):
@@ -319,6 +326,23 @@ def test_swarm_contains_worker_runtime_exception(tmp_path, monkeypatch):
     assert not result.passed
     assert result.workers[0].status == "failed"
     assert result.workers[0].error == "worker crashed: provider crashed"
+
+
+def test_swarm_interrupt_stops_active_provider_processes(tmp_path, monkeypatch):
+    _repo(tmp_path)
+    stopped = []
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: InterruptingAdapter())
+    monkeypatch.setattr("looptight.swarm.stop_active_processes", lambda: stopped.append(True))
+
+    with pytest.raises(KeyboardInterrupt):
+        run_swarm(
+            tmp_path,
+            agent="fake",
+            config=Config(verify="exit 0", max_iterations=1),
+            workers=1,
+        )
+
+    assert stopped == [True]
 
 
 def test_swarm_worker_timeout_stops_provider_tree_and_retains_worktree(tmp_path, monkeypatch):
