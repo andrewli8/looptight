@@ -130,7 +130,15 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
 
     try:
         result = run_loop(
-            args.goal, adapter, config, workdir, native=use_native, on_iteration=on_iteration
+            args.goal,
+            adapter,
+            config,
+            workdir,
+            native=use_native,
+            on_iteration=on_iteration,
+            resume_on_limit=args.resume_on_limit,
+            limit_backoff_seconds=args.limit_backoff_seconds,
+            limit_max_wait_seconds=args.limit_max_wait_seconds,
         )
     except NotImplementedError as exc:
         console.print(f"[yellow]{exc}[/yellow]")

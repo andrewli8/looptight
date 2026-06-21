@@ -17,6 +17,11 @@ from dataclasses import dataclass
 #: its back-off on this prefix the same way it keys timeouts on a fixed phrase.
 RATE_LIMIT_ERROR = "provider rate limit reached"
 
+#: Defaults for waiting out a usage limit, shared by the swarm and the single
+#: headless loop. Off unless the caller opts in.
+DEFAULT_LIMIT_BACKOFF = 30.0
+DEFAULT_LIMIT_MAX_WAIT = 3600.0
+
 # Phrases coding-agent CLIs emit when the account is rate-limited or out of usage,
 # matched case-insensitively. Anchored to error phrasing; this only runs on a
 # failed (non-zero) invocation, so ordinary code mentioning "rate limit" is safe.
@@ -105,3 +110,14 @@ def retry_after_from_error(error: str | None) -> float | None:
         return None
     match = _ERROR_RETRY_RE.search(error)
     return float(match.group(1)) if match else None
+
+
+def limit_wait(retry_after: float | None, attempt: int, base: float, cap: float) -> float:
+    """Seconds to wait before resuming after a usage limit.
+
+    Prefer the reset interval the provider named; otherwise back off exponentially
+    from ``base``. Always bounded by ``cap`` so a single sleep can never run away —
+    a longer real reset is handled by re-polling, not one unbounded wait.
+    """
+    wait = retry_after if retry_after and retry_after > 0 else base * (2 ** (attempt - 1))
+    return min(wait, cap)

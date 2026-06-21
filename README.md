@@ -111,6 +111,35 @@ retained for inspection. Task fingerprints remain stable when the same task is
 found through another configured source, and interruption terminates active
 provider process trees before returning control.
 
+### Unattended through usage limits
+
+By default a usage/rate limit stops the run. Opt in to wait it out and resume —
+the keystone for self-improving overnight or while you are away:
+
+```bash
+looptight swarm --headless --continuous --resume-on-limit --agent codex --workers 4
+# tuning: --limit-backoff-seconds 30   --limit-max-wait-seconds 3600
+```
+
+Looptight never tracks tokens; it only reacts to a usage/rate limit the provider
+reports in its own output, then sleeps (preferring the provider's named reset,
+otherwise exponential back-off capped by `--limit-max-wait-seconds`) and resumes.
+A long reset is handled by re-polling, not one unbounded wait. The same flags
+work on the single-agent loop (`looptight run --headless --resume-on-limit ...`),
+which is the path a scheduled/cloud trigger drives.
+
+To survive a closed laptop, keep the process alive and the machine awake:
+
+```bash
+tmux new -s looptight
+caffeinate -s looptight swarm --headless --continuous --resume-on-limit --agent codex
+# detach with Ctrl-b d; `caffeinate -s` keeps macOS awake while plugged in
+```
+
+The orchestrator (`swarm`/`run`) is deterministic and spends no allowance; only
+the workers it spawns — and the occasional planner — invoke the provider. See
+`docs/architecture.md` for the full role breakdown.
+
 Swarm mode invokes the installed provider CLI. Looptight neither supplies API
 keys nor guarantees billing mode: provider authentication determines whether
 work consumes subscription allowance, credits, or another account.

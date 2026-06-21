@@ -19,7 +19,13 @@ from .config import Config, load_config
 from .console import Console
 from .detect import detect_agent, detect_verify
 from .discovery import Candidate, from_status_next
-from .limits import is_limit_error, retry_after_from_error
+from .limits import (
+    DEFAULT_LIMIT_BACKOFF,
+    DEFAULT_LIMIT_MAX_WAIT,
+    is_limit_error,
+    limit_wait,
+    retry_after_from_error,
+)
 from .loop import run_loop
 from .tasks import next_task
 from .types import StopReason
@@ -28,8 +34,6 @@ from .verify import run_verify
 
 MAX_WORKERS = 50
 DEFAULT_WORKER_TIMEOUT = 3600.0
-DEFAULT_LIMIT_BACKOFF = 30.0
-DEFAULT_LIMIT_MAX_WAIT = 3600.0
 SCHEMA_VERSION = 1
 
 
@@ -508,19 +512,6 @@ def run_swarm(
     return _result(root, SwarmResult(tuple(completed)))
 
 
-def _limit_wait(
-    retry_after: float | None, attempt: int, base: float, cap: float
-) -> float:
-    """Seconds to wait before resuming after a usage limit.
-
-    Prefer the reset interval the provider named; otherwise back off
-    exponentially from ``base``. Always bounded by ``cap`` so a single sleep can
-    never run away — a longer real reset is handled by re-polling, not one wait.
-    """
-    wait = retry_after if retry_after and retry_after > 0 else base * (2 ** (attempt - 1))
-    return min(wait, cap)
-
-
 def run_continuous_swarm(
     root: Path,
     *,
@@ -573,7 +564,7 @@ def run_continuous_swarm(
                 completed.extend(w for w in result.workers if w.status == "merged")
                 limit_attempt += 1
                 named = max((retry_after_from_error(w.error) or 0.0) for w in non_merged)
-                sleep(_limit_wait(named or None, limit_attempt, limit_backoff_seconds, limit_max_wait_seconds))
+                sleep(limit_wait(named or None, limit_attempt, limit_backoff_seconds, limit_max_wait_seconds))
                 resumes += 1
                 continue
             completed.extend(result.workers)
@@ -602,7 +593,7 @@ def run_continuous_swarm(
         if resume_on_limit and is_limit_error(planning.error):
             limit_attempt += 1
             named = retry_after_from_error(planning.error)
-            sleep(_limit_wait(named, limit_attempt, limit_backoff_seconds, limit_max_wait_seconds))
+            sleep(limit_wait(named, limit_attempt, limit_backoff_seconds, limit_max_wait_seconds))
             resumes += 1
             continue
         retained = f"; planner worktree retained: {planning.worktree}" if planning.worktree else ""

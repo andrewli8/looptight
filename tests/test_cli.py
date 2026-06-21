@@ -7,9 +7,18 @@ import subprocess
 
 import pytest
 
-from looptight.cli import main
+from looptight.cli import build_parser, main
 from looptight.protocol_commands import _verify_exit_code
 from looptight.propose import propose
+
+
+def test_run_parser_accepts_resume_on_limit_flags():
+    args = build_parser().parse_args(
+        ["run", "--headless", "g", "--resume-on-limit", "--limit-backoff-seconds", "15"]
+    )
+    assert args.resume_on_limit is True
+    assert args.limit_backoff_seconds == 15.0
+    assert args.limit_max_wait_seconds == 3600.0
 
 
 def test_init_writes_config(tmp_path, monkeypatch):

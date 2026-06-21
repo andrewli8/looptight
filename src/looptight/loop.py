@@ -11,6 +11,7 @@ touches is injected, so the control flow is unit-testable without a real agent.
 
 from __future__ import annotations
 
+import time
 from dataclasses import replace
 from pathlib import Path
 from typing import Callable
@@ -18,12 +19,20 @@ from typing import Callable
 from .adapters.base import Adapter
 from .checkpoint import Checkpointer
 from .config import Config
+from .limits import (
+    DEFAULT_LIMIT_BACKOFF,
+    DEFAULT_LIMIT_MAX_WAIT,
+    is_limit_error,
+    limit_wait,
+    retry_after_from_error,
+)
 from .metacog import Decision, assess, progress_signal
 from .types import IterationRecord, RunResult, StopReason, VerifyResult
 from .verify import run_verify
 
 VerifyFn = Callable[[str, Path], VerifyResult]
 ProgressFn = Callable[[IterationRecord], None]
+SleepFn = Callable[[float], None]
 
 
 _CONTEXT_OUTPUT_LIMIT = 3000
@@ -51,6 +60,10 @@ def run_loop(
     verify_fn: VerifyFn = run_verify,
     checkpointer: Checkpointer | None = None,
     on_iteration: ProgressFn | None = None,
+    resume_on_limit: bool = False,
+    limit_backoff_seconds: float = DEFAULT_LIMIT_BACKOFF,
+    limit_max_wait_seconds: float = DEFAULT_LIMIT_MAX_WAIT,
+    sleep: SleepFn = time.sleep,
 ) -> RunResult:
     """Run ``goal`` to a verified stop. Returns a normalized RunResult."""
     base = RunResult(goal=goal, agent=adapter.name, mode="supply", stop_reason=StopReason.ERROR)
@@ -62,19 +75,42 @@ def run_loop(
 
     checkpointer = checkpointer or Checkpointer(workdir)
     use_native = native and adapter.supports_native_loop
-    runner = _delegate_loop if use_native else _supply_loop
-    return runner(
-        goal,
-        adapter,
-        config,
-        workdir,
-        verify_fn=verify_fn,
-        checkpointer=checkpointer,
-        on_iteration=on_iteration,
+    if use_native:
+        return _delegate_loop(
+            goal, adapter, config, workdir,
+            verify_fn=verify_fn, checkpointer=checkpointer, on_iteration=on_iteration,
+        )
+    return _supply_loop(
+        goal, adapter, config, workdir,
+        verify_fn=verify_fn, checkpointer=checkpointer, on_iteration=on_iteration,
+        resume_on_limit=resume_on_limit,
+        limit_backoff_seconds=limit_backoff_seconds,
+        limit_max_wait_seconds=limit_max_wait_seconds,
+        sleep=sleep,
     )
 
 
-def _supply_loop(goal, adapter, config, workdir, *, verify_fn, checkpointer, on_iteration) -> RunResult:
+def _iterate(adapter, goal, context, workdir, *, resume_on_limit, base, cap, sleep):
+    """Run one iteration, waiting out a provider usage limit when opted in.
+
+    A limit costs no iteration-cap slot — the agent did no work — so we sleep
+    (preferring the provider's named reset, capped) and retry until the provider
+    returns a real result. This is the single-agent twin of the swarm's per-round
+    back-off, so an unattended ``run`` resumes after a limit instead of stopping.
+    """
+    attempt = 0
+    while True:
+        iteration = adapter.run_iteration(goal, context, workdir)
+        if not resume_on_limit or iteration.ok or not is_limit_error(iteration.error):
+            return iteration
+        attempt += 1
+        sleep(limit_wait(retry_after_from_error(iteration.error), attempt, base, cap))
+
+
+def _supply_loop(
+    goal, adapter, config, workdir, *, verify_fn, checkpointer, on_iteration,
+    resume_on_limit, limit_backoff_seconds, limit_max_wait_seconds, sleep,
+) -> RunResult:
     records: list[IterationRecord] = []
     progress: list[float | None] = []
     context = ""
@@ -84,7 +120,13 @@ def _supply_loop(goal, adapter, config, workdir, *, verify_fn, checkpointer, on_
     for number in range(1, config.max_iterations + 1):
         snapshot = checkpointer.snapshot()
 
-        iteration = adapter.run_iteration(goal, context, workdir)
+        iteration = _iterate(
+            adapter, goal, context, workdir,
+            resume_on_limit=resume_on_limit,
+            base=limit_backoff_seconds,
+            cap=limit_max_wait_seconds,
+            sleep=sleep,
+        )
 
         if not iteration.ok:
             stop = StopReason.ERROR

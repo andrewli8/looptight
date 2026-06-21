@@ -48,6 +48,34 @@ isolated worktree and may update only the bounded `docs/STATUS.md` Next list.
 Looptight validates task shape, repository evidence paths, and the verifier
 before merging the plan and starting another deterministic swarm round.
 
+## Who orchestrates
+
+A continuous run has three roles, and only two are provider agents:
+
+- **Orchestrator** — the `looptight` process itself (`run_continuous_swarm`, or
+  the single-agent `run_loop`). It is deterministic Python that claims tasks,
+  spawns workers, runs the verifier, and merges. It makes no model or network
+  calls, so it consumes no provider allowance.
+- **Workers** — the provider CLI invocations the orchestrator spawns, one per
+  claimed task in its own worktree. These are the agents that spend allowance.
+- **Planner** — a single provider CLI invocation, spawned only when the grounded
+  queue is empty, to refresh the bounded plan.
+
+The orchestrator is not an agent reasoning about what to do next; the agents are
+the workers and the occasional planner it launches.
+
+## Usage-limit resume
+
+Provider-native usage limits stay authoritative (`SPEC.md`): looptight never
+counts tokens or tracks billing. With the opt-in `--resume-on-limit`, the
+deterministic orchestrator *recognizes* a usage/rate limit the provider reported
+in its own output (`limits.py`), then waits and resumes rather than stopping. It
+prefers the reset interval the provider named and otherwise backs off
+exponentially, capping any single wait so a long reset is handled by re-polling.
+The swarm applies this between rounds; the single-agent supply loop applies it
+between iterations, where a wait costs no iteration-cap slot. Genuine
+verification failures and crashes still stop the run.
+
 ## Validation order
 
 1. Validate configuration and task evidence.

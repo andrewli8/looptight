@@ -5,7 +5,7 @@ from __future__ import annotations
 from looptight.checkpoint import Checkpointer
 from looptight.config import Config
 from looptight.loop import _CONTEXT_OUTPUT_LIMIT, _continuation_context, run_loop
-from looptight.types import StopReason, VerifyResult
+from looptight.types import IterationResult, StopReason, VerifyResult
 
 from conftest import FakeAdapter, make_verify
 
@@ -34,6 +34,78 @@ def test_stops_on_first_pass(workdir):
     assert result.passed
     assert result.iteration_count == 2
     assert adapter.iterations_run == 2
+
+
+class _LimitedThenOkAdapter(FakeAdapter):
+    """Reports a usage limit for its first ``limited`` calls, then works."""
+
+    def __init__(self, *, limited: int, retry: str = "; retry after 5s") -> None:
+        super().__init__()
+        self._limited = limited
+        self._retry = retry
+
+    def run_iteration(self, goal, context, workdir, model=None):
+        self.iterations_run += 1
+        self.contexts.append(context)
+        if self.iterations_run <= self._limited:
+            return IterationResult(
+                transcript="rate limited", ok=False, error="provider rate limit reached" + self._retry
+            )
+        return IterationResult(transcript=f"attempt {self.iterations_run}", ok=True)
+
+
+def test_supply_loop_waits_out_usage_limit_then_succeeds(workdir):
+    # Two limit responses, then a real iteration that verify passes.
+    adapter = _LimitedThenOkAdapter(limited=2)
+    waits: list[float] = []
+    result = run_loop(
+        "fix it",
+        adapter,
+        _config(),
+        workdir,
+        verify_fn=make_verify(pass_on=1),
+        checkpointer=Checkpointer(workdir, enabled=False),
+        resume_on_limit=True,
+        sleep=waits.append,
+    )
+
+    assert result.stop_reason is StopReason.SUCCESS
+    assert result.iteration_count == 1  # the limit retries cost no iteration-cap slot
+    assert waits == [5.0, 5.0]  # honored the provider's named reset each time
+
+
+def test_supply_loop_limit_is_terminal_without_resume(workdir):
+    adapter = _LimitedThenOkAdapter(limited=1)
+    result = run_loop(
+        "fix it",
+        adapter,
+        _config(),
+        workdir,
+        verify_fn=make_verify(pass_on=1),
+        checkpointer=Checkpointer(workdir, enabled=False),
+    )
+
+    assert result.stop_reason is StopReason.ERROR
+    assert result.error == "provider rate limit reached; retry after 5s"
+    assert result.iteration_count == 0
+
+
+def test_supply_loop_backs_off_when_no_reset_named(workdir):
+    adapter = _LimitedThenOkAdapter(limited=2, retry="")
+    waits: list[float] = []
+    run_loop(
+        "fix it",
+        adapter,
+        _config(),
+        workdir,
+        verify_fn=make_verify(pass_on=1),
+        checkpointer=Checkpointer(workdir, enabled=False),
+        resume_on_limit=True,
+        limit_backoff_seconds=10.0,
+        sleep=waits.append,
+    )
+
+    assert waits == [10.0, 20.0]  # exponential back-off within one iteration slot
 
 
 def test_hits_iteration_cap(workdir):

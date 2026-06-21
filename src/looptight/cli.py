@@ -199,6 +199,23 @@ def _add_run_flags(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="drive the agent's own loop where it has one (e.g. Claude /goal); verify still gates",
     )
+    parser.add_argument(
+        "--resume-on-limit",
+        action="store_true",
+        help="wait out a provider usage/rate limit and resume instead of stopping (supply loop)",
+    )
+    parser.add_argument(
+        "--limit-backoff-seconds",
+        type=_positive_float,
+        default=30.0,
+        help="initial back-off when the provider names no reset (default 30)",
+    )
+    parser.add_argument(
+        "--limit-max-wait-seconds",
+        type=_positive_float,
+        default=3600.0,
+        help="cap on a single usage-limit wait before re-polling (default 3600)",
+    )
 
 
 def _add_improve_flags(parser: argparse.ArgumentParser) -> None:
