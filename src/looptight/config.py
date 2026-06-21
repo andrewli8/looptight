@@ -31,6 +31,7 @@ class Config:
     """Resolved run configuration."""
 
     verify: str | None = None
+    tasks: tuple[str, ...] = ()
     agent: str | None = None  # None = auto-detect from PATH
     max_iterations: int = DEFAULT_MAX_ITERATIONS
     native: bool = False  # drive the agent's own loop (e.g. Claude /goal) where it has one
@@ -65,6 +66,7 @@ def load_config(path: Path | None = None) -> Config:
     try:
         return Config(
             verify=_optional_string(data, "verify"),
+            tasks=_string_tuple(data, "tasks"),
             agent=_optional_string(data, "agent"),
             max_iterations=_positive_integer(data, "max_iterations", DEFAULT_MAX_ITERATIONS),
             native=_boolean(data, "native", False),
@@ -87,6 +89,15 @@ def _optional_string(data: dict[str, object], field: str) -> str | None:
     if value is not None and not isinstance(value, str):
         raise ValueError(f"{field} must be a string")
     return value
+
+
+def _string_tuple(data: dict[str, object], field: str) -> tuple[str, ...]:
+    value = data.get(field, [])
+    if not isinstance(value, list) or any(
+        not isinstance(item, str) or not item.strip() for item in value
+    ):
+        raise ValueError(f"{field} must be an array of nonempty strings")
+    return tuple(value)
 
 
 def _positive_integer(data: dict[str, object], field: str, default: int) -> int:
