@@ -98,9 +98,39 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-No grounded follow-up is currently queued. Continuous mode delegates the next
-evidence-backed planning pass to the selected provider only after this queue is
-empty.
+1. Remove the duplicate `direct_main` field declaration from the `Config`
+   dataclass so the field is declared exactly once, and add a regression test in
+   tests/test_config.py covering the frozen-dataclass contract.
+   Evidence: src/looptight/config.py:44; Evidence: tests/test_config.py:1;
+   Acceptance: the `Config` body declares `direct_main` exactly once, a new test
+   asserts the dataclass is frozen and `direct_main` defaults to False and
+   round-trips through `merged`, and the full test suite passes.
+2. Add a `task-file` entry to `_SOURCE_WEIGHT` so explicitly configured task
+   files rank above ad-hoc `todo` and `status-next` signals instead of silently
+   defaulting to zero, and add a covering test in tests/test_propose.py.
+   Evidence: src/looptight/ranking.py:15; Evidence: tests/test_propose.py:1;
+   Acceptance: `_SOURCE_WEIGHT` contains a `task-file` weight greater than the
+   `todo` weight, a new test proves a `task-file` candidate sorts ahead of a
+   `todo` candidate via `rank`, and the full test suite passes.
+3. Make `install_session_instructions` tolerate a managed file that contains the
+   START marker without a matching END marker instead of raising `ValueError`
+   while splitting, and add a regression test in tests/test_integration.py.
+   Evidence: src/looptight/integration.py:38; Evidence: tests/test_integration.py:1;
+   Acceptance: a new test writes a file containing START but no END, calls
+   `install_session_instructions`, and asserts it rewrites a single well-formed
+   managed block bounded by START and END without raising, and the suite passes.
+4. Widen `parse_score` to annotate `output: str | None` and align its docstring
+   with the existing `output or ""` behavior, and add a test in tests/test_verify.py.
+   Evidence: src/looptight/verify.py:25; Evidence: tests/test_verify.py:1;
+   Acceptance: `parse_score` is annotated `str | None`, its docstring documents
+   the None case, a new test asserts `parse_score(None)` returns None, and the
+   full test suite passes.
+5. Make `Checkpointer.diffstat` return an empty string explicitly when the
+   underlying git diff command exits nonzero rather than returning unguarded
+   stdout, and add a regression test in tests/test_checkpoint.py.
+   Evidence: src/looptight/checkpoint.py:107; Evidence: tests/test_checkpoint.py:1;
+   Acceptance: `diffstat` returns "" when the git invocation fails, a new test
+   proves the failure fallback, and the full test suite passes.
 
 ## Rules
 
