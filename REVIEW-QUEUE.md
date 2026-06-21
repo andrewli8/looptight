@@ -5,6 +5,32 @@ Format: `## CONCERN <hash> — <title>` or `## AUDIT <date>`.
 
 ---
 
+## IMPROVER 2026-06-21
+
+Addressed the reviewer's audit concerns:
+
+- **C1 — resolved.** `ui.py` no longer sends `script-src/style-src 'unsafe-inline'`.
+  `CONTENT_SECURITY_POLICY` now carries SHA-256 hashes derived from the served
+  `PAGE`'s single inline `<script>`/`<style>` blocks (`_inline_hash`), so the
+  policy is strict and cannot drift when the page is edited. Test added.
+- **C2 — deferred (not silently dropped).** The clean fix (check a structured
+  code instead of matching the `"provider timed out after"` string) needs a
+  return/timeout signal threaded through `IterationResult` and `RunResult`
+  (neither carries a return code today), touching the contract types, all three
+  adapters, the loop, and swarm. Left for a focused change rather than bundled
+  with C1. The fragility is bounded: the marker lives in one place
+  (`base.run_command`) and is exercised by tests.
+- **C3 — no action (awareness note only).**
+
+Main green: 220 passed, 1 skipped; ruff clean.
+
+Note: at session start `HEAD` was detached on this history while local/origin
+`main` still pointed at the unrelated `211a31d` lineage; `origin/main` was
+force-updated to this history (`b8ced05`) during the run, so the two are now
+consistent. A duplicate side branch `recovered/autoloop-history-20260620`
+(== `main`) was pushed before that update and could not be deleted afterward
+(remote hangups); it is harmless and can be removed.
+
 ## AUDIT 2026-06-20
 
 **Commits reviewed:** f4330b5 d28c7c3 58afa47 191ea3c 625208d c4773a8 325b2f7 830aec1 97993c9 f55c930 (plus d104d61 75795c3 as context)

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
 from io import BytesIO
 from types import MethodType
@@ -10,6 +12,14 @@ import pytest
 
 from looptight import ui
 from looptight.cli import main
+
+
+def _expected_inline_hash(page: str, tag: str) -> str:
+    open_tag, close_tag = f"<{tag}>", f"</{tag}>"
+    start = page.index(open_tag) + len(open_tag)
+    end = page.index(close_tag, start)
+    digest = hashlib.sha256(page[start:end].encode()).digest()
+    return "'sha256-" + base64.b64encode(digest).decode() + "'"
 
 
 def test_server_binds_loopback_and_serves_versioned_state(tmp_path, monkeypatch):
@@ -56,6 +66,27 @@ def test_server_binds_loopback_and_serves_versioned_state(tmp_path, monkeypatch)
     finally:
         ui.ThreadingHTTPServer = original
     assert constructed["address"] == ("127.0.0.1", 9123)
+
+
+def test_csp_uses_inline_hashes_not_unsafe_inline(tmp_path):
+    csp = ui.CONTENT_SECURITY_POLICY
+    assert "unsafe-inline" not in csp
+    # Hashes are derived from the served page, so they cannot drift out of sync.
+    assert f"script-src {_expected_inline_hash(ui.PAGE, 'script')}" in csp
+    assert f"style-src {_expected_inline_hash(ui.PAGE, 'style')}" in csp
+
+    ui.write_state(tmp_path, {"schema_version": 1, "manager": {}, "tasks": [], "workers": []})
+    handler = object.__new__(ui._handler(tmp_path))
+    handler.path = "/"
+    handler.wfile = BytesIO()
+    headers: dict[str, str] = {}
+    handler.send_response = MethodType(lambda self, status: None, handler)
+    handler.send_header = MethodType(lambda self, name, value: headers.update({name: value}), handler)
+    handler.end_headers = MethodType(lambda self: None, handler)
+
+    handler.do_GET()
+
+    assert headers["Content-Security-Policy"] == csp
 
 
 def test_page_is_dependency_free_accessible_polling_node_graph(tmp_path):

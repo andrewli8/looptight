@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
 import os
 import subprocess
@@ -101,6 +103,26 @@ update();setInterval(update,1500);addEventListener('resize',render);
 </body></html>"""
 
 
+def _inline_hash(tag: str) -> str:
+    """SHA-256 CSP source for PAGE's single inline ``<tag>`` element.
+
+    Deriving the hash from the served page means a nonce-free, ``unsafe-inline``
+    free policy that can never drift out of sync when the page is edited.
+    """
+    open_tag, close_tag = f"<{tag}>", f"</{tag}>"
+    start = PAGE.index(open_tag) + len(open_tag)
+    end = PAGE.index(close_tag, start)
+    digest = hashlib.sha256(PAGE[start:end].encode()).digest()
+    return "'sha256-" + base64.b64encode(digest).decode() + "'"
+
+
+CONTENT_SECURITY_POLICY = (
+    f"default-src 'self'; script-src {_inline_hash('script')}; "
+    f"style-src {_inline_hash('style')}; "
+    "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'"
+)
+
+
 def _handler(root: Path) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802 - stdlib handler API
@@ -120,11 +142,7 @@ def _handler(root: Path) -> type[BaseHTTPRequestHandler]:
             self.send_header("X-Content-Type-Options", "nosniff")
             self.send_header("X-Frame-Options", "DENY")
             self.send_header("Referrer-Policy", "no-referrer")
-            self.send_header(
-                "Content-Security-Policy",
-                "default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
-                "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'",
-            )
+            self.send_header("Content-Security-Policy", CONTENT_SECURITY_POLICY)
             self.end_headers()
             self.wfile.write(body)
 
