@@ -22,8 +22,12 @@ _SCORE_RE = re.compile(r"^\s*SCORE:\s*([-+]?\d*\.?\d+)\s*$", re.MULTILINE)
 _MAX_OUTPUT_CHARS = 8000
 
 
-def parse_score(output: str) -> float | None:
-    """Return the last ``SCORE: <n>`` value in the output, if any."""
+def parse_score(output: str | None) -> float | None:
+    """Return the last ``SCORE: <n>`` value in the output, if any.
+
+    ``None`` output is treated as empty (the ``output or ""`` fallback), so a
+    missing capture yields ``None`` rather than raising.
+    """
     matches = _SCORE_RE.findall(output or "")
     return float(matches[-1]) if matches else None
 

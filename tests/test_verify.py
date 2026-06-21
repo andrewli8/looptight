@@ -40,6 +40,7 @@ def test_parses_score_line():
     assert parse_score("running...\nSCORE: 0.83\n") == 0.83
     assert parse_score("SCORE: 1\nSCORE: 2\n") == 2.0  # last wins
     assert parse_score("no score here") is None
+    assert parse_score(None) is None  # missing output is treated as empty
 
 
 def test_score_surfaced_in_result(tmp_path):
