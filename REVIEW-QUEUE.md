@@ -361,3 +361,14 @@ prior no-work entries. No production code touched. Clean.
 C1 (timeout string matching), C2 (infinite-loop under --continuous --max-rounds 0),
 C3 (_task_paths stem-only heuristic), C4 (REVIEW-QUEUE.md gitignore) — none
 resolved this cycle; all remain low-to-minor severity per previous triage.
+
+---
+
+## AUDIT 2026-06-21 (improver run)
+
+**No changes: nothing safe and valuable to do.** `next --json` → `no_work`;
+`propose` → no candidates (clean tree); `verify --json` → `pass`. `pytest`
+green (259 passed, 1 skipped) and `ruff check` clean. STATUS.md `Next` empty.
+Reviewed C1–C4: all already triaged by the reviewer as keep-open/defer/escalate
+(C2's guard would be speculative defensive code with no current trigger; C4 is a
+human policy decision). No code changed.
