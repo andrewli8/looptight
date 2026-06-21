@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 
 from looptight.config import (
-    DEFAULT_MAX_ITERATIONS,
     Config,
     ConfigError,
     load_config,
@@ -15,14 +14,9 @@ from looptight.config import (
 
 def test_defaults_are_safe():
     config = Config()
-    assert config.max_iterations == DEFAULT_MAX_ITERATIONS
-    assert config.agent is None  # auto-detect
-    assert config.hook is False  # Stop-hook auto-loop is opt-in
-
-
-def test_hook_flag_roundtrips(tmp_path):
-    path = write_config(Config(verify="pytest -q", hook=True), tmp_path)
-    assert load_config(path).hook is True
+    assert config.verify is None
+    assert config.tasks == ()
+    assert config.direct_main is False
 
 
 def test_merged_ignores_none_overrides():
@@ -33,14 +27,12 @@ def test_merged_ignores_none_overrides():
 
 
 def test_write_then_load_roundtrip(tmp_path):
-    config = Config(verify="npm test", agent="claude", max_iterations=4)
+    config = Config(verify="npm test", tasks=("TODO.md", "docs/STATUS.md"), direct_main=True)
     path = write_config(config, tmp_path)
     assert path.name == ".looptight.toml"
 
     loaded = load_config(path)
-    assert loaded.verify == "npm test"
-    assert loaded.agent == "claude"
-    assert loaded.max_iterations == 4
+    assert loaded == config
 
 
 def test_write_then_load_preserves_verify_command_with_toml_special_characters(tmp_path):
@@ -59,48 +51,38 @@ def test_load_config_raises_clear_error_on_malformed_toml(tmp_path):
     assert str(path) in str(exc.value)
 
 
-def test_load_config_raises_clear_error_on_non_numeric_value(tmp_path):
+def test_load_config_rejects_string_direct_main(tmp_path):
     path = tmp_path / ".looptight.toml"
-    path.write_text('verify = "pytest"\nmax_iterations = "lots"\n', encoding="utf-8")
-    with pytest.raises(ConfigError) as exc:
-        load_config(path)
-    assert str(path) in str(exc.value)
-
-
-@pytest.mark.parametrize("value", ["0", "-1", "true"])
-def test_load_config_rejects_invalid_max_iterations(tmp_path, value):
-    path = tmp_path / ".looptight.toml"
-    path.write_text(f"max_iterations = {value}\n", encoding="utf-8")
+    path.write_text('direct_main = "false"\n', encoding="utf-8")
 
     with pytest.raises(ConfigError) as exc:
         load_config(path)
 
     assert str(path) in str(exc.value)
-    assert "max_iterations" in str(exc.value)
+    assert "direct_main" in str(exc.value)
 
 
-@pytest.mark.parametrize("field", ["native", "hook"])
-def test_load_config_rejects_string_boolean_values(tmp_path, field):
+def test_load_config_rejects_non_string_verify(tmp_path):
     path = tmp_path / ".looptight.toml"
-    path.write_text(f'{field} = "false"\n', encoding="utf-8")
+    path.write_text("verify = 42\n", encoding="utf-8")
 
     with pytest.raises(ConfigError) as exc:
         load_config(path)
 
     assert str(path) in str(exc.value)
-    assert field in str(exc.value)
+    assert "verify" in str(exc.value)
 
 
-@pytest.mark.parametrize("field", ["verify", "agent"])
-def test_load_config_rejects_non_string_command_fields(tmp_path, field):
+@pytest.mark.parametrize("value", ['"TODO.md"', '["TODO.md", 42]'])
+def test_load_config_rejects_invalid_tasks(tmp_path, value):
     path = tmp_path / ".looptight.toml"
-    path.write_text(f"{field} = 42\n", encoding="utf-8")
+    path.write_text(f"tasks = {value}\n", encoding="utf-8")
 
     with pytest.raises(ConfigError) as exc:
         load_config(path)
 
     assert str(path) in str(exc.value)
-    assert field in str(exc.value)
+    assert "tasks" in str(exc.value)
 
 
 def test_missing_config_returns_defaults(tmp_path):
@@ -108,16 +90,15 @@ def test_missing_config_returns_defaults(tmp_path):
     assert loaded == Config()
 
 
-def test_deprecated_config_keys_are_ignored(tmp_path):
+def test_legacy_orchestration_keys_are_ignored(tmp_path):
     path = tmp_path / ".looptight.toml"
-    path.write_text('verify = "pytest -q"\nbudget_usd = "legacy"\nreflect = "legacy"\n')
+    path.write_text(
+        'verify = "pytest -q"\n'
+        'agent = "claude"\nmax_iterations = 99\nnative = true\nhook = true\npatience = 9\n'
+        'budget_usd = "legacy"\nreflect = "legacy"\n'
+    )
 
-    assert load_config(path).verify == "pytest -q"
-
-
-def test_patience_roundtrips(tmp_path):
-    path = write_config(Config(verify="pytest -q", patience=3), tmp_path)
-    assert load_config(path).patience == 3
+    assert load_config(path) == Config(verify="pytest -q")
 
 
 def test_rendered_config_explains_verify(tmp_path):
@@ -126,7 +107,11 @@ def test_rendered_config_explains_verify(tmp_path):
     assert "No verify, no loop" in text
 
 
-def test_rendered_config_omits_deprecated_budget_and_reflection(tmp_path):
+def test_rendered_config_contains_only_supported_settings(tmp_path):
     text = write_config(Config(verify="pytest -q"), tmp_path).read_text()
-    assert "budget_usd" not in text
-    assert "reflect" not in text
+    settings = {
+        line.split("=", 1)[0].strip()
+        for line in text.splitlines()
+        if line.strip() and not line.lstrip().startswith("#") and "=" in line
+    }
+    assert settings == {"verify", "tasks", "direct_main"}

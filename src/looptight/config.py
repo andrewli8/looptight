@@ -31,6 +31,11 @@ class Config:
     """Resolved run configuration."""
 
     verify: str | None = None
+    tasks: tuple[str, ...] = ()
+    direct_main: bool = False
+
+    # Runtime-only controls retained for the explicit headless commands. These
+    # are not part of the project configuration file contract.
     agent: str | None = None  # None = auto-detect from PATH
     max_iterations: int = DEFAULT_MAX_ITERATIONS
     native: bool = False  # drive the agent's own loop (e.g. Claude /goal) where it has one
@@ -65,11 +70,8 @@ def load_config(path: Path | None = None) -> Config:
     try:
         return Config(
             verify=_optional_string(data, "verify"),
-            agent=_optional_string(data, "agent"),
-            max_iterations=_positive_integer(data, "max_iterations", DEFAULT_MAX_ITERATIONS),
-            native=_boolean(data, "native", False),
-            hook=_boolean(data, "hook", False),
-            patience=int(data.get("patience", 0)),
+            tasks=_string_list(data, "tasks"),
+            direct_main=_boolean(data, "direct_main", False),
         )
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{resolved} has an invalid value: {exc}") from exc
@@ -89,32 +91,25 @@ def _optional_string(data: dict[str, object], field: str) -> str | None:
     return value
 
 
-def _positive_integer(data: dict[str, object], field: str, default: int) -> int:
-    value = data.get(field, default)
-    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
-        raise ValueError(f"{field} must be a positive integer")
-    return value
+def _string_list(data: dict[str, object], field: str) -> tuple[str, ...]:
+    value = data.get(field, [])
+    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+        raise ValueError(f"{field} must be an array of strings")
+    return tuple(value)
 
 
 def render_config(config: Config) -> str:
     """Render a minimal, commented config file. The comments teach ``verify``."""
     verify = config.verify or "pytest -q"
-    agent_line = (
-        f"agent = {_toml_string(config.agent)}"
-        if config.agent
-        else '# agent = "claude"   # auto-detected if omitted'
-    )
+    tasks = ", ".join(_toml_string(task) for task in config.tasks)
     return f"""# looptight config — the one concept that matters is `verify`.
 # `verify` is the command that decides pass/fail. No verify, no loop.
 # Exit code 0 means pass; anything else means keep going.
 verify = {_toml_string(verify)}
 
-# Everything below is optional and has a safe default.
-{agent_line}
-max_iterations = {config.max_iterations}   # hard cap; the loop stops here no matter what
-native = {str(config.native).lower()}               # drive the agent's own loop (e.g. Claude /goal) where it has one
-hook = {str(config.hook).lower()}                 # arm the Claude Code Stop-hook auto-loop in this repo (needs `looptight install-hook`)
-patience = {config.patience}                # stop early after N iterations with no measurable progress (0 = off)
+# Optional grounded task files and unattended primary-worktree permission.
+tasks = [{tasks}]
+direct_main = {str(config.direct_main).lower()}
 """
 
 
