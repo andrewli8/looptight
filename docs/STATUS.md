@@ -107,25 +107,47 @@ existing CLI session and makes no model or API calls of its own.
 - The dashboard shows idle empty-state guidance, `status` prints the resolved
   verify command, and `swarm` prints a start banner naming workers/agent/verify
   before the silent run — each covered by a test, JSON output unchanged.
+- `doctor` prints actionable hints when verify or an agent is missing, and the
+  dashboard inspector re-resolves the selected node each poll so its detail stays
+  live — each covered by a test.
 
 ## Next
 
-1. Make `cmd_doctor` print a short actionable hint when a prerequisite is missing:
-   when no verify command is detected, point the operator at `looptight init`, and
-   when no agent is found on PATH, name the supported agents to install. Keep the
-   existing lines unchanged when both are present.
-   Evidence: src/looptight/commands.py:165; Evidence: tests/test_cli.py:1;
-   Acceptance: doctor output includes a remediation hint when verify or agent is
-   absent and is otherwise unchanged, a new test in tests/test_cli.py asserts the
-   hint appears only when the prerequisite is missing, and the suite passes.
-2. Keep the dashboard inspector live across polls: when a node is selected and its
-   status changes on the next 1.5s poll, re-resolve the selected record from
-   current state in render() so the inspector detail does not go stale, preserving
-   the selection.
-   Evidence: src/looptight/ui.py:98; Evidence: tests/test_ui.py:1;
-   Acceptance: render() refreshes the selected node's inspector detail from the
-   latest state and selection persists across renders, a new test in
-   tests/test_ui.py asserts the served page wires this refresh, and the suite passes.
+1. Include the actual error message in the run summary: when a `RunResult` stops
+   with reason ERROR, `render` currently shows only "stopped: error" and drops
+   `result.error`, leaving no context. Surface the error text.
+   Evidence: src/looptight/summary.py:28; Evidence: tests/test_summary.py:1;
+   Acceptance: render of an ERROR result with a non-None error includes the error
+   string, non-error summaries are unchanged, a new test in tests/test_summary.py
+   asserts the message appears, and the suite passes.
+2. Make the claude adapter's non-zero exit phrasing consistent: the native loop
+   path reports "exited non-zero" while `run_iteration` reports "exited {code}".
+   Align the native path to name the return code.
+   Evidence: src/looptight/adapters/claude.py:75; Evidence: tests/test_adapters.py:1;
+   Acceptance: both the supply and native paths report a non-zero exit with the
+   return code in the message, a new test in tests/test_adapters.py asserts the
+   native path includes the code, and the suite passes.
+3. Mark truncated verify output in the continuation context: `_continuation_context`
+   truncates to the last 3000 characters with no indication, so dropped early
+   detail is invisible. Add a truncation marker when output exceeds the threshold.
+   Evidence: src/looptight/loop.py:29; Evidence: tests/test_loop.py:1;
+   Acceptance: output longer than the threshold includes a truncation marker while
+   short output is passed through unchanged, a new test in tests/test_loop.py
+   asserts both behaviors, and the suite passes.
+4. Name the actual type in settings hook errors: "hooks is not an object; refusing
+   to edit" should say what was found (for example a list) to make a malformed
+   settings file debuggable.
+   Evidence: src/looptight/settings.py:77; Evidence: tests/test_settings.py:1;
+   Acceptance: the error message includes the actual JSON type when hooks is not an
+   object, the valid-object path is unchanged, a new test in tests/test_settings.py
+   asserts the type name appears, and the suite passes.
+5. Harden Makefile `test:` detection so a genuine target is recognized and a
+   commented `# test:` line is not mistaken for one, without changing detection for
+   the cases already handled.
+   Evidence: src/looptight/detect.py:19; Evidence: tests/test_detect.py:1;
+   Acceptance: a new test in tests/test_detect.py proves a real `test:` target is
+   detected and a commented `# test:` line is not, existing detection behavior is
+   unchanged, and the suite passes.
 
 ## Rules
 
