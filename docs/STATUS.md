@@ -81,15 +81,19 @@ existing CLI session and makes no model or API calls of its own.
   distinguishes queued preparation from active provider execution.
 - Atomic state publications include a backward-compatible UTC event timestamp;
   the UI reports its age without inferring provider health from elapsed time.
+- Explicit continuous swarm mode repeats verified rounds and uses an isolated
+  provider planning pass only when grounded work is exhausted; accepted plans
+  are bounded, evidence-path validated, status-only, and verified twice.
+- Planner evidence cannot cite the generated status file itself; rejected plans
+  leave the invoking worktree clean and retain only their isolated worktree.
 - Remote mobile management has a security decision record: prefer provider-native
   control, otherwise require an identity-aware tunnel while retaining loopback.
 
 ## Next
 
-1. Verify provider-native remote management paths.
-   Acceptance: the mobile decision record links current official Codex, Claude
-   Code, and OpenCode guidance, distinguishes native capabilities from absent or
-   unverified ones, and keeps authenticated tunnels as the explicit fallback.
+No grounded follow-up is currently queued. Continuous mode delegates the next
+evidence-backed planning pass to the selected provider only after this queue is
+empty.
 
 ## Rules
 

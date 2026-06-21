@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import json
+import re
 import secrets
 import subprocess
 from dataclasses import dataclass
@@ -14,6 +15,7 @@ from .adapters import get_adapter
 from .config import Config, load_config
 from .console import Console
 from .detect import detect_agent, detect_verify
+from .discovery import Candidate, from_status_next
 from .loop import run_loop
 from .tasks import next_task
 from .types import StopReason
@@ -41,6 +43,8 @@ class SwarmResult:
     workers: tuple[Worker, ...]
     error: str | None = None
     pushed: str | None = None
+    rounds: int = 1
+    plans: int = 0
 
     @property
     def passed(self) -> bool:
@@ -61,6 +65,8 @@ class SwarmResult:
             "status": self.status,
             "error": self.error,
             "push": self.pushed,
+            "rounds": self.rounds,
+            "plans": self.plans,
             "workers": [
                 {
                     "number": worker.number,
@@ -72,6 +78,45 @@ class SwarmResult:
                 for worker in self.workers
             ],
         }
+
+
+@dataclass(frozen=True)
+class PlanningResult:
+    status: str
+    error: str | None = None
+    worktree: Path | None = None
+
+
+PLANNING_GOAL = """Act as the planning manager for this repository.
+Inspect the implementation, tests, verifier output, and docs/STATUS.md. Update only
+the bounded `## Next` section of docs/STATUS.md with 1-6 necessary, evidence-backed
+tasks. Every numbered item must include `Evidence: relative/path[:line];` pointing to
+an existing repository file and an `Acceptance:` clause with an observable outcome.
+Replace stale items; do not append a changelog, implement tasks, or edit any other
+file or run Git commands. If no necessary improvement is supported by repository
+evidence, make no changes."""
+
+
+def _planned_tasks_are_grounded(root: Path, candidates: list[Candidate]) -> bool:
+    for candidate in candidates:
+        match = re.search(r"\bEvidence:\s+([^;\s]+)", candidate.detail)
+        if not match:
+            return False
+        reference = match.group(1)
+        path_text, separator, line_text = reference.rpartition(":")
+        if not separator or not line_text.isdigit():
+            path_text, line_text = reference, ""
+        path = Path(path_text)
+        if path.is_absolute() or ".." in path.parts or path == Path("docs/STATUS.md"):
+            return False
+        evidence = root / path
+        if not evidence.is_file():
+            return False
+        if line_text:
+            lines = evidence.read_text(encoding="utf-8", errors="ignore").splitlines()
+            if int(line_text) < 1 or int(line_text) > len(lines):
+                return False
+    return True
 
 
 def _publish_state(
@@ -228,6 +273,115 @@ def _integrate(root: Path, worker: Worker, verify: str) -> None:
     _git(root, "worktree", "remove", str(worker.worktree))
 
 
+def _planner_worktree(root: Path) -> tuple[Path | None, str | None, str | None]:
+    common = _git(root, "rev-parse", "--git-common-dir")
+    head = _git(root, "rev-parse", "HEAD")
+    if common.returncode != 0 or head.returncode != 0:
+        return None, None, "continuous planning requires a Git repository with at least one commit"
+    common_dir = Path(common.stdout.strip())
+    if not common_dir.is_absolute():
+        common_dir = (root / common_dir).resolve()
+    worktree = common_dir / "looptight" / "planner" / secrets.token_hex(5)
+    added = _git(root, "worktree", "add", "-q", "--detach", str(worktree), head.stdout.strip())
+    if added.returncode != 0:
+        return None, None, added.stderr.strip() or "could not create planner worktree"
+    return worktree, head.stdout.strip(), None
+
+
+def plan_next_tasks(
+    root: Path,
+    *,
+    agent: str,
+    verify: str,
+    timeout: float = DEFAULT_WORKER_TIMEOUT,
+    push: bool = False,
+) -> PlanningResult:
+    """Ask the provider to create a bounded grounded plan in an isolated worktree."""
+    worktree, base, error = _planner_worktree(root)
+    if error or worktree is None or base is None:
+        return PlanningResult("failed", error)
+    adapter = get_adapter(agent)
+    adapter.worker_timeout_s = timeout
+    outcome = adapter.run_iteration(PLANNING_GOAL, "", worktree)
+    status = _git(worktree, "status", "--porcelain")
+    if status.returncode != 0:
+        return PlanningResult(
+            "failed", status.stderr.strip() or "could not inspect planner changes", worktree
+        )
+    diff = _git(worktree, "diff", "--name-only", base)
+    if diff.returncode != 0:
+        return PlanningResult(
+            "failed", diff.stderr.strip() or "could not inspect planner diff", worktree
+        )
+    changed = sorted(
+        set(diff.stdout.splitlines())
+        | {line[3:] for line in status.stdout.splitlines() if len(line) > 3}
+    )
+    if not changed and outcome.ok:
+        _git(root, "worktree", "remove", str(worktree))
+        return PlanningResult("no_work")
+    if not outcome.ok:
+        return PlanningResult("failed", outcome.error or "planner provider failed", worktree)
+    if changed != ["docs/STATUS.md"]:
+        return PlanningResult(
+            "failed",
+            "planner may change only docs/STATUS.md; changed: " + ", ".join(changed),
+            worktree,
+        )
+    candidates = from_status_next(worktree)
+    if not 1 <= len(candidates) <= 6 or not _planned_tasks_are_grounded(worktree, candidates):
+        return PlanningResult(
+            "failed",
+            "planner must produce 1-6 tasks with valid Evidence paths and Acceptance clauses",
+            worktree,
+        )
+    verdict = run_verify(verify, worktree)
+    if not verdict.passed:
+        return PlanningResult(
+            "failed", f"planner verify: {verdict.status}: {verdict.output[-500:]}", worktree
+        )
+    if status.stdout.strip():
+        added = _git(worktree, "add", "docs/STATUS.md")
+        committed = _git(worktree, "commit", "-m", "plan: refresh looptight swarm tasks")
+        if added.returncode != 0 or committed.returncode != 0:
+            return PlanningResult(
+                "failed",
+                committed.stderr.strip() or added.stderr.strip() or "planner commit failed",
+                worktree,
+            )
+    head = _git(worktree, "rev-parse", "HEAD")
+    if head.returncode != 0:
+        return PlanningResult(
+            "failed", head.stderr.strip() or "could not resolve planner commit", worktree
+        )
+    merged = _git(root, "merge", "--no-commit", "--no-ff", head.stdout.strip())
+    if merged.returncode != 0:
+        _git(root, "merge", "--abort")
+        return PlanningResult(
+            "failed", merged.stderr.strip() or "planner integration conflict", worktree
+        )
+    integrated = run_verify(verify, root)
+    if not integrated.passed:
+        _git(root, "merge", "--abort")
+        return PlanningResult(
+            "failed",
+            f"planner integration verify: {integrated.status}: {integrated.output[-500:]}",
+            worktree,
+        )
+    commit = _git(root, "commit", "-m", "merge: refresh continuous swarm plan")
+    if commit.returncode != 0:
+        _git(root, "merge", "--abort")
+        return PlanningResult(
+            "failed", commit.stderr.strip() or "planner integration commit failed", worktree
+        )
+    _git(root, "worktree", "remove", str(worktree))
+    if push:
+        pushed = _git(root, "push")
+        if pushed.returncode != 0:
+            return PlanningResult("failed", pushed.stderr.strip() or "could not push planner commit")
+    return PlanningResult("planned")
+
+
 def run_swarm(
     root: Path,
     *,
@@ -288,6 +442,65 @@ def run_swarm(
     return _result(root, SwarmResult(tuple(completed)))
 
 
+def run_continuous_swarm(
+    root: Path,
+    *,
+    agent: str,
+    config: Config,
+    workers: int,
+    worker_timeout: float = DEFAULT_WORKER_TIMEOUT,
+    push: bool = False,
+    max_rounds: int = 0,
+) -> SwarmResult:
+    """Repeat verified swarm rounds, planning only when grounded work is exhausted."""
+    completed: list[Worker] = []
+    rounds = 0
+    plans = 0
+    pushed: str | None = None
+    while max_rounds == 0 or rounds < max_rounds:
+        result = run_swarm(
+            root,
+            agent=agent,
+            config=config,
+            workers=workers,
+            worker_timeout=worker_timeout,
+            push=push,
+        )
+        rounds += 1
+        completed.extend(result.workers)
+        pushed = result.pushed or pushed
+        if result.error or (result.workers and not result.passed):
+            return SwarmResult(
+                tuple(completed), result.error, pushed, rounds=rounds, plans=plans
+            )
+        if result.workers:
+            continue
+        if max_rounds and rounds >= max_rounds:
+            return SwarmResult(tuple(completed), pushed=pushed, rounds=rounds, plans=plans)
+        planning = plan_next_tasks(
+            root,
+            agent=agent,
+            verify=config.verify or "",
+            timeout=worker_timeout,
+            push=push,
+        )
+        if planning.status == "planned":
+            plans += 1
+            pushed = "pushed" if push else pushed
+            continue
+        if planning.status == "no_work":
+            return SwarmResult(tuple(completed), pushed=pushed, rounds=rounds, plans=plans)
+        retained = f"; planner worktree retained: {planning.worktree}" if planning.worktree else ""
+        return SwarmResult(
+            tuple(completed),
+            (planning.error or "planner failed") + retained,
+            pushed,
+            rounds=rounds,
+            plans=plans,
+        )
+    return SwarmResult(tuple(completed), pushed=pushed, rounds=rounds, plans=plans)
+
+
 def cmd_swarm(args, console: Console) -> int:
     """CLI boundary for the explicit headless swarm manager."""
     if not args.headless:
@@ -310,19 +523,24 @@ def cmd_swarm(args, console: Console) -> int:
     if not config.verify:
         console.print("[red]No verify command.[/red] Configure one before starting a swarm.")
         return 2
-    result = run_swarm(
-        Path.cwd(),
-        agent=agent,
-        config=config,
-        workers=args.workers,
-        worker_timeout=args.worker_timeout,
-        push=args.push,
-    )
+    runner = run_continuous_swarm if args.continuous else run_swarm
+    options = {
+        "agent": agent,
+        "config": config,
+        "workers": args.workers,
+        "worker_timeout": args.worker_timeout,
+        "push": args.push,
+    }
+    if args.continuous:
+        options["max_rounds"] = args.max_rounds
+    result = runner(Path.cwd(), **options)
     if args.json:
         print(json.dumps(result.as_dict(), sort_keys=True))
         return 0 if result.passed else 1
     if result.error:
         console.print(f"[red]swarm error:[/red] {result.error}")
+    if args.continuous:
+        console.print(f"continuous · {result.rounds} rounds · {result.plans} plans")
     if not result.workers and not result.error:
         console.print("NO_WORK")
         return 0

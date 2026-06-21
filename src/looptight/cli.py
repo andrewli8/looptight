@@ -134,6 +134,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="seconds allowed for each provider invocation (default 3600)",
     )
     p_swarm.add_argument("--push", action="store_true", help="push integrated commits after the swarm")
+    p_swarm.add_argument(
+        "--continuous",
+        action="store_true",
+        help="repeat swarm rounds and use the agent to plan when the grounded queue is empty",
+    )
+    p_swarm.add_argument(
+        "--max-rounds",
+        type=_non_negative_int,
+        default=0,
+        help="continuous swarm round cap (0 = until no work, failure, or interruption)",
+    )
     p_swarm.add_argument("--json", action="store_true", help="emit the versioned swarm result as JSON")
 
     p_ui = sub.add_parser("ui", help="serve the read-only swarm view on localhost")

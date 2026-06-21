@@ -125,6 +125,10 @@ returns the reason in its machine-readable result.
 - Explicit swarm processing may run claimed tasks concurrently in isolated Git
   worktrees. A deterministic manager serializes integration and re-runs the
   verifier before every merge commit.
+- Explicit continuous swarm processing may ask the selected provider CLI for a
+  bounded plan only when grounded work is exhausted. Planning is isolated,
+  evidence-path validated, verification-gated, and cannot edit implementation
+  files directly.
 - Hooks and plugins remain thin adapters around the protocol and contain no
   product logic.
 

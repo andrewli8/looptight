@@ -9,9 +9,17 @@ from pathlib import Path
 
 from looptight import swarm
 from looptight.adapters.base import Adapter, run_command
-from looptight.cli import main
+from looptight.cli import build_parser, main
 from looptight.config import Config
-from looptight.swarm import MAX_WORKERS, SwarmResult, Worker, run_swarm
+from looptight.swarm import (
+    MAX_WORKERS,
+    PlanningResult,
+    SwarmResult,
+    Worker,
+    plan_next_tasks,
+    run_continuous_swarm,
+    run_swarm,
+)
 from looptight.tasks import NextResult
 from looptight.types import IterationResult
 
@@ -55,6 +63,36 @@ class OutOfOrderAdapter(EditingAdapter):
         return super().run_iteration(goal, context, workdir, model)
 
 
+class PlanningAdapter(EditingAdapter):
+    def run_iteration(self, goal, context, workdir, model=None):
+        (workdir / "docs" / "STATUS.md").write_text(
+            "# Status\n\n## Next\n\n"
+            "1. Cover the source task. Evidence: src/a.py:1; "
+            "Acceptance: a regression test passes.\n",
+            encoding="utf-8",
+        )
+        return IterationResult(transcript="planned")
+
+
+class SelfReferentialPlanningAdapter(EditingAdapter):
+    def run_iteration(self, goal, context, workdir, model=None):
+        (workdir / "docs" / "STATUS.md").write_text(
+            "# Status\n\n## Next\n\n"
+            "1. Keep planning. Evidence: docs/STATUS.md:1; "
+            "Acceptance: another task exists.\n",
+            encoding="utf-8",
+        )
+        return IterationResult(transcript="planned")
+
+
+class CommittingPlanningAdapter(PlanningAdapter):
+    def run_iteration(self, goal, context, workdir, model=None):
+        result = super().run_iteration(goal, context, workdir, model)
+        _git(workdir, "add", "docs/STATUS.md")
+        _git(workdir, "commit", "-qm", "provider committed plan")
+        return result
+
+
 def _git(root: Path, *args: str) -> None:
     subprocess.run(["git", *args], cwd=root, check=True, capture_output=True)
 
@@ -79,6 +117,15 @@ def test_swarm_rejects_more_than_fifty_workers(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     assert main(["swarm", "--headless", "--agent", "codex", "--workers", "51"]) == 2
     assert str(MAX_WORKERS) in capsys.readouterr().out
+
+
+def test_swarm_parser_accepts_explicit_continuous_rounds():
+    args = build_parser().parse_args(
+        ["swarm", "--headless", "--continuous", "--max-rounds", "7"]
+    )
+
+    assert args.continuous is True
+    assert args.max_rounds == 7
 
 
 def test_swarm_refuses_dirty_invoking_worktree(tmp_path):
@@ -298,3 +345,87 @@ def test_swarm_publishes_worker_results_in_completion_order(tmp_path, monkeypatc
     assert ["running", "running"] in snapshots
     assert ["running", "verified"] in snapshots
     assert [worker.number for worker in result.workers] == [1, 2]
+
+
+def test_planner_merges_only_grounded_status_tasks(tmp_path, monkeypatch):
+    _repo(tmp_path)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text("# Status\n\n## Next\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "status")
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: PlanningAdapter())
+
+    result = plan_next_tasks(tmp_path, agent="fake", verify="exit 0")
+
+    assert result == PlanningResult("planned")
+    status = (tmp_path / "docs" / "STATUS.md").read_text(encoding="utf-8")
+    assert "Evidence: src/a.py:1" in status
+    assert "Acceptance: a regression test passes" in status
+    assert not subprocess.run(
+        ["git", "status", "--porcelain"], cwd=tmp_path, capture_output=True, text=True
+    ).stdout
+
+
+def test_planner_rejects_self_referential_evidence_and_retains_worktree(
+    tmp_path, monkeypatch
+):
+    _repo(tmp_path)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text("# Status\n\n## Next\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "status")
+    monkeypatch.setattr(
+        "looptight.swarm.get_adapter", lambda name: SelfReferentialPlanningAdapter()
+    )
+
+    result = plan_next_tasks(tmp_path, agent="fake", verify="exit 0")
+
+    assert result.status == "failed"
+    assert "valid Evidence paths" in (result.error or "")
+    assert result.worktree is not None and result.worktree.is_dir()
+    assert not subprocess.run(
+        ["git", "status", "--porcelain"], cwd=tmp_path, capture_output=True, text=True
+    ).stdout
+
+
+def test_planner_accepts_provider_committed_status_change(tmp_path, monkeypatch):
+    _repo(tmp_path)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text("# Status\n\n## Next\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "status")
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: CommittingPlanningAdapter())
+
+    result = plan_next_tasks(tmp_path, agent="fake", verify="exit 0")
+
+    assert result == PlanningResult("planned")
+    assert "Cover the source task" in (tmp_path / "docs" / "STATUS.md").read_text()
+
+
+def test_continuous_swarm_replans_and_repeats_rounds(tmp_path, monkeypatch):
+    worker = Worker(
+        1,
+        {"id": "task-1", "source": "status-next", "goal": "do", "location": None},
+        "branch",
+        tmp_path / "worker",
+        "base",
+        status="merged",
+    )
+    rounds = iter([SwarmResult(()), SwarmResult((worker,)), SwarmResult(())])
+    planning = iter([PlanningResult("planned"), PlanningResult("no_work")])
+    monkeypatch.setattr("looptight.swarm.run_swarm", lambda *args, **kwargs: next(rounds))
+    monkeypatch.setattr(
+        "looptight.swarm.plan_next_tasks", lambda *args, **kwargs: next(planning)
+    )
+
+    result = run_continuous_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0"),
+        workers=2,
+    )
+
+    assert result.passed
+    assert result.workers == (worker,)
+    assert result.rounds == 3
+    assert result.plans == 1

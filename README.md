@@ -93,9 +93,25 @@ process was launched. Worker branches use `looptight/swarm/...`. On failure,
 inspect retained workers with `git worktree list`; successful branches remain as
 an audit/recovery point even after their worktrees are removed.
 
+For automatic planning and repeated rounds, opt in explicitly:
+
+```bash
+looptight swarm --headless --continuous --agent codex --workers 4 --push
+# optional safety cap: --max-rounds 10 (0 means uncapped)
+```
+
+Continuous mode drains grounded tasks, then runs the selected provider CLI once
+as a planning manager in an isolated worktree. A plan is merged only when it
+changes `docs/STATUS.md`, contains 1–6 tasks with existing-file `Evidence:`
+references and observable `Acceptance:` clauses, and passes verification in the
+planner worktree and again during integration. It then starts another swarm
+round. It stops on an evidence-backed `NO_WORK`, provider or verification
+failure, the optional round cap, or interruption. Invalid planner worktrees are
+retained for inspection.
+
 Swarm mode invokes the installed provider CLI. Looptight neither supplies API
-keys nor guarantees billing mode: Codex or Claude authentication determines
-whether work consumes subscription allowance, credits, or another account.
+keys nor guarantees billing mode: provider authentication determines whether
+work consumes subscription allowance, credits, or another account.
 
 ### Local orchestration view
 
@@ -106,10 +122,9 @@ looptight ui --port 9123
 
 The dependency-free, read-only signal map polls Git-private swarm state and
 shows the manager, grounded tasks, workers, arrows, and live outcomes. It binds
-only to loopback and sends restrictive browser headers. See the
-[remote mobile management decision](docs/remote-mobile-management.md) before
-placing any authenticated tunnel in front of it; Looptight never opens a public
-listener itself.
+only to loopback and sends restrictive browser headers. Provider-native Codex,
+Claude Code, or OpenCode surfaces remain the manager interface; Looptight never
+opens a public listener itself.
 
 ## Safety
 
