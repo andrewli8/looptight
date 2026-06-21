@@ -25,6 +25,14 @@ def header(result: RunResult) -> str:
     return f"looptight · agent: {result.agent} ({verb})"
 
 
+def _tail(result: RunResult) -> str:
+    """The final status fragment, surfacing the error text on an ERROR stop."""
+    text = _REASON_TEXT.get(result.stop_reason, result.stop_reason.value)
+    if result.stop_reason is StopReason.ERROR and result.error:
+        return f"{text}: {result.error}"
+    return text
+
+
 def render(result: RunResult) -> str:
     """Full plain-text summary."""
     lines = [header(result), ""]
@@ -32,7 +40,7 @@ def render(result: RunResult) -> str:
         lines.append(record.line())
 
     mark = "✓" if result.passed else "✗"
-    tail = _REASON_TEXT.get(result.stop_reason, result.stop_reason.value)
+    tail = _tail(result)
     lines.append("")
     lines.append(f"{mark} {tail} · {result.iteration_count} iteration(s)")
     if result.diffstat:
@@ -52,7 +60,7 @@ def render_rich(result: RunResult, console) -> None:
 
     passed = result.passed
     mark = "✓" if passed else "✗"
-    tail = _REASON_TEXT.get(result.stop_reason, result.stop_reason.value)
+    tail = _tail(result)
     console.print()
     console.print(
         f"{mark} {tail} · {result.iteration_count} iteration(s)",

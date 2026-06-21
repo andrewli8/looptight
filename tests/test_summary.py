@@ -35,6 +35,20 @@ def test_summary_shows_stop_reasons():
     assert "human" in summary.render(_result(StopReason.ESCALATED))
 
 
+def test_summary_surfaces_error_message():
+    result = RunResult(
+        goal="fix",
+        agent="claude",
+        mode="supply",
+        stop_reason=StopReason.ERROR,
+        error="git checkout failed: detached HEAD",
+    )
+    text = summary.render(result)
+    assert "git checkout failed: detached HEAD" in text
+    # Non-error summaries stay unchanged.
+    assert "error" not in summary.render(_result(StopReason.SUCCESS))
+
+
 def test_summary_includes_diffstat():
     result = RunResult(
         goal="fix",
