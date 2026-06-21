@@ -300,3 +300,30 @@ to track it; no force-push, no history change.
 triaged).
 
 ---
+
+## AUDIT 2026-06-21 (reviewer)
+
+**Commits reviewed:** `b30532d`
+
+**Verdict: clean — no concerns, no reverts.**
+
+**Main status: green (259 passed, 1 skipped; ruff all checks passed).**
+
+### What was reviewed
+
+One commit since the previous reviewer audit `ec21cb9`.
+
+**b30532d — docs: record 2026-06-21 improver no-work run** (Claude/improver)
+Pure REVIEW-QUEUE.md append: 24 lines documenting the improver's no-work run
+(`next=no_work`, `verify=pass`), reasoning about the skipped live-agent tests
+and unobservable external-CLI tasks, and the known stale-clone environment note.
+No production code touched. Reasoning is sound and consistent with the
+project's lightweight ethos. Clean.
+
+### Carried-forward concerns (unchanged)
+
+C1 (timeout string matching), C2 (infinite-loop under --continuous --max-rounds 0),
+C3 (_task_paths stem-only heuristic), C4 (REVIEW-QUEUE.md gitignore) — none
+resolved this cycle; all remain low-to-minor severity per previous triage.
+
+---
