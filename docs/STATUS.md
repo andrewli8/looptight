@@ -110,44 +110,27 @@ existing CLI session and makes no model or API calls of its own.
 - `doctor` prints actionable hints when verify or an agent is missing, and the
   dashboard inspector re-resolves the selected node each poll so its detail stays
   live — each covered by a test.
+- Diagnostic output is clearer: run summaries surface the actual error, the claude
+  adapter names the return code on native non-zero exits, the continuation context
+  marks truncated verify output, settings hook errors name the actual type, and
+  Makefile `test:` detection ignores commented lines.
 
 ## Next
 
-1. Include the actual error message in the run summary: when a `RunResult` stops
-   with reason ERROR, `render` currently shows only "stopped: error" and drops
-   `result.error`, leaving no context. Surface the error text.
-   Evidence: src/looptight/summary.py:28; Evidence: tests/test_summary.py:1;
-   Acceptance: render of an ERROR result with a non-None error includes the error
-   string, non-error summaries are unchanged, a new test in tests/test_summary.py
-   asserts the message appears, and the suite passes.
-2. Make the claude adapter's non-zero exit phrasing consistent: the native loop
-   path reports "exited non-zero" while `run_iteration` reports "exited {code}".
-   Align the native path to name the return code.
-   Evidence: src/looptight/adapters/claude.py:75; Evidence: tests/test_adapters.py:1;
-   Acceptance: both the supply and native paths report a non-zero exit with the
-   return code in the message, a new test in tests/test_adapters.py asserts the
-   native path includes the code, and the suite passes.
-3. Mark truncated verify output in the continuation context: `_continuation_context`
-   truncates to the last 3000 characters with no indication, so dropped early
-   detail is invisible. Add a truncation marker when output exceeds the threshold.
-   Evidence: src/looptight/loop.py:29; Evidence: tests/test_loop.py:1;
-   Acceptance: output longer than the threshold includes a truncation marker while
-   short output is passed through unchanged, a new test in tests/test_loop.py
-   asserts both behaviors, and the suite passes.
-4. Name the actual type in settings hook errors: "hooks is not an object; refusing
-   to edit" should say what was found (for example a list) to make a malformed
-   settings file debuggable.
-   Evidence: src/looptight/settings.py:77; Evidence: tests/test_settings.py:1;
-   Acceptance: the error message includes the actual JSON type when hooks is not an
-   object, the valid-object path is unchanged, a new test in tests/test_settings.py
-   asserts the type name appears, and the suite passes.
-5. Harden Makefile `test:` detection so a genuine target is recognized and a
-   commented `# test:` line is not mistaken for one, without changing detection for
-   the cases already handled.
-   Evidence: src/looptight/detect.py:19; Evidence: tests/test_detect.py:1;
-   Acceptance: a new test in tests/test_detect.py proves a real `test:` target is
-   detected and a commented `# test:` line is not, existing detection behavior is
-   unchanged, and the suite passes.
+1. Make the dashboard event age readable past an hour: `eventAge` caps at minutes,
+   so a stale view shows "120M AGO" instead of "2H AGO". Add hour (and day) ranges
+   while keeping the seconds and minutes output unchanged.
+   Evidence: src/looptight/ui.py:93; Evidence: tests/test_ui.py:1;
+   Acceptance: the served page formats hour and day ranges, the existing
+   seconds/minutes output is unchanged, a new test in tests/test_ui.py asserts the
+   page wires the longer ranges, and the suite passes.
+2. Make `cmd_propose` human output scannable by surfacing each candidate's source
+   priority: group or annotate the ranked list by source so the operator sees why
+   one task outranks another, without changing the `--json` output.
+   Evidence: src/looptight/protocol_commands.py:82; Evidence: tests/test_cli.py:1;
+   Acceptance: non-JSON `propose` output groups or annotates candidates by source,
+   the `--json` output is unchanged, a new test in tests/test_cli.py asserts the
+   grouping/annotation appears in human output, and the suite passes.
 
 ## Rules
 
