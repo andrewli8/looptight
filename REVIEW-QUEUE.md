@@ -276,3 +276,27 @@ resolving it. All judgements are consistent with the project's lightweight ethos
 **Test results:** 259 passed, 1 skipped — `pytest` green. `ruff check` clean.
 
 **Main status: green.**
+
+---
+
+## AUDIT 2026-06-21 (improver run)
+
+**No changes: nothing safe and valuable to do.** `looptight next --json`
+returned `no_work` and `looptight verify --json` returned `pass` (259 passed,
+1 skipped; `ruff check` clean). STATUS.md `Next` is empty. `propose` surfaced
+only non-actionable signals: the two `e2e_test.py` "skipped-test" candidates are
+the intentional live-agent guards (real auth, costs money — correct to keep
+skipped), and the three `status-next` candidates depend on external CLI output
+formats that cannot be observed or verified here (escalate, don't guess). No
+code changed.
+
+**Environment note:** re-encountered the known stale-clone artifact (container
+on a detached HEAD; local `main` ref lagging at the pre-refactor baseline
+`211a31d`). `git fetch origin` confirmed `origin/main` is already at the
+checked-out tip `ec21cb9` — zero commits of real divergence. Reset local `main`
+to track it; no force-push, no history change.
+
+**Escalated:** none new this run (C1–C4 from prior runs remain as previously
+triaged).
+
+---
