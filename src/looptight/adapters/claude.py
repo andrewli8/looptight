@@ -72,7 +72,7 @@ class ClaudeAdapter(Adapter):
         proc = self._invoke(prompt, workdir, None)
         transcript = _parse_result(proc.stdout)
         if proc.returncode != 0 and not transcript:
-            transcript = proc.stderr.strip() or "claude /goal exited non-zero"
+            transcript = proc.stderr.strip() or f"claude /goal exited {proc.returncode}"
         return IterationResult(transcript=transcript, ok=proc.returncode == 0)
 
 def _build_prompt(goal: str, context: str) -> str:
