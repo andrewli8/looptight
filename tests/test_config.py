@@ -7,9 +7,12 @@ import dataclasses
 import pytest
 
 from looptight.config import (
+    CONFIG_NAME,
     Config,
     ConfigError,
+    find_config,
     load_config,
+    render_config,
     write_config,
 )
 
@@ -131,3 +134,30 @@ def test_rendered_config_contains_only_supported_settings(tmp_path):
         if line.strip() and not line.lstrip().startswith("#") and "=" in line
     }
     assert settings == {"verify", "tasks", "direct_main"}
+
+
+def test_find_config_locates_config_in_parent_directory(tmp_path):
+    (tmp_path / CONFIG_NAME).write_text('verify = "pytest -q"\n', encoding="utf-8")
+    nested = tmp_path / "a" / "b" / "c"
+    nested.mkdir(parents=True)
+
+    found = find_config(nested)
+
+    assert found == tmp_path / CONFIG_NAME
+
+
+def test_find_config_returns_none_when_no_config_exists(tmp_path):
+    nested = tmp_path / "a" / "b"
+    nested.mkdir(parents=True)
+
+    assert find_config(nested) is None
+
+
+def test_render_config_includes_verify_tasks_and_direct_main():
+    text = render_config(
+        Config(verify="npm test", tasks=("TODO.md", "docs/STATUS.md"), direct_main=True)
+    )
+
+    assert 'verify = "npm test"' in text
+    assert 'tasks = ["TODO.md", "docs/STATUS.md"]' in text
+    assert "direct_main = true" in text
