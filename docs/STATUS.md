@@ -120,9 +120,15 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-No grounded follow-up is currently queued. Continuous mode delegates the next
-evidence-backed planning pass to the selected provider only after this queue is
-empty.
+1. Harden `ClaimStore.select` against a corrupted claim whose `task_id` is not a
+   string: it is used as a dict key (`task_id not in active`), so a malformed
+   claim file (valid JSON, list/dict `task_id`) raises `TypeError` and stalls
+   selection. Validate the type as `summary` already does and treat a non-string
+   `task_id` as stale.
+   Evidence: src/looptight/claims.py:58; Evidence: tests/test_claims.py:1;
+   Acceptance: a claim whose `task_id` is a non-string is unlinked and `select`
+   continues to the next valid task without raising, a new test in
+   tests/test_claims.py asserts this, and the suite passes.
 
 ## Rules
 
