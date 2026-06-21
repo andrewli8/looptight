@@ -185,20 +185,24 @@ def from_skipped_tests(root: Path) -> list[Candidate]:
     return out
 
 
-def from_status_next(root: Path) -> list[Candidate]:
-    """Return at most the first six executable tasks under the status Next heading."""
-    status = root / "docs" / "STATUS.md"
-    if not status.is_file():
+def from_task_file(root: Path, task_file: str, *, next_section_only: bool = False) -> list[Candidate]:
+    """Return executable numbered tasks from one explicit repository file."""
+    relative = Path(task_file)
+    if relative.is_absolute() or ".." in relative.parts:
+        return []
+    path = root / relative
+    if not path.is_file():
         return []
     out: list[Candidate] = []
-    lines = status.read_text(encoding="utf-8", errors="ignore").splitlines()
-    in_next = False
+    lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+    in_next = not next_section_only
     idx = 0
     while idx < len(lines):
         line = lines[idx]
         stripped = line.strip()
         if stripped.startswith("## "):
-            in_next = stripped[3:].strip().lower() == "next"
+            if next_section_only:
+                in_next = stripped[3:].strip().lower() == "next"
             idx += 1
             continue
         if not in_next:
@@ -231,8 +235,8 @@ def from_status_next(root: Path) -> list[Candidate]:
         out.append(
             Candidate(
                 title=task_text.strip().rstrip(".;"),
-                source="status-next",
-                location=f"docs/STATUS.md:{item_lineno}",
+                source="status-next" if next_section_only else "task-file",
+                location=f"{relative.as_posix()}:{item_lineno}",
                 suggested_verify=None,
                 score=0.0,
                 detail=text,
@@ -242,6 +246,11 @@ def from_status_next(root: Path) -> list[Candidate]:
         if len(out) == 6:
             return out
     return out
+
+
+def from_status_next(root: Path) -> list[Candidate]:
+    """Return at most the first six executable tasks under the status Next heading."""
+    return from_task_file(root, "docs/STATUS.md", next_section_only=True)
 
 
 def from_lint(root: Path) -> list[Candidate]:
@@ -282,8 +291,14 @@ def from_lint(root: Path) -> list[Candidate]:
 _EXTRACTORS = (from_lint, from_skipped_tests, from_todos, from_status_next)
 
 
-def discover(root: Path) -> list[Candidate]:
-    """Run every signal extractor and return the combined, unranked candidates."""
+def discover(root: Path, *, task_files: tuple[str, ...] = ()) -> list[Candidate]:
+    """Read explicit task files, or fall back to the built-in signal extractors."""
+    if task_files:
+        return [
+            candidate
+            for task_file in task_files
+            for candidate in from_task_file(root, task_file)
+        ]
     found: list[Candidate] = []
     for extractor in _EXTRACTORS:
         found.extend(extractor(root))

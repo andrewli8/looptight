@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from .config import Config, find_config, load_config
 from .discovery import Candidate, discover
 from .ranking import dedupe, rank
 
@@ -21,5 +22,8 @@ __all__ = ["Candidate", "propose"]
 
 def propose(root: Path, *, limit: int = 10) -> list[Candidate]:
     """Scan all signals, dedupe, rank, and return the top ``limit`` candidates."""
-    ranked = rank(dedupe(discover(root)))
+    config_path = find_config(root)
+    config = load_config(config_path) if config_path else Config()
+    discovery_root = config_path.parent if config_path else root
+    ranked = rank(dedupe(discover(discovery_root, task_files=config.tasks)))
     return ranked[:limit] if limit and limit > 0 else ranked

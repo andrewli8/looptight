@@ -93,8 +93,10 @@ def _optional_string(data: dict[str, object], field: str) -> str | None:
 
 def _string_list(data: dict[str, object], field: str) -> tuple[str, ...]:
     value = data.get(field, [])
-    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
-        raise ValueError(f"{field} must be an array of strings")
+    if not isinstance(value, list) or any(
+        not isinstance(item, str) or not item.strip() for item in value
+    ):
+        raise ValueError(f"{field} must be an array of nonempty strings")
     return tuple(value)
 
 

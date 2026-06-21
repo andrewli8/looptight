@@ -9,6 +9,7 @@ import pytest
 
 from looptight.cli import main
 from looptight.protocol_commands import _verify_exit_code
+from looptight.propose import propose
 
 
 def test_init_writes_config(tmp_path, monkeypatch):
@@ -146,6 +147,49 @@ def test_next_json_no_work_contract(tmp_path, monkeypatch, capsys):
         "status": "no_work",
         "task": None,
     }
+
+
+def test_next_json_reads_each_configured_task_file(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".looptight.toml").write_text(
+        'tasks = ["TODO.md", "docs/BACKLOG.md"]\n', encoding="utf-8"
+    )
+    (tmp_path / "TODO.md").write_text(
+        "1. First configured task. Acceptance: first passes.\n", encoding="utf-8"
+    )
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "BACKLOG.md").write_text(
+        "# Backlog\n\n## Ready\n\n"
+        "1. Second configured task. Acceptance: second passes.\n",
+        encoding="utf-8",
+    )
+
+    assert {candidate.location for candidate in propose(tmp_path, limit=0)} == {
+        "TODO.md:1",
+        "docs/BACKLOG.md:5",
+    }
+
+    assert main(["next", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+
+    assert data["status"] == "task"
+    assert data["task"]["location"] == "TODO.md:1"
+    assert "First configured task" in data["task"]["goal"]
+
+
+def test_next_json_returns_no_work_for_empty_configured_sources(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".looptight.toml").write_text(
+        'tasks = ["TODO.md"]\n', encoding="utf-8"
+    )
+    (tmp_path / "TODO.md").write_text("# No executable tasks\n", encoding="utf-8")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# TODO: ignored fallback signal\n")
+
+    assert main(["next", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "no_work"
 
 
 def test_next_json_refuses_dirty_git_worktree_before_claim(tmp_path, monkeypatch, capsys):
