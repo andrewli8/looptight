@@ -122,9 +122,30 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-No grounded follow-up is currently queued. Continuous mode delegates the next
-evidence-backed planning pass to the selected provider only after this queue is
-empty.
+1. Add direct unit coverage for `owner_id` in claims.py, which currently has none:
+   cover the `LOOPTIGHT_SESSION_ID` environment override branch and the default
+   hostname-and-resolved-path identity branch.
+   Evidence: src/looptight/claims.py:35; Evidence: tests/test_claims.py:1;
+   Acceptance: new tests in tests/test_claims.py assert `owner_id` returns the
+   environment value when `LOOPTIGHT_SESSION_ID` is set and a stable identity
+   derived from hostname and path otherwise, with no production code change, and
+   the suite passes.
+2. Add unit coverage for two untested config.py functions: `find_config` (walks up
+   parent directories and returns None when no config exists) and `render_config`
+   (renders the verify command, tasks array, and direct_main flag).
+   Evidence: src/looptight/config.py:52; Evidence: tests/test_config.py:1;
+   Acceptance: new tests in tests/test_config.py prove `find_config` locates a
+   `.looptight.toml` in a parent directory and returns None when none exists, and
+   `render_config` output includes the verify command, the tasks array, and the
+   direct_main flag, with no production code change, and the suite passes.
+3. Add direct unit coverage for git worktree detection in checkpoint.py:
+   `is_git_primary_worktree` has no tests and `is_git_repo` is only exercised
+   through mocks.
+   Evidence: src/looptight/checkpoint.py:38; Evidence: tests/test_checkpoint.py:1;
+   Acceptance: new tests in tests/test_checkpoint.py prove `is_git_repo` returns
+   True inside a real git repository and False outside one, and
+   `is_git_primary_worktree` returns True in a primary worktree and False outside
+   a git repository, with no production code change, and the suite passes.
 
 ## Rules
 
