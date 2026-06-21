@@ -280,6 +280,46 @@ def test_swarm_human_output_prints_retained_worktree_for_failed_worker(
     assert Path(retained).is_dir()
 
 
+def test_swarm_human_output_ends_with_outcome_tally(tmp_path, monkeypatch, capsys):
+    _repo(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+
+    exit_code = main(
+        ["swarm", "--headless", "--agent", "codex", "--verify", "exit 0", "--workers", "2"]
+    )
+
+    assert exit_code == 0
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[-1] == "2 workers · merged 2"
+
+
+def test_swarm_tally_counts_each_terminal_status_once():
+    workers = [
+        Worker(1, {"id": "a"}, "b1", Path("w1"), "base", status="merged"),
+        Worker(2, {"id": "b"}, "b2", Path("w2"), "base", status="failed"),
+        Worker(3, {"id": "c"}, "b3", Path("w3"), "base", status="merged"),
+        Worker(4, {"id": "d"}, "b4", Path("w4"), "base", status="timeout"),
+    ]
+
+    assert swarm._swarm_tally(workers) == "4 workers · merged 2 · failed 1 · timeout 1"
+
+
+def test_swarm_json_output_omits_tally(tmp_path, monkeypatch, capsys):
+    _repo(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+
+    exit_code = main(
+        ["swarm", "--headless", "--agent", "codex", "--verify", "exit 0", "--json"]
+    )
+
+    assert exit_code == 0
+    out = capsys.readouterr().out.strip()
+    assert "workers ·" not in out
+    json.loads(out)
+
+
 def test_swarm_cleans_unstarted_worktree_when_preparation_fails(tmp_path, monkeypatch):
     _repo(tmp_path)
     monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())

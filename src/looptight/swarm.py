@@ -7,6 +7,7 @@ import json
 import re
 import secrets
 import subprocess
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
@@ -603,4 +604,14 @@ def cmd_swarm(args, console: Console) -> int:
         console.print(f"worker {worker.number} · {worker.task['id']} · {worker.status}{detail}")
         if worker.status in {"failed", "timeout", "conflict"}:
             console.print(f"  worktree retained for recovery: {worker.worktree}")
+    console.print(_swarm_tally(result.workers))
     return 0 if result.passed else 1
+
+
+def _swarm_tally(workers) -> str:
+    """One-line outcome tally counting workers by terminal status."""
+    counts = Counter(worker.status for worker in workers)
+    preferred = ["merged", "failed", "timeout", "conflict"]
+    ordered = preferred + sorted(set(counts) - set(preferred))
+    parts = [f"{status} {counts[status]}" for status in ordered if counts[status]]
+    return f"{len(workers)} workers · " + " · ".join(parts)
