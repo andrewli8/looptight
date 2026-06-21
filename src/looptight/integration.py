@@ -33,9 +33,9 @@ def install_session_instructions(root: Path) -> list[Path]:
     for name in ("AGENTS.md", "CLAUDE.md"):
         path = root / name
         current = path.read_text(encoding="utf-8") if path.exists() else ""
-        if START in current and END in current:
+        if START in current:
             before, remainder = current.split(START, 1)
-            _, after = remainder.split(END, 1)
+            after = remainder.split(END, 1)[1] if END in remainder else ""
             prefix = before.rstrip()
             updated = (prefix + "\n\n" if prefix else "") + SESSION_LOOP + after.lstrip("\n")
         else:

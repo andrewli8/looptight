@@ -14,6 +14,21 @@ def test_installs_same_small_loop_for_all_agents(tmp_path):
     assert "Do not run `looptight run` or `looptight improve`" in SESSION_LOOP
 
 
+def test_install_repairs_start_marker_without_matching_end(tmp_path):
+    path = tmp_path / "AGENTS.md"
+    path.write_text(f"# Existing\n\nKeep this.\n\n{START}\norphaned managed block, no end\n")
+
+    changed = install_session_instructions(tmp_path)
+
+    text = path.read_text()
+    assert path in changed
+    assert text.count(START) == 1
+    assert text.count(END) == 1
+    assert "Keep this." in text
+    assert "orphaned managed block, no end" not in text
+    assert text.endswith(SESSION_LOOP)
+
+
 def test_install_is_idempotent_and_preserves_surrounding_instructions(tmp_path):
     path = tmp_path / "AGENTS.md"
     path.write_text("# Existing\n\nKeep this.\n")
