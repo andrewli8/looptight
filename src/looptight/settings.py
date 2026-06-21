@@ -74,7 +74,9 @@ def install(path: Path) -> bool:
     data = _load(path)
     raw_hooks = data.get("hooks", {})
     if not isinstance(raw_hooks, dict):
-        raise ValueError(f"{path}: hooks is not an object; refusing to edit")
+        raise ValueError(
+            f"{path}: hooks is a {type(raw_hooks).__name__}, not an object; refusing to edit"
+        )
     hooks = dict(raw_hooks)
     stop = list(_stop_hooks(path, hooks))
     if any(_is_ours(entry) for entry in stop if isinstance(entry, dict)):
@@ -92,7 +94,9 @@ def uninstall(path: Path) -> int:
     data = _load(path)
     raw_hooks = data.get("hooks", {})
     if not isinstance(raw_hooks, dict):
-        raise ValueError(f"{path}: hooks is not an object; refusing to edit")
+        raise ValueError(
+            f"{path}: hooks is a {type(raw_hooks).__name__}, not an object; refusing to edit"
+        )
     hooks = dict(raw_hooks)
     stop = list(_stop_hooks(path, hooks))
     kept = [entry for entry in stop if not (isinstance(entry, dict) and _is_ours(entry))]
