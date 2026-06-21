@@ -91,9 +91,25 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-No grounded follow-up is currently queued. Continuous mode delegates the next
-evidence-backed planning pass to the selected provider only after this queue is
-empty.
+1. Align the project configuration model and generated `.looptight.toml` with the
+   specified `verify`, `tasks`, and `direct_main` contract while treating legacy
+   orchestration keys as ignored migration input. Evidence: src/looptight/config.py:29;
+   Acceptance: config tests prove the three supported keys round-trip, generated
+   config contains no legacy agent-loop settings, and legacy keys do not affect the
+   resolved configuration.
+2. Use configured task files as explicit grounded queue sources instead of always
+   running only the hard-coded discovery extractors. Evidence: src/looptight/discovery.py:282;
+   Acceptance: `next --json` selects a valid task from each configured task file and
+   returns `no_work` when those configured sources contain no executable item.
+3. Enforce the unattended-execution isolation policy for `run --headless` by
+   refusing a Git primary worktree unless `direct_main` is explicitly enabled.
+   Evidence: src/looptight/commands.py:79; Acceptance: CLI tests show headless run
+   exits nonzero before invoking a provider in a primary worktree by default, while
+   an isolated worktree or explicit `direct_main = true` proceeds.
+4. Prevent swarm workers from committing files outside the scope attributable to
+   their claimed task instead of staging the entire worktree. Evidence: src/looptight/swarm.py:224;
+   Acceptance: a worker that edits an unrelated file is retained as failed without
+   a commit or merge, while an in-scope verified change is committed and integrated.
 
 ## Rules
 
