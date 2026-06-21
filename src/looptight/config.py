@@ -32,7 +32,7 @@ class Config:
 
     verify: str | None = None
     tasks: tuple[str, ...] = ()
-    direct_main: bool = False
+    direct_main: bool = False  # explicitly permit unattended execution in the primary worktree
 
     # Runtime-only controls retained for the explicit headless commands. These
     # are not part of the project configuration file contract.
@@ -41,7 +41,6 @@ class Config:
     native: bool = False  # drive the agent's own loop (e.g. Claude /goal) where it has one
     hook: bool = False  # arm the Claude Code Stop-hook auto-loop in this repo
     patience: int = 0  # stop early after N iterations of no measurable progress (0 = off)
-    direct_main: bool = False  # explicitly permit unattended execution in the primary worktree
 
     def merged(self, **overrides: object) -> "Config":
         """Return a new Config with any non-None overrides applied (CLI > file)."""
