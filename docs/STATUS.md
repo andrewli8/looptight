@@ -104,31 +104,28 @@ existing CLI session and makes no model or API calls of its own.
 - The read-only dashboard shows an at-a-glance status tally, `swarm` prints a
   one-line outcome count after per-worker lines, and `next` human output includes
   each task's acceptance condition — each covered by a test, JSON unchanged.
+- The dashboard shows idle empty-state guidance, `status` prints the resolved
+  verify command, and `swarm` prints a start banner naming workers/agent/verify
+  before the silent run — each covered by a test, JSON output unchanged.
 
 ## Next
 
-1. Give the read-only dashboard a helpful idle empty-state: when the manager is
-   idle and there are no tasks or workers, replace the bare "no tasks"/"no
-   workers" lanes with one guidance message pointing the operator at
-   `looptight swarm --headless` so a fresh view explains its own next step.
-   Evidence: src/looptight/ui.py:96; Evidence: tests/test_ui.py:1;
-   Acceptance: the served page contains idle guidance referencing the swarm
-   command, non-empty states still render their nodes unchanged, a new test in
-   tests/test_ui.py asserts the guidance text is served, and the suite passes.
-2. Show the resolved verify command in `cmd_status` human output so the operator
-   can confirm which command gates the loop, while leaving the `--json` payload
-   byte-for-byte unchanged.
-   Evidence: src/looptight/protocol_commands.py:172; Evidence: tests/test_cli.py:1;
-   Acceptance: when validation is configured, non-JSON `status` output prints the
-   resolved verify command, a new test in tests/test_cli.py asserts it appears in
-   human output while the JSON payload is unchanged, and the suite passes.
-3. Print a start banner before `cmd_swarm` launches workers (worker count, agent,
-   verify command, and continuous/round plan) so the operator knows what is
-   running during the otherwise silent execution, without emitting it in JSON mode.
-   Evidence: src/looptight/swarm.py:590; Evidence: tests/test_swarm.py:1;
-   Acceptance: non-JSON `swarm` prints a banner naming workers, agent, and verify
-   before workers start, `--json` mode prints no banner, a new test in
-   tests/test_swarm.py asserts both behaviors, and the suite passes.
+1. Make `cmd_doctor` print a short actionable hint when a prerequisite is missing:
+   when no verify command is detected, point the operator at `looptight init`, and
+   when no agent is found on PATH, name the supported agents to install. Keep the
+   existing lines unchanged when both are present.
+   Evidence: src/looptight/commands.py:165; Evidence: tests/test_cli.py:1;
+   Acceptance: doctor output includes a remediation hint when verify or agent is
+   absent and is otherwise unchanged, a new test in tests/test_cli.py asserts the
+   hint appears only when the prerequisite is missing, and the suite passes.
+2. Keep the dashboard inspector live across polls: when a node is selected and its
+   status changes on the next 1.5s poll, re-resolve the selected record from
+   current state in render() so the inspector detail does not go stale, preserving
+   the selection.
+   Evidence: src/looptight/ui.py:98; Evidence: tests/test_ui.py:1;
+   Acceptance: render() refreshes the selected node's inspector detail from the
+   latest state and selection persists across renders, a new test in
+   tests/test_ui.py asserts the served page wires this refresh, and the suite passes.
 
 ## Rules
 
