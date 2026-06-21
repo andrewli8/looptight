@@ -169,6 +169,17 @@ def test_page_serves_idle_empty_state_guidance(tmp_path):
     assert headers["Content-Security-Policy"] == ui.CONTENT_SECURITY_POLICY
 
 
+def test_page_keeps_inspector_live_across_polls():
+    page = ui.PAGE
+    # node() registers each rendered record by id so render() can re-resolve the
+    # selection from the latest state instead of leaving the inspector stale.
+    assert "records[id]=record;" in page
+    assert "render(){tally();records={};" in page
+    # After rebuilding the graph, render() refreshes the selected node's detail
+    # from the freshly rendered records while preserving the selection.
+    assert "if(selected){const fresh=records[selected.id];if(fresh)select(fresh)}" in page
+
+
 def test_legacy_state_without_timestamp_remains_readable(tmp_path):
     state = {"schema_version": 1, "manager": {"status": "idle"}, "tasks": [], "workers": []}
     path = ui._state_path(tmp_path)
