@@ -512,6 +512,18 @@ def test_propose_rejects_negative_cli_limit():
     assert exc.value.code == 2
 
 
+def test_propose_text_output_groups_by_source_priority(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# TODO: fix the timeout\n")
+    assert main(["propose"]) == 0
+    out = capsys.readouterr().out
+    # The source and its ranking weight are surfaced so the operator sees why one
+    # task outranks another.
+    assert "todo" in out
+    assert "source priority" in out
+
+
 @pytest.mark.parametrize("value", ["0", "-1"])
 def test_run_rejects_non_positive_max_iterations(value):
     with pytest.raises(SystemExit) as exc:

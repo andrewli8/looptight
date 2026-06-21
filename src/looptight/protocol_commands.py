@@ -91,11 +91,21 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
         console.print("No candidate tasks found from repo signals (clean tree).")
         return 0
 
-    console.print(f"[bold]{len(candidates)} candidate task(s)[/bold] (ranked; pick what to run):")
+    console.print(
+        f"[bold]{len(candidates)} candidate task(s)[/bold] "
+        "(grouped by source priority; pick what to run):"
+    )
     console.print()
+    last_source: str | None = None
     for i, candidate in enumerate(candidates, 1):
+        if candidate.source != last_source:
+            console.print(
+                f"[cyan]{candidate.source}[/cyan] [dim](source priority "
+                f"{int(candidate.score)})[/dim]"
+            )
+            last_source = candidate.source
         where = f" [dim]{candidate.location}[/dim]" if candidate.location else ""
-        console.print(f"  {i}. [cyan]{candidate.source}[/cyan]  {candidate.title}{where}")
+        console.print(f"  {i}. {candidate.title}{where}")
     console.print()
     console.print(
         "[dim]Ranking is a source-priority heuristic. The operating agent selects the "
