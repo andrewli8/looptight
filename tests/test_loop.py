@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from looptight.checkpoint import Checkpointer
 from looptight.config import Config
-from looptight.loop import run_loop
-from looptight.types import StopReason
+from looptight.loop import _CONTEXT_OUTPUT_LIMIT, _continuation_context, run_loop
+from looptight.types import StopReason, VerifyResult
 
 from conftest import FakeAdapter, make_verify
 
@@ -49,6 +49,24 @@ def test_context_carries_verify_output_forward(workdir):
     # First iteration has empty context; later ones carry the failure forward (B2).
     assert adapter.contexts[0] == ""
     assert "test_foo.py" in adapter.contexts[1]
+
+
+def test_continuation_context_keeps_short_output_intact():
+    verify = VerifyResult(passed=False, exit_code=1, output="short failure")
+    context = _continuation_context(verify)
+    assert "short failure" in context
+    assert "truncated" not in context
+
+
+def test_continuation_context_marks_truncated_output():
+    overflow = 500
+    output = "X" * (_CONTEXT_OUTPUT_LIMIT + overflow)
+    verify = VerifyResult(passed=False, exit_code=1, output=output)
+    context = _continuation_context(verify)
+    # The dropped early detail is no longer invisible: a marker names the count.
+    assert f"[...{overflow} earlier characters truncated...]" in context
+    # The tail is preserved; only the overflow prefix is dropped.
+    assert context.endswith("X" * _CONTEXT_OUTPUT_LIMIT)
 
 
 def test_native_delegates_then_verifies(workdir):
