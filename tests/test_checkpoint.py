@@ -28,30 +28,32 @@ def _init_repo(path: Path) -> None:
     _git(["commit", "-q", "--no-gpg-sign", "-m", "init"], path)
 
 
-def test_is_git_repo_true_inside_repository(tmp_path):
-    _init_repo(tmp_path)
-    assert is_git_repo(tmp_path) is True
+def test_is_git_repo_true_inside_repo_false_outside(tmp_path):
+    outside = tmp_path / "plain"
+    outside.mkdir()
+    assert is_git_repo(outside) is False
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_repo(repo)
+    assert is_git_repo(repo) is True
 
 
-def test_is_git_repo_false_outside_repository(tmp_path):
-    assert is_git_repo(tmp_path) is False  # tmp_path is not a git repo
+def test_is_git_primary_worktree_distinguishes_primary_linked_and_non_repo(tmp_path):
+    outside = tmp_path / "plain"
+    outside.mkdir()
+    assert is_git_primary_worktree(outside) is False
 
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_repo(repo)
+    assert is_git_primary_worktree(repo) is True
 
-def test_is_git_primary_worktree_true_in_primary(tmp_path):
-    _init_repo(tmp_path)
-    assert is_git_primary_worktree(tmp_path) is True
-
-
-def test_is_git_primary_worktree_false_outside_repository(tmp_path):
-    assert is_git_primary_worktree(tmp_path) is False  # tmp_path is not a git repo
-
-
-def test_is_git_primary_worktree_false_in_linked_worktree(tmp_path):
-    _init_repo(tmp_path)
+    # A linked worktree shares the common dir but has its own git dir, so it is
+    # not the primary worktree — the case that actually exercises the comparison.
     linked = tmp_path / "linked"
-    _git(["worktree", "add", "-q", str(linked)], tmp_path)
+    _git(["worktree", "add", "-q", str(linked)], repo)
     assert is_git_primary_worktree(linked) is False
-    assert is_git_repo(linked) is True
 
 
 def test_snapshot_then_restore_recovers_uncommitted_work(tmp_path):

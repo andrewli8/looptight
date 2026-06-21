@@ -119,6 +119,9 @@ existing CLI session and makes no model or API calls of its own.
   JSON output unchanged.
 - `ClaimStore.select` treats a claim with a non-string `task_id` as stale instead
   of raising `TypeError`, covered by a regression test.
+- `is_git_repo` and `is_git_primary_worktree` have direct coverage proving real
+  repo/non-repo detection and the primary-vs-linked-worktree distinction, with no
+  production code change.
 - `owner_id` (env override and default identity) and config.py's `find_config` and
   `render_config` now have direct unit coverage.
 - Continuous swarm can wait out a provider-reported usage/rate limit and resume
@@ -134,9 +137,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-(no grounded tasks; `looptight next` returns NO_WORK)
-
-2. Honor absolute wall-clock reset times in limit detection so a provider message
+1. Honor absolute wall-clock reset times in limit detection so a provider message
    like "resets at 3:00pm" yields a wait, not a fall-through to back-off.
    Evidence: src/looptight/limits.py:79; Acceptance: classify_limit returns a
    retry_after_s computed from a wall-clock reset string relative to an injected
