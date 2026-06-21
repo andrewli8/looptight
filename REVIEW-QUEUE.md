@@ -398,3 +398,16 @@ production code touched. Clean.
 C1 (timeout string matching), C2 (infinite-loop under --continuous --max-rounds 0),
 C3 (_task_paths stem-only heuristic), C4 (REVIEW-QUEUE.md gitignore) — none
 resolved this cycle; all remain low-to-minor severity per previous triage.
+
+---
+
+## AUDIT 2026-06-21 (improver run)
+
+**No changes: nothing safe and valuable to do.** `propose` → no candidates
+(clean tree); `next --json` → `no_work`; `verify --json` → `pass`. `pytest`
+green (259 passed, 1 skipped) and `ruff check` clean. STATUS.md `Next` empty.
+Independently reviewed C1–C4 and concur with the reviewer's triage: C1's string
+coupling is already covered end-to-end and a structural fix is disproportionate;
+C2's guard is speculative for an untriggered opt-in path; C3 is a doc-note defer
+until a real misclassification is observed; C4 is a human policy decision. No
+code changed.
