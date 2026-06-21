@@ -104,9 +104,29 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-No grounded follow-up is currently queued. Continuous mode delegates the next
-evidence-backed planning pass to the selected provider only after this queue is
-empty.
+1. Add an at-a-glance status tally to the read-only swarm dashboard: a compact
+   strip that recomputes counts by state from the polled state on each render
+   (for example total tasks, merged/complete, active, and attention), so the
+   operator does not have to count nodes by eye.
+   Evidence: src/looptight/ui.py:98; Evidence: tests/test_ui.py:1;
+   Acceptance: the served page exposes a summary element that render() fills with
+   per-status counts derived from state.tasks and state.workers, a new test in
+   tests/test_ui.py asserts the summary element is served and the page still
+   loads under the existing Content-Security-Policy, and the suite passes.
+2. Make `cmd_swarm` print a one-line outcome tally after the per-worker lines
+   (counting workers by terminal status, e.g. merged, failed, timeout, conflict)
+   so the result is legible without counting lines, without changing JSON output.
+   Evidence: src/looptight/swarm.py:601; Evidence: tests/test_swarm.py:1;
+   Acceptance: non-JSON `swarm` output ends with a summary line whose counts match
+   the worker statuses, a new test in tests/test_swarm.py asserts the tally, the
+   `--json` result stays byte-for-byte unchanged, and the suite passes.
+3. Include each task's acceptance condition in `cmd_next` human output so a person
+   running `looptight next` sees the observable done-criterion, not just the goal,
+   while leaving the `--json` decision unchanged.
+   Evidence: src/looptight/protocol_commands.py:119; Evidence: tests/test_cli.py:1;
+   Acceptance: when a task is returned, non-JSON `next` output shows both the goal
+   and its acceptance text, a new test in tests/test_cli.py asserts the acceptance
+   appears in human output while `--json` output is unchanged, and the suite passes.
 
 ## Rules
 
