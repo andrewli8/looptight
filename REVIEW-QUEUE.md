@@ -437,3 +437,14 @@ production code touched. Clean.
 C1 (timeout string matching), C2 (infinite-loop under --continuous --max-rounds 0),
 C3 (_task_paths stem-only heuristic), C4 (REVIEW-QUEUE.md gitignore) — none
 resolved this cycle; all remain low-to-minor severity per previous triage.
+
+---
+
+## AUDIT 2026-06-22 (improver run)
+
+**No changes: nothing safe and valuable to do.** `propose` → no candidates
+(clean tree); `next --json` → `no_work`; `verify --json` → `pass`. `pytest`
+green (259 passed, 1 skipped) and `ruff check` clean. STATUS.md `Next` empty.
+Carried-forward concerns C1–C4 remain low-to-minor and were previously triaged
+as deliberate defers by both improver and reviewer; no new evidence this run to
+revisit them. No code changed.
