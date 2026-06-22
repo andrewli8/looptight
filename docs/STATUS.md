@@ -212,9 +212,28 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-(Coordinator round-3 complete; the coordinator is thoroughly implemented, tested,
-and documented. Queue empty — `next` returns `no_work` with a `generate_ideas`
-directive; the session adds grounded, evidence-backed tasks and continues.)
+1. Replace the assert-as-runtime-guard in `Integrator._run` (flagged in review as C7):
+   `python -O` would strip it, turning a misuse into a confusing `AttributeError`.
+   Evidence: src/looptight/integration_queue.py:251;
+   Acceptance: the guard raises a clear `ValueError` instead of `assert` when a
+   non-superseded record is run without `root`/`verify`, covered by a test; existing
+   behavior unchanged.
+
+2. Detect worker timeouts by exit code, not error-string matching (review concern):
+   `_run_worker` checks `"provider timed out after" in result.error`, coupling the
+   swarm to a base.py message a change could silently break.
+   Evidence: src/looptight/swarm.py:288; Evidence: src/looptight/types.py:62;
+   Acceptance: `IterationResult` carries the provider return code, `_run_worker`
+   classifies `timeout` by code 124, and a test proves a reworded timeout message is
+   still classified as `timeout`; JSON and behavior otherwise unchanged.
+
+3. Guard `run_continuous_swarm` against an unbounded loop under the default
+   `--max-rounds 0` (review concern): if rounds yield no workers but planning keeps
+   returning `planned`, the loop never terminates.
+   Evidence: src/looptight/swarm.py:645;
+   Acceptance: after a small number of consecutive rounds that produce no merged work,
+   the continuous swarm stops with a clear result instead of looping forever, proven
+   by a test; normal progress is unaffected.
 
 ## Rules
 
