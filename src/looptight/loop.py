@@ -123,6 +123,7 @@ def _supply_loop(
     context = ""
     stop = StopReason.ITERATION_CAP
     error: str | None = None
+    returncode: int | None = None
 
     for number in range(1, config.max_iterations + 1):
         snapshot = checkpointer.snapshot()
@@ -139,6 +140,7 @@ def _supply_loop(
         if not iteration.ok:
             stop = StopReason.ERROR
             error = iteration.error or iteration.transcript or "coding agent failed"
+            returncode = iteration.returncode
             break
 
         verify = verify_fn(config.verify, workdir)
@@ -171,6 +173,7 @@ def _supply_loop(
         iterations=tuple(records),
         diffstat=checkpointer.diffstat(),
         error=error,
+        returncode=returncode,
     )
     return result
 
@@ -197,6 +200,7 @@ def _delegate_loop(
             stop_reason=StopReason.ERROR,
             diffstat=checkpointer.diffstat(),
             error=iteration.error or iteration.transcript or "coding agent failed",
+            returncode=iteration.returncode,
         )
     verify = verify_fn(config.verify, workdir)
     record = IterationRecord(number=1, verify=verify)

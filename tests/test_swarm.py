@@ -67,6 +67,7 @@ class TimingOutAdapter(EditingAdapter):
             transcript=proc.stderr,
             ok=False,
             error=proc.stderr.strip(),
+            returncode=proc.returncode,
         )
 
 
@@ -867,3 +868,18 @@ def test_swarm_push_publishes_via_durable_queue(tmp_path, monkeypatch):
         ["git", "-C", str(remote), "rev-parse", branch], capture_output=True, text=True, check=True
     ).stdout.strip()
     assert remote_tip == local_tip  # exact integrated result published to the remote
+
+
+class RewordedTimeoutAdapter(EditingAdapter):
+    def run_iteration(self, goal, context, workdir, model=None):
+        # Different wording than base.py, but the timeout exit code is what matters.
+        return IterationResult(ok=False, error="the model took too long, sorry", returncode=124)
+
+
+def test_swarm_classifies_timeout_by_exit_code_not_message(tmp_path, monkeypatch):
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: RewordedTimeoutAdapter())
+    result = run_swarm(
+        tmp_path, agent="fake", config=Config(verify="exit 0", max_iterations=1), workers=1
+    )
+    assert result.workers[0].status == "timeout"  # classified by returncode 124, not the string

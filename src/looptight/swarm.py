@@ -285,7 +285,7 @@ def _run_worker(worker: Worker, agent: str, config: Config, worker_timeout: floa
         worker.error = result.error or result.stop_reason.value
         if is_limit_error(worker.error):
             worker.status = "limited"
-        elif result.error and "provider timed out after" in result.error:
+        elif result.returncode == 124:
             worker.status = "timeout"
         else:
             worker.status = "failed"

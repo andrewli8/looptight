@@ -65,6 +65,7 @@ class IterationResult:
     transcript: str = ""
     ok: bool = True
     error: str | None = None
+    returncode: int | None = None  # provider process exit code (124 = timeout)
 
 
 @dataclass(frozen=True)
@@ -91,6 +92,7 @@ class RunResult:
     iterations: tuple[IterationRecord, ...] = ()
     diffstat: str = ""
     error: str | None = None
+    returncode: int | None = None  # provider process exit code from a failed iteration
 
     @property
     def passed(self) -> bool:

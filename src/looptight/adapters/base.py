@@ -44,18 +44,22 @@ def failure_iteration(
     """
     stderr = (proc.stderr or "").strip()
     if proc.returncode == 124:
-        return IterationResult(transcript=stderr or f"{name} timed out", ok=False, error=stderr)
+        return IterationResult(
+            transcript=stderr or f"{name} timed out", ok=False, error=stderr, returncode=124
+        )
     signal = classify_limit(f"{proc.stdout or ''}\n{proc.stderr or ''}")
     if signal is not None:
         return IterationResult(
             transcript=stderr or f"{name} reported a usage limit",
             ok=False,
             error=format_limit_error(signal),
+            returncode=proc.returncode,
         )
     return IterationResult(
         transcript=stderr or f"{name} exited non-zero",
         ok=False,
         error=f"{name} exited {proc.returncode}",
+        returncode=proc.returncode,
     )
 
 

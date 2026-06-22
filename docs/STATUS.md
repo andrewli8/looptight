@@ -212,18 +212,13 @@ existing CLI session and makes no model or API calls of its own.
 - `Integrator._run` raises a clear `ValueError` (not a `-O`-strippable `assert`) when
   a non-superseded record is integrated without `root`/`verify` — review concern C7,
   covered by a test.
+- Worker timeouts are classified by provider exit code 124 (`IterationResult`/
+  `RunResult` carry `returncode`), not by matching a base.py error string — so a
+  reworded timeout message still tags `timeout`. Review concern; covered by a test.
 
 ## Next
 
-1. Detect worker timeouts by exit code, not error-string matching (review concern):
-   `_run_worker` checks `"provider timed out after" in result.error`, coupling the
-   swarm to a base.py message a change could silently break.
-   Evidence: src/looptight/swarm.py:288; Evidence: src/looptight/types.py:62;
-   Acceptance: `IterationResult` carries the provider return code, `_run_worker`
-   classifies `timeout` by code 124, and a test proves a reworded timeout message is
-   still classified as `timeout`; JSON and behavior otherwise unchanged.
-
-2. Guard `run_continuous_swarm` against an unbounded loop under the default
+1. Guard `run_continuous_swarm` against an unbounded loop under the default
    `--max-rounds 0` (review concern): if rounds yield no workers but planning keeps
    returning `planned`, the loop never terminates.
    Evidence: src/looptight/swarm.py:645;
