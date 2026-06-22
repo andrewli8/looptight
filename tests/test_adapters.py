@@ -10,6 +10,7 @@ import pytest
 from looptight.adapters import available_adapter_names, get_adapter
 from looptight.adapters.base import run_command
 from looptight.adapters.claude import ClaudeAdapter, _build_prompt, _parse_result
+from looptight.limits import is_limit_error
 
 
 def test_registry_lists_three_agents():
@@ -99,6 +100,39 @@ def test_claude_builds_goal_prompt_for_native_loop(monkeypatch):
     ClaudeAdapter().drive_native_loop("fix tests", "pytest -q", 4, Path("."))
     assert "/goal" in captured["prompt"]
     assert "pytest -q" in captured["prompt"]
+
+
+def test_claude_native_loop_surfaces_usage_limit_with_stable_marker(monkeypatch):
+    # A usage limit during the native /goal loop must carry the stable marker so
+    # the delegate loop's --resume-on-limit can wait it out and retry — the same
+    # contract the supply path provides via failure_iteration. Without it the
+    # only native-capable adapter could never trigger the documented resume.
+    def fake_invoke(self, prompt, workdir, model):
+        return subprocess.CompletedProcess(
+            args=[], returncode=1, stdout="", stderr="Error: usage limit reached; retry after 60"
+        )
+
+    monkeypatch.setattr(ClaudeAdapter, "_invoke", fake_invoke)
+    result = ClaudeAdapter().drive_native_loop("fix tests", "pytest -q", 4, Path("."))
+
+    assert result.ok is False
+    assert result.error == "provider rate limit reached; retry after 60s"
+
+
+def test_claude_native_loop_plain_failure_is_not_a_limit(monkeypatch):
+    # An ordinary non-zero native exit must NOT be tagged as a limit, so the
+    # resume wrapper does not spin on a genuine failure.
+    def fake_invoke(self, prompt, workdir, model):
+        return subprocess.CompletedProcess(
+            args=[], returncode=2, stdout="", stderr="AssertionError: boom"
+        )
+
+    monkeypatch.setattr(ClaudeAdapter, "_invoke", fake_invoke)
+    result = ClaudeAdapter().drive_native_loop("fix tests", "pytest -q", 4, Path("."))
+
+    assert result.ok is False
+    assert not is_limit_error(result.error)
+    assert "AssertionError: boom" in result.transcript
 
 
 def test_supply_only_adapters_refuse_native_loop():

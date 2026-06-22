@@ -20,6 +20,7 @@ import shutil
 from pathlib import Path
 from subprocess import CompletedProcess
 
+from ..limits import classify_limit, format_limit_error
 from ..types import IterationResult
 from .base import Adapter, failure_iteration, run_command
 
@@ -66,9 +67,19 @@ class ClaudeAdapter(Adapter):
         )
         proc = self._invoke(prompt, workdir, None)
         transcript = _parse_result(proc.stdout)
-        if proc.returncode != 0 and not transcript:
+        if proc.returncode == 0:
+            return IterationResult(transcript=transcript, ok=True)
+        if not transcript:
             transcript = proc.stderr.strip() or f"claude /goal exited {proc.returncode}"
-        return IterationResult(transcript=transcript, ok=proc.returncode == 0)
+        # A usage/rate limit during the native loop must carry the stable marker so
+        # the delegate loop's --resume-on-limit can wait it out and retry, exactly
+        # as the supply path does via failure_iteration. A non-limit failure keeps
+        # error unset so the loop surfaces the transcript and does not spin.
+        signal = classify_limit(f"{proc.stdout or ''}\n{proc.stderr or ''}")
+        error = format_limit_error(signal) if signal is not None else None
+        return IterationResult(
+            transcript=transcript, ok=False, error=error, returncode=proc.returncode
+        )
 
 def _build_prompt(goal: str, context: str) -> str:
     """Compose the continuation prompt for one supplied iteration."""

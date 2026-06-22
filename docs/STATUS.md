@@ -234,6 +234,12 @@ existing CLI session and makes no model or API calls of its own.
   `running`) order-independently, so it no longer flakes on thread-scheduling
   variance; the guarantee (state published per completion, not once at the end)
   is unchanged and the production code is untouched.
+- `ClaudeAdapter.drive_native_loop` now classifies a usage/rate limit on a
+  non-zero native exit and carries the stable `provider rate limit reached`
+  marker, so `run --native --resume-on-limit` can actually wait it out and retry;
+  previously the only native-capable adapter returned `error=None`, leaving the
+  documented delegate-loop resume unreachable in production. A non-limit failure
+  keeps `error` unset (transcript surfaced, no spin). Covered by adapter tests.
 
 ## Next
 
