@@ -159,6 +159,16 @@ fetch-before-push publication). Coordination is local to one machine and filesys
 `next`/`status` JSON keys are unchanged — coordinator counts appear additively under
 a `coordinator` block on `status`. See `docs/architecture.md` for the model.
 
+Activate the coordinator for a repository with:
+
+```bash
+looptight migrate    # writes the coordinator marker; --json for machine output
+```
+
+`migrate` refuses (exit 2) while any legacy file claim is still live, errors outside
+Git, and is idempotent. After activation the coordinator owns task ownership and
+legacy file claims fail closed.
+
 Swarm mode invokes the installed provider CLI. Looptight neither supplies API
 keys nor guarantees billing mode: provider authentication determines whether
 work consumes subscription allowance, credits, or another account.

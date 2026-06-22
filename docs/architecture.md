@@ -73,8 +73,10 @@ equally idempotent: it fetches first and finalizes without a second push when th
 remote already has the result, pushing only the exact result SHA.
 
 Scope and rules: coordination is **local to one machine and filesystem**. Activation
-(`activate_from_legacy`) refuses while any legacy file claim is still live, then
-writes a `coordinator-format.json` marker after which legacy file claims fail closed.
+is explicit — `looptight migrate` (`Coordinator.open(activate=True)` →
+`activate_from_legacy`) refuses while any legacy file claim is still live, then writes
+a `coordinator-format.json` marker after which legacy file claims fail closed. It is
+idempotent and errors outside Git.
 Existing `next`/`status`/`swarm` JSON keys are unchanged; coordinator counts are
 projected **additively** (a `coordinator` block on `status`). The integration lock
 has a bounded timeout; failed/conflicting work is retained for recovery.
