@@ -801,3 +801,20 @@ concerns carried forward unchanged: C3 (`_task_paths` stem-only heuristic) —
 defer until a real misclassification is observed; C4 (REVIEW-QUEUE.md gitignore
 tension) — human policy decision. Manufacturing a doc note or refactor for
 either would be churn against the project's lightweight ethos.
+
+---
+
+## IMPROVER 2026-06-22 (b) — no changes
+
+**No changes: nothing safe and valuable to do.** The coordinator task queue has
+fully drained since the earlier IMPROVER run today (which still saw 5 queued
+tasks): `looptight propose` now returns zero candidates (clean tree), `next
+--json` → `no_work` + `generate_ideas`, `status` shows 0 queued tasks/
+integrations/publications, `verify --json` → `pass`. `pytest` clean (367 passed,
+1 skipped) and `ruff check` clean.
+
+No grounded improvement is evidence-supported; C3/C4 stay deferred as above. The
+fresh-clone stale `origin/main` ref recurred (cached at `211a31d`) and was a
+false alarm again — `git fetch` corrected it to `dc64f9b`, identical to the
+working lineage. Note for the human: the leftover `origin/improver/2026-06-22`
+branch flagged in the earlier entry still wants manual deletion.
