@@ -169,39 +169,27 @@ existing CLI session and makes no model or API calls of its own.
 - A repository-private SQLite coordinator foundation now initializes schema v1
   transactionally under Git's common directory with WAL, foreign keys, uniqueness
   constraints, bounded busy handling, repository isolation, and rollback coverage.
+- Coordinator task leases: unique run IDs and fenced SQLite leases whose generation
+  rejects renewal/completion by stale owners; `next`/`status` route through the
+  coordinator with unchanged JSON; ten same-directory processes claim distinct tasks.
+- Repository integration serializes behind an advisory lock over one coordinator-owned
+  detached worktree per target ref; user worktrees are never touched; cross-process
+  exclusion and worktree validation are covered.
+- Verified swarm branches drain through a durable FIFO integration queue (fenced
+  enqueue, oldest-first under the lock, CAS ref advance, atomic terminal lease/task
+  transitions); stale fences are superseded; swarm JSON unchanged.
+- Integration crash recovery is idempotent via `Looptight-Integration-ID` trailers
+  (`reconcile` yields exactly one reachable result across every boundary); publication
+  is separate, fetches first, finalizes without a second push, and never force-pushes.
+- Concurrent planners deduplicate equivalent proposals; `status` projects coordinator
+  counts additively; activation fails closed against live legacy claims (marker written
+  last); the WAL first-open race is retried. A 10-process acceptance suite is covered.
 
 ## Next
 
-1. Replace worktree-path claim ownership with unique run IDs and fenced SQLite
-   task leases whose generation rejects renewal or completion by stale owners.
-   Evidence: docs/superpowers/plans/2026-06-21-repository-coordinator.md:98;
-   Acceptance: ten same-directory processes claim distinct tasks, expired owners
-   cannot mutate reassigned leases, existing next/status JSON remains compatible,
-   and verification passes.
-2. Add the repository integration advisory lock and one coordinator-owned detached
-   integration worktree per fully qualified target ref without touching user worktrees.
-   Evidence: docs/superpowers/plans/2026-06-21-repository-coordinator.md:169;
-   Acceptance: multiprocess tests prove integration critical sections never overlap,
-   lock timeout is distinct, worktree validation fails closed, and verification passes.
-3. Route verified swarm branches through a durable FIFO integration queue with
-   fenced enqueue, globally oldest selection, CAS ref updates, and atomic terminal
-   lease/task transitions.
-   Evidence: docs/superpowers/plans/2026-06-21-repository-coordinator.md:226;
-   Acceptance: concurrent swarm managers execute workers in parallel but serialize
-   integration, stale fences are superseded safely, JSON stays compatible, and
-   verification passes.
-4. Implement idempotent integration crash reconciliation and a separate durable
-   publication state machine using UUID commit trailers and exact-SHA pushes.
-   Evidence: docs/superpowers/plans/2026-06-21-repository-coordinator.md:276;
-   Acceptance: injected crashes at every Git/database boundary yield one reachable
-   result, push-success crashes finalize without replay or force-push, and verification
-   passes.
-5. Add concurrent planner proposal deduplication, coordinator-backed status/UI,
-   fail-closed legacy migration, documentation, and the 10-process acceptance suite.
-   Evidence: docs/superpowers/plans/2026-06-21-repository-coordinator.md:324;
-   Acceptance: concurrent planners preserve distinct grounded tasks and deduplicate
-   equivalents, migration races fail closed, repository state is isolated, all legacy
-   contracts and full verification pass.
+(The repository-coordinator plan is fully implemented and validated above. Queue
+empty — `next` returns `no_work` with a `generate_ideas` directive; the session
+adds grounded, evidence-backed tasks here and continues.)
 
 ## Rules
 
