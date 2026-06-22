@@ -162,21 +162,12 @@ existing CLI session and makes no model or API calls of its own.
 - Successful worker-worktree removal now also removes its empty per-run swarm
   directory; no-work and completed rounds leave no directory litter, while failed
   workers retain their recovery worktrees. Covered by swarm regression tests.
+- CLI parsing directly covers non-positive swarm worker counts and provider
+  timeouts, returning argparse exit code 2 with no production-code change.
 
 ## Next
 
-1. Cover the CLI numeric-validator rejection branches. `_positive_float`
-   (rejects values ≤ 0) guards every timeout flag and `_non_negative_int`
-   (rejects values < 0) guards `--limit`/`--idle-rounds`, but no test exercises
-   their rejection paths — only `_positive_int`'s upper bound (`workers 51`) and
-   `_port`'s range are checked.
-   Evidence: src/looptight/cli.py:58; src/looptight/cli.py:44;
-   tests/test_swarm.py:132; tests/test_ui.py:204.
-   Acceptance: new tests in tests/test_cli.py assert `main([...])` with a
-   non-positive timeout (e.g. `--worker-timeout 0`) and with a zero `--workers`
-   return exit code 2, with no production-code change.
-
-2. Cover the absolute-reset out-of-range guard in usage-limit parsing.
+1. Cover the absolute-reset out-of-range guard in usage-limit parsing.
    `_parse_absolute_reset` rejects an hour/minute outside 0–23/0–59 (so
    "resets at 13:00pm" computes hour 25 and falls back), but test_limits.py
    covers only valid times and the missing-context guard, never the

@@ -585,6 +585,20 @@ def test_run_rejects_non_positive_max_iterations(value):
     assert exc.value.code == 2
 
 
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["swarm", "--headless", "--worker-timeout", "0"],
+        ["swarm", "--headless", "--workers", "0"],
+    ],
+)
+def test_swarm_rejects_non_positive_numeric_options(argv):
+    with pytest.raises(SystemExit) as exc:
+        main(argv)
+
+    assert exc.value.code == 2
+
+
 def test_propose_text_output_describes_autonomous_flow(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "src").mkdir()
