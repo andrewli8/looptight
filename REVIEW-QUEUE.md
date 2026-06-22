@@ -785,3 +785,19 @@ open, low risk.
 C3 (_task_paths stem-only heuristic) — no change; minor friction.
 
 C4 (REVIEW-QUEUE.md gitignore) — no change; human policy decision.
+
+---
+
+## BUILDER 2026-06-22
+
+**No changes: nothing safe and valuable to do.** Synced main (fresh clone had
+landed on a stale divergent history; reset local `main` to `origin/main` at
+`3f7fa6e`). `looptight propose` → no candidates (clean tree); `next --json` →
+`no_work` with a `generate_ideas` directive; `verify --json` → `pass`. `pytest`
+clean (1 skipped) and `ruff check` clean.
+
+No grounded, evidence-backed improvement is supported by the repository. Open
+concerns carried forward unchanged: C3 (`_task_paths` stem-only heuristic) —
+defer until a real misclassification is observed; C4 (REVIEW-QUEUE.md gitignore
+tension) — human policy decision. Manufacturing a doc note or refactor for
+either would be churn against the project's lightweight ethos.
