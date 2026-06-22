@@ -1346,3 +1346,29 @@ C8 (heartbeat/reap_abandoned unwired) — no change; concurrency-affecting
 behavior change deferred per conservative mandate.
 
 ---
+
+## BUILDER 2026-06-22 (l) — native-loop usage-limit resume was unreachable
+
+**Landed:** `7fd655c` (pytest 367 passed/1 skipped, ruff clean, `verify` pass)
+
+Fixed a real correctness gap: `ClaudeAdapter.drive_native_loop`
+(`src/looptight/adapters/claude.py`) returned `error=None` on every non-zero
+native exit, so `_with_limit_resume` in `loop.py` — which keys on
+`is_limit_error(iteration.error)` — could never detect a provider usage/rate
+limit during `run --native`. The documented delegate-loop resume
+(STATUS "shares the supply loop's usage-limit resume") was therefore dead for
+the only adapter with `supports_native_loop=True`; it had been exercised only by
+a fake adapter (`tests/test_loop.py::_LimitedThenOkNativeAdapter`) that set the
+marker by hand. The supply path already classified limits via
+`failure_iteration`, but the native path bypassed it.
+
+Now `drive_native_loop` classifies the limit from the process output and carries
+the stable `provider rate limit reached` marker (with any named reset), matching
+the supply path. A non-limit failure keeps `error` unset so the transcript is
+still surfaced and the resume wrapper does not spin. Two adapter regression tests
+added (`test_claude_native_loop_surfaces_usage_limit_with_stable_marker`,
+`test_claude_native_loop_plain_failure_is_not_a_limit`).
+
+No escalations. C3, C4, C8 unchanged (still deferred).
+
+---
