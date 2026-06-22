@@ -843,8 +843,6 @@ def test_swarm_reconciles_crashed_integration_on_start(tmp_path, monkeypatch):
 
 
 def test_swarm_push_publishes_via_durable_queue(tmp_path, monkeypatch):
-    from looptight.coordinator import Coordinator
-
     _repo(tmp_path)
     branch = subprocess.run(
         ["git", "-C", str(tmp_path), "rev-parse", "--abbrev-ref", "HEAD"],

@@ -172,7 +172,7 @@ def _repo_with_remote(tmp_path):
     lease = db.claim([{"id": "t1"}], run.id, ttl_s=60)
     integration_id = db.enqueue_integration(lease, "refs/heads/main", candidate)
     result = Integrator(db).run_next(repo, "exit 0")
-    assert result.status == "complete"
+    assert result.status == "complete", f"integration failed: {result.status}: {result.error}"
     return repo, db, integration_id, result.result_sha
 
 
