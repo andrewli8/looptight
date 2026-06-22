@@ -484,6 +484,11 @@ def run_swarm(
                 _publish_state(root, prepared, "running")
         except KeyboardInterrupt:
             stop_active_processes()
+            for worker in prepared:
+                if worker.status in {"ready", "running"}:
+                    worker.status = "interrupted"
+                    worker.error = "interrupted"
+            _publish_state(root, prepared, "interrupted")
             for future in futures:
                 future.cancel()
             raise

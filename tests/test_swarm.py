@@ -402,7 +402,7 @@ def test_swarm_contains_worker_runtime_exception(tmp_path, monkeypatch):
     assert result.workers[0].error == "worker crashed: provider crashed"
 
 
-def test_swarm_interrupt_stops_active_provider_processes(tmp_path, monkeypatch):
+def test_swarm_interrupt_stops_processes_and_publishes_terminal_state(tmp_path, monkeypatch):
     _repo(tmp_path)
     stopped = []
     monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: InterruptingAdapter())
@@ -417,6 +417,9 @@ def test_swarm_interrupt_stops_active_provider_processes(tmp_path, monkeypatch):
         )
 
     assert stopped == [True]
+    state = json.loads((tmp_path / ".git" / "looptight" / "swarm-state.json").read_text())
+    assert state["manager"]["status"] == "interrupted"
+    assert [worker["status"] for worker in state["workers"]] == ["interrupted"]
 
 
 def test_swarm_worker_timeout_stops_provider_tree_and_retains_worktree(tmp_path, monkeypatch):

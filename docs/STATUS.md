@@ -156,15 +156,13 @@ existing CLI session and makes no model or API calls of its own.
   sharing `limits.limit_wait`; swarm and single-round behavior unchanged. Covered by
   tests. The orchestrator topology and unattended recipe are documented in
   `docs/architecture.md` and `README.md`.
+- Interrupting a swarm now publishes terminal `interrupted` manager and active-worker
+  state after stopping owned provider processes, so the read-only dashboard does not
+  retain a historical `running` state. Covered by a regression test.
 
 ## Next
 
-1. Publish terminal swarm state when `run_swarm` is interrupted so the read-only
-   dashboard does not retain a historical `running` manager after owned provider
-   processes are stopped. Evidence: src/looptight/swarm.py:475; Acceptance: an
-   interruption test observes a non-running manager/worker state after cleanup,
-   and project verification passes.
-2. Remove empty per-run swarm directories after their worktrees are removed so
+1. Remove empty per-run swarm directories after their worktrees are removed so
    no-work and completed runs do not accumulate Git-private directory litter.
    Evidence: src/looptight/swarm.py:222; Acceptance: swarm tests confirm empty run
    directories are removed while retained failed/conflicting worktrees remain,
