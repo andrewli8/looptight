@@ -219,3 +219,31 @@ def test_publication_push_rejection_fails_without_force(tmp_path):
 
     assert attempts == [(result_sha, "refs/heads/main")]  # exact SHA attempted once, no replay
     assert db.publication(publication_id).state == "failed"
+
+
+def test_integration_merge_conflict_aborts_and_retains(tmp_path):
+    repo = _repo(tmp_path / "r")
+    (repo / "f.txt").write_text("base\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "base")
+    _git(repo, "checkout", "-q", "-b", "cand")
+    (repo / "f.txt").write_text("candidate\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "candidate change")
+    candidate = _git(repo, "rev-parse", "HEAD").stdout.strip()
+    _git(repo, "checkout", "-q", "main")
+    (repo / "f.txt").write_text("mainline\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "main change")
+
+    db = Coordinator.open(repo)
+    run = db.start_run("worker")
+    lease = db.claim([{"id": "t1"}], run.id, ttl_s=60)
+    integration_id = db.enqueue_integration(lease, "refs/heads/main", candidate)
+
+    outcome = Integrator(db).run_next(repo, "exit 0")
+
+    assert outcome.status == "conflict"
+    assert outcome.retained_worktree is not None
+    assert db.current_lease(lease._row_id) is None  # fenced lease released on conflict
+    assert db.integration(integration_id).state == "conflict"

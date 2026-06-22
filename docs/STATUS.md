@@ -206,15 +206,15 @@ existing CLI session and makes no model or API calls of its own.
 - The publication push-rejected path is covered: a rejected push attempts only the
   exact result SHA once (no force, no candidate replay) and leaves the publication
   `failed`.
+- The integration merge-conflict path is covered: a conflicting candidate aborts the
+  merge, returns a `conflict` outcome with a retained worktree, and releases the
+  fenced lease.
 
 ## Next
 
-1. Cover the integration merge-conflict path: `Integrator` aborts and returns a
-   `conflict` outcome with a retained worktree when a candidate does not merge, but
-   no test exercises it.
-   Evidence: src/looptight/integration_queue.py:283;
-   Acceptance: a test with a conflicting candidate proves a `conflict` outcome, the
-   fenced lease released, and the worktree retained, with no production-code change.
+(Coordinator round-3 complete; the coordinator is thoroughly implemented, tested,
+and documented. Queue empty — `next` returns `no_work` with a `generate_ideas`
+directive; the session adds grounded, evidence-backed tasks and continues.)
 
 ## Rules
 
