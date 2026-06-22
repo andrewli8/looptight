@@ -139,6 +139,9 @@ existing CLI session and makes no model or API calls of its own.
 - Consecutive usage-limit resumes are boundable (`limit_max_resumes`, 0 = unbounded
   default) in both the single loop and the continuous swarm, so a perpetual limit
   signal stops with a clear error instead of looping forever. Covered by tests.
+- `_summary_and_evidence` has direct coverage proving inline `Evidence:` refs are
+  split out of the summary (single and multi-ref) and that marker-less candidates
+  fall back to their detail line, with no production change.
 - `owner_id` (env override and default identity) and config.py's `find_config` and
   `render_config` now have direct unit coverage.
 - Continuous swarm can wait out a provider-reported usage/rate limit and resume
@@ -154,14 +157,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Add direct unit coverage for `_summary_and_evidence` task-field trimming.
-   Evidence: src/looptight/tasks.py:40;
-   Acceptance: new tests prove an `Evidence:`-bearing candidate yields a summary
-   with the refs stripped out and the full (multi-ref) `Evidence:` string
-   preserved, and an `Evidence:`-less candidate falls back to its detail line,
-   with no production change, and the suite passes.
-
-2. Document the optional `directive` field of `next` in the SPEC output contract.
+1. Document the optional `directive` field of `next` in the SPEC output contract.
    Evidence: docs/SPEC.md:178;
    Acceptance: the output-contract section states that `next` may include a
    `directive` (`generate_ideas`) on `no_work` when idea generation is enabled,
