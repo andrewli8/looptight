@@ -48,6 +48,37 @@ isolated worktree and may update only the bounded `docs/STATUS.md` Next list.
 Looptight validates task shape, repository evidence paths, and the verifier
 before merging the plan and starting another deterministic swarm round.
 
+## Repository coordinator
+
+Many Looptight sessions can share one repository safely:
+
+```text
+many sessions → shared task queue → isolated worktrees → verify → one-at-a-time Git integration
+```
+
+A repository-private SQLite database (`<git-common-dir>/looptight/coordinator.db`,
+WAL) holds run identity, short transactional **task leases** fenced by generation,
+proposal deduplication, and durable integration/publication queues (`coordinator.py`).
+Planning and worker execution stay parallel; only Git integration serializes,
+behind a repository-private advisory lock guarding one coordinator-owned **detached**
+integration worktree (`integration_queue.py`). User worktrees are never reset or
+removed, and nothing force-pushes.
+
+Each verified worker enqueues a fenced integration; the `Integrator` drains the
+queue oldest-first under the lock — merging in the coordinator worktree, verifying,
+and advancing the target ref by compare-and-swap. Every merge carries a
+`Looptight-Integration-ID` trailer, so `reconcile()` resolves any integration left
+mid-flight by a crash to exactly one reachable result. Publication is separate and
+equally idempotent: it fetches first and finalizes without a second push when the
+remote already has the result, pushing only the exact result SHA.
+
+Scope and rules: coordination is **local to one machine and filesystem**. Activation
+(`activate_from_legacy`) refuses while any legacy file claim is still live, then
+writes a `coordinator-format.json` marker after which legacy file claims fail closed.
+Existing `next`/`status`/`swarm` JSON keys are unchanged; coordinator counts are
+projected **additively** (a `coordinator` block on `status`). The integration lock
+has a bounded timeout; failed/conflicting work is retained for recovery.
+
 ## Who orchestrates
 
 A continuous run has three roles, and only two are provider agents:

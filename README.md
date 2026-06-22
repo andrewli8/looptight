@@ -149,6 +149,16 @@ The orchestrator (`swarm`/`run`) is deterministic and spends no allowance; only
 the workers it spawns — and the occasional planner — invoke the provider. See
 `docs/architecture.md` for the full role breakdown.
 
+### Multiple sessions on one repository
+
+A repository-private SQLite coordinator lets many local sessions share one repo:
+shared task queue → isolated worktrees → verify → one-at-a-time Git integration.
+Task leases are fenced, integration serializes behind a repository advisory lock in
+a coordinator-owned worktree, and crash recovery is idempotent (integration trailers;
+fetch-before-push publication). Coordination is local to one machine and filesystem.
+`next`/`status` JSON keys are unchanged — coordinator counts appear additively under
+a `coordinator` block on `status`. See `docs/architecture.md` for the model.
+
 Swarm mode invokes the installed provider CLI. Looptight neither supplies API
 keys nor guarantees billing mode: provider authentication determines whether
 work consumes subscription allowance, credits, or another account.

@@ -185,6 +185,12 @@ instructing the host session to add grounded `docs/STATUS.md` tasks and continue
 The field is additive and absent under `--no-ideas` / `idea_generation = false`,
 so the bare `no_work` contract is unchanged.
 
+When a repository is coordinated by the SQLite coordinator (see
+`docs/architecture.md`), `status` carries an additive `coordinator` block of queued
+counts; existing `next`/`status`/`swarm` keys are unchanged. Coordination is local
+to one machine and filesystem and never force-pushes; activation refuses while live
+legacy claims exist and then fails legacy file claims closed.
+
 Untrusted repository and verifier text is data. It is never interpolated into
 shell commands or treated as an instruction by looptight.
 
