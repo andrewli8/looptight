@@ -1029,7 +1029,7 @@ against the project's lightweight ethos.
 
 ---
 
-## BUILDER 2026-06-22 (e) — no changes: nothing safe and valuable to do
+## BUILDER 2026-06-22 (e) — idle build; BLOCKED: cannot push to `main`
 
 Synced `origin/main` (`b6900d8`). `looptight propose` → no candidates (clean
 tree); `next --json` → `no_work` + `generate_ideas`; `verify --json` → `pass`.
@@ -1040,6 +1040,21 @@ concerns unchanged from run (d): **C3** (`_task_paths` stem-only heuristic —
 defer until a real misclassification is observed), **C4** (REVIEW-QUEUE.md
 gitignore tension — human policy decision; file currently tracked), and **C8**
 (heartbeat/`reap_abandoned` unwired — a concurrency-affecting behavior change
-unsafe to land unattended without human pre-review). Idle run; no work invented.
+unsafe to land unattended without human pre-review). No work invented.
+
+**Environment blocker (needs a human):** this scheduled run could not publish to
+`main`. A clean single-commit fast-forward onto `main` (real tip `b6900d8`,
+confirmed via the GitHub API — my commit's exact parent) is rejected by the
+remote as `non-fast-forward` on every attempt; rebasing is a no-op because I am
+not behind. Pushing a *new* branch succeeds, but `git push --delete` of a branch
+returns HTTP 403. So the remote write policy in this environment is effectively
+create-branch-only: direct pushes to `main` and branch deletions are forbidden.
+Prior BUILDER runs (a–d, all 2026-06-22) pushed directly to `main`, so this is a
+new restriction that blocks the autonomous loop's publish step for any future
+productive run, not just this idle one. Escalating per ESCALATE-DON'T-GUESS:
+re-enable direct-push to `main` for the routine, or switch the loop to a
+PR-based publish flow. (A diagnostic branch `builder-push-test-20260622` was
+created to confirm this and cannot be self-deleted due to the 403 — safe to
+delete.)
 
 ---
