@@ -413,6 +413,42 @@ class Coordinator:
             )
             return True
 
+    def heartbeat(self, run_id: str, *, now: float | None = None) -> None:
+        """Refresh an active run's heartbeat so it is not reaped as abandoned."""
+        timestamp = time.time() if now is None else now
+        with self.transaction(immediate=True):
+            self.connection.execute(
+                "UPDATE runs SET heartbeat = ? WHERE id = ? AND state = 'active'",
+                (timestamp, run_id),
+            )
+
+    def reap_abandoned(self, *, older_than_s: float, now: float | None = None) -> tuple[str, ...]:
+        """Abandon active runs whose heartbeat predates the deadline and free their leases.
+
+        A dead session's lease would otherwise linger until its TTL; reaping marks the
+        run ``abandoned`` and requeues its leased tasks. Returns the reaped run IDs.
+        """
+        timestamp = time.time() if now is None else now
+        cutoff = timestamp - older_than_s
+        with self.transaction(immediate=True):
+            stale = self.connection.execute(
+                "SELECT id FROM runs WHERE state = 'active' AND heartbeat < ?", (cutoff,)
+            ).fetchall()
+            for (run_id,) in stale:
+                leased = self.connection.execute(
+                    "SELECT task_id FROM leases WHERE run_id = ?", (run_id,)
+                ).fetchall()
+                for (task_id,) in leased:
+                    self.connection.execute("DELETE FROM leases WHERE task_id = ?", (task_id,))
+                    self.connection.execute(
+                        "UPDATE tasks SET state = 'queued' WHERE id = ? AND state = 'leased'",
+                        (task_id,),
+                    )
+                self.connection.execute(
+                    "UPDATE runs SET state = 'abandoned' WHERE id = ?", (run_id,)
+                )
+            return tuple(str(row[0]) for row in stale)
+
     def summary(
         self, run_id: str | None = None, *, now: float | None = None
     ) -> tuple[str | None, int]:

@@ -198,17 +198,15 @@ existing CLI session and makes no model or API calls of its own.
 - `finish_integration` conflict path has direct coverage: the fenced lease is released
   and the task requeues while attempts are below the cap, then fails at the cap and is
   no longer claimable.
+- Coordinator runs carry a usable heartbeat: `heartbeat` refreshes an active run and
+  `reap_abandoned` marks runs whose heartbeat predates a deadline `abandoned` and frees
+  their leases (tasks requeued) before TTL — covered by a time-injected test.
 
 ## Next
 
-1. Reclaim leases held by abandoned runs via heartbeat: `runs.heartbeat` is written
-   at `start_run` but never refreshed or used, so a dead session's lease lingers for
-   the full TTL.
-   Evidence: src/looptight/coordinator.py:302;
-   Acceptance: a run can refresh its heartbeat and a reap operation marks runs whose
-   heartbeat predates a deadline `abandoned` and releases their leases (tasks
-   requeued), proven by a test with injected time; existing claim/lease behavior and
-   JSON are unchanged.
+(Coordinator round-2 complete. Queue empty — `next` returns `no_work` with a
+`generate_ideas` directive; the session adds grounded, evidence-backed tasks and
+continues.)
 
 ## Rules
 

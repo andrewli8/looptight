@@ -197,3 +197,21 @@ def test_finish_integration_conflict_requeues_below_cap_then_fails(tmp_path):
     assert observed == ["queued", "queued", "failed"]  # requeued below the cap, failed at it
     # A failed task is no longer claimable.
     assert db.claim([task], db.start_run("again").id, ttl_s=60) is None
+
+
+def test_reap_abandoned_releases_dead_run_leases(tmp_path):
+    db = Coordinator.open(_repo(tmp_path / "r"))
+    run = db.start_run("dead", now=0)
+    lease = db.claim([{"id": "t1"}], run.id, ttl_s=100000, now=0)  # long TTL: only reap can free it
+    assert lease is not None
+
+    db.heartbeat(run.id, now=100)
+    assert db.reap_abandoned(older_than_s=50, now=120) == ()  # heartbeat 100 >= cutoff 70: spared
+    assert db.current_lease(lease._row_id) is not None
+
+    reaped = db.reap_abandoned(older_than_s=50, now=200)  # heartbeat 100 < cutoff 150: stale
+    assert run.id in reaped
+    assert db.current_lease(lease._row_id) is None  # lease released, task requeued
+
+    fresh = db.start_run("fresh", now=200)
+    assert db.claim([{"id": "t1"}], fresh.id, ttl_s=60, now=200) is not None
