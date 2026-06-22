@@ -196,9 +196,29 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-(Coordinator follow-ups complete. Queue empty — `next` returns `no_work` with a
-`generate_ideas` directive; the session adds grounded, evidence-backed tasks and
-continues.)
+1. Document `looptight migrate` and coordinator activation: the new command and how
+   to activate/own a repository are not described in user docs.
+   Evidence: src/looptight/protocol_commands.py:147; Evidence: README.md;
+   Acceptance: README and docs/architecture.md document `looptight migrate`
+   (activation, fail-closed on live legacy claims, idempotent, `--json`); doc-only;
+   verification passes.
+
+2. Cover the integration conflict/failed terminal transitions directly:
+   `finish_integration` releases the fenced lease and requeues the task below the
+   attempt cap or marks it `failed` at the cap, but no test exercises that path.
+   Evidence: src/looptight/coordinator.py:506;
+   Acceptance: a test proves a `conflict` outcome releases the lease and requeues the
+   task while attempts are below the cap, and marks the task `failed` once the cap is
+   reached, with no production-code change and the suite passing.
+
+3. Reclaim leases held by abandoned runs via heartbeat: `runs.heartbeat` is written
+   at `start_run` but never refreshed or used, so a dead session's lease lingers for
+   the full TTL.
+   Evidence: src/looptight/coordinator.py:302;
+   Acceptance: a run can refresh its heartbeat and a reap operation marks runs whose
+   heartbeat predates a deadline `abandoned` and releases their leases (tasks
+   requeued), proven by a test with injected time; existing claim/lease behavior and
+   JSON are unchanged.
 
 ## Rules
 
