@@ -10,7 +10,7 @@ from pathlib import Path
 from .claims import ClaimStore, claim_dir, owner_id
 from .config import ConfigError, load_config
 from .console import Console
-from .coordinator import Coordinator, current_run_id
+from .coordinator import Coordinator, MigrationBlocked, current_run_id
 from .detect import detect_verify
 from .verify import run_verify
 
@@ -142,6 +142,27 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
         if acceptance:
             print(f"Acceptance: {acceptance}")
     return 2 if result.status == "error" else 0
+
+
+def cmd_migrate(args: argparse.Namespace, console: Console) -> int:
+    """Activate the repository coordinator, migrating from legacy file claims."""
+    workdir = Path.cwd()
+    coordinator = Coordinator.open(workdir)
+    if coordinator is None:
+        console.print("[red]migrate requires a Git repository.[/red]")
+        return 2
+    try:
+        coordinator.activate_from_legacy()
+    except MigrationBlocked as exc:
+        console.print(f"[red]cannot activate the coordinator:[/red] {exc}")
+        return 2
+    finally:
+        coordinator.close()
+    if args.json:
+        print(json.dumps({"schema_version": 1, "command": "migrate", "status": "active"}, sort_keys=True))
+    else:
+        console.print("coordinator active")
+    return 0
 
 
 def cmd_status(args: argparse.Namespace, console: Console) -> int:

@@ -184,17 +184,13 @@ existing CLI session and makes no model or API calls of its own.
 - Concurrent planners deduplicate equivalent proposals; `status` projects coordinator
   counts additively; activation fails closed against live legacy claims (marker written
   last); the WAL first-open race is retried. A 10-process acceptance suite is covered.
+- `looptight migrate` activates the repository coordinator from the CLI: writes the
+  marker, refuses (exit 2) while live legacy claims exist, errors outside Git, is
+  idempotent, and emits `--json` — covered by tests, other command JSON unchanged.
 
 ## Next
 
-1. Expose coordinator activation through the CLI: `activate_from_legacy` exists but
-   nothing user-facing calls it, so the migration/coordinator feature is unreachable.
-   Evidence: src/looptight/coordinator.py:265; Evidence: src/looptight/cli.py:80;
-   Acceptance: a CLI subcommand (e.g. `looptight migrate`) activates the coordinator
-   (writes the marker), refuses with a clear nonzero exit when live legacy claims
-   exist, is idempotent, and is covered by a CLI test; existing command JSON unchanged.
-
-2. Reconcile crashed integrations on swarm start: `Integrator.reconcile` exists but
+1. Reconcile crashed integrations on swarm start: `Integrator.reconcile` exists but
    `run_swarm` never calls it, so an integration left `integrating` by a crashed prior
    run is not recovered before new work integrates.
    Evidence: src/looptight/swarm.py:590; Evidence: src/looptight/integration_queue.py:226;
@@ -202,7 +198,7 @@ existing CLI session and makes no model or API calls of its own.
    integrations, proven by a test that leaves an `integrating` record and shows the
    next swarm finalizes it to exactly one reachable result, with swarm JSON unchanged.
 
-3. Route `swarm --push` through the durable `Publisher` so pushes are idempotent:
+2. Route `swarm --push` through the durable `Publisher` so pushes are idempotent:
    `--push` still does a raw `git push` instead of the fetch-first publication queue.
    Evidence: src/looptight/swarm.py:594; Evidence: src/looptight/integration_queue.py:323;
    Acceptance: after a successful integration, `swarm --push` enqueues and runs a

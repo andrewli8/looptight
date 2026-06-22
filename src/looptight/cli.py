@@ -12,6 +12,7 @@ from .commands import (
     cmd_improve,
     cmd_init,
     cmd_install_hook,
+    cmd_migrate,
     cmd_next,
     cmd_propose,
     cmd_revert,
@@ -37,6 +38,7 @@ _COMMANDS = {
     "next",
     "status",
     "swarm",
+    "migrate",
     "ui",
 }
 
@@ -125,6 +127,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_status = sub.add_parser("status", help="show validation readiness and the next safe action")
     p_status.add_argument("--json", action="store_true", help="emit the versioned status as JSON")
+
+    p_migrate = sub.add_parser(
+        "migrate", help="activate the repository coordinator (migrate from legacy claims)"
+    )
+    p_migrate.add_argument("--json", action="store_true", help="emit the activation result as JSON")
 
     p_swarm = sub.add_parser("swarm", help="run isolated headless workers from the grounded queue")
     p_swarm.add_argument("--headless", action="store_true", help="explicitly allow agent child processes")
@@ -267,6 +274,7 @@ def main(argv: list[str] | None = None) -> int:
         "next": cmd_next,
         "status": cmd_status,
         "swarm": cmd_swarm,
+        "migrate": cmd_migrate,
         "ui": cmd_ui,
     }[args.command]
     try:

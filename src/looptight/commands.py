@@ -14,6 +14,7 @@ from .detect import KNOWN_AGENTS, detect_agent, detect_verify
 from .integration import install_session_instructions
 from .loop import run_loop
 from .protocol_commands import (
+    cmd_migrate,
     cmd_next,
     cmd_propose,
     cmd_status,
@@ -29,6 +30,7 @@ __all__ = [
     "cmd_improve",
     "cmd_init",
     "cmd_install_hook",
+    "cmd_migrate",
     "cmd_next",
     "cmd_propose",
     "cmd_revert",

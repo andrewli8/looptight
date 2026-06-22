@@ -751,3 +751,36 @@ def test_status_json_keeps_v1_keys_and_adds_coordinator_counts(tmp_path, monkeyp
     assert v1_keys <= payload.keys()  # v1 status contract preserved
     assert payload["coordinator"]["queued_integrations"] == 0
     assert payload["coordinator"]["queued_tasks"] == 0
+
+
+def test_migrate_activates_coordinator_and_is_idempotent(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+
+    assert main(["migrate", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload == {"schema_version": 1, "command": "migrate", "status": "active"}
+    assert (tmp_path / ".git" / "looptight" / "coordinator-format.json").is_file()
+
+    assert main(["migrate"]) == 0  # idempotent
+
+
+def test_migrate_refuses_live_legacy_claims(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    claims = tmp_path / ".git" / "looptight" / "claims"
+    claims.mkdir(parents=True)
+    (claims / "t.json").write_text(
+        json.dumps({"schema_version": 1, "task_id": "t", "owner": "o", "claimed_at": 9_999_999_999}),
+        encoding="utf-8",
+    )
+
+    assert main(["migrate"]) == 2
+    assert "legacy" in capsys.readouterr().out
+    assert not (tmp_path / ".git" / "looptight" / "coordinator-format.json").exists()
+
+
+def test_migrate_outside_git_errors(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    assert main(["migrate"]) == 2
+    assert "Git repository" in capsys.readouterr().out
