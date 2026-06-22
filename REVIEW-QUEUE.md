@@ -582,3 +582,29 @@ C4 (REVIEW-QUEUE.md gitignore) — no change; still a human policy decision.
 
 **New concern:** C5 (5bab139 coordinator foundation dead code) — described above,
 minor quality concern, no action needed until Task 2 lands.
+
+---
+
+## IMPROVER 2026-06-22 — no changes
+
+No safe, valuable unattended change was available this run, so no code changed.
+
+- Tree healthy: `uv run pytest -q` passes (1 skipped), `uv run ruff check` clean.
+  `looptight propose` returns only the 5 queued coordinator tasks (no lint/TODO
+  candidates).
+- `next` = Task 2 (replace `ClaimStore` file ownership with fenced SQLite leases).
+  Its valuable form (plan Step 4) rewires `next`/`status` off the foundational
+  claim mechanism — too high-risk to land unattended with no human pre-review. The
+  additive-only subset (leasing APIs unused by `next`) would deepen standing
+  concern C5 (unwired coordinator infrastructure). Neither is a safe unattended
+  landing, so per the conservative mandate I made no changes.
+
+Housekeeping (false alarm, now resolved): early in this run a stale local
+`origin/main` tracking ref (cached at the old `211a31d`) made it look like the
+working lineage had diverged from `origin/main`. `git fetch` corrected it —
+`origin/main` is `87c0432`, identical to the working lineage; there is no
+divergence and the loop is landing work on main normally. Before confirming, I
+pushed a throwaway branch `improver/2026-06-22` carrying a now-retracted
+divergence note. The remote git proxy returns HTTP 403 on branch deletion, so I
+could not remove it; please delete `origin/improver/2026-06-22` manually. `main`
+is clean and was never touched by that note.
