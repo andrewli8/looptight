@@ -835,3 +835,156 @@ deferred until a real misclassification is observed) and C4 (REVIEW-QUEUE.md
 gitignore tension, a human policy decision). C1/C2/C6/C7 from prior rounds are
 addressed in the validated history. Manufacturing a doc note or refactor would
 be churn against the project's lightweight ethos.
+
+---
+
+## CONCERN C8 — heartbeat/reap_abandoned not wired into any production call path
+
+**Severity:** minor quality (same pattern as prior C5/C6)
+
+`Coordinator.heartbeat` (line 416) and `reap_abandoned` (line 425) were added in
+31eb169 and are covered by a time-injected unit test, but no production call
+site in `swarm.py`, `loop.py`, `tasks.py`, or `protocol_commands.py` calls
+them. A dead session's lease therefore still lingers for the full TTL in
+practice — the reaping logic exists in the coordinator but is never triggered.
+
+**Suggested fix:** call `coordinator.reap_abandoned(older_than_s=...)` in
+`run_swarm` (e.g. right before `_reconcile_pending`) and have workers call
+`coordinator.heartbeat(run_id)` between iterations. Alternatively, document
+that these are reserved APIs for a future orchestrator-driven heartbeat loop and
+mark them as such in the source.
+
+---
+
+## CONCERN C9 — _GIT_IDENTITY duplicated in integration_queue.py and swarm.py
+
+**Severity:** very minor (cosmetic DRY violation)
+
+`_GIT_IDENTITY = ("-c", "user.name=looptight", "-c", "user.email=looptight@localhost")`
+appears identically at `integration_queue.py:49` and `swarm.py:178`. If the
+identity is ever changed (e.g. a project-specific email), both sites must be
+updated in sync with no test alarm.
+
+**Suggested fix:** define the tuple once in `integration_queue.py` (or a new
+`_git_utils.py`) and import it in `swarm.py`. The two `_git` helper functions
+differ only in the `cwd` type (`str(root)` vs `root`), so deduplication of
+`_GIT_IDENTITY` alone is straightforward.
+
+---
+
+## AUDIT 2026-06-22 (reviewer)
+
+**Commits reviewed:** d1d3a82  areb1c4  a315ef2  a44baab  028744c  b10d6a4
+  34e9643  a4d3355  31eb169  0058431  ce1b626  6739960  d6d7d06  b733019
+  5a95525  a0c9d4d  05ffb83  3f7fa6e  fdcaf66  dc64f9b  d94f336  cbed7d7
+  (23 commits since reviewer audit 1e7591a)
+
+**Verdict:** clean — 2 new concerns (C8, C9); no reverts; C1/C2/C6/C7 resolved
+
+**Main status:** green (365 passed, 1 skipped; ruff all checks passed)
+
+### What was reviewed
+
+23 commits since reviewer audit 1e7591a (2026-06-22). Tests grew from 349 to
+365 (16 new tests). This batch completes the coordinator follow-up round,
+resolves four standing review concerns, and adds a CI-blocking bug fix.
+
+**d1d3a82 / areb1c4 / b10d6a4 / fdcaf66** — plan commits (STATUS.md queue
+management only). Clean.
+
+**dc64f9b / d94f336 / cbed7d7** — idle-run audit entries (no code changes).
+Clean.
+
+**a315ef2 — feat: looptight migrate CLI** (andrewli8)
+Exposes `Coordinator.activate_from_legacy` as `looptight migrate`. Writes the
+marker, refuses exit 2 while live legacy claims exist, errors outside Git,
+is idempotent, emits `--json`. 5 CLI tests. Resolves C6
+(`activate_from_legacy` never triggered from production). Correct.
+
+**a44baab — feat: reconcile crashed integrations on swarm start** (andrewli8)
+`run_swarm` now calls `_reconcile_pending` → `Integrator.reconcile` before
+claiming new work. An integration left `integrating` by a crash is finalized
+to exactly one reachable result before new integrations proceed. Covered by a
+crash-boundary test. Swarm JSON unchanged. Correct.
+
+**028744c — feat: swarm --push through durable Publisher** (andrewli8)
+`_publish_via_queue` replaces raw `git push` for coordinated repos: fetch-first,
+exact SHA, no force, idempotent. Tested end-to-end against a bare remote.
+Legacy direct push remains the no-coordinator fallback. Correct.
+
+**34e9643 — test: conflict requeue-below-cap then fail-at-cap** (andrewli8)
+Exercises `finish_integration`'s conflict path directly: fenced lease released,
+task requeued below attempt cap, then marked `failed` at cap. Test-only,
+correct coverage, no padding.
+
+**a4d3355 — docs: document looptight migrate and coordinator activation**
+README and architecture.md updated (activation, fail-closed, idempotent,
+outside-Git error). Doc-only. Clean.
+
+**31eb169 — feat: heartbeat refresh and reap_abandoned** (andrewli8)
+`heartbeat` refreshes an active run's timestamp; `reap_abandoned` marks stale
+runs abandoned and requeues their tasks. Both are tested with time injection.
+Neither is called from any production path — flagged as C8.
+
+**0058431 — feat: coordinator queued counts in status human output** (andrewli8)
+`cmd_status` prints coordinator queued task/integration/publication counts when
+coordinated; JSON unchanged. 1 CLI test. Clean and correct.
+
+**ce1b626 — test: publication push-rejected path** (andrewli8)
+Injected failing push proves `Publisher._publish` returns `failed`, attempts
+exactly once, no force. Test-only, correct coverage.
+
+**6739960 — test: integration merge-conflict path** (andrewli8)
+Creates a genuine merge conflict, proves `conflict` outcome, retained worktree,
+fenced lease released. Test-only, correct coverage.
+
+**d6d7d06 — fix: C7 assert → ValueError in Integrator._run** (andrewli8)
+Replaces the `-O`-strippable `assert` with a clear `ValueError`. Resolves C7.
+Covered by a test.
+
+**b733019 — refactor: C1 timeout by exit code 124** (andrewli8)
+`IterationResult`/`RunResult` carry `returncode`; `_run_worker` classifies
+`timeout` by code 124, not error-string match. Resolves C1. 16 new swarm tests
+(including a reworded-message regression test).
+
+**5a95525 — fix: C2 idle-round bound** (andrewli8)
+`run_continuous_swarm` stops after `max_idle_rounds` (default 3) consecutive
+planning rounds with no merged progress. Resolves C2. 14 new swarm tests.
+
+**a0c9d4d — fix: ruff F401 + surface integration error in test** (andrewli8)
+Removes unused `Coordinator` import (ruff compliance); improves test assertion
+to include captured error for CI diagnostics. Small, correct.
+
+**05ffb83 — fix: deterministic git identity for looptight commits** (andrewli8)
+`_GIT_IDENTITY` flag tuple injected into every automated `git commit`/`merge`
+in `integration_queue.py` and `swarm.py`. Fixes CI failures on runners with no
+ambient git identity. Covered by an identity regression test. Correct and
+important. Note: `_GIT_IDENTITY` is defined in both files — flagged as C9
+(minor DRY concern).
+
+**3f7fa6e — feat: --model flag threads provider model to spawned sessions**
+(andrewli8)
+Adds `Config.model` and `--model` on `run`/`swarm`, threaded to
+`adapter.run_iteration`. Claude adapter's existing `--model` plumbing carries
+it; Codex and OpenCode adapters accept and ignore a non-None model. Covered by
+loop and parser tests. Small, correct, not speculative (adapters already had
+the parameter slot).
+
+### Resolved concerns
+
+**C1** (timeout string matching) → resolved in b733019 (exit-code 124 check).
+**C2** (infinite loop under --continuous --max-rounds 0) → resolved in 5a95525.
+**C6** (activate_from_legacy never triggered) → resolved in a315ef2.
+**C7** (assert-as-runtime-guard in Integrator._run) → resolved in d6d7d06.
+
+### New concerns
+
+**C8** — heartbeat/reap_abandoned unwired (described above, minor).
+**C9** — _GIT_IDENTITY duplicated (described above, very minor).
+
+### Carried-forward concerns (prior status unchanged)
+
+C3 (_task_paths stem-only heuristic) — no change; minor friction.
+C4 (REVIEW-QUEUE.md gitignore) — no change; human policy decision.
+
+---
