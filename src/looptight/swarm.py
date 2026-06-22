@@ -173,10 +173,15 @@ def _result(root: Path, result: SwarmResult) -> SwarmResult:
     return result
 
 
+# Deterministic committer identity for looptight's automated commits/merges, so the
+# swarm works where no ambient git identity is configured (CI, fresh containers).
+_GIT_IDENTITY = ("-c", "user.name=looptight", "-c", "user.email=looptight@localhost")
+
+
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     try:
         return subprocess.run(
-            ["git", *args], cwd=root, capture_output=True, text=True, check=False
+            ["git", *_GIT_IDENTITY, *args], cwd=root, capture_output=True, text=True, check=False
         )
     except OSError as exc:
         return subprocess.CompletedProcess(["git", *args], 127, "", str(exc))

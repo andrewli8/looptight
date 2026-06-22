@@ -219,6 +219,10 @@ existing CLI session and makes no model or API calls of its own.
   planning rounds with no merged progress, so a planner that keeps planning without
   yielding claimable work cannot loop forever under `--max-rounds 0`. Review concern;
   covered by a test; normal progress resets the counter.
+- looptight's automated git commits/merges (integration queue and swarm) use a
+  deterministic `looptight` committer identity, so integration succeeds where no
+  ambient git identity is configured (CI, fresh containers) — fixes the CI build
+  failure; covered by an identity regression test.
 
 ## Next
 

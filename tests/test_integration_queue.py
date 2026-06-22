@@ -259,3 +259,22 @@ def test_run_record_requires_root_for_non_superseded(tmp_path):
     # Lease still owned → not superseded → a clear ValueError, not a stripped assert.
     with pytest.raises(ValueError, match="root and verify"):
         Integrator(db).run_record(record)
+
+
+def test_integration_commits_with_deterministic_identity(tmp_path):
+    # The merge commit must carry looptight's own identity so integration works even
+    # where no ambient git user is configured (CI/containers).
+    repo, candidate = _repo_with_candidate(tmp_path)
+    db = Coordinator.open(repo)
+    run = db.start_run("worker")
+    lease = db.claim([{"id": "t1"}], run.id, ttl_s=60)
+    db.enqueue_integration(lease, "refs/heads/main", candidate)
+
+    outcome = Integrator(db).run_next(repo, "exit 0")
+
+    assert outcome.status == "complete"
+    committer = subprocess.run(
+        ["git", "-C", str(repo), "log", "-1", "--format=%cn", outcome.result_sha],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    assert committer == "looptight"

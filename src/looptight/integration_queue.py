@@ -43,10 +43,16 @@ class IntegrationError(Exception):
     """Raised when a coordinator integration worktree cannot be prepared safely."""
 
 
+# A deterministic committer identity for looptight's automated commits, so merges
+# and integrations succeed even where no ambient git identity is configured (CI,
+# fresh containers). Read-only git commands ignore it.
+_GIT_IDENTITY = ("-c", "user.name=looptight", "-c", "user.email=looptight@localhost")
+
+
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     try:
         return subprocess.run(
-            ["git", *args], cwd=str(root), capture_output=True, text=True, check=False
+            ["git", *_GIT_IDENTITY, *args], cwd=str(root), capture_output=True, text=True, check=False
         )
     except OSError as exc:
         return subprocess.CompletedProcess(["git", *args], 127, "", str(exc))
