@@ -240,6 +240,11 @@ existing CLI session and makes no model or API calls of its own.
   previously the only native-capable adapter returned `error=None`, leaving the
   documented delegate-loop resume unreachable in production. A non-limit failure
   keeps `error` unset (transcript surfaced, no spin). Covered by adapter tests.
+- The skipped-test env-gate filter (`from_skipped_tests`) strips string literals
+  before matching `_OPTIN_RE`, so a skip whose *reason* message merely mentions
+  `environ`/`os.environ`/`os.getenv` is no longer mistaken for an opt-in env gate
+  and silently dropped; genuine `skipif(not os.environ.get(...))` gates are still
+  ignored. Fixes a discovery false negative; covered by two regression tests.
 
 ## Next
 

@@ -128,6 +128,36 @@ def test_from_skipped_tests_keeps_unconditional_inline_skip(tmp_path):
     assert len(cands) == 1
 
 
+def test_from_skipped_tests_keeps_skip_whose_reason_mentions_environ(tmp_path):
+    # The env-gate filter must read code, not the *reason* string: a skip whose
+    # message merely mentions "os.environ" is still rot to fix, not an opt-in gate.
+    _write(
+        tmp_path,
+        "tests/test_r.py",
+        "import pytest\n\n"
+        '@pytest.mark.skip(reason="os.environ setup is broken")\n'
+        "def test_a():\n    pass\n",
+    )
+    cands = from_skipped_tests(tmp_path)
+    assert len(cands) == 1
+    assert "test_r.py" in cands[0].location
+
+
+def test_from_skipped_tests_keeps_unconditional_skip_with_environ_reason(tmp_path):
+    # A bare top-level pytest.skip() whose reason mentions "environ" is genuine
+    # rot, not an env gate — the reason string must not suppress it.
+    _write(
+        tmp_path,
+        "tests/test_s.py",
+        "import pytest\n\n"
+        "def test_b():\n"
+        '    pytest.skip("environ not configured")\n'
+        "    assert True\n",
+    )
+    cands = from_skipped_tests(tmp_path)
+    assert len(cands) == 1
+
+
 def test_from_status_next_parses_numbered_list(tmp_path):
     _write(
         tmp_path,

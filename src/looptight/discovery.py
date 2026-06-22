@@ -105,6 +105,24 @@ def _is_skip_line(stripped: str) -> bool:
 # intentional infrastructure, not a bit-rotting skip — so it is not a fix-me.
 _OPTIN_RE = re.compile(r"os\.environ|os\.getenv|\benviron\b")
 
+# Quoted string literals are data, not code: a marker word inside a skip *reason*
+# message ("os.environ setup is broken") must not be read as an env-var gate. We
+# strip literals before the gate check, mirroring how comment scanning above
+# tokenizes precisely so a marker mentioned inside a string never counts.
+_STRING_LITERAL_RE = re.compile(
+    r"[rRbBuUfF]{0,3}"
+    r'(?:"""(?:\\.|[^\\])*?"""'
+    r"|'''(?:\\.|[^\\])*?'''"
+    r'|"(?:\\.|[^"\\])*"'
+    r"|'(?:\\.|[^'\\])*')",
+    re.DOTALL,
+)
+
+
+def _code_only(text: str) -> str:
+    """``text`` with quoted string literals removed, leaving only code."""
+    return _STRING_LITERAL_RE.sub("", text)
+
 
 def _statement_text(lines: list[str], start: int) -> str:
     """Join lines from ``start`` until parentheses balance — the full marker call.
@@ -147,7 +165,7 @@ def _module_is_optin(lines: list[str]) -> bool:
     """
     for idx, line in enumerate(lines):
         if re.match(r"pytestmark\s*=\s*pytest\.mark\.skipif\b", line.strip()):
-            if _OPTIN_RE.search(_statement_text(lines, idx)):
+            if _OPTIN_RE.search(_code_only(_statement_text(lines, idx))):
                 return True
     return False
 
@@ -167,7 +185,7 @@ def from_skipped_tests(root: Path) -> list[Candidate]:
             stripped = line.strip()
             if not _is_skip_line(stripped):
                 continue
-            if _OPTIN_RE.search(_statement_text(lines, idx)):
+            if _OPTIN_RE.search(_code_only(_statement_text(lines, idx))):
                 continue
             if stripped.startswith("pytest.skip(") and _inside_conditional(lines, idx):
                 continue
