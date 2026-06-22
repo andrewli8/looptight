@@ -229,6 +229,11 @@ existing CLI session and makes no model or API calls of its own.
 - The deterministic `_GIT_IDENTITY` committer tuple for looptight's automated
   commits/merges is defined once in `integration_queue.py` and imported by
   `swarm.py`, so the two cannot drift; behavior and tests unchanged.
+- `test_swarm_publishes_worker_results_in_completion_order` asserts the
+  per-completion partial publish (one worker `verified` while the other is
+  `running`) order-independently, so it no longer flakes on thread-scheduling
+  variance; the guarantee (state published per completion, not once at the end)
+  is unchanged and the production code is untouched.
 
 ## Next
 

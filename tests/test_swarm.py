@@ -505,7 +505,11 @@ def test_swarm_publishes_worker_results_in_completion_order(tmp_path, monkeypatc
     assert result.passed
     assert ["ready", "ready"] in snapshots
     assert ["running", "running"] in snapshots
-    assert ["running", "verified"] in snapshots
+    # One worker finishes and is published as "verified" while the other is
+    # still "running": state is published per completion, not once at the end.
+    # Which worker wins the race is thread-scheduling dependent, so assert the
+    # partial snapshot order-independently.
+    assert any(sorted(snapshot) == ["running", "verified"] for snapshot in snapshots)
     assert [worker.number for worker in result.workers] == [1, 2]
 
 
