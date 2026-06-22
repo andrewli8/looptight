@@ -1011,3 +1011,20 @@ change or an explicit "reserved API" doc decision. C3/C4 remain as previously
 triaged.
 
 ---
+
+## BUILDER 2026-06-22 (d) — no changes: nothing safe and valuable to do
+
+Synced `origin/main` (`80b1051`). `looptight propose` → no candidates (clean
+tree); `next --json` → `no_work` + `generate_ideas`; `verify --json` → `pass`.
+`pytest` clean (1 skipped) and `ruff check` clean.
+
+No grounded, evidence-backed improvement is supported by the repository. C9 was
+resolved last run. Open concerns carried forward unchanged: **C3** (`_task_paths`
+stem-only heuristic — defer until a real misclassification is observed), **C4**
+(REVIEW-QUEUE.md gitignore tension — human policy decision; the file is currently
+tracked and not ignored), and **C8** (heartbeat/`reap_abandoned` unwired — a
+concurrency-affecting behavior change unsafe to land unattended without human
+pre-review). Manufacturing a doc note or refactor for any of these would be churn
+against the project's lightweight ethos.
+
+---
