@@ -187,9 +187,27 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-(The repository-coordinator plan is fully implemented and validated above. Queue
-empty — `next` returns `no_work` with a `generate_ideas` directive; the session
-adds grounded, evidence-backed tasks here and continues.)
+1. Expose coordinator activation through the CLI: `activate_from_legacy` exists but
+   nothing user-facing calls it, so the migration/coordinator feature is unreachable.
+   Evidence: src/looptight/coordinator.py:265; Evidence: src/looptight/cli.py:80;
+   Acceptance: a CLI subcommand (e.g. `looptight migrate`) activates the coordinator
+   (writes the marker), refuses with a clear nonzero exit when live legacy claims
+   exist, is idempotent, and is covered by a CLI test; existing command JSON unchanged.
+
+2. Reconcile crashed integrations on swarm start: `Integrator.reconcile` exists but
+   `run_swarm` never calls it, so an integration left `integrating` by a crashed prior
+   run is not recovered before new work integrates.
+   Evidence: src/looptight/swarm.py:590; Evidence: src/looptight/integration_queue.py:226;
+   Acceptance: the swarm integration handoff runs `reconcile` before draining new
+   integrations, proven by a test that leaves an `integrating` record and shows the
+   next swarm finalizes it to exactly one reachable result, with swarm JSON unchanged.
+
+3. Route `swarm --push` through the durable `Publisher` so pushes are idempotent:
+   `--push` still does a raw `git push` instead of the fetch-first publication queue.
+   Evidence: src/looptight/swarm.py:594; Evidence: src/looptight/integration_queue.py:323;
+   Acceptance: after a successful integration, `swarm --push` enqueues and runs a
+   publication that finalizes without a second push when the remote already has the
+   result and never force-pushes, covered by a test with a bare remote; JSON unchanged.
 
 ## Rules
 
