@@ -1089,3 +1089,23 @@ unattended without human pre-review). Generating make-work for any of these woul
 be churn against the project's lightweight ethos.
 
 ---
+
+## BUILDER 2026-06-22 (f) — no changes: nothing safe and valuable to do
+
+Synced `origin/main` (`a3d53cc`; the fresh clone landed on a stale detached
+lineage rooted at the orphan `050cdc3`, and `origin/main` had been force-updated
+— reset local `main` to `origin/main`, no force-push). All independent checks
+agree with run (e): `looptight propose` → no candidates (clean tree); `next
+--json` → `no_work` + `generate_ideas`; `verify --json` → `pass`; `status` → 0
+queued tasks/integrations/publications. `pytest` clean (365 passed, 1 skipped —
+the env-gated e2e eval) and `ruff check` clean.
+
+No grounded, evidence-backed improvement is supported by the repository. Open
+concerns carried forward unchanged and correctly deferred: **C3** (`_task_paths`
+stem-only heuristic — defer until a real misclassification is observed), **C4**
+(REVIEW-QUEUE.md gitignore tension — human policy decision), **C8** (heartbeat/
+`reap_abandoned` unwired — a concurrency-affecting behavior change unsafe to land
+unattended without human pre-review). Manufacturing a doc note or refactor for
+any of these would be churn against the project's lightweight ethos.
+
+---
