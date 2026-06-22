@@ -883,3 +883,17 @@ def test_swarm_classifies_timeout_by_exit_code_not_message(tmp_path, monkeypatch
         tmp_path, agent="fake", config=Config(verify="exit 0", max_iterations=1), workers=1
     )
     assert result.workers[0].status == "timeout"  # classified by returncode 124, not the string
+
+
+def test_continuous_swarm_stops_after_idle_planning_rounds(tmp_path, monkeypatch):
+    # Rounds never produce workers and planning always "plans": must stop, not loop.
+    monkeypatch.setattr("looptight.swarm.run_swarm", lambda *a, **k: SwarmResult(()))
+    monkeypatch.setattr("looptight.swarm.plan_next_tasks", lambda *a, **k: PlanningResult("planned"))
+
+    result = run_continuous_swarm(
+        tmp_path, agent="fake", config=Config(verify="exit 0"), workers=1
+    )
+
+    assert result.status == "error"
+    assert "no merged progress" in (result.error or "")
+    assert result.rounds <= 5  # bounded, did not loop forever

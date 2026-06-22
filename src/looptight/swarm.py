@@ -44,6 +44,7 @@ from .verify import run_verify
 MAX_WORKERS = 50
 DEFAULT_WORKER_TIMEOUT = 3600.0
 INTEGRATION_LOCK_TIMEOUT = 300.0
+DEFAULT_MAX_IDLE_ROUNDS = 3
 SCHEMA_VERSION = 1
 
 
@@ -657,6 +658,7 @@ def run_continuous_swarm(
     limit_max_resumes: int = 0,
     sleep: Callable[[float], None] = time.sleep,
     generate_ideas: bool = True,
+    max_idle_rounds: int = DEFAULT_MAX_IDLE_ROUNDS,
 ) -> SwarmResult:
     """Repeat verified swarm rounds, planning only when grounded work is exhausted.
 
@@ -674,6 +676,7 @@ def run_continuous_swarm(
     plans = 0
     resumes = 0
     limit_attempt = 0
+    idle_rounds = 0
     pushed: str | None = None
     while max_rounds == 0 or rounds < max_rounds:
         result = run_swarm(
@@ -715,6 +718,7 @@ def run_continuous_swarm(
         completed.extend(result.workers)
         limit_attempt = 0
         if result.workers:
+            idle_rounds = 0  # merged work this round resets the no-progress counter
             continue
         if max_rounds and rounds >= max_rounds:
             return SwarmResult(tuple(completed), pushed=pushed, rounds=rounds, plans=plans, resumes=resumes)
@@ -729,6 +733,13 @@ def run_continuous_swarm(
         )
         if planning.status == "planned":
             plans += 1
+            idle_rounds += 1
+            if max_idle_rounds and idle_rounds >= max_idle_rounds:
+                return SwarmResult(
+                    tuple(completed),
+                    f"continuous swarm made no merged progress across {max_idle_rounds} planning rounds",
+                    pushed, rounds=rounds, plans=plans, resumes=resumes,
+                )
             pushed = "pushed" if push else pushed
             continue
         if planning.status == "no_work":

@@ -215,16 +215,17 @@ existing CLI session and makes no model or API calls of its own.
 - Worker timeouts are classified by provider exit code 124 (`IterationResult`/
   `RunResult` carry `returncode`), not by matching a base.py error string — so a
   reworded timeout message still tags `timeout`. Review concern; covered by a test.
+- `run_continuous_swarm` stops after `max_idle_rounds` (default 3) consecutive
+  planning rounds with no merged progress, so a planner that keeps planning without
+  yielding claimable work cannot loop forever under `--max-rounds 0`. Review concern;
+  covered by a test; normal progress resets the counter.
 
 ## Next
 
-1. Guard `run_continuous_swarm` against an unbounded loop under the default
-   `--max-rounds 0` (review concern): if rounds yield no workers but planning keeps
-   returning `planned`, the loop never terminates.
-   Evidence: src/looptight/swarm.py:645;
-   Acceptance: after a small number of consecutive rounds that produce no merged work,
-   the continuous swarm stops with a clear result instead of looping forever, proven
-   by a test; normal progress is unaffected.
+(Round-4 review concerns addressed. Queue empty — `next` returns `no_work` with a
+`generate_ideas` directive; the session adds grounded, evidence-backed tasks and
+continues. Remaining open review items: `_task_paths` stem-only heuristic (a
+docs/convention concern) and the gitignored-audit-trail meta-concern.)
 
 ## Rules
 
