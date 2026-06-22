@@ -190,15 +190,15 @@ existing CLI session and makes no model or API calls of its own.
 - `run_swarm` reconciles any integration left `integrating` by a crashed prior run
   before claiming new work (`_reconcile_pending` → `Integrator.reconcile`), so a crash
   finalizes to exactly one reachable result — covered by an after-commit crash test.
+- `swarm --push` publishes merged integrations through the durable `Publisher`
+  (`_publish_via_queue`): fetch-first, exact-SHA, no force, idempotent — covered by an
+  end-to-end test against a bare remote; the legacy direct push remains a fallback.
 
 ## Next
 
-1. Route `swarm --push` through the durable `Publisher` so pushes are idempotent:
-   `--push` still does a raw `git push` instead of the fetch-first publication queue.
-   Evidence: src/looptight/swarm.py:594; Evidence: src/looptight/integration_queue.py:323;
-   Acceptance: after a successful integration, `swarm --push` enqueues and runs a
-   publication that finalizes without a second push when the remote already has the
-   result and never force-pushes, covered by a test with a bare remote; JSON unchanged.
+(Coordinator follow-ups complete. Queue empty — `next` returns `no_work` with a
+`generate_ideas` directive; the session adds grounded, evidence-backed tasks and
+continues.)
 
 ## Rules
 

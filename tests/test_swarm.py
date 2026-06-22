@@ -839,3 +839,31 @@ def test_swarm_reconciles_crashed_integration_on_start(tmp_path, monkeypatch):
         "log", "refs/heads/main", "--pretty=%H", f"--grep=Looptight-Integration-ID: {integration_id}"
     ).stdout.split()
     assert len(reachable) == 1
+
+
+def test_swarm_push_publishes_via_durable_queue(tmp_path, monkeypatch):
+    from looptight.coordinator import Coordinator
+
+    _repo(tmp_path)
+    branch = subprocess.run(
+        ["git", "-C", str(tmp_path), "rev-parse", "--abbrev-ref", "HEAD"],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    remote = tmp_path.with_name(tmp_path.name + "_remote.git")
+    subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+    _git(tmp_path, "remote", "add", "origin", str(remote))
+    _git(tmp_path, "push", "-u", "-q", "origin", branch)
+
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+    result = run_swarm(
+        tmp_path, agent="fake", config=Config(verify="exit 0", max_iterations=1), workers=1, push=True
+    )
+
+    assert result.pushed == "pushed"
+    local_tip = subprocess.run(
+        ["git", "-C", str(tmp_path), "rev-parse", branch], capture_output=True, text=True, check=True
+    ).stdout.strip()
+    remote_tip = subprocess.run(
+        ["git", "-C", str(remote), "rev-parse", branch], capture_output=True, text=True, check=True
+    ).stdout.strip()
+    assert remote_tip == local_tip  # exact integrated result published to the remote

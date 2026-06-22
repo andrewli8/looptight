@@ -31,6 +31,7 @@ from .integration_queue import (
     CoordinationTimeout,
     IntegrationLock,
     Integrator,
+    Publisher,
     git_common_dir,
 )
 from .loop import run_loop
@@ -361,6 +362,33 @@ _INTEGRATION_STATUS = {
 }
 
 
+def _publish_via_queue(root: Path, workers: list[Worker]) -> str:
+    """Publish merged integrations to the remote idempotently via the durable queue.
+
+    Each merged worker's completed integration is enqueued and drained by the
+    `Publisher`, which fetches first and finalizes without a second push when the
+    remote already has the result, pushing only the exact result SHA (never force).
+    """
+    coordinator = Coordinator.open(root)
+    if coordinator is None:  # pragma: no cover - swarm always runs inside Git
+        return "pushed" if _git(root, "push").returncode == 0 else "failed"
+    try:
+        branch = _git(root, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip() or "HEAD"
+        remote = _git(root, "config", f"branch.{branch}.remote").stdout.strip() or "origin"
+        remote_ref = f"refs/heads/{branch}"
+        enqueued = [
+            coordinator.enqueue_publication(worker.integration_id, remote, remote_ref)
+            for worker in workers
+            if worker.status == "merged" and worker.integration_id
+        ]
+        Publisher(coordinator, lock_timeout_s=INTEGRATION_LOCK_TIMEOUT).reconcile(root)
+        if all(coordinator.publication(pub_id).state == "complete" for pub_id in enqueued):
+            return "pushed"
+        return "failed"
+    finally:
+        coordinator.close()
+
+
 def _reconcile_pending(root: Path, verify: str) -> None:
     """Finalize any integration a crashed prior run left in `integrating` state."""
     coordinator = Coordinator.open(root)
@@ -606,12 +634,9 @@ def run_swarm(
         return _result(root, SwarmResult(tuple(completed), str(exc)))
     _publish_state(root, prepared, "running")
     if push and any(worker.status == "merged" for worker in completed):
-        pushed = _git(root, "push")
-        if pushed.returncode != 0:
+        if _publish_via_queue(root, completed) != "pushed":
             return _result(root, SwarmResult(
-                tuple(completed),
-                pushed.stderr.strip() or "could not push integrated swarm commits",
-                pushed="failed",
+                tuple(completed), "could not publish integrated swarm commits", pushed="failed",
             ))
         return _result(root, SwarmResult(tuple(completed), pushed="pushed"))
     return _result(root, SwarmResult(tuple(completed)))
