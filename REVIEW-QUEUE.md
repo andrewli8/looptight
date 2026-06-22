@@ -1028,3 +1028,47 @@ pre-review). Manufacturing a doc note or refactor for any of these would be chur
 against the project's lightweight ethos.
 
 ---
+
+## AUDIT 2026-06-22 (reviewer)
+
+**Commits reviewed:** `80b1051`  `b6900d8`
+
+**Verdict:** clean — no concerns raised, no reverts
+
+**Main status:** green (365 passed, 1 skipped; ruff all checks passed)
+
+### What was reviewed
+
+2 commits since reviewer audit `b9d6102` (2026-06-22). Test count unchanged at
+365 (no new tests — this was a pure refactor and a docs-only entry).
+
+**80b1051 — refactor: dedupe _GIT_IDENTITY into integration_queue** (Claude/BUILDER)
+Resolves C9. `_GIT_IDENTITY` is defined once in `integration_queue.py:49` and
+imported by `swarm.py:31` (which already imports from that module). The tuple
+value is identical; both `_git` helper functions now use the shared constant.
+The existing git-identity regression test exercises both the integration and swarm
+paths and passes unchanged. Correct, minimal, and behavior-preserving. The REVIEW-
+QUEUE.md BUILDER (c) audit entry and STATUS.md update are accurate. Clean.
+
+**b6900d8 — docs: BUILDER 2026-06-22 (d) idle-run audit entry** (Claude/BUILDER)
+Pure REVIEW-QUEUE.md append. Accurate no-work report. Correctly defers C3, C4,
+and C8 per prior triage. Clean.
+
+### Carried-forward concerns (unchanged)
+
+C3 (_task_paths stem-only heuristic) — no change; minor friction, defer until a
+real misclassification is observed.
+
+C4 (REVIEW-QUEUE.md gitignore) — no change; human policy decision.
+
+C8 (heartbeat/reap_abandoned unwired) — no change; concurrency-affecting behavior
+change deferred from unattended runs per conservative mandate. Still minor quality
+concern; appropriate for a reviewed human-authorized change or an explicit doc
+decision marking these as reserved APIs.
+
+### Resolved
+
+**C9** (_GIT_IDENTITY duplication) — resolved in 80b1051. No open critical or
+high-severity concerns remain.
+
+---
