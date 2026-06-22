@@ -10,12 +10,31 @@ import pytest
 from looptight.coordinator import Coordinator
 from looptight.integration_queue import (
     CoordinationTimeout,
+    InjectedCrash,
     IntegrationLock,
     Integrator,
     git_common_dir,
     integration_worktree,
     prepare_integration_worktree,
 )
+
+
+def _git(repo, *args):
+    return subprocess.run(
+        ["git", "-C", str(repo), "-c", "user.name=T", "-c", "user.email=t@t.test", *args],
+        capture_output=True, text=True, check=True,
+    )
+
+
+def _repo_with_candidate(tmp_path):
+    repo = _repo(tmp_path / "r")
+    _git(repo, "checkout", "-q", "-b", "cand")
+    (repo / "feature.txt").write_text("feature\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "feature")
+    candidate = _git(repo, "rev-parse", "HEAD").stdout.strip()
+    _git(repo, "checkout", "-q", "main")
+    return repo, candidate
 
 
 def _repo(path):
@@ -115,3 +134,27 @@ def test_stale_fence_is_superseded_and_new_owner_keeps_lease(tmp_path):
 
     assert outcome.status == "superseded"
     assert db.current_lease(lease1._row_id).run_id == run2.id  # new owner's lease intact
+
+
+@pytest.mark.parametrize(
+    "boundary", ["after_merge", "after_commit", "after_update_ref", "after_db_update"]
+)
+def test_recovery_has_one_reachable_result(tmp_path, boundary):
+    repo, candidate = _repo_with_candidate(tmp_path)
+    db = Coordinator.open(repo)
+    assert db is not None
+    run = db.start_run("worker")
+    lease = db.claim([{"id": "t1"}], run.id, ttl_s=60)
+    integration_id = db.enqueue_integration(lease, "refs/heads/main", candidate)
+
+    with pytest.raises(InjectedCrash):
+        Integrator(db, crash_after=boundary).run_next(repo, "exit 0")
+
+    Integrator(db).reconcile(repo, "exit 0")
+
+    reachable = _git(
+        repo, "log", "refs/heads/main", "--pretty=%H",
+        f"--grep=Looptight-Integration-ID: {integration_id}",
+    ).stdout.split()
+    assert len(reachable) == 1  # exactly one reachable result regardless of crash point
+    assert db.integration(integration_id).state == "complete"

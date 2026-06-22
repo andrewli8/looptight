@@ -107,6 +107,7 @@ class IntegrationRecord:
     target_ref: str
     candidate_sha: str
     state: str
+    observed_sha: str | None = None
 
 
 @dataclass(frozen=True)
@@ -118,6 +119,11 @@ class IntegrationOutcome:
     retained_worktree: str | None = None
 
 
+_INTEGRATION_COLUMNS = (
+    "id, run_id, task_id, lease_generation, target_ref, candidate_sha, state, observed_sha"
+)
+
+
 def _integration_record(row: tuple[object, ...]) -> IntegrationRecord:
     return IntegrationRecord(
         id=str(row[0]),
@@ -127,6 +133,7 @@ def _integration_record(row: tuple[object, ...]) -> IntegrationRecord:
         target_ref=str(row[4]),
         candidate_sha=str(row[5]),
         state=str(row[6]),
+        observed_sha=str(row[7]) if row[7] is not None else None,
     )
 
 
@@ -378,8 +385,7 @@ class Coordinator:
 
     def integration(self, integration_id: str) -> IntegrationRecord | None:
         row = self.connection.execute(
-            """SELECT id, run_id, task_id, lease_generation, target_ref, candidate_sha, state
-               FROM integrations WHERE id = ?""",
+            f"SELECT {_INTEGRATION_COLUMNS} FROM integrations WHERE id = ?",
             (integration_id,),
         ).fetchone()
         return _integration_record(row) if row else None
@@ -387,10 +393,26 @@ class Coordinator:
     def next_queued_integration(self) -> IntegrationRecord | None:
         """Return the oldest queued integration (global FIFO by insertion sequence)."""
         row = self.connection.execute(
-            """SELECT id, run_id, task_id, lease_generation, target_ref, candidate_sha, state
-               FROM integrations WHERE state = 'queued' ORDER BY sequence LIMIT 1"""
+            f"SELECT {_INTEGRATION_COLUMNS} FROM integrations WHERE state = 'queued' "
+            "ORDER BY sequence LIMIT 1"
         ).fetchone()
         return _integration_record(row) if row else None
+
+    def integrating_records(self) -> tuple[IntegrationRecord, ...]:
+        """Return non-terminal integrations left mid-flight (for crash recovery)."""
+        rows = self.connection.execute(
+            f"SELECT {_INTEGRATION_COLUMNS} FROM integrations WHERE state = 'integrating' "
+            "ORDER BY sequence"
+        ).fetchall()
+        return tuple(_integration_record(row) for row in rows)
+
+    def begin_integration(self, integration_id: str, observed_sha: str) -> None:
+        """Record the observed target tip and mark the integration in-flight."""
+        with self.transaction(immediate=True):
+            self.connection.execute(
+                "UPDATE integrations SET state = 'integrating', observed_sha = ? WHERE id = ?",
+                (observed_sha, integration_id),
+            )
 
     def finish_integration(
         self, integration_id: str, outcome: IntegrationOutcome, *, max_attempts: int = 3

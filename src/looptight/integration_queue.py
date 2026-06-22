@@ -150,19 +150,56 @@ def prepare_integration_worktree(root: Path, target_ref: str) -> tuple[Path, str
     return path, sha
 
 
+_TRAILER_KEY = "Looptight-Integration-ID"
+
+
+def _trailer_commit_on_ref(root: Path, ref: str, integration_id: str) -> str | None:
+    """The newest commit reachable from ``ref`` carrying this integration's trailer."""
+    result = _git(root, "log", ref, "-1", "--pretty=%H", f"--grep={_TRAILER_KEY}: {integration_id}")
+    if result.returncode != 0:
+        return None
+    return result.stdout.strip() or None
+
+
+def _committed_result_in_worktree(worktree: Path, integration_id: str) -> str | None:
+    """The integration worktree's HEAD if it already carries this integration's trailer."""
+    head = _git(worktree, "rev-parse", "HEAD")
+    if head.returncode != 0:
+        return None
+    body = _git(worktree, "log", "-1", "--pretty=%B")
+    if f"{_TRAILER_KEY}: {integration_id}" in body.stdout:
+        return head.stdout.strip()
+    return None
+
+
+class InjectedCrash(Exception):
+    """Test-only crash injected at a named integration boundary."""
+
+
 class Integrator:
     """Drain queued integrations one at a time, under the repository lock.
 
     Each record is fenced to its lease generation: a record whose lease has since
     been reassigned is ``superseded`` (the new owner keeps its lease). Otherwise the
-    candidate is merged into a coordinator-owned worktree, verified, and the target
-    ref advanced with a compare-and-swap against the observed tip.
+    candidate is merged into a coordinator-owned worktree, verified, committed with a
+    ``Looptight-Integration-ID`` trailer, and the target ref advanced with a
+    compare-and-swap. The trailer makes the result idempotently recoverable:
+    :meth:`reconcile` resolves any integration left mid-flight by a crash to exactly
+    one reachable result.
     """
 
-    def __init__(self, coordinator: Coordinator, *, lock_timeout_s: float = 300.0, max_attempts: int = 3) -> None:
+    def __init__(
+        self, coordinator: Coordinator, *, lock_timeout_s: float = 300.0,
+        max_attempts: int = 3, crash_after: str | None = None,
+    ) -> None:
         self.coordinator = coordinator
         self.lock_timeout_s = lock_timeout_s
         self.max_attempts = max_attempts
+        self.crash_after = crash_after
+
+    def _maybe_crash(self, boundary: str) -> None:
+        if self.crash_after == boundary:
+            raise InjectedCrash(boundary)
 
     def next_id(self) -> str | None:
         record = self.coordinator.next_queued_integration()
@@ -179,6 +216,14 @@ class Integrator:
         self, record: IntegrationRecord, root: Path | None = None, verify: str | None = None
     ) -> IntegrationOutcome:
         return self._run(record, root, verify)
+
+    def reconcile(self, root: Path, verify: str) -> tuple[IntegrationOutcome, ...]:
+        """Resolve every integration left ``integrating`` by a crash, idempotently."""
+        outcomes: list[IntegrationOutcome] = []
+        with IntegrationLock.acquire(git_common_dir(root), self.lock_timeout_s):
+            for record in self.coordinator.integrating_records():
+                outcomes.append(self._reconcile_one(record, root, verify))
+        return tuple(outcomes)
 
     def _finish(
         self, record: IntegrationRecord, status: str, *, result_sha: str | None = None,
@@ -199,7 +244,13 @@ class Integrator:
             return self._finish(record, "superseded", error="lease superseded by a newer owner")
         assert root is not None and verify is not None  # only the superseded path may omit them
         worktree, observed = prepare_integration_worktree(root, record.target_ref)
-        merged = _git(worktree, "merge", "--no-ff", "--no-edit", record.candidate_sha)
+        self.coordinator.begin_integration(record.id, observed)
+        return self._apply(record, root, verify, worktree, observed)
+
+    def _apply(
+        self, record: IntegrationRecord, root: Path, verify: str, worktree: Path, observed: str
+    ) -> IntegrationOutcome:
+        merged = _git(worktree, "merge", "--no-commit", "--no-ff", record.candidate_sha)
         if merged.returncode != 0:
             _git(worktree, "merge", "--abort")
             return self._finish(record, "conflict", error=merged.stderr.strip() or "merge conflict", retained=worktree)
@@ -207,6 +258,13 @@ class Integrator:
         if not verdict.passed:
             _git(worktree, "reset", "--hard", observed)
             return self._finish(record, "failed", error=f"integration verify: {verdict.status}", retained=worktree)
+        self._maybe_crash("after_merge")
+        message = f"merge: looptight integration {record.id}\n\n{_TRAILER_KEY}: {record.id}"
+        committed = _git(worktree, "commit", "-m", message)
+        if committed.returncode != 0:
+            _git(worktree, "reset", "--hard", observed)
+            return self._finish(record, "failed", error=committed.stderr.strip() or "integration commit failed", retained=worktree)
+        self._maybe_crash("after_commit")
         result_sha = _git(worktree, "rev-parse", "HEAD").stdout.strip()
         updated = _git(root, "update-ref", record.target_ref, result_sha, observed)
         if updated.returncode != 0:
@@ -215,4 +273,30 @@ class Integrator:
                 record, "conflict",
                 error=updated.stderr.strip() or "target advanced; integration superseded", retained=worktree,
             )
-        return self._finish(record, "complete", result_sha=result_sha)
+        self._maybe_crash("after_update_ref")
+        outcome = self._finish(record, "complete", result_sha=result_sha)
+        self._maybe_crash("after_db_update")
+        return outcome
+
+    def _reconcile_one(
+        self, record: IntegrationRecord, root: Path, verify: str
+    ) -> IntegrationOutcome:
+        # Already reachable from the ref (crashed after update-ref): just finalize.
+        on_ref = _trailer_commit_on_ref(root, record.target_ref, record.id)
+        if on_ref:
+            return self._finish(record, "complete", result_sha=on_ref)
+        worktree = integration_worktree(root, record.target_ref)
+        observed = record.observed_sha or _git(root, "rev-parse", record.target_ref).stdout.strip()
+        # Committed but not yet on the ref (crashed after commit): advance the ref.
+        committed = _committed_result_in_worktree(worktree, record.id) if worktree.exists() else None
+        if committed:
+            updated = _git(root, "update-ref", record.target_ref, committed, observed)
+            if updated.returncode == 0:
+                return self._finish(record, "complete", result_sha=committed)
+            on_ref_again = _trailer_commit_on_ref(root, record.target_ref, record.id)
+            if on_ref_again:
+                return self._finish(record, "complete", result_sha=on_ref_again)
+            return self._finish(record, "conflict", error="target advanced during reconcile", retained=worktree)
+        # Nothing committed (crashed mid-merge): re-apply from the observed base.
+        fresh_worktree, fresh_observed = prepare_integration_worktree(root, record.target_ref)
+        return self._apply(record, root, verify, fresh_worktree, fresh_observed)
