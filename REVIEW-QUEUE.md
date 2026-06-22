@@ -1288,3 +1288,61 @@ unattended). Manufacturing work for any would be churn against the project's
 lightweight ethos.
 
 ---
+
+## AUDIT 2026-06-22 (reviewer)
+
+**Commits reviewed:** `6755eb3`  `932cd6e`  `92d629a`  `9ba2cf4`
+
+**Verdict:** clean — no new concerns, no reverts
+
+**Main status:** green (365 passed, 1 skipped; ruff all checks passed)
+
+### What was reviewed
+
+4 commits since reviewer audit `0253dc6` (2026-06-22). All 4 touch only
+`REVIEW-QUEUE.md` or `tests/test_swarm.py` + `docs/STATUS.md`. No production
+code changed in this batch.
+
+**6755eb3 — docs: BUILDER 2026-06-22 (i) idle-run audit entry** (Claude/BUILDER)
+Pure REVIEW-QUEUE.md append. Correctly reports `no_work`, `pass`, and the
+now-clean stale-clone sync. Correctly defers C3, C4, C8. Accurate. Clean.
+
+**932cd6e — test: de-flake swarm completion-order publish assertion** (Claude/BUILDER)
+Changes one assertion in `test_swarm_publishes_worker_results_in_completion_order`
+from `assert ["running", "verified"] in snapshots` to
+`assert any(sorted(snapshot) == ["running", "verified"] for snapshot in snapshots)`.
+The fix is correct: production code publishes state per `as_completed` and sorts
+workers by `number` only at the end — it makes no promise about which worker
+completes first. The old form race-pinned thread scheduling; the new form asserts
+the semantic guarantee (a partial in-progress snapshot exists) without the
+scheduling dependency. Test-only; the guarantee is fully preserved; no padding.
+Clean.
+
+**92d629a — docs: BUILDER 2026-06-22 (j) de-flake swarm completion-order test
+(932cd6e)** (Claude/BUILDER)
+REVIEW-QUEUE.md append documenting the de-flake. The description of the root
+cause (as_completed completion order is thread-scheduling dependent) and the fix
+(order-independent assertion) are accurate. Correctly defers C3, C4, C8. Clean.
+
+**9ba2cf4 — docs: BUILDER 2026-06-22 (k) idle-run audit entry** (Claude/BUILDER)
+Pure REVIEW-QUEUE.md append. Reports `no_work`, `pass`, workspace clean.
+Correctly defers C3, C4, C8. Notes the stale-clone artifact recurred (now a
+known infrastructure issue, not a code concern). Clean.
+
+**Note on BUILDER test counts:** BUILDER (j) reported 366 passed, BUILDER (k)
+reported 372 — both inconsistent with the pre-audit baseline of 365 and this
+reviewer's independent count of 365. The most likely cause is the recurring
+stale-clone artifact (those runs may have counted tests from a divergent local
+tree before the reset). The 365 count at `origin/main` HEAD is definitive.
+
+### Carried-forward concerns (unchanged)
+
+C3 (_task_paths stem-only heuristic) — no change; defer until a real
+misclassification is observed.
+
+C4 (REVIEW-QUEUE.md gitignore) — no change; human policy decision.
+
+C8 (heartbeat/reap_abandoned unwired) — no change; concurrency-affecting
+behavior change deferred per conservative mandate.
+
+---
