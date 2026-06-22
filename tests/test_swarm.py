@@ -692,6 +692,26 @@ def test_continuous_swarm_caps_a_single_limit_wait(tmp_path, monkeypatch):
     assert waits == [600.0]  # a multi-hour reset is clamped; the loop re-polls instead
 
 
+def test_continuous_swarm_stops_after_max_limit_resumes(tmp_path, monkeypatch):
+    # A perpetual limit signal must not loop forever once a cap is set.
+    monkeypatch.setattr("looptight.swarm.run_swarm", lambda *a, **k: SwarmResult((_limited_worker("; retry after 1s"),)))
+    waits: list[float] = []
+
+    result = run_continuous_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0"),
+        workers=1,
+        resume_on_limit=True,
+        limit_max_resumes=2,
+        sleep=waits.append,
+    )
+
+    assert result.status == "error"
+    assert "limit" in (result.error or "").lower()
+    assert result.resumes == 2  # capped; did not loop indefinitely
+
+
 def test_continuous_swarm_backs_off_when_no_reset_named(tmp_path, monkeypatch):
     rounds = iter(
         [SwarmResult((_limited_worker(retry=""),)), SwarmResult((_limited_worker(retry=""),)), SwarmResult(())]

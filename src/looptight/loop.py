@@ -63,6 +63,7 @@ def run_loop(
     resume_on_limit: bool = False,
     limit_backoff_seconds: float = DEFAULT_LIMIT_BACKOFF,
     limit_max_wait_seconds: float = DEFAULT_LIMIT_MAX_WAIT,
+    limit_max_resumes: int = 0,
     sleep: SleepFn = time.sleep,
 ) -> RunResult:
     """Run ``goal`` to a verified stop. Returns a normalized RunResult."""
@@ -82,24 +83,32 @@ def run_loop(
         resume_on_limit=resume_on_limit,
         limit_backoff_seconds=limit_backoff_seconds,
         limit_max_wait_seconds=limit_max_wait_seconds,
+        limit_max_resumes=limit_max_resumes,
         sleep=sleep,
     )
     runner = _delegate_loop if use_native else _supply_loop
     return runner(goal, adapter, config, workdir, **common)
 
 
-def _with_limit_resume(call, *, resume_on_limit, base, cap, sleep):
+def _with_limit_resume(call, *, resume_on_limit, base, cap, max_resumes, sleep):
     """Run ``call`` (an iteration thunk), waiting out a provider usage limit.
 
     A limit costs no iteration-cap slot — the agent did no work — so we sleep
     (preferring the provider's named reset, capped) and retry until the provider
     returns a real result. Shared by the supply and native-delegate loops so an
     unattended ``run`` resumes after a limit instead of stopping.
+
+    ``max_resumes`` bounds consecutive resumes (0 = unbounded, the default, so a
+    genuine multi-hour reset is still waited out). When set, a perpetual limit
+    signal — a stuck account or a misclassification — stops after the cap with the
+    limit error instead of looping forever.
     """
     attempt = 0
     while True:
         iteration = call()
         if not resume_on_limit or iteration.ok or not is_limit_error(iteration.error):
+            return iteration
+        if max_resumes and attempt >= max_resumes:
             return iteration
         attempt += 1
         sleep(limit_wait(retry_after_from_error(iteration.error), attempt, base, cap))
@@ -107,7 +116,7 @@ def _with_limit_resume(call, *, resume_on_limit, base, cap, sleep):
 
 def _supply_loop(
     goal, adapter, config, workdir, *, verify_fn, checkpointer, on_iteration,
-    resume_on_limit, limit_backoff_seconds, limit_max_wait_seconds, sleep,
+    resume_on_limit, limit_backoff_seconds, limit_max_wait_seconds, limit_max_resumes, sleep,
 ) -> RunResult:
     records: list[IterationRecord] = []
     progress: list[float | None] = []
@@ -123,6 +132,7 @@ def _supply_loop(
             resume_on_limit=resume_on_limit,
             base=limit_backoff_seconds,
             cap=limit_max_wait_seconds,
+            max_resumes=limit_max_resumes,
             sleep=sleep,
         )
 
@@ -167,7 +177,7 @@ def _supply_loop(
 
 def _delegate_loop(
     goal, adapter, config, workdir, *, verify_fn, checkpointer, on_iteration,
-    resume_on_limit, limit_backoff_seconds, limit_max_wait_seconds, sleep,
+    resume_on_limit, limit_backoff_seconds, limit_max_wait_seconds, limit_max_resumes, sleep,
 ) -> RunResult:
     """Hand off to the agent's native loop, then verify once as the contract."""
     checkpointer.snapshot()
@@ -176,6 +186,7 @@ def _delegate_loop(
         resume_on_limit=resume_on_limit,
         base=limit_backoff_seconds,
         cap=limit_max_wait_seconds,
+        max_resumes=limit_max_resumes,
         sleep=sleep,
     )
     if not iteration.ok:

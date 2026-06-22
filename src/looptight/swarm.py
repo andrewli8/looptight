@@ -515,6 +515,7 @@ def run_continuous_swarm(
     resume_on_limit: bool = False,
     limit_backoff_seconds: float = DEFAULT_LIMIT_BACKOFF,
     limit_max_wait_seconds: float = DEFAULT_LIMIT_MAX_WAIT,
+    limit_max_resumes: int = 0,
     sleep: Callable[[float], None] = time.sleep,
     generate_ideas: bool = True,
 ) -> SwarmResult:
@@ -557,6 +558,12 @@ def run_continuous_swarm(
                 # Keep work that already merged this round; the limited workers'
                 # tasks stay grounded and are re-claimed on the next round.
                 completed.extend(w for w in result.workers if w.status == "merged")
+                if limit_max_resumes and limit_attempt >= limit_max_resumes:
+                    return SwarmResult(
+                        tuple(completed),
+                        f"provider usage limit persisted after {limit_max_resumes} resumes",
+                        pushed, rounds=rounds, plans=plans, resumes=resumes,
+                    )
                 limit_attempt += 1
                 named = max((retry_after_from_error(w.error) or 0.0) for w in non_merged)
                 sleep(limit_wait(named or None, limit_attempt, limit_backoff_seconds, limit_max_wait_seconds))
@@ -588,6 +595,12 @@ def run_continuous_swarm(
         if planning.status == "no_work":
             return SwarmResult(tuple(completed), pushed=pushed, rounds=rounds, plans=plans, resumes=resumes)
         if resume_on_limit and is_limit_error(planning.error):
+            if limit_max_resumes and limit_attempt >= limit_max_resumes:
+                return SwarmResult(
+                    tuple(completed),
+                    f"provider usage limit persisted after {limit_max_resumes} resumes",
+                    pushed, rounds=rounds, plans=plans, resumes=resumes,
+                )
             limit_attempt += 1
             named = retry_after_from_error(planning.error)
             sleep(limit_wait(named, limit_attempt, limit_backoff_seconds, limit_max_wait_seconds))

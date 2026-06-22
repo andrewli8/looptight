@@ -136,6 +136,9 @@ existing CLI session and makes no model or API calls of its own.
   resume via a common `_with_limit_resume` wrapper: a provider limit during a
   driven loop waits (capped) and retries instead of stopping. Off by default;
   covered by tests, supply-loop behavior unchanged.
+- Consecutive usage-limit resumes are boundable (`limit_max_resumes`, 0 = unbounded
+  default) in both the single loop and the continuous swarm, so a perpetual limit
+  signal stops with a clear error instead of looping forever. Covered by tests.
 - `owner_id` (env override and default identity) and config.py's `find_config` and
   `render_config` now have direct unit coverage.
 - Continuous swarm can wait out a provider-reported usage/rate limit and resume
@@ -151,23 +154,14 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Bound consecutive usage-limit resumes so a perpetual limit signal (genuinely
-   stuck account or a misclassification) cannot loop forever; stop with a clear
-   error after a configurable cap of back-to-back resumes that made no progress.
-   Evidence: src/looptight/loop.py:100; Evidence: src/looptight/swarm.py:506;
-   Acceptance: an always-"provider rate limit reached" adapter under
-   `resume_on_limit` (injected sleep) stops with an error after the cap instead of
-   looping forever, default uncapped/opt-in behavior for a single limit unchanged,
-   proven by a test, and the suite passes.
-
-2. Add direct unit coverage for `_summary_and_evidence` task-field trimming.
+1. Add direct unit coverage for `_summary_and_evidence` task-field trimming.
    Evidence: src/looptight/tasks.py:40;
    Acceptance: new tests prove an `Evidence:`-bearing candidate yields a summary
    with the refs stripped out and the full (multi-ref) `Evidence:` string
    preserved, and an `Evidence:`-less candidate falls back to its detail line,
    with no production change, and the suite passes.
 
-3. Document the optional `directive` field of `next` in the SPEC output contract.
+2. Document the optional `directive` field of `next` in the SPEC output contract.
    Evidence: docs/SPEC.md:178;
    Acceptance: the output-contract section states that `next` may include a
    `directive` (`generate_ideas`) on `no_work` when idea generation is enabled,

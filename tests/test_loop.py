@@ -144,6 +144,41 @@ def test_delegate_loop_limit_is_terminal_without_resume(workdir):
     assert adapter.native_calls == 1
 
 
+class _AlwaysLimitedAdapter(FakeAdapter):
+    """Reports a usage limit on every call — a stuck account or a misclassification."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.calls = 0
+
+    def run_iteration(self, goal, context, workdir, model=None):
+        self.calls += 1
+        return IterationResult(
+            transcript="rate limited", ok=False, error="provider rate limit reached; retry after 1s"
+        )
+
+
+def test_supply_loop_stops_after_max_resumes(workdir):
+    adapter = _AlwaysLimitedAdapter()
+    waits: list[float] = []
+    result = run_loop(
+        "fix it",
+        adapter,
+        _config(),
+        workdir,
+        verify_fn=make_verify(pass_on=1),
+        checkpointer=Checkpointer(workdir, enabled=False),
+        resume_on_limit=True,
+        limit_max_resumes=2,
+        sleep=waits.append,
+    )
+
+    assert result.stop_reason is StopReason.ERROR
+    assert "provider rate limit reached" in (result.error or "")
+    assert len(waits) == 2  # two resumes, then give up rather than loop forever
+    assert adapter.calls == 3  # initial attempt + two retries
+
+
 def test_supply_loop_backs_off_when_no_reset_named(workdir):
     adapter = _LimitedThenOkAdapter(limited=2, retry="")
     waits: list[float] = []
