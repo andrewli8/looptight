@@ -90,6 +90,60 @@ def test_supply_loop_limit_is_terminal_without_resume(workdir):
     assert result.iteration_count == 0
 
 
+class _LimitedThenOkNativeAdapter(FakeAdapter):
+    """Drives a native loop that reports a usage limit, then succeeds on retry."""
+
+    def __init__(self, *, limited: int) -> None:
+        super().__init__(supports_native=True)
+        self._limited = limited
+        self.native_calls = 0
+
+    def drive_native_loop(self, goal, verify, max_iterations, workdir):
+        self.native_calls += 1
+        if self.native_calls <= self._limited:
+            return IterationResult(
+                transcript="rate limited", ok=False, error="provider rate limit reached; retry after 5s"
+            )
+        return IterationResult(transcript="native done", ok=True)
+
+
+def test_delegate_loop_waits_out_usage_limit_then_succeeds(workdir):
+    adapter = _LimitedThenOkNativeAdapter(limited=1)
+    waits: list[float] = []
+    result = run_loop(
+        "fix it",
+        adapter,
+        _config(),
+        workdir,
+        native=True,
+        verify_fn=make_verify(pass_on=1),
+        checkpointer=Checkpointer(workdir, enabled=False),
+        resume_on_limit=True,
+        sleep=waits.append,
+    )
+
+    assert result.stop_reason is StopReason.SUCCESS
+    assert result.mode == "delegate"
+    assert adapter.native_calls == 2  # retried once after the limit
+    assert waits == [5.0]
+
+
+def test_delegate_loop_limit_is_terminal_without_resume(workdir):
+    adapter = _LimitedThenOkNativeAdapter(limited=1)
+    result = run_loop(
+        "fix it",
+        adapter,
+        _config(),
+        workdir,
+        native=True,
+        verify_fn=make_verify(pass_on=1),
+        checkpointer=Checkpointer(workdir, enabled=False),
+    )
+
+    assert result.stop_reason is StopReason.ERROR
+    assert adapter.native_calls == 1
+
+
 def test_supply_loop_backs_off_when_no_reset_named(workdir):
     adapter = _LimitedThenOkAdapter(limited=2, retry="")
     waits: list[float] = []

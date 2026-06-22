@@ -132,6 +132,10 @@ existing CLI session and makes no model or API calls of its own.
 - Ranking places human-curated `task-file`/`status-next` above automated `lint`/
   `todo`; `next` task JSON no longer triplicates the task text (`goal` is the
   summary, `evidence` the pointers, `acceptance` separate). Each covered by tests.
+- The native delegate loop (`run --native`) shares the supply loop's usage-limit
+  resume via a common `_with_limit_resume` wrapper: a provider limit during a
+  driven loop waits (capped) and retries instead of stopping. Off by default;
+  covered by tests, supply-loop behavior unchanged.
 - `owner_id` (env override and default identity) and config.py's `find_config` and
   `render_config` now have direct unit coverage.
 - Continuous swarm can wait out a provider-reported usage/rate limit and resume
@@ -147,14 +151,9 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Extend usage-limit resume to the native delegate loop: `run --native`'s
-   `_delegate_loop` ignores `resume_on_limit`, so a provider limit during a driven
-   loop stops instead of waiting out and retrying like the supply loop does.
-   Evidence: src/looptight/loop.py:128; Evidence: src/looptight/limits.py:99;
-   Acceptance: a `provider rate limit reached` outcome from `drive_native_loop`
-   under an opt-in flag waits (injected sleep) and retries once before returning,
-   proven by a test with a fake adapter, supply-loop and default behavior
-   unchanged, and the suite passes.
+(Queue empty. With idea generation on, `next` returns `no_work` + a
+`generate_ideas` directive; the session adds grounded, evidence-backed tasks here
+and continues.)
 
 ## Rules
 
