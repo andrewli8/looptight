@@ -13,6 +13,7 @@ from looptight.integration_queue import (
     InjectedCrash,
     IntegrationLock,
     Integrator,
+    Publisher,
     git_common_dir,
     integration_worktree,
     prepare_integration_worktree,
@@ -158,3 +159,47 @@ def test_recovery_has_one_reachable_result(tmp_path, boundary):
     ).stdout.split()
     assert len(reachable) == 1  # exactly one reachable result regardless of crash point
     assert db.integration(integration_id).state == "complete"
+
+
+def _repo_with_remote(tmp_path):
+    repo, candidate = _repo_with_candidate(tmp_path)
+    remote = tmp_path / "remote.git"
+    subprocess.run(["git", "init", "-q", "--bare", str(remote)], check=True)
+    _git(repo, "remote", "add", "origin", str(remote))
+    _git(repo, "push", "-q", "origin", "main")
+    db = Coordinator.open(repo)
+    run = db.start_run("worker")
+    lease = db.claim([{"id": "t1"}], run.id, ttl_s=60)
+    integration_id = db.enqueue_integration(lease, "refs/heads/main", candidate)
+    result = Integrator(db).run_next(repo, "exit 0")
+    assert result.status == "complete"
+    return repo, db, integration_id, result.result_sha
+
+
+def test_publication_finalizes_without_second_push_when_remote_has_result(tmp_path):
+    repo, db, integration_id, result_sha = _repo_with_remote(tmp_path)
+    # Simulate the publisher having pushed the result and then crashed before finalizing.
+    _git(repo, "push", "-q", "origin", f"{result_sha}:refs/heads/main")
+    publication_id = db.enqueue_publication(integration_id, "origin", "refs/heads/main")
+
+    calls = []
+    Publisher(db, push=lambda *a: calls.append(a)).run_next(repo)
+
+    assert calls == []  # remote already has the result: no second push
+    assert db.publication(publication_id).state == "complete"
+
+
+def test_publication_pushes_exact_result_when_remote_behind(tmp_path):
+    repo, db, integration_id, result_sha = _repo_with_remote(tmp_path)
+    publication_id = db.enqueue_publication(integration_id, "origin", "refs/heads/main")
+
+    pushed = []
+
+    def fake_push(root, remote, sha, ref):
+        pushed.append((sha, ref))
+        return _git(root, "push", "-q", remote, f"{sha}:{ref}").returncode
+
+    Publisher(db, push=fake_push).run_next(repo)
+
+    assert pushed == [(result_sha, "refs/heads/main")]  # exact result SHA, no candidate replay
+    assert db.publication(publication_id).state == "complete"

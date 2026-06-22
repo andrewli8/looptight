@@ -17,7 +17,13 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
-from .coordinator import Coordinator, IntegrationOutcome, IntegrationRecord
+from .coordinator import (
+    Coordinator,
+    IntegrationOutcome,
+    IntegrationRecord,
+    PublicationOutcome,
+    PublicationRecord,
+)
 from .verify import run_verify
 
 if os.name == "nt":  # pragma: no cover - exercised on Windows only
@@ -300,3 +306,61 @@ class Integrator:
         # Nothing committed (crashed mid-merge): re-apply from the observed base.
         fresh_worktree, fresh_observed = prepare_integration_worktree(root, record.target_ref)
         return self._apply(record, root, verify, fresh_worktree, fresh_observed)
+
+
+def _is_ancestor(root: Path, sha: str, tip: str) -> bool:
+    """True if ``sha`` is reachable from ``tip`` (the remote already has the result)."""
+    if not sha or not tip:
+        return False
+    return _git(root, "merge-base", "--is-ancestor", sha, tip).returncode == 0
+
+
+def _default_push(root: Path, remote: str, result_sha: str, remote_ref: str) -> int:
+    """Push the exact result SHA to ``remote_ref`` without force or candidate replay."""
+    return _git(root, "push", remote, f"{result_sha}:{remote_ref}").returncode
+
+
+class Publisher:
+    """Publish completed integrations to a remote idempotently.
+
+    Before pushing, it fetches the remote ref and finalizes without a second push if
+    the result is already present (a crash after a successful push is recovered, not
+    duplicated). It pushes only the exact result SHA, never replays the candidate, and
+    never force-pushes. ``push`` is injectable for tests.
+    """
+
+    def __init__(self, coordinator: Coordinator, *, push=None, lock_timeout_s: float = 300.0) -> None:
+        self.coordinator = coordinator
+        self._push = push if push is not None else _default_push
+        self.lock_timeout_s = lock_timeout_s
+
+    def run_next(self, root: Path) -> PublicationOutcome | None:
+        with IntegrationLock.acquire(git_common_dir(root), self.lock_timeout_s):
+            record = self.coordinator.next_pending_publication()
+            if record is None:
+                return None
+            return self._publish(record, root)
+
+    def reconcile(self, root: Path) -> tuple[PublicationOutcome, ...]:
+        outcomes: list[PublicationOutcome] = []
+        while True:
+            outcome = self.run_next(root)
+            if outcome is None:
+                break
+            outcomes.append(outcome)
+        return tuple(outcomes)
+
+    def _finish(self, record: PublicationRecord, status: str, *, error: str | None = None) -> PublicationOutcome:
+        outcome = PublicationOutcome(record.id, status, error=error)
+        self.coordinator.finish_publication(record.id, outcome)
+        return outcome
+
+    def _publish(self, record: PublicationRecord, root: Path) -> PublicationOutcome:
+        _git(root, "fetch", "-q", record.remote, record.remote_ref)
+        remote_tip = _git(root, "rev-parse", "--verify", "-q", "FETCH_HEAD").stdout.strip()
+        self.coordinator.begin_publication(record.id, remote_tip or None)
+        if _is_ancestor(root, record.result_sha, remote_tip):
+            return self._finish(record, "complete")  # remote already has it; no second push
+        if self._push(root, record.remote, record.result_sha, record.remote_ref) != 0:
+            return self._finish(record, "failed", error="push rejected; fetch and reconcile before retry")
+        return self._finish(record, "complete")

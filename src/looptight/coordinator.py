@@ -119,6 +119,34 @@ class IntegrationOutcome:
     retained_worktree: str | None = None
 
 
+@dataclass(frozen=True)
+class PublicationRecord:
+    id: str
+    integration_id: str
+    remote: str
+    remote_ref: str
+    result_sha: str
+    state: str
+
+
+@dataclass(frozen=True)
+class PublicationOutcome:
+    id: str
+    status: str  # complete | failed
+    error: str | None = None
+
+
+def _publication_record(row: tuple[object, ...]) -> PublicationRecord:
+    return PublicationRecord(
+        id=str(row[0]),
+        integration_id=str(row[1]),
+        remote=str(row[2]),
+        remote_ref=str(row[3]),
+        result_sha=str(row[4]),
+        state=str(row[5]),
+    )
+
+
 _INTEGRATION_COLUMNS = (
     "id, run_id, task_id, lease_generation, target_ref, candidate_sha, state, observed_sha"
 )
@@ -463,6 +491,58 @@ class Coordinator:
                 self.connection.execute(
                     "UPDATE tasks SET state = ? WHERE id = ?",
                     ("queued" if attempts < max_attempts else "failed", task_id),
+                )
+
+    def enqueue_publication(self, integration_id: str, remote: str, remote_ref: str) -> str:
+        """Queue a completed integration's result for publication to ``remote``."""
+        with self.transaction(immediate=True):
+            row = self.connection.execute(
+                "SELECT result_sha, state FROM integrations WHERE id = ?", (integration_id,)
+            ).fetchone()
+            if row is None or row[1] != "complete" or not row[0]:
+                raise CoordinationError("integration must be complete before publication")
+            publication_id = uuid.uuid4().hex
+            self.connection.execute(
+                """INSERT INTO publications(id, integration_id, remote, remote_ref, result_sha, state)
+                   VALUES (?, ?, ?, ?, ?, 'queued')""",
+                (publication_id, integration_id, remote, remote_ref, row[0]),
+            )
+            return publication_id
+
+    def publication(self, publication_id: str) -> PublicationRecord | None:
+        row = self.connection.execute(
+            """SELECT id, integration_id, remote, remote_ref, result_sha, state
+               FROM publications WHERE id = ?""",
+            (publication_id,),
+        ).fetchone()
+        return _publication_record(row) if row else None
+
+    def next_pending_publication(self) -> PublicationRecord | None:
+        """Oldest publication not yet finalized (queued or interrupted mid-publish)."""
+        row = self.connection.execute(
+            """SELECT id, integration_id, remote, remote_ref, result_sha, state
+               FROM publications WHERE state IN ('queued', 'publishing') ORDER BY rowid LIMIT 1"""
+        ).fetchone()
+        return _publication_record(row) if row else None
+
+    def begin_publication(self, publication_id: str, observed_remote_sha: str | None) -> None:
+        with self.transaction(immediate=True):
+            self.connection.execute(
+                "UPDATE publications SET state = 'publishing', observed_remote_sha = ? WHERE id = ?",
+                (observed_remote_sha, publication_id),
+            )
+
+    def finish_publication(self, publication_id: str, outcome: PublicationOutcome) -> None:
+        with self.transaction(immediate=True):
+            if outcome.status == "complete":
+                self.connection.execute(
+                    "UPDATE publications SET state = 'complete', error = NULL WHERE id = ?",
+                    (publication_id,),
+                )
+            else:
+                self.connection.execute(
+                    "UPDATE publications SET state = 'failed', attempts = attempts + 1, error = ? WHERE id = ?",
+                    (outcome.error, publication_id),
                 )
 
     def close(self) -> None:
