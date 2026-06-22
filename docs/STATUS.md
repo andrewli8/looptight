@@ -165,9 +165,27 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-(Queue empty. With idea generation on, `next` returns `no_work` + a
-`generate_ideas` directive; the session adds grounded, evidence-backed tasks here
-and continues. Pass `--no-ideas` to stop instead.)
+1. Cover the CLI numeric-validator rejection branches. `_positive_float`
+   (rejects values ≤ 0) guards every timeout flag and `_non_negative_int`
+   (rejects values < 0) guards `--limit`/`--idle-rounds`, but no test exercises
+   their rejection paths — only `_positive_int`'s upper bound (`workers 51`) and
+   `_port`'s range are checked.
+   Evidence: src/looptight/cli.py:58; src/looptight/cli.py:44;
+   tests/test_swarm.py:132; tests/test_ui.py:204.
+   Acceptance: new tests in tests/test_cli.py assert `main([...])` with a
+   non-positive timeout (e.g. `--worker-timeout 0`) and with a zero `--workers`
+   return exit code 2, with no production-code change.
+
+2. Cover the absolute-reset out-of-range guard in usage-limit parsing.
+   `_parse_absolute_reset` rejects an hour/minute outside 0–23/0–59 (so
+   "resets at 13:00pm" computes hour 25 and falls back), but test_limits.py
+   covers only valid times and the missing-context guard, never the
+   out-of-range rejection.
+   Evidence: src/looptight/limits.py:103; tests/test_limits.py:99.
+   Acceptance: a new test in tests/test_limits.py asserts
+   `classify_limit("usage limit reached; resets at 13:00pm", now=...)` returns a
+   signal whose `retry_after_s` is None (out-of-range clock time ignored, no
+   exception), with no production-code change.
 
 ## Rules
 
