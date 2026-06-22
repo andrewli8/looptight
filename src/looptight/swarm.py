@@ -361,6 +361,17 @@ _INTEGRATION_STATUS = {
 }
 
 
+def _reconcile_pending(root: Path, verify: str) -> None:
+    """Finalize any integration a crashed prior run left in `integrating` state."""
+    coordinator = Coordinator.open(root)
+    if coordinator is None:  # pragma: no cover - swarm always runs inside Git
+        return
+    try:
+        Integrator(coordinator, lock_timeout_s=INTEGRATION_LOCK_TIMEOUT).reconcile(root, verify)
+    finally:
+        coordinator.close()
+
+
 def _integrate_via_queue(root: Path, workers: list[Worker], verify: str) -> None:
     """Hand verified workers to the durable coordinator queue and drain it.
 
@@ -549,6 +560,9 @@ def run_swarm(
         return _result(root, SwarmResult((), "swarm requires a clean Git worktree"))
     if not get_adapter(agent).is_available():
         return _result(root, SwarmResult((), f"{agent} is not available on PATH"))
+
+    # Recover any integration a crashed prior run left mid-flight before new work.
+    _reconcile_pending(root, config.verify)
 
     prepared, error = _prepare_workers(root, workers)
     if error:

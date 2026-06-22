@@ -797,3 +797,45 @@ def test_swarm_banner_notes_resume_on_limit():
     assert swarm._swarm_banner(2, "claude", "exit 0", True, 0, True) == (
         "swarm · 2 workers · agent claude · verify exit 0 · continuous · max 0 rounds · resume-on-limit"
     )
+
+
+def test_swarm_reconciles_crashed_integration_on_start(tmp_path, monkeypatch):
+    from looptight.coordinator import Coordinator
+    from looptight.integration_queue import InjectedCrash, Integrator
+
+    def git(*args):
+        return subprocess.run(
+            ["git", "-C", str(tmp_path), "-c", "user.name=T", "-c", "user.email=t@t.test", *args],
+            capture_output=True, text=True, check=True,
+        )
+
+    subprocess.run(["git", "init", "-q", "-b", "main"], cwd=tmp_path, check=True)
+    (tmp_path / "readme.md").write_text("hi\n", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-qm", "init")
+    git("checkout", "-q", "-b", "cand")
+    (tmp_path / "feature.txt").write_text("x\n", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-qm", "feature")
+    candidate = git("rev-parse", "HEAD").stdout.strip()
+    git("checkout", "-q", "main")
+
+    db = Coordinator.open(tmp_path)
+    run = db.start_run("worker")
+    lease = db.claim([{"id": "t1"}], run.id, ttl_s=60)
+    integration_id = db.enqueue_integration(lease, "refs/heads/main", candidate)
+    with pytest.raises(InjectedCrash):
+        Integrator(db, crash_after="after_commit").run_next(tmp_path, "exit 0")
+    assert db.integration(integration_id).state == "integrating"
+    db.close()
+
+    # No grounded tasks, so the round claims nothing — but it must reconcile first.
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+    run_swarm(tmp_path, agent="fake", config=Config(verify="exit 0"), workers=1)
+
+    after = Coordinator.open(tmp_path)
+    assert after.integration(integration_id).state == "complete"
+    reachable = git(
+        "log", "refs/heads/main", "--pretty=%H", f"--grep=Looptight-Integration-ID: {integration_id}"
+    ).stdout.split()
+    assert len(reachable) == 1
