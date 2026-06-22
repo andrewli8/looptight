@@ -104,6 +104,13 @@ def test_absolute_reset_ignored_without_reset_context():
     assert signal.retry_after_s is None
 
 
+def test_absolute_reset_ignores_out_of_range_clock_time():
+    now = datetime(2026, 6, 21, 14, 0, 0)
+    signal = classify_limit("usage limit reached; resets at 13:00pm", now=now)
+    assert signal is not None
+    assert signal.retry_after_s is None
+
+
 def test_format_and_parse_round_trip():
     error = format_limit_error(LimitSignal(retry_after_s=120.0))
     assert error.startswith(RATE_LIMIT_ERROR)

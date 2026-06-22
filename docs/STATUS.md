@@ -164,19 +164,14 @@ existing CLI session and makes no model or API calls of its own.
   workers retain their recovery worktrees. Covered by swarm regression tests.
 - CLI parsing directly covers non-positive swarm worker counts and provider
   timeouts, returning argparse exit code 2 with no production-code change.
+- Usage-limit parsing directly covers out-of-range absolute reset times, which
+  remain classified as limits without inventing a retry interval.
 
 ## Next
 
-1. Cover the absolute-reset out-of-range guard in usage-limit parsing.
-   `_parse_absolute_reset` rejects an hour/minute outside 0–23/0–59 (so
-   "resets at 13:00pm" computes hour 25 and falls back), but test_limits.py
-   covers only valid times and the missing-context guard, never the
-   out-of-range rejection.
-   Evidence: src/looptight/limits.py:103; tests/test_limits.py:99.
-   Acceptance: a new test in tests/test_limits.py asserts
-   `classify_limit("usage limit reached; resets at 13:00pm", now=...)` returns a
-   signal whose `retry_after_s` is None (out-of-range clock time ignored, no
-   exception), with no production-code change.
+(Queue empty. With idea generation on, `next` returns `no_work` + a
+`generate_ideas` directive; the session adds grounded, evidence-backed tasks here
+and continues. Pass `--no-ideas` to stop instead.)
 
 ## Rules
 
