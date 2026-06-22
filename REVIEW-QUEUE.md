@@ -608,3 +608,180 @@ pushed a throwaway branch `improver/2026-06-22` carrying a now-retracted
 divergence note. The remote git proxy returns HTTP 403 on branch deletion, so I
 could not remove it; please delete `origin/improver/2026-06-22` manually. `main`
 is clean and was never touched by that note.
+
+---
+
+## CONCERN c6 — activate_from_legacy never triggered in any production path
+
+**Severity:** minor quality / design gap
+
+`Coordinator.open(activate=True)` is never called in production code
+(`tasks.py`, `protocol_commands.py`, `swarm.py` all call `open()` without
+`activate=True`). This means `activate_from_legacy`, `has_live_claim`,
+`LegacyClaimsDisabled`, `MigrationBlocked`, and `MARKER_NAME` are
+exercised only by tests — no production trigger writes the marker, so the
+legacy `ClaimStore` is never explicitly disabled.
+
+In practice this is safe for single-version deployments because
+`if coordinator is not None:` always wins and the ClaimStore is unreachable.
+The risk is mixed-version deployments (old + new looptight on the same
+repo): the old process would use ClaimStore while the new one uses the
+coordinator, with no fence between them.
+
+**Suggested fix:** either wire explicit activation (e.g. a `looptight
+coordinator activate` sub-command, or auto-activate inside `Coordinator.open`
+when the DB is first created and no live legacy claims exist), or document
+that the migration guard is intentionally deferred and note when it will be
+triggered.
+
+---
+
+## CONCERN c7 — `assert` used as runtime guard in Integrator._run
+
+**Severity:** very minor
+
+`integration_queue.py:251` has `assert root is not None and verify is not
+None` as a guard against calling `run_record` with a non-superseded record
+but no `root`/`verify`. If Python is run with `-O`, this assertion is silently
+skipped and `prepare_integration_worktree(None, ...)` raises a confusing
+`AttributeError` instead of a clear error.
+
+`run_record` is an internal method (only used in the stale-lease test), but
+public methods should not rely on assert for correctness.
+
+**Suggested fix:** replace with `raise ValueError("root and verify required
+for non-superseded integration")`.
+
+---
+
+## AUDIT 2026-06-22 (reviewer)
+
+**Commits reviewed:** 4b29e1a  b5d0582  058b842  b40db70  467c794
+  3e9ccac  b0e54a4  403592e  0abd4e4  1e7591a
+
+**Verdict:** clean — 2 new concerns (C6, C7), no reverts; C5 resolved
+
+**Main status:** green (349 passed, 1 skipped; ruff all checks passed)
+
+### What was reviewed
+
+10 commits since reviewer audit 87c0432 (2026-06-22). Tests grew from 328 to
+349 (21 new tests across 4 test files). This batch wires the coordinator
+foundation (5bab139, C5) into production and adds the full integration/
+publication pipeline.
+
+**4b29e1a — docs: record 2026-06-22 improver run** (Claude/improver)
+Pure REVIEW-QUEUE.md append. Clean.
+
+**b5d0582 — feat: coordinate unique fenced task leases** (andrewli8)
+Routes `next_task` and `cmd_status` through the coordinator when inside a
+git repo. `tasks.py` now opens a coordinator connection, calls `start_run` +
+`claim` (BEGIN IMMEDIATE CAS), returns the lease payload, and closes. The
+fallback to `ClaimStore` is retained for the non-git path. Worker-specific
+run IDs (`run_id-w{n}`) are passed to `next_task` from `_prepare_workers`
+so each worker holds a distinct coordinator lease. Tests cover re-claim and
+CLI JSON keys. The 24-hour TTL matches the legacy stale period. Correct.
+
+**058b842 — feat: serialize repository integration safely** (andrewli8)
+New `integration_queue.py`: POSIX flock / Windows msvcrt advisory lock
+over a file in `<git-common>/looptight/`. `prepare_integration_worktree`
+validates that the coordinator worktree stays under the common dir
+(`is_relative_to` check) and never resets a user worktree. `git common_dir`
+is validated against the coordinator's common dir before any reset. Swarm
+integration was originally placed inside `IntegrationLock.acquire`; this
+is superseded in the next commit. Clean and correct.
+
+**b40db70 — feat: durable coordinator integration queue** (andrewli8)
+`enqueue_integration` (fenced to live lease), `next_queued_integration`
+(global FIFO by sequence), `finish_integration` (atomic terminal states:
+complete/superseded/conflict/failed). `Integrator.run_next` acquires the
+lock, picks the oldest queued record, checks the fence (stale → superseded),
+merges in the coordinator worktree, verifies, commits with a
+`Looptight-Integration-ID` trailer, and CAS-advances the target ref. Logical
+flow is correct. Tests cover FIFO ordering and stale-fence superseding.
+
+**467c794 — feat: hand swarm worker integration to the durable queue** (andrewli8)
+Replaces direct integration in `run_swarm` with `_integrate_via_queue`.
+Workers enqueue their verified branch via the coordinator; `Integrator`
+drains the queue. After integration the primary worktree is fast-forwarded
+(`git reset --hard target_ref`) to stay consistent with the advanced branch
+ref. The comment correctly explains this is safe because the swarm requires
+a clean primary worktree. `Worker` gains `run_id` and `integration_id`
+fields (mutable dataclass, consistent with existing pattern). `SwarmResult.passed`
+checks for `"merged"` status; the `_INTEGRATION_STATUS` dict maps
+`"complete" → "merged"` correctly. Clean.
+
+**3e9ccac — feat: idempotent integration crash recovery via UUID trailers** (andrewli8)
+`begin_integration` records the observed tip before any git mutation.
+`reconcile` handles three crash boundaries:
+(1) reachable-on-ref: finalize without a new update-ref.
+(2) committed-not-on-ref: CAS-advance the ref; if that races, grep for the
+    trailer on the ref to finalize.
+(3) mid-merge: re-apply from the observed base.
+The parameterized `test_recovery_has_one_reachable_result` covers all four
+crash boundaries (after_merge, after_commit, after_update_ref, after_db_update).
+Correct single-result guarantee.
+
+**b0e54a4 — feat: idempotent remote publication** (andrewli8)
+`Publisher` fetches the remote ref first, checks `_is_ancestor` (remote
+already has result → finalize without a second push), otherwise pushes only
+the exact `result_sha` to the remote ref — never force-pushes or replays
+the candidate. `enqueue_publication` guards that the integration is
+`complete` and has a `result_sha` before enqueuing. Tests cover the
+`remote-already-has-result` and `remote-behind` cases. Correct.
+
+**403592e — feat: planner proposal dedup, status projection, concurrent-open hardening** (andrewli8)
+Three independent improvements:
+(1) `submit_proposals`: dedupes by fingerprint via uniqueness constraints
+    under one IMMEDIATE transaction; concurrent planners converge.
+(2) `Coordinator.status`: projects queued counts into the `status` JSON
+    under an additive `coordinator` key; v1 keys preserved.
+(3) `_initialize_schema` retry loop: WAL journal-mode switch returns
+    SQLITE_BUSY immediately (ignores busy_timeout) on a fresh DB under
+    concurrent first-open; 50×0.1s retry loop fixes the race. Correct
+    diagnosis and fix.
+The 10-process multiprocess acceptance tests (`test_coordinator_multiprocess.py`)
+use bounded joins (`timeout=30s`) and `terminate()` for stragglers — safe
+for CI. Clean.
+
+**0abd4e4 — feat: legacy-to-coordinator migration that fails closed** (andrewli8)
+`has_live_claim`, `LegacyClaimsDisabled`, `MigrationBlocked`, `MARKER_NAME`
+added. `activate_from_legacy` writes the marker only after confirming no
+live legacy claims exist. Once written, `ClaimStore.select` and
+`ClaimStore.summary` raise `LegacyClaimsDisabled`. Logic is correct and
+idempotent. Flagged as C6 above: no production path calls
+`Coordinator.open(activate=True)` to trigger this machinery.
+
+**1e7591a — docs: document the repository coordinator model** (andrewli8)
+Updates `architecture.md`, `README.md`, `SPEC.md`. The architecture.md
+description accurately matches the implementation (unique run IDs,
+fenced leases, idempotent crash recovery, fail-closed migration, additive
+coordinator status). The "scope: local to one machine and filesystem" note
+is important and correct. Clean.
+
+### Resolved concerns
+
+**C5 (coordinator foundation dead code)** — resolved. The coordinator is
+now wired into all three production paths (`tasks.py`, `protocol_commands.py`,
+`swarm.py`). No schema amendment was required between the foundation commit
+and the wiring — the schema fit as designed.
+
+### New concerns
+
+**C6** (activate_from_legacy never triggered) — described above, minor,
+no revert warranted.
+
+**C7** (assert-as-runtime-guard in Integrator._run) — described above,
+very minor.
+
+### Carried-forward concerns (prior status unchanged)
+
+C1 (timeout string matching in swarm._run_worker) — no change; still low
+risk, already covered end-to-end.
+
+C2 (infinite loop under --continuous --max-rounds 0) — no change; still
+open, low risk.
+
+C3 (_task_paths stem-only heuristic) — no change; minor friction.
+
+C4 (REVIEW-QUEUE.md gitignore) — no change; human policy decision.
