@@ -151,9 +151,27 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-(Queue empty. With idea generation on, `next` returns `no_work` + a
-`generate_ideas` directive; the session adds grounded, evidence-backed tasks here
-and continues.)
+1. Bound consecutive usage-limit resumes so a perpetual limit signal (genuinely
+   stuck account or a misclassification) cannot loop forever; stop with a clear
+   error after a configurable cap of back-to-back resumes that made no progress.
+   Evidence: src/looptight/loop.py:100; Evidence: src/looptight/swarm.py:506;
+   Acceptance: an always-"provider rate limit reached" adapter under
+   `resume_on_limit` (injected sleep) stops with an error after the cap instead of
+   looping forever, default uncapped/opt-in behavior for a single limit unchanged,
+   proven by a test, and the suite passes.
+
+2. Add direct unit coverage for `_summary_and_evidence` task-field trimming.
+   Evidence: src/looptight/tasks.py:40;
+   Acceptance: new tests prove an `Evidence:`-bearing candidate yields a summary
+   with the refs stripped out and the full (multi-ref) `Evidence:` string
+   preserved, and an `Evidence:`-less candidate falls back to its detail line,
+   with no production change, and the suite passes.
+
+3. Document the optional `directive` field of `next` in the SPEC output contract.
+   Evidence: docs/SPEC.md:178;
+   Acceptance: the output-contract section states that `next` may include a
+   `directive` (`generate_ideas`) on `no_work` when idea generation is enabled,
+   doc-only, and the suite still passes.
 
 ## Rules
 
