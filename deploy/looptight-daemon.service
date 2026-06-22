@@ -1,0 +1,32 @@
+# systemd unit for the looptight persistent daemon (a sole writer to main).
+# Install: copy to /etc/systemd/system/, then:
+#   sudo systemctl daemon-reload && sudo systemctl enable --now looptight-daemon
+# Logs: journalctl -u looptight-daemon -f
+#
+# Prerequisites (see docs/daemon.md):
+#   - a git checkout of the target repo at WorkingDirectory, with .looptight.toml
+#   - the coding agent CLI authenticated on this host (credentials via the
+#     EnvironmentFile below — e.g. ANTHROPIC_API_KEY=...)
+
+[Unit]
+Description=looptight continuous daemon
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/looptight/repo
+# Put secrets here (chmod 600). At minimum the agent's auth, e.g.:
+#   ANTHROPIC_API_KEY=sk-ant-...
+EnvironmentFile=/etc/looptight/daemon.env
+ExecStart=/usr/local/bin/looptight daemon --headless --agent claude --model opus --workers 4 --push
+# Belt-and-suspenders: the daemon supervises itself, but if the process dies
+# (OOM, host hiccup) systemd brings it straight back.
+Restart=always
+RestartSec=10
+# Let the daemon finish the in-flight cycle on stop before SIGKILL.
+KillSignal=SIGTERM
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target

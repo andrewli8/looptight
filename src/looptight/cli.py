@@ -7,6 +7,7 @@ from pathlib import Path
 from . import __version__
 from .console import Console
 from .commands import (
+    cmd_daemon,
     cmd_doctor,
     cmd_hook,
     cmd_improve,
@@ -38,6 +39,7 @@ _COMMANDS = {
     "next",
     "status",
     "swarm",
+    "daemon",
     "migrate",
     "ui",
 }
@@ -182,6 +184,64 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_swarm.add_argument("--json", action="store_true", help="emit the versioned swarm result as JSON")
 
+    p_daemon = sub.add_parser(
+        "daemon",
+        help="run a persistent continuous swarm that restarts forever (true 24/7 operation)",
+    )
+    p_daemon.add_argument("--headless", action="store_true", help="explicitly allow agent child processes")
+    p_daemon.add_argument("--agent", choices=KNOWN_AGENTS, help="agent CLI for every worker")
+    p_daemon.add_argument("--model", help="provider model for every spawned worker (e.g. opus)")
+    p_daemon.add_argument("--workers", type=_positive_int, default=4, help="concurrent workers (1-50)")
+    p_daemon.add_argument("--verify", help="override the project verify command")
+    p_daemon.add_argument("--max-iterations", type=_positive_int, help="iteration cap per worker")
+    p_daemon.add_argument(
+        "--worker-timeout",
+        type=_positive_float,
+        default=3600.0,
+        help="seconds allowed for each provider invocation (default 3600)",
+    )
+    p_daemon.add_argument("--push", action="store_true", help="push integrated commits to main each cycle")
+    p_daemon.add_argument(
+        "--no-ideas",
+        action="store_true",
+        help="do not generate grounded tasks when the queue empties (idle instead)",
+    )
+    p_daemon.add_argument(
+        "--no-resume-on-limit",
+        action="store_true",
+        help="treat a provider usage limit as a fault instead of waiting it out",
+    )
+    p_daemon.add_argument(
+        "--idle-sleep",
+        type=_positive_float,
+        default=600.0,
+        help="seconds to wait before re-polling when there is nothing to build (default 600)",
+    )
+    p_daemon.add_argument(
+        "--fault-backoff",
+        type=_positive_float,
+        default=30.0,
+        help="initial back-off (s) after a genuine fault; doubles each consecutive fault (default 30)",
+    )
+    p_daemon.add_argument(
+        "--fault-max-backoff",
+        type=_positive_float,
+        default=1800.0,
+        help="cap (s) on the fault back-off so recovery latency stays bounded (default 1800)",
+    )
+    p_daemon.add_argument(
+        "--max-idle-rounds",
+        type=_positive_int,
+        default=3,
+        help="planning rounds with no merged progress before a cycle ends and the daemon polls (default 3)",
+    )
+    p_daemon.add_argument(
+        "--max-cycles",
+        type=_non_negative_int,
+        default=0,
+        help="stop after this many supervised cycles (0 = run forever)",
+    )
+
     p_ui = sub.add_parser("ui", help="serve the read-only swarm view on localhost")
     p_ui.add_argument("--port", type=_port, default=8765, help="loopback port (default 8765)")
 
@@ -276,6 +336,7 @@ def main(argv: list[str] | None = None) -> int:
         "next": cmd_next,
         "status": cmd_status,
         "swarm": cmd_swarm,
+        "daemon": cmd_daemon,
         "migrate": cmd_migrate,
         "ui": cmd_ui,
     }[args.command]

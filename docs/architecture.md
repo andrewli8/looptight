@@ -97,6 +97,15 @@ A continuous run has three roles, and only two are provider agents:
 The orchestrator is not an agent reasoning about what to do next; the agents are
 the workers and the occasional planner it launches.
 
+A fourth role is optional and also deterministic Python: the **supervisor**
+(`daemon.py`, `looptight daemon`). `run_continuous_swarm` is bounded — it returns
+when the backlog is exhausted, a usage limit persists, or a fault occurs. The
+supervisor reruns it forever, choosing the gap before the next cycle from the
+run's structured `SwarmResult.reason` (immediate after merged progress, an idle
+poll when there is nothing to build, capped exponential back-off on a fault). It
+spends no allowance itself and is the piece that turns the bounded loop into
+genuine 24/7 operation on a host that stays up. See [daemon.md](daemon.md).
+
 ## Idea generation
 
 A self-improvement loop should not stop the moment the grounded queue empties.

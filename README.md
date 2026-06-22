@@ -145,6 +145,22 @@ caffeinate -s looptight swarm --headless --continuous --resume-on-limit --agent 
 # detach with Ctrl-b d; `caffeinate -s` keeps macOS awake while plugged in
 ```
 
+### Persistent 24/7 daemon
+
+`swarm --continuous` is bounded — it returns when the backlog is exhausted, so
+nothing restarts it. `looptight daemon` is the supervisor that does: it reruns the
+continuous swarm forever, looping immediately after merged progress, polling after
+a back-off when idle, and backing off (capped) on faults — surviving crashes and
+stopping gracefully on `SIGTERM`.
+
+```bash
+looptight daemon --headless --agent claude --model opus --workers 4 --push
+```
+
+It needs a host that stays up and an authenticated agent; run it as the sole
+writer to `main`. See [`docs/daemon.md`](docs/daemon.md) for the systemd unit,
+container image, and flags.
+
 The orchestrator (`swarm`/`run`) is deterministic and spends no allowance; only
 the workers it spawns — and the occasional planner — invoke the provider. See
 `docs/architecture.md` for the full role breakdown.

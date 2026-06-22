@@ -800,3 +800,71 @@ def test_status_human_output_shows_coordinator_counts(tmp_path, monkeypatch, cap
 def test_run_and_swarm_parsers_accept_model():
     assert build_parser().parse_args(["run", "--headless", "g", "--model", "opus"]).model == "opus"
     assert build_parser().parse_args(["swarm", "--headless", "--model", "opus"]).model == "opus"
+
+
+def test_daemon_parser_defaults_and_flags():
+    args = build_parser().parse_args(
+        [
+            "daemon",
+            "--headless",
+            "--workers",
+            "3",
+            "--model",
+            "opus",
+            "--push",
+            "--idle-sleep",
+            "120",
+            "--fault-backoff",
+            "10",
+            "--max-cycles",
+            "5",
+        ]
+    )
+    assert args.headless is True
+    assert args.workers == 3
+    assert args.model == "opus"
+    assert args.push is True
+    assert args.idle_sleep == 120.0
+    assert args.fault_backoff == 10.0
+    assert args.max_cycles == 5
+    # sane defaults the operator can rely on
+    defaults = build_parser().parse_args(["daemon", "--headless"])
+    assert defaults.idle_sleep == 600.0
+    assert defaults.fault_max_backoff == 1800.0
+    assert defaults.max_cycles == 0
+    assert defaults.no_resume_on_limit is False
+
+
+def test_daemon_requires_headless(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    assert main(["daemon"]) == 2
+    assert "headless" in capsys.readouterr().out.lower()
+
+
+def test_daemon_dispatches_to_run_daemon(tmp_path, monkeypatch, capsys):
+    from looptight.daemon import DaemonReport
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".looptight.toml").write_text(
+        'agent = "claude"\nverify = "true"\n', encoding="utf-8"
+    )
+
+    captured = {}
+
+    def fake_run_daemon(root, **kwargs):
+        captured.update(kwargs)
+        return DaemonReport(cycles=1, progress=1, idle=0, faults=0, last_reason="ok")
+
+    monkeypatch.setattr("looptight.commands.run_daemon", fake_run_daemon)
+
+    rc = main(
+        ["daemon", "--headless", "--workers", "2", "--model", "opus", "--push", "--max-cycles", "1"]
+    )
+    assert rc == 0
+    assert captured["workers"] == 2
+    assert captured["push"] is True
+    assert captured["max_cycles"] == 1
+    assert captured["config"].model == "opus"
+    assert captured["resume_on_limit"] is True  # on by default for a 24/7 daemon
+    out = capsys.readouterr().out
+    assert "daemon stopped" in out

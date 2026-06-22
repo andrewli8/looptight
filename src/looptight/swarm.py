@@ -46,6 +46,16 @@ MAX_WORKERS = 50
 DEFAULT_WORKER_TIMEOUT = 3600.0
 INTEGRATION_LOCK_TIMEOUT = 300.0
 DEFAULT_MAX_IDLE_ROUNDS = 3
+
+# Why a swarm run returned. A supervisor (the daemon) reads this to decide its
+# next move without parsing error strings: REASON_IDLE/REASON_NO_WORK are expected
+# "nothing to build right now" exits to poll after a back-off, REASON_LIMIT is a
+# transient provider cap to wait out, and only REASON_ERROR is a genuine fault.
+REASON_OK = "ok"
+REASON_NO_WORK = "no_work"
+REASON_IDLE = "idle"
+REASON_LIMIT = "limit"
+REASON_ERROR = "error"
 SCHEMA_VERSION = 1
 
 
@@ -70,6 +80,7 @@ class SwarmResult:
     rounds: int = 1
     plans: int = 0
     resumes: int = 0  # times the continuous run waited out a provider usage limit
+    reason: str = REASON_OK  # why the run returned; see REASON_* (read by the daemon)
 
     @property
     def passed(self) -> bool:
@@ -93,6 +104,7 @@ class SwarmResult:
             "rounds": self.rounds,
             "plans": self.plans,
             "resumes": self.resumes,
+            "reason": self.reason,
             "workers": [
                 {
                     "number": worker.number,
@@ -698,7 +710,8 @@ def run_continuous_swarm(
         if result.error:
             completed.extend(result.workers)
             return SwarmResult(
-                tuple(completed), result.error, pushed, rounds=rounds, plans=plans, resumes=resumes
+                tuple(completed), result.error, pushed,
+                rounds=rounds, plans=plans, resumes=resumes, reason=REASON_ERROR,
             )
         if result.workers and not result.passed:
             non_merged = [w for w in result.workers if w.status != "merged"]
@@ -710,7 +723,7 @@ def run_continuous_swarm(
                     return SwarmResult(
                         tuple(completed),
                         f"provider usage limit persisted after {limit_max_resumes} resumes",
-                        pushed, rounds=rounds, plans=plans, resumes=resumes,
+                        pushed, rounds=rounds, plans=plans, resumes=resumes, reason=REASON_LIMIT,
                     )
                 limit_attempt += 1
                 named = max((retry_after_from_error(w.error) or 0.0) for w in non_merged)
@@ -719,7 +732,8 @@ def run_continuous_swarm(
                 continue
             completed.extend(result.workers)
             return SwarmResult(
-                tuple(completed), result.error, pushed, rounds=rounds, plans=plans, resumes=resumes
+                tuple(completed), result.error, pushed,
+                rounds=rounds, plans=plans, resumes=resumes, reason=REASON_ERROR,
             )
         completed.extend(result.workers)
         limit_attempt = 0
@@ -729,7 +743,10 @@ def run_continuous_swarm(
         if max_rounds and rounds >= max_rounds:
             return SwarmResult(tuple(completed), pushed=pushed, rounds=rounds, plans=plans, resumes=resumes)
         if not generate_ideas:
-            return SwarmResult(tuple(completed), pushed=pushed, rounds=rounds, plans=plans, resumes=resumes)
+            return SwarmResult(
+                tuple(completed), pushed=pushed,
+                rounds=rounds, plans=plans, resumes=resumes, reason=REASON_NO_WORK,
+            )
         planning = plan_next_tasks(
             root,
             agent=agent,
@@ -744,18 +761,21 @@ def run_continuous_swarm(
                 return SwarmResult(
                     tuple(completed),
                     f"continuous swarm made no merged progress across {max_idle_rounds} planning rounds",
-                    pushed, rounds=rounds, plans=plans, resumes=resumes,
+                    pushed, rounds=rounds, plans=plans, resumes=resumes, reason=REASON_IDLE,
                 )
             pushed = "pushed" if push else pushed
             continue
         if planning.status == "no_work":
-            return SwarmResult(tuple(completed), pushed=pushed, rounds=rounds, plans=plans, resumes=resumes)
+            return SwarmResult(
+                tuple(completed), pushed=pushed,
+                rounds=rounds, plans=plans, resumes=resumes, reason=REASON_NO_WORK,
+            )
         if resume_on_limit and is_limit_error(planning.error):
             if limit_max_resumes and limit_attempt >= limit_max_resumes:
                 return SwarmResult(
                     tuple(completed),
                     f"provider usage limit persisted after {limit_max_resumes} resumes",
-                    pushed, rounds=rounds, plans=plans, resumes=resumes,
+                    pushed, rounds=rounds, plans=plans, resumes=resumes, reason=REASON_LIMIT,
                 )
             limit_attempt += 1
             named = retry_after_from_error(planning.error)
@@ -770,6 +790,7 @@ def run_continuous_swarm(
             rounds=rounds,
             plans=plans,
             resumes=resumes,
+            reason=REASON_ERROR,
         )
     return SwarmResult(tuple(completed), pushed=pushed, rounds=rounds, plans=plans, resumes=resumes)
 

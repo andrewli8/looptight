@@ -245,6 +245,16 @@ existing CLI session and makes no model or API calls of its own.
   `environ`/`os.environ`/`os.getenv` is no longer mistaken for an opt-in env gate
   and silently dropped; genuine `skipif(not os.environ.get(...))` gates are still
   ignored. Fixes a discovery false negative; covered by two regression tests.
+- `SwarmResult.reason` records why a continuous run returned (`ok`/`no_work`/`idle`/
+  `limit`/`error`), additive to swarm JSON, so a supervisor classifies outcomes
+  without parsing error strings. Covered by tests.
+- `looptight daemon` supervises an unbounded continuous swarm forever: it reruns
+  the swarm, looping immediately after merged progress, polling after `--idle-sleep`
+  when idle, and backing off (capped, exponential) on faults; crashes are absorbed
+  as faults and it stops gracefully on SIGTERM/SIGINT. It spends no allowance itself
+  and turns the bounded loop into genuine 24/7 operation on a host that stays up.
+  Stdlib-only (`daemon.py`); systemd unit + Dockerfile under `deploy/`; documented
+  in `docs/daemon.md`. Covered by daemon and CLI tests.
 
 ## Next
 

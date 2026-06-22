@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import argparse
+import signal
 import sys
+import time
 from pathlib import Path
 
 from .adapters import available_adapter_names, get_adapter
 from .checkpoint import is_git_primary_worktree, is_git_repo
 from .config import CONFIG_NAME, Config, find_config, load_config, write_config
 from .console import Console
+from .daemon import run_daemon
 from .detect import KNOWN_AGENTS, detect_agent, detect_verify
 from .integration import install_session_instructions
 from .loop import run_loop
@@ -21,10 +24,11 @@ from .protocol_commands import (
     cmd_verify,
 )
 from .summary import render_rich
-from .swarm import cmd_swarm
+from .swarm import MAX_WORKERS, cmd_swarm
 from .types import StopReason
 
 __all__ = [
+    "cmd_daemon",
     "cmd_doctor",
     "cmd_hook",
     "cmd_improve",
@@ -150,6 +154,111 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
     console.print()
     render_rich(result, console)
     return 0 if result.stop_reason is StopReason.SUCCESS else 1
+
+
+def cmd_daemon(args: argparse.Namespace, console: Console) -> int:
+    """Run looptight as a persistent supervisor: a continuous swarm that restarts
+    forever, looping promptly after merged progress, polling after a back-off when
+    idle, and backing off (capped) on faults. This is the piece that turns the
+    bounded continuous swarm into true 24/7 operation; it needs a host that stays
+    up and an authenticated agent. Stops gracefully on Ctrl-C / SIGTERM."""
+    if not args.headless:
+        console.print("[red]daemon launches agent child processes.[/red] Pass --headless explicitly.")
+        return 2
+    if args.workers > MAX_WORKERS:
+        console.print(f"[red]workers must be between 1 and {MAX_WORKERS}[/red]")
+        return 2
+    config = load_config().merged(
+        agent=args.agent,
+        model=args.model,
+        verify=args.verify,
+        max_iterations=args.max_iterations,
+        idea_generation=False if args.no_ideas else None,
+    )
+    agent = config.agent or detect_agent()
+    if not agent:
+        console.print("[red]No coding agent found on PATH.[/red] Install claude, codex, or opencode.")
+        return 2
+    if not config.verify:
+        config = config.merged(verify=detect_verify(Path.cwd()))
+    if not config.verify:
+        console.print("[red]No verify command.[/red] Configure one before starting the daemon.")
+        return 2
+
+    stop = {"flag": False}
+
+    def request_stop(signum, frame) -> None:
+        if not stop["flag"]:
+            console.print("\n[yellow]shutdown requested — stopping after the current cycle…[/yellow]")
+        stop["flag"] = True
+
+    def interruptible_sleep(seconds: float) -> None:
+        # Sleep in short steps so a stop signal is honored within ~1s instead of
+        # waiting out a full idle interval (systemd would otherwise SIGKILL us).
+        deadline = time.monotonic() + seconds
+        while not stop["flag"]:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return
+            time.sleep(min(remaining, 1.0))
+
+    def on_cycle(cycle) -> None:
+        style = {"progress": "green", "idle": "cyan", "fault": "red"}.get(cycle.outcome, "white")
+        if cycle.outcome == "fault" and cycle.error:
+            detail = f" — {cycle.error}"
+        elif cycle.merged:
+            detail = f" ({cycle.merged} merged)"
+        else:
+            detail = ""
+        nxt = "next now" if cycle.delay == 0 else f"next in {int(cycle.delay)}s"
+        console.print(f"cycle {cycle.index} → [{style}]{cycle.outcome}[/{style}]{detail}; {nxt}")
+
+    model = f" ({config.model})" if config.model else ""
+    console.print(
+        f"[bold]looptight daemon[/bold] · agent: [cyan]{agent}[/cyan]{model} · "
+        f"workers: [cyan]{args.workers}[/cyan] · verify: [cyan]{config.verify}[/cyan] · "
+        f"{'pushing to main' if args.push else 'local commits only'}"
+    )
+    console.print("Ctrl-C or SIGTERM to stop after the current cycle.")
+    console.print()
+
+    restore: list[tuple[int, object]] = []
+    for sig in (signal.SIGTERM, signal.SIGINT):
+        try:
+            restore.append((sig, signal.signal(sig, request_stop)))
+        except (ValueError, OSError):  # not the main thread / signal unsupported
+            pass
+    try:
+        report = run_daemon(
+            Path.cwd(),
+            agent=agent,
+            config=config,
+            workers=args.workers,
+            worker_timeout=args.worker_timeout,
+            push=args.push,
+            resume_on_limit=not args.no_resume_on_limit,
+            max_idle_rounds=args.max_idle_rounds,
+            idle_sleep_seconds=args.idle_sleep,
+            fault_backoff_seconds=args.fault_backoff,
+            fault_max_backoff_seconds=args.fault_max_backoff,
+            max_cycles=args.max_cycles,
+            sleep=interruptible_sleep,
+            should_stop=lambda: stop["flag"],
+            on_cycle=on_cycle,
+        )
+    finally:
+        for sig, prev in restore:
+            try:
+                signal.signal(sig, prev)
+            except (ValueError, OSError):
+                pass
+
+    console.print()
+    console.print(
+        f"[bold]daemon stopped[/bold] · cycles: {report.cycles} "
+        f"(progress {report.progress}, idle {report.idle}, faults {report.faults})"
+    )
+    return 0
 
 
 def cmd_improve(args: argparse.Namespace, console: Console) -> int:
