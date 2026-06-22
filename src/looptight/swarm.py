@@ -26,6 +26,7 @@ from .limits import (
     limit_wait,
     retry_after_from_error,
 )
+from .integration_queue import CoordinationTimeout, IntegrationLock, git_common_dir
 from .loop import run_loop
 from .prompts import PLANNING_GOAL
 from .tasks import next_task
@@ -35,6 +36,7 @@ from .verify import run_verify
 
 MAX_WORKERS = 50
 DEFAULT_WORKER_TIMEOUT = 3600.0
+INTEGRATION_LOCK_TIMEOUT = 300.0
 SCHEMA_VERSION = 1
 
 
@@ -503,9 +505,15 @@ def run_swarm(
                 future.cancel()
             raise
     completed.sort(key=lambda item: item.number)
-    for worker in completed:
-        _integrate(root, worker, config.verify)
-        _publish_state(root, prepared, "running")
+    # Serialize Git integration across concurrent sessions on this repository; a
+    # crashed holder releases the advisory lock automatically.
+    try:
+        with IntegrationLock.acquire(git_common_dir(root), timeout_s=INTEGRATION_LOCK_TIMEOUT):
+            for worker in completed:
+                _integrate(root, worker, config.verify)
+                _publish_state(root, prepared, "running")
+    except CoordinationTimeout as exc:
+        return _result(root, SwarmResult(tuple(completed), str(exc)))
     if push and any(worker.status == "merged" for worker in completed):
         pushed = _git(root, "push")
         if pushed.returncode != 0:
