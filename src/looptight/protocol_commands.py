@@ -232,5 +232,11 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         console.print(f"workspace: {workspace}")
         owner = f" · yours: {claimed_task}" if claimed_task else ""
         console.print(f"claims: {active_claims} active{owner}")
+        if coordinator_counts is not None:
+            console.print(
+                f"coordinator: {coordinator_counts['queued_tasks']} queued · "
+                f"{coordinator_counts['queued_integrations']} integrations · "
+                f"{coordinator_counts['pending_publications']} publications"
+            )
         console.print(f"next: {action}")
     return 0

@@ -784,3 +784,14 @@ def test_migrate_outside_git_errors(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     assert main(["migrate"]) == 2
     assert "Git repository" in capsys.readouterr().out
+
+
+def test_status_human_output_shows_coordinator_counts(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "exit 0"\n', encoding="utf-8")
+
+    assert main(["status"]) == 0
+    out = capsys.readouterr().out
+    assert "coordinator:" in out
+    assert "queued" in out and "integrations" in out and "publications" in out

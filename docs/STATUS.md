@@ -201,24 +201,18 @@ existing CLI session and makes no model or API calls of its own.
 - Coordinator runs carry a usable heartbeat: `heartbeat` refreshes an active run and
   `reap_abandoned` marks runs whose heartbeat predates a deadline `abandoned` and frees
   their leases (tasks requeued) before TTL — covered by a time-injected test.
+- `status` human output prints the coordinator queued task/integration/publication
+  counts when the repository is coordinated; JSON output unchanged. Covered by a test.
 
 ## Next
 
-1. Show coordinator queued counts in `status` human output: the `--json` payload
-   carries a `coordinator` block but the human lines do not, so the two surfaces
-   disagree.
-   Evidence: src/looptight/protocol_commands.py:234;
-   Acceptance: human `status` prints the coordinator queued task/integration/
-   publication counts when the repository is coordinated, JSON output unchanged,
-   covered by a test.
-
-2. Cover the publication push-rejected path: `Publisher._publish` returns `failed`
+1. Cover the publication push-rejected path: `Publisher._publish` returns `failed`
    when the push is rejected, but no test exercises it.
    Evidence: src/looptight/integration_queue.py:365;
    Acceptance: a test with an injected failing push proves the publication ends
    `failed` (not complete) without a force-push, with no production-code change.
 
-3. Cover the integration merge-conflict path: `Integrator` aborts and returns a
+2. Cover the integration merge-conflict path: `Integrator` aborts and returns a
    `conflict` outcome with a retained worktree when a candidate does not merge, but
    no test exercises it.
    Evidence: src/looptight/integration_queue.py:283;
