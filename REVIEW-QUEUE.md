@@ -1028,3 +1028,18 @@ pre-review). Manufacturing a doc note or refactor for any of these would be chur
 against the project's lightweight ethos.
 
 ---
+
+## BUILDER 2026-06-22 (e) — no changes: nothing safe and valuable to do
+
+Synced `origin/main` (`b6900d8`). `looptight propose` → no candidates (clean
+tree); `next --json` → `no_work` + `generate_ideas`; `verify --json` → `pass`.
+`pytest` clean (1 skipped) and `ruff check` clean.
+
+No grounded, evidence-backed improvement is supported by the repository. Open
+concerns unchanged from run (d): **C3** (`_task_paths` stem-only heuristic —
+defer until a real misclassification is observed), **C4** (REVIEW-QUEUE.md
+gitignore tension — human policy decision; file currently tracked), and **C8**
+(heartbeat/`reap_abandoned` unwired — a concurrency-affecting behavior change
+unsafe to land unattended without human pre-review). Idle run; no work invented.
+
+---
