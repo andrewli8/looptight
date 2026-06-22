@@ -204,9 +204,26 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-(Coordinator round-2 complete. Queue empty — `next` returns `no_work` with a
-`generate_ideas` directive; the session adds grounded, evidence-backed tasks and
-continues.)
+1. Show coordinator queued counts in `status` human output: the `--json` payload
+   carries a `coordinator` block but the human lines do not, so the two surfaces
+   disagree.
+   Evidence: src/looptight/protocol_commands.py:234;
+   Acceptance: human `status` prints the coordinator queued task/integration/
+   publication counts when the repository is coordinated, JSON output unchanged,
+   covered by a test.
+
+2. Cover the publication push-rejected path: `Publisher._publish` returns `failed`
+   when the push is rejected, but no test exercises it.
+   Evidence: src/looptight/integration_queue.py:365;
+   Acceptance: a test with an injected failing push proves the publication ends
+   `failed` (not complete) without a force-push, with no production-code change.
+
+3. Cover the integration merge-conflict path: `Integrator` aborts and returns a
+   `conflict` outcome with a retained worktree when a candidate does not merge, but
+   no test exercises it.
+   Evidence: src/looptight/integration_queue.py:283;
+   Acceptance: a test with a conflicting candidate proves a `conflict` outcome, the
+   fenced lease released, and the worktree retained, with no production-code change.
 
 ## Rules
 
