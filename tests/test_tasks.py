@@ -48,8 +48,12 @@ def test_summary_and_evidence_falls_back_to_detail_without_marker():
     assert evidence == "# TODO: fix the timeout"
 
 
-def test_task_id_is_stable_when_discovery_route_changes(tmp_path):
+def test_task_id_is_stable_when_discovery_route_changes(tmp_path, monkeypatch):
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    # One logical session (stable run id) re-claims its own lease, so the second
+    # call returns the same task and we can assert fingerprint stability across
+    # discovery routes rather than tripping over the coordinator's distinct-run fencing.
+    monkeypatch.setenv("LOOPTIGHT_RUN_ID", "stable-session")
 
     def candidate(source):
         return Candidate(

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 import subprocess
+from multiprocessing import get_context
 
 import pytest
 
@@ -14,6 +15,14 @@ def _repo(path):
     path.mkdir()
     subprocess.run(["git", "init", "-q"], cwd=path, check=True)
     return path
+
+
+def _claim_once(repo, tasks, output):
+    coordinator = Coordinator.open(repo)
+    assert coordinator is not None
+    run = coordinator.start_run("test")
+    lease = coordinator.claim(tasks, run.id, ttl_s=60)
+    output.put((run.id, lease.task_id, lease.generation))
 
 
 def test_coordinator_is_private_and_isolated_by_repository(tmp_path):
@@ -80,3 +89,41 @@ def test_schema_contains_coordinator_state_tables(tmp_path):
     }
     assert {"runs", "tasks", "leases", "proposals", "integrations", "publications"} <= tables
 
+
+def test_ten_same_directory_processes_claim_distinct_tasks(tmp_path):
+    repo = _repo(tmp_path / "repo")
+    coordinator = Coordinator.open(repo)
+    assert coordinator is not None
+    coordinator.close()  # initialize schema before deliberately concurrent opens
+    tasks = [{"id": f"task-{number}", "goal": f"task {number}"} for number in range(10)]
+    context = get_context("fork")
+    output = context.Queue()
+    processes = [context.Process(target=_claim_once, args=(repo, tasks, output)) for _ in range(10)]
+
+    for process in processes:
+        process.start()
+    for process in processes:
+        process.join(timeout=5)
+        assert process.exitcode == 0
+
+    claimed = [output.get(timeout=1) for _ in processes]
+    assert len({run_id for run_id, _, _ in claimed}) == 10
+    assert len({task_id for _, task_id, _ in claimed}) == 10
+
+
+def test_expired_owner_cannot_renew_or_complete_reassigned_lease(tmp_path):
+    coordinator = Coordinator.open(_repo(tmp_path / "repo"))
+    assert coordinator is not None
+    first_run = coordinator.start_run("test", now=0)
+    second_run = coordinator.start_run("test", now=2)
+    task = {"id": "task-one", "goal": "do it"}
+
+    first = coordinator.claim([task], first_run.id, ttl_s=1, now=0)
+    second = coordinator.claim([task], second_run.id, ttl_s=10, now=2)
+
+    assert first is not None and second is not None
+    assert second.generation == first.generation + 1
+    assert not coordinator.renew(first, ttl_s=10, now=2)
+    assert not coordinator.complete(first)
+    assert coordinator.renew(second, ttl_s=10, now=2)
+    assert coordinator.complete(second)

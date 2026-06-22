@@ -10,6 +10,7 @@ from pathlib import Path
 from .claims import ClaimStore, claim_dir, owner_id
 from .config import ConfigError, load_config
 from .console import Console
+from .coordinator import Coordinator, current_run_id
 from .detect import detect_verify
 from .verify import run_verify
 
@@ -163,11 +164,16 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         else ("dirty" if git.stdout.strip() else "clean")
     )
 
-    private_dir = claim_dir(workdir)
+    coordinator = Coordinator.open(workdir)
     claimed_task = None
     active_claims = 0
-    if private_dir is not None:
-        claimed_task, active_claims = ClaimStore(private_dir, owner_id(workdir)).summary()
+    if coordinator is not None:
+        claimed_task, active_claims = coordinator.summary(current_run_id())
+        coordinator.close()
+    else:
+        private_dir = claim_dir(workdir)
+        if private_dir is not None:
+            claimed_task, active_claims = ClaimStore(private_dir, owner_id(workdir)).summary()
 
     if not verify:
         action = "configure verify with `looptight init`"

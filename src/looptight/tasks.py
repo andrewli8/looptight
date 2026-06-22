@@ -6,9 +6,10 @@ import hashlib
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Callable, cast
 
 from .claims import ClaimStore, claim_dir, owner_id
+from .coordinator import Coordinator, current_run_id
 from .prompts import IDEA_DIRECTIVE_ACTION, PLANNING_GOAL
 from .propose import Candidate, propose
 
@@ -113,11 +114,19 @@ def next_task(
             }
         )
 
-    private_dir = claim_dir(workdir)
-    if private_dir is None:
-        task = tasks[0] if tasks else None
+    coordinator = Coordinator.open(workdir)
+    if coordinator is not None:
+        run_id = current_run_id()
+        coordinator.start_run("session", run_id=run_id)
+        lease = coordinator.claim(cast(list[dict[str, object]], tasks), run_id, ttl_s=24 * 60 * 60)
+        task = cast(dict[str, str | None] | None, lease.payload if lease else None)
+        coordinator.close()
     else:
-        task = ClaimStore(private_dir, owner_id(workdir)).select(tasks)
+        private_dir = claim_dir(workdir)
+        if private_dir is None:
+            task = tasks[0] if tasks else None
+        else:
+            task = ClaimStore(private_dir, owner_id(workdir)).select(tasks)
     if task:
         return NextResult(status="task", task=task)
     return NextResult(status="no_work", directive=_idea_directive() if idea_generation else None)

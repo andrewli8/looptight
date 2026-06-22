@@ -357,6 +357,39 @@ def test_next_json_claims_from_clean_git_worktree(tmp_path, monkeypatch, capsys)
     assert json.loads(capsys.readouterr().out)["status"] == "task"
 
 
+def test_same_worktree_run_ids_claim_distinct_tasks_and_status_tracks_owner(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text(
+        "## Next\n\n"
+        "1. First task. Evidence: docs/STATUS.md:1; Acceptance: first passes.\n"
+        "2. Second task. Evidence: docs/STATUS.md:1; Acceptance: second passes.\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "add", "docs/STATUS.md"], check=True)
+    subprocess.run(
+        ["git", "-c", "user.name=Test", "-c", "user.email=t@example.com", "commit", "-qm", "tasks"],
+        check=True,
+    )
+
+    monkeypatch.setenv("LOOPTIGHT_RUN_ID", "run-a")
+    assert main(["next", "--json"]) == 0
+    first = json.loads(capsys.readouterr().out)["task"]["id"]
+    monkeypatch.setenv("LOOPTIGHT_RUN_ID", "run-b")
+    assert main(["next", "--json"]) == 0
+    second = json.loads(capsys.readouterr().out)["task"]["id"]
+
+    assert first != second
+    monkeypatch.setenv("LOOPTIGHT_RUN_ID", "run-a")
+    assert main(["status", "--json"]) == 0
+    status = json.loads(capsys.readouterr().out)
+    assert status["claimed_task"] == first
+    assert status["active_claims"] == 2
+
+
 def test_next_no_work_clears_claim_when_task_disappears(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
