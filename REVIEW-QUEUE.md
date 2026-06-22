@@ -1372,3 +1372,33 @@ added (`test_claude_native_loop_surfaces_usage_limit_with_stable_marker`,
 No escalations. C3, C4, C8 unchanged (still deferred).
 
 ---
+
+## BUILDER 2026-06-22 (m) — skip-reason "environ" mistaken for an env gate
+
+**Landed:** `9f64c3a` (pytest 369 passed/1 skipped, ruff clean, `verify` pass)
+
+Fixed a real discovery false negative in `from_skipped_tests`
+(`src/looptight/discovery.py`). The env-opt-in filter searched `_OPTIN_RE`
+(`os.environ|os.getenv|\benviron\b`) against `_statement_text(...)` — the raw
+statement lines, *including string literals*. So a skipped test whose **reason
+message** merely mentioned the word (e.g. `@pytest.mark.skip(reason="os.environ
+setup is broken")` or `pytest.skip("environ not configured")`) was misread as a
+deliberate env-var gate and silently dropped, never surfaced as a candidate to
+fix/re-enable. This contradicts the module's own stated care (it tokenizes
+comments precisely at lines 23-28 specifically so a marker inside a string never
+counts), but the skip path did naive text matching.
+
+Fix: added `_code_only` (strips Python string literals via `_STRING_LITERAL_RE`,
+handling single/double/triple quotes, escapes, and string prefixes) and wrapped
+both `_OPTIN_RE.search` call sites (`_module_is_optin`, `from_skipped_tests`).
+Genuine `skipif(not os.environ.get(...))` gates still match on the code and stay
+ignored; the existing opt-in tests are unchanged. Two regression tests added
+(`test_from_skipped_tests_keeps_skip_whose_reason_mentions_environ`,
+`test_from_skipped_tests_keeps_unconditional_skip_with_environ_reason`).
+
+Stdlib-only (`re`), no new deps. No escalations. C3, C4, C8 unchanged (still
+deferred). Note: the stale-clone artifact recurred — the local `main` ref started
+behind `origin/main`; the fix commit was correctly based on `origin/main`
+(`2a82c62`) and pushed as a clean fast-forward (`2a82c62..9f64c3a`).
+
+---
