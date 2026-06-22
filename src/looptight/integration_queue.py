@@ -248,7 +248,8 @@ class Integrator:
         lease = self.coordinator.current_lease(record.task_id)
         if lease is None or lease.run_id != record.run_id or lease.generation != record.lease_generation:
             return self._finish(record, "superseded", error="lease superseded by a newer owner")
-        assert root is not None and verify is not None  # only the superseded path may omit them
+        if root is None or verify is None:  # only the superseded path may omit them
+            raise ValueError("root and verify are required to integrate a non-superseded record")
         worktree, observed = prepare_integration_worktree(root, record.target_ref)
         self.coordinator.begin_integration(record.id, observed)
         return self._apply(record, root, verify, worktree, observed)

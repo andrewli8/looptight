@@ -247,3 +247,15 @@ def test_integration_merge_conflict_aborts_and_retains(tmp_path):
     assert outcome.retained_worktree is not None
     assert db.current_lease(lease._row_id) is None  # fenced lease released on conflict
     assert db.integration(integration_id).state == "conflict"
+
+
+def test_run_record_requires_root_for_non_superseded(tmp_path):
+    repo = _repo(tmp_path / "r")
+    db = Coordinator.open(repo)
+    run = db.start_run("worker")
+    lease = db.claim([{"id": "t1"}], run.id, ttl_s=60)
+    record = db.integration(db.enqueue_integration(lease, "refs/heads/main", "sha"))
+
+    # Lease still owned → not superseded → a clear ValueError, not a stripped assert.
+    with pytest.raises(ValueError, match="root and verify"):
+        Integrator(db).run_record(record)

@@ -209,17 +209,13 @@ existing CLI session and makes no model or API calls of its own.
 - The integration merge-conflict path is covered: a conflicting candidate aborts the
   merge, returns a `conflict` outcome with a retained worktree, and releases the
   fenced lease.
+- `Integrator._run` raises a clear `ValueError` (not a `-O`-strippable `assert`) when
+  a non-superseded record is integrated without `root`/`verify` — review concern C7,
+  covered by a test.
 
 ## Next
 
-1. Replace the assert-as-runtime-guard in `Integrator._run` (flagged in review as C7):
-   `python -O` would strip it, turning a misuse into a confusing `AttributeError`.
-   Evidence: src/looptight/integration_queue.py:251;
-   Acceptance: the guard raises a clear `ValueError` instead of `assert` when a
-   non-superseded record is run without `root`/`verify`, covered by a test; existing
-   behavior unchanged.
-
-2. Detect worker timeouts by exit code, not error-string matching (review concern):
+1. Detect worker timeouts by exit code, not error-string matching (review concern):
    `_run_worker` checks `"provider timed out after" in result.error`, coupling the
    swarm to a base.py message a change could silently break.
    Evidence: src/looptight/swarm.py:288; Evidence: src/looptight/types.py:62;
@@ -227,7 +223,7 @@ existing CLI session and makes no model or API calls of its own.
    classifies `timeout` by code 124, and a test proves a reworded timeout message is
    still classified as `timeout`; JSON and behavior otherwise unchanged.
 
-3. Guard `run_continuous_swarm` against an unbounded loop under the default
+2. Guard `run_continuous_swarm` against an unbounded loop under the default
    `--max-rounds 0` (review concern): if rounds yield no workers but planning keeps
    returning `planned`, the loop never terminates.
    Evidence: src/looptight/swarm.py:645;
