@@ -166,40 +166,37 @@ existing CLI session and makes no model or API calls of its own.
   timeouts, returning argparse exit code 2 with no production-code change.
 - Usage-limit parsing directly covers out-of-range absolute reset times, which
   remain classified as limits without inventing a retry interval.
+- A repository-private SQLite coordinator foundation now initializes schema v1
+  transactionally under Git's common directory with WAL, foreign keys, uniqueness
+  constraints, bounded busy handling, repository isolation, and rollback coverage.
 
 ## Next
 
-1. Add the repository-private SQLite coordinator foundation with schema v1,
-   foreign-key/uniqueness constraints, WAL mode, bounded busy handling, and
-   transactional initialization under the Git common directory.
-   Evidence: docs/superpowers/plans/2026-06-21-repository-coordinator.md:29;
-   Acceptance: new coordinator tests prove per-repository isolation, schema
-   constraints, and transactional open/rollback behavior, and verification passes.
-2. Replace worktree-path claim ownership with unique run IDs and fenced SQLite
+1. Replace worktree-path claim ownership with unique run IDs and fenced SQLite
    task leases whose generation rejects renewal or completion by stale owners.
    Evidence: docs/superpowers/plans/2026-06-21-repository-coordinator.md:98;
    Acceptance: ten same-directory processes claim distinct tasks, expired owners
    cannot mutate reassigned leases, existing next/status JSON remains compatible,
    and verification passes.
-3. Add the repository integration advisory lock and one coordinator-owned detached
+2. Add the repository integration advisory lock and one coordinator-owned detached
    integration worktree per fully qualified target ref without touching user worktrees.
    Evidence: docs/superpowers/plans/2026-06-21-repository-coordinator.md:169;
    Acceptance: multiprocess tests prove integration critical sections never overlap,
    lock timeout is distinct, worktree validation fails closed, and verification passes.
-4. Route verified swarm branches through a durable FIFO integration queue with
+3. Route verified swarm branches through a durable FIFO integration queue with
    fenced enqueue, globally oldest selection, CAS ref updates, and atomic terminal
    lease/task transitions.
    Evidence: docs/superpowers/plans/2026-06-21-repository-coordinator.md:226;
    Acceptance: concurrent swarm managers execute workers in parallel but serialize
    integration, stale fences are superseded safely, JSON stays compatible, and
    verification passes.
-5. Implement idempotent integration crash reconciliation and a separate durable
+4. Implement idempotent integration crash reconciliation and a separate durable
    publication state machine using UUID commit trailers and exact-SHA pushes.
    Evidence: docs/superpowers/plans/2026-06-21-repository-coordinator.md:276;
    Acceptance: injected crashes at every Git/database boundary yield one reachable
    result, push-success crashes finalize without replay or force-push, and verification
    passes.
-6. Add concurrent planner proposal deduplication, coordinator-backed status/UI,
+5. Add concurrent planner proposal deduplication, coordinator-backed status/UI,
    fail-closed legacy migration, documentation, and the 10-process acceptance suite.
    Evidence: docs/superpowers/plans/2026-06-21-repository-coordinator.md:324;
    Acceptance: concurrent planners preserve distinct grounded tasks and deduplicate
