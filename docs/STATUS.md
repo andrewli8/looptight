@@ -159,9 +159,16 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-(Queue empty. With idea generation on, `next` returns `no_work` + a
-`generate_ideas` directive; the session adds grounded, evidence-backed tasks here
-and continues. Pass `--no-ideas` to stop instead.)
+1. Publish terminal swarm state when `run_swarm` is interrupted so the read-only
+   dashboard does not retain a historical `running` manager after owned provider
+   processes are stopped. Evidence: src/looptight/swarm.py:475; Acceptance: an
+   interruption test observes a non-running manager/worker state after cleanup,
+   and project verification passes.
+2. Remove empty per-run swarm directories after their worktrees are removed so
+   no-work and completed runs do not accumulate Git-private directory litter.
+   Evidence: src/looptight/swarm.py:222; Acceptance: swarm tests confirm empty run
+   directories are removed while retained failed/conflicting worktrees remain,
+   and project verification passes.
 
 ## Rules
 
