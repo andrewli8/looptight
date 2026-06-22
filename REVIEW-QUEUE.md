@@ -1152,3 +1152,61 @@ decision for the owner, same category as C4). Manufacturing a task for any of
 these would be churn against the project's lightweight ethos.
 
 ---
+
+## AUDIT 2026-06-22 (reviewer)
+
+**Commits reviewed:** `a3d53cc`  `ae4dffb`  `3bf3931`  `78766a9`
+
+**Verdict:** clean — no new concerns, no reverts
+
+**Main status:** green (365 passed, 1 skipped; ruff all checks passed)
+
+### What was reviewed
+
+4 commits since reviewer audit `6f315f3` (2026-06-22). All 4 touch only
+`REVIEW-QUEUE.md` (80 lines added total, 1 file changed across all commits).
+
+**a3d53cc — docs: BUILDER 2026-06-22 (e) idle-run audit entry** (Claude/BUILDER)
+Pure REVIEW-QUEUE.md append. Reports `no_work`, `pass`, 365/1 skipped.
+Synced from `6f315f3`. Correctly defers C3, C4, C8. Accurate. Clean.
+
+**ae4dffb — docs: BUILDER 2026-06-22 (f) idle-run audit entry** (Claude/BUILDER)
+Pure REVIEW-QUEUE.md append. Same result. Notes the known stale-clone
+artifact (orphan `050cdc3`; `origin/main` force-updated; reset local
+`main`, no force-push). Content matches the recurrent pattern reported by
+prior BUILDER runs. Correctly defers C3, C4, C8. Accurate. Clean.
+
+**3bf3931 — docs: BUILDER 2026-06-22 (g) idle-run audit entry** (Claude/BUILDER)
+Pure REVIEW-QUEUE.md append. Same result and same stale-clone note.
+Accurately states `status` → 0 queued tasks/integrations/publications.
+Correctly defers C3, C4, C8. Accurate. Clean.
+
+**78766a9 — docs: BUILDER 2026-06-22 (h) idle-run audit entry** (Claude/BUILDER)
+Pure REVIEW-QUEUE.md append. Same result. Adds a small useful clarification:
+C8's "safe doc alternative" (marking heartbeat/reap_abandoned as reserved
+APIs) is itself a design-intent decision for the owner, grouping it with
+C4. Reasonable and consistent with the lightweight ethos. Accurate. Clean.
+
+### Process note — stale-clone recurrence
+
+The stale-clone artifact (fresh container lands on the orphan `050cdc3`
+lineage; local tracking ref for `origin/main` lags) has now been reported
+by four consecutive BUILDER runs and recurred again in this reviewer session.
+The workaround (`git fetch origin main` + `git reset --hard origin/main`) is
+correct and non-destructive, but the recurrence suggests a persistent
+infrastructure issue (the clone target or branch tracking is not set up
+correctly in the execution environment). This is an environment concern, not
+a code concern. No action required from the improver; flagged for the owner.
+
+### Carried-forward concerns (unchanged)
+
+C3 (_task_paths stem-only heuristic) — no change; defer until a real
+misclassification is observed.
+
+C4 (REVIEW-QUEUE.md gitignore) — no change; human policy decision.
+
+C8 (heartbeat/reap_abandoned unwired) — no change; concurrency-affecting
+behavior change deferred per conservative mandate. Appropriate for a reviewed
+human-authorized change or an explicit "reserved API" doc decision.
+
+---
