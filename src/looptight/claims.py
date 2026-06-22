@@ -11,6 +11,26 @@ from pathlib import Path
 
 _STALE_AFTER_S = 24 * 60 * 60
 
+#: Written under ``<git-common>/looptight`` once a repository is migrated to the
+#: SQLite coordinator; legacy file claims then fail closed.
+MARKER_NAME = "coordinator-format.json"
+
+
+class LegacyClaimsDisabled(RuntimeError):
+    """Raised when legacy file claims are used after coordinator activation."""
+
+
+def has_live_claim(claims_root: Path, *, now: float | None = None) -> bool:
+    """True if ``claims_root`` holds at least one unexpired legacy claim."""
+    if not claims_root.is_dir():
+        return False
+    timestamp = time.time() if now is None else now
+    for path in claims_root.glob("*.json"):
+        claim = ClaimStore._read(path)
+        if claim and timestamp - float(claim.get("claimed_at", 0)) <= _STALE_AFTER_S:
+            return True
+    return False
+
 
 def claim_dir(workdir: Path) -> Path | None:
     """Return Git-private shared state, or None outside a Git repository."""
@@ -46,8 +66,15 @@ class ClaimStore:
         self.owner = owner
         self.now = time.time() if now is None else now
 
+    def _fail_closed_if_migrated(self) -> None:
+        if (self.root.parent / MARKER_NAME).exists():
+            raise LegacyClaimsDisabled(
+                "repository migrated to the coordinator; legacy file claims are disabled"
+            )
+
     def select(self, tasks: list[dict[str, str | None]]) -> dict[str, str | None] | None:
         """Return this owner's active task or atomically claim the first free one."""
+        self._fail_closed_if_migrated()
         self.root.mkdir(parents=True, exist_ok=True)
         active = {task["id"]: task for task in tasks}
 
@@ -68,6 +95,7 @@ class ClaimStore:
 
     def summary(self) -> tuple[str | None, int]:
         """Return this owner's task ID and total live claims without mutation."""
+        self._fail_closed_if_migrated()
         owned: str | None = None
         active = 0
         if not self.root.is_dir():

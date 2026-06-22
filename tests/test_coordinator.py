@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 import subprocess
+import time
 from multiprocessing import get_context
 
 import pytest
 
-from looptight.coordinator import Coordinator, coordinator_path
+from looptight.claims import ClaimStore, LegacyClaimsDisabled, claim_dir
+from looptight.coordinator import Coordinator, MigrationBlocked, coordinator_path
 
 
 def _repo(path):
@@ -139,3 +142,29 @@ def test_submit_proposals_dedupes_equivalent_tasks(tmp_path):
         row[0] for row in db.connection.execute("SELECT fingerprint FROM tasks").fetchall()
     }
     assert fingerprints == {"A", "B", "C"}
+
+
+def test_activation_refuses_live_legacy_claims(tmp_path):
+    repo = _repo(tmp_path / "r")
+    claims = repo / ".git" / "looptight" / "claims"
+    claims.mkdir(parents=True)
+    (claims / "task-a.json").write_text(
+        json.dumps({"schema_version": 1, "task_id": "task-a", "owner": "o", "claimed_at": time.time()}),
+        encoding="utf-8",
+    )
+    with pytest.raises(MigrationBlocked, match="legacy"):
+        Coordinator.open(repo, activate=True)
+
+
+def test_activation_writes_marker_and_legacy_fails_closed(tmp_path):
+    repo = _repo(tmp_path / "r")
+    db = Coordinator.open(repo, activate=True)
+    assert db is not None
+    marker = repo / ".git" / "looptight" / "coordinator-format.json"
+    assert marker.is_file()
+
+    Coordinator.open(repo, activate=True)  # idempotent
+
+    store = ClaimStore(claim_dir(repo), "owner")
+    with pytest.raises(LegacyClaimsDisabled):
+        store.select([{"id": "x"}])

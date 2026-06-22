@@ -13,6 +13,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterator
 
+from .claims import MARKER_NAME, has_live_claim
+
 SCHEMA_VERSION = 1
 
 _SCHEMA = """
@@ -119,6 +121,10 @@ class Run:
 
 class CoordinationError(Exception):
     """Raised when a coordinator state transition is invalid (e.g. a stale lease)."""
+
+
+class MigrationBlocked(Exception):
+    """Raised when activation cannot proceed because live legacy claims exist."""
 
 
 @dataclass(frozen=True)
@@ -234,7 +240,7 @@ class Coordinator:
     connection: sqlite3.Connection
 
     @classmethod
-    def open(cls, workdir: Path) -> "Coordinator | None":
+    def open(cls, workdir: Path, *, activate: bool = False) -> "Coordinator | None":
         path = coordinator_path(workdir)
         if path is None:
             return None
@@ -247,7 +253,34 @@ class Coordinator:
         except BaseException:
             connection.close()
             raise
-        return cls(path, connection)
+        coordinator = cls(path, connection)
+        if activate:
+            try:
+                coordinator.activate_from_legacy()
+            except BaseException:
+                connection.close()
+                raise
+        return coordinator
+
+    def activate_from_legacy(self) -> None:
+        """Migrate this repository from legacy file claims, failing closed after.
+
+        Refuses while any legacy claim is still live, then writes the
+        ``coordinator-format.json`` marker last so legacy claims fail closed and
+        the coordinator owns task ownership from here on. Idempotent once written.
+        """
+        base = self.path.parent
+        marker = base / MARKER_NAME
+        if marker.exists():
+            return
+        if has_live_claim(base / "claims"):
+            raise MigrationBlocked(
+                "cannot activate the coordinator: live legacy claims exist; "
+                "finish or let them expire first"
+            )
+        marker.write_text(
+            json.dumps({"schema_version": SCHEMA_VERSION}, sort_keys=True), encoding="utf-8"
+        )
 
     @contextmanager
     def transaction(self, *, immediate: bool = False) -> Iterator[sqlite3.Connection]:
