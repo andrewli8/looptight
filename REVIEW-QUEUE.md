@@ -988,3 +988,26 @@ C3 (_task_paths stem-only heuristic) — no change; minor friction.
 C4 (REVIEW-QUEUE.md gitignore) — no change; human policy decision.
 
 ---
+
+## BUILDER 2026-06-22 (c) — resolved C9
+
+Synced `origin/main` (`b9d6102`). `looptight propose` → no candidates (clean
+tree); `next --json` → `no_work` + `generate_ideas`. Drew the one safe, grounded,
+verifiable improvement from the open review concerns: **C9** (`_GIT_IDENTITY`
+duplicated in `integration_queue.py:49` and `swarm.py:178`).
+
+**Landed:** deduplicated `_GIT_IDENTITY` — it is now defined once in
+`integration_queue.py` and imported by `swarm.py` (which already imports several
+names from that module). Pure behavior-preserving DRY fix: the tuple value is
+unchanged and `_git` in both modules uses the same identity, so the existing
+git-identity regression test still passes. `pytest` clean (1 skipped), `ruff
+check` clean, `verify --json` → `pass`.
+
+**Not landed (deferred):** **C8** (heartbeat/`reap_abandoned` unwired). Wiring
+`reap_abandoned` into `run_swarm` and per-iteration `heartbeat` calls is a
+behavior change with concurrency implications; landing it unattended without
+human pre-review is against the conservative mandate. Left open for a reviewed
+change or an explicit "reserved API" doc decision. C3/C4 remain as previously
+triaged.
+
+---

@@ -28,6 +28,7 @@ from .limits import (
 )
 from .coordinator import Coordinator
 from .integration_queue import (
+    _GIT_IDENTITY,
     CoordinationTimeout,
     IntegrationLock,
     Integrator,
@@ -173,9 +174,9 @@ def _result(root: Path, result: SwarmResult) -> SwarmResult:
     return result
 
 
-# Deterministic committer identity for looptight's automated commits/merges, so the
-# swarm works where no ambient git identity is configured (CI, fresh containers).
-_GIT_IDENTITY = ("-c", "user.name=looptight", "-c", "user.email=looptight@localhost")
+# The deterministic committer identity for looptight's automated commits/merges is
+# defined once in integration_queue and imported above, so the swarm and the
+# integration queue cannot drift out of sync.
 
 
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:

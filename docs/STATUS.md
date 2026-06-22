@@ -226,13 +226,18 @@ existing CLI session and makes no model or API calls of its own.
 - `run`/`swarm` accept `--model` (config `model`), threaded to the provider so
   spawned sessions use a chosen model (e.g. `--model opus`); the claude adapter's
   existing `--model` plumbing carries it. Covered by loop and parser tests.
+- The deterministic `_GIT_IDENTITY` committer tuple for looptight's automated
+  commits/merges is defined once in `integration_queue.py` and imported by
+  `swarm.py`, so the two cannot drift; behavior and tests unchanged.
 
 ## Next
 
-(Round-4 review concerns addressed. Queue empty — `next` returns `no_work` with a
-`generate_ideas` directive; the session adds grounded, evidence-backed tasks and
-continues. Remaining open review items: `_task_paths` stem-only heuristic (a
-docs/convention concern) and the gitignored-audit-trail meta-concern.)
+(Queue empty — `next` returns `no_work` with a `generate_ideas` directive; the
+session adds grounded, evidence-backed tasks and continues. Review concern C9
+(`_GIT_IDENTITY` duplication) is resolved. Remaining open review items: C8
+(heartbeat/`reap_abandoned` unwired — a behavior change deferred from unattended
+runs), C3 (`_task_paths` stem-only heuristic, a docs/convention concern), and C4
+(the gitignored-audit-trail meta-concern, a human policy decision).)
 
 ## Rules
 
