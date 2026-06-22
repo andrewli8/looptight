@@ -175,6 +175,16 @@ def _git_clean(root: Path) -> bool:
     return status.returncode == 0 and not status.stdout.strip()
 
 
+def _remove_worker_worktree(root: Path, worktree: Path) -> subprocess.CompletedProcess[str]:
+    removed = _git(root, "worktree", "remove", str(worktree))
+    if removed.returncode == 0:
+        try:
+            worktree.parent.rmdir()
+        except OSError:
+            pass
+    return removed
+
+
 def _task_paths(root: Path, task: dict[str, str | None]) -> set[str]:
     """Return grounded paths that may be changed while completing ``task``."""
     paths: set[str] = set()
@@ -232,14 +242,14 @@ def _prepare_workers(root: Path, count: int) -> tuple[list[Worker], str | None]:
             return workers, added.stderr.strip() or "could not create worker worktree"
         decision = next_task(worktree)
         if decision.status == "no_work":
-            _git(root, "worktree", "remove", str(worktree))
+            _remove_worker_worktree(root, worktree)
             break
         if decision.status != "task" or decision.task is None:
-            _git(root, "worktree", "remove", str(worktree))
+            _remove_worker_worktree(root, worktree)
             return workers, decision.error or "could not claim worker task"
         switched = _git(worktree, "switch", "-q", "-c", branch)
         if switched.returncode != 0:
-            _git(root, "worktree", "remove", str(worktree))
+            _remove_worker_worktree(root, worktree)
             return workers, switched.stderr.strip() or "could not create worker branch"
         workers.append(Worker(number, decision.task, branch, worktree, head.stdout.strip()))
     return workers, None
@@ -325,7 +335,7 @@ def _integrate(root: Path, worker: Worker, verify: str) -> None:
         worker.error = commit.stderr.strip() or "integration commit failed"
         return
     worker.status = "merged"
-    _git(root, "worktree", "remove", str(worker.worktree))
+    _remove_worker_worktree(root, worker.worktree)
 
 
 def _planner_worktree(root: Path) -> tuple[Path | None, str | None, str | None]:

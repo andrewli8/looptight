@@ -159,14 +159,15 @@ existing CLI session and makes no model or API calls of its own.
 - Interrupting a swarm now publishes terminal `interrupted` manager and active-worker
   state after stopping owned provider processes, so the read-only dashboard does not
   retain a historical `running` state. Covered by a regression test.
+- Successful worker-worktree removal now also removes its empty per-run swarm
+  directory; no-work and completed rounds leave no directory litter, while failed
+  workers retain their recovery worktrees. Covered by swarm regression tests.
 
 ## Next
 
-1. Remove empty per-run swarm directories after their worktrees are removed so
-   no-work and completed runs do not accumulate Git-private directory litter.
-   Evidence: src/looptight/swarm.py:222; Acceptance: swarm tests confirm empty run
-   directories are removed while retained failed/conflicting worktrees remain,
-   and project verification passes.
+(Queue empty. With idea generation on, `next` returns `no_work` + a
+`generate_ideas` directive; the session adds grounded, evidence-backed tasks here
+and continues. Pass `--no-ideas` to stop instead.)
 
 ## Rules
 

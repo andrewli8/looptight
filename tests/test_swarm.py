@@ -176,6 +176,26 @@ def test_swarm_runs_isolated_workers_and_serializes_verified_merges(tmp_path, mo
     assert not subprocess.run(
         ["git", "status", "--porcelain"], cwd=tmp_path, capture_output=True, text=True
     ).stdout
+    assert list((tmp_path / ".git" / "looptight" / "swarm").iterdir()) == []
+
+
+def test_swarm_no_work_removes_empty_run_directory(tmp_path, monkeypatch):
+    _repo(tmp_path)
+    (tmp_path / "src" / "a.py").write_text("# complete\n", encoding="utf-8")
+    (tmp_path / "src" / "b.py").write_text("# complete\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "complete tasks")
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+
+    result = run_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0", max_iterations=1),
+        workers=1,
+    )
+
+    assert result.status == "no_work"
+    assert list((tmp_path / ".git" / "looptight" / "swarm").iterdir()) == []
 
 
 def test_swarm_rejects_worker_changes_outside_claimed_task_scope(tmp_path, monkeypatch):
