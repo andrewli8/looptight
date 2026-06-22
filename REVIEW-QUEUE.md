@@ -448,3 +448,137 @@ green (259 passed, 1 skipped) and `ruff check` clean. STATUS.md `Next` empty.
 Carried-forward concerns C1–C4 remain low-to-minor and were previously triaged
 as deliberate defers by both improver and reviewer; no new evidence this run to
 revisit them. No code changed.
+
+---
+
+## CONCERN 5bab139 — coordinator foundation is unconnected dead production code
+
+**Severity:** minor quality / design concern
+
+`5bab139` adds `src/looptight/coordinator.py` (138 lines) with a full SQLite
+schema (6 tables: runs, tasks, leases, proposals, integrations, publications) but
+does not wire it into any production code path. The only consumer is
+`tests/test_coordinator.py`. The project principle is "simplest thing that
+works"; adding a module that nothing yet calls runs against that, even if the
+next five STATUS.md tasks will use it.
+
+The grounding is solid — the design doc at
+`docs/superpowers/plans/2026-06-21-repository-coordinator.md` specifies the full
+feature, and STATUS.md Next tasks 1–5 all cite it — so this is not speculative.
+But the "foundation" pattern front-loads 220 lines (code + tests) before the
+first production wire-up, increasing drift risk between schema assumptions and
+actual wiring. If Task 2 lands cleanly and the schema fits without amendment,
+the concern is resolved; if Task 2 requires schema changes, this commit will need
+an amending follow-up.
+
+**Suggested handling:** no action needed now. When Task 2 (unique run IDs and
+fenced leases) lands, confirm coordinator.py is actually imported by production
+code and that no schema amendment was required. If the schema needed changing,
+consider noting it as a process lesson.
+
+---
+
+## AUDIT 2026-06-22 (reviewer)
+
+**Commits reviewed:** 840c40a  e9fe2d7  d06306e  f4f0d89  83146eb  c40d41d
+  fa50a01  a548ac0  05b4b9a  f15d9cf  fa71831  e414b60  b04cc3f  49fd687
+  a25f5d5  fbd217d  58be577  eb0a230  f104f64  f855008  5ef092d  5bab139
+
+**Verdict:** clean — 1 new concern flagged (coordinator dead code), no reverts
+
+**Main status:** green (328 passed, 1 skipped; ruff all checks passed)
+
+### What was reviewed
+
+22 commits since reviewer audit cf2ea93 (2026-06-21). Tests grew from 259 to 328
+(69 new tests across 22 commits — solid coverage discipline throughout).
+
+**840c40a — docs: record 2026-06-22 improver no-work run** (Claude/improver)
+Pure REVIEW-QUEUE.md append. Clean.
+
+**e9fe2d7 — feat: resume continuous swarm after provider usage limits**
+New `limits.py` (pure stdlib `re`) with pattern matching for usage/rate limit
+signals in provider output. Adds `limited` worker status to swarm, capped
+exponential back-off, `resumes` counter in SwarmResult JSON. Off by default
+(`--resume-on-limit`). `_limit_wait` was initially added locally here then lifted
+to `limits.py` in the next commit (d06306e) — correct refactor, no duplication
+in final state. 28 new adapter tests + 167 new swarm tests. Correct and tested.
+One note: `_LIMIT_PATTERNS` includes `r"overloaded"` which could false-positive
+on a genuine crash message; since it only runs on non-zero exits AND
+`limit_max_resumes` (05b4b9a) bounds retries, the risk is low.
+
+**d06306e — feat: single-agent loop usage-limit resume**
+Lifts `limit_wait` into `limits.py` as the single source; `loop.py` gets
+`_with_limit_resume` thunk wrapper. Architecture and README docs updated with
+the orchestrator-vs-worker-vs-planner topology and the unattended tmux recipe.
+74 new loop tests. Correct and minimal.
+
+**f4f0d89 — test: git worktree coverage** (previously reviewed baseline). Clean.
+
+**83146eb — feat: absolute wall-clock reset times in usage-limit detection**
+`_parse_absolute_reset` added to `limits.py`: handles 12pm/12am edge cases,
+out-of-range bounds check, rolls to next day when time is already past. Injected
+`now` parameter for deterministic testing. 38 new tests. Correct.
+
+**c40d41d — feat: generate ideas by default + ranking/JSON fixes**
+Three independent improvements landed together: (1) idea-generation default —
+`next` returns `no_work` + `generate_ideas` directive when queue empties;
+`prompts.py` new module holds `PLANNING_GOAL` as single source; additive field,
+absent under `--no-ideas`; looptight makes no model call. (2) Ranking weights
+corrected — `task-file` raised from 30→70, `status-next` from 10→65, now both
+outrank automated `lint`/`todo`; matches architecture intent. (3) JSON de-
+duplication — `_summary_and_evidence` splits inline Evidence pointers from goal
+text so `goal`, `evidence`, and `acceptance` are no longer triplicated. 97
+total new test lines across 6 test files. CLAUDE.md managed block updated. All
+three changes are correct, in scope, and well-tested.
+
+**fa50a01 / e414b60 / a25f5d5 / f104f64** — plan commits. Clean.
+
+**a548ac0 — feat: usage-limit resume for native delegate loop**
+Shares `_with_limit_resume` from loop.py for `_delegate_loop`. 54 new test
+lines. Minimal and correct; supply-loop behavior unchanged.
+
+**05b4b9a — feat: bound consecutive resumes**
+`limit_max_resumes` (0 = unbounded default) caps perpetual limit signals in both
+loop and swarm. Symmetrically applied to worker and planner branches.
+55 new test lines. Correct.
+
+**f15d9cf — test: `_summary_and_evidence` trimming** — test-only, direct
+coverage for inline Evidence splitting. Correct, not padding.
+
+**fa71831 — docs: SPEC `directive` field** — doc-only, contract additive. Clean.
+
+**b04cc3f — fix: publish interrupted swarm state**
+Three-line fix marking active workers as `interrupted` before publishing state
+on an interrupted swarm round. Regression test added. Correct.
+
+**49fd687 — fix: clean empty swarm run directories**
+`_remove_worker_worktree` helper adds `rmdir` on the parent per-run directory
+after successful worktree removal; silent OSError on non-empty (retained
+workers). 20 new test lines. Correct.
+
+**fbd217d / 58be577 / eb0a230** — design docs for coordinator. Clean.
+
+**f855008 / 5ef092d** — test-only CLI and limits coverage. Clean.
+
+**5bab139 — feat: add repository coordinator foundation**
+Flagged as CONCERN above. Tests pass; code is correct and stdlib-only. No
+revert warranted — the concern is about front-loading infrastructure before
+wiring, not correctness.
+
+### Carried-forward concerns (unchanged)
+
+C1 (timeout string matching in swarm._run_worker) — the `_limit_wait` refactor
+did not address C1, which remains about the `"provider timed out after"` string
+check on line 257 (now the adapter's TIMEOUT_PHRASE is still string-matched in
+_run_worker). Still low risk; end-to-end test coverage exists.
+
+C2 (infinite loop under --continuous --max-rounds 0) — no change; still open,
+low risk.
+
+C3 (_task_paths stem-only heuristic) — no change; still open, minor friction.
+
+C4 (REVIEW-QUEUE.md gitignore) — no change; still a human policy decision.
+
+**New concern:** C5 (5bab139 coordinator foundation dead code) — described above,
+minor quality concern, no action needed until Task 2 lands.
