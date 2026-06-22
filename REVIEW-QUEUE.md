@@ -582,3 +582,37 @@ C4 (REVIEW-QUEUE.md gitignore) — no change; still a human policy decision.
 
 **New concern:** C5 (5bab139 coordinator foundation dead code) — described above,
 minor quality concern, no action needed until Task 2 lands.
+
+---
+
+## IMPROVER 2026-06-22 — no changes; git divergence flagged
+
+**No code changes this run.** Rationale:
+
+- Tree is healthy: `uv run pytest -q` passes (1 skipped), `uv run ruff check`
+  clean. No lint/TODO candidates exist; `looptight propose` returns only the 5
+  queued coordinator tasks.
+- `next` points to Task 2 (replace worktree-path claim ownership with fenced
+  SQLite leases). Its valuable form (plan Step 4) rewires `next`/`status` off the
+  foundational `ClaimStore` — a delicate concurrency change inappropriate to land
+  unattended with no human pre-review. The low-risk additive-only subset (leasing
+  APIs unused by `next`) would deepen the standing C5 concern ("front-loading
+  infrastructure before wiring"). Neither path is a safe, valuable unattended
+  landing, so per the conservative mandate I made no changes.
+
+**Operational finding (needs a human decision): the working lineage cannot reach
+`origin/main`.**
+
+- The checkout is a detached HEAD (`87c0432`) whose history shares **no common
+  ancestor** with `origin/main` (`211a31d`, the 2026-06-18 init+CLAUDE.md state).
+  `git merge-base HEAD origin/main` is empty; the two roots differ
+  (`fc4398e` vs `050cdc3`).
+- The detached lineage holds ~50 commits / 8383 insertions — the entire real
+  project (coordinator foundation, swarm, UI, reviewer audits). None of it is on
+  `origin/main`. A normal push would be rejected non-fast-forward; only a
+  force-overwrite or an unrelated-history PR could land it, and force-push is
+  forbidden by the safety floor.
+- The maker/checker loop appears to persist via the container workspace, not via
+  `origin`. If the intent is for verified work to land on GitHub `main`, that has
+  not happened since 2026-06-18 and needs a human to reconcile the histories
+  (e.g. fast-forward/replace `origin/main`, or open a PR from this lineage).
