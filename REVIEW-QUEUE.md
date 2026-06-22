@@ -1230,3 +1230,35 @@ unsafe to land unattended without human pre-review). Manufacturing a task for an
 of these would be churn against the project's lightweight ethos.
 
 ---
+
+## BUILDER 2026-06-22 (j) — de-flaked swarm completion-order test (`932cd6e`)
+
+**Landed:** `932cd6e` — `test: de-flake swarm completion-order publish assertion`
+(tests/test_swarm.py + docs/STATUS.md; no production code change).
+
+**Finding (real, grounded — not manufactured):** On a fresh sync to
+`origin/main` (`6755eb3`), the first `pytest` passed but `verify`/a second
+`pytest` failed on `test_swarm_publishes_worker_results_in_completion_order`.
+Reproduced ~1/8 runs. Root cause: the test asserted a *specific* worker won the
+completion race (`["running", "verified"] in snapshots` — worker[0] still
+running while worker[1] verified). Task→worker assignment is deterministic, but
+which worker finishes first is thread-scheduling dependent; production publishes
+state per `as_completed` completion and only sorts results by number at the end,
+so it never promises an ordering. Instrumented 6 trials: a partial snapshot
+(exactly one `verified`, one `running`) is published 100% of the time, but the
+order flips. The assertion over-specified the guarantee.
+
+**Fix:** assert the partial snapshot order-independently
+(`any(sorted(snapshot) == ["running", "verified"] ...)`). The guarantee — state
+is published per completion, not once at the end — is fully preserved; coverage
+is not reduced; production code is untouched. Stress-tested 25/25 green; full
+`pytest` (366 passed, 1 skipped), `ruff check`, and `verify --json` all clean.
+
+**Open concerns carried forward unchanged:** **C3** (`_task_paths` stem-only
+heuristic — defer until a real misclassification is observed), **C4**
+(REVIEW-QUEUE.md gitignore tension — human policy decision), **C8**
+(heartbeat/`reap_abandoned` unwired — concurrency-affecting change unsafe to
+land unattended). Queue otherwise empty: `propose` finds no candidates,
+`next --json` returns `no_work` + `generate_ideas`.
+
+---
