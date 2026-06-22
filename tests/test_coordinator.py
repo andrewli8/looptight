@@ -127,3 +127,15 @@ def test_expired_owner_cannot_renew_or_complete_reassigned_lease(tmp_path):
     assert not coordinator.complete(first)
     assert coordinator.renew(second, ttl_s=10, now=2)
     assert coordinator.complete(second)
+
+
+def test_submit_proposals_dedupes_equivalent_tasks(tmp_path):
+    repo = _repo(tmp_path / "r")
+    db = Coordinator.open(repo)
+    run_a, run_b = db.start_run("a"), db.start_run("b")
+    db.submit_proposals(run_a.id, [{"id": "A"}, {"id": "B"}], "gen-1")
+    db.submit_proposals(run_b.id, [{"id": "B"}, {"id": "C"}], "gen-1")
+    fingerprints = {
+        row[0] for row in db.connection.execute("SELECT fingerprint FROM tasks").fetchall()
+    }
+    assert fingerprints == {"A", "B", "C"}

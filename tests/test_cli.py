@@ -734,3 +734,20 @@ def test_revert_notes_untracked_files_left_in_place(tmp_path, monkeypatch, capsy
     out = capsys.readouterr().out.lower()
     assert "reverted" in out
     assert "untracked" in out
+
+
+def test_status_json_keeps_v1_keys_and_adds_coordinator_counts(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "exit 0"\n', encoding="utf-8")
+
+    assert main(["status", "--json"]) == 0
+    payload = json.loads(capsys.readouterr().out)
+
+    v1_keys = {
+        "schema_version", "command", "validation", "workspace",
+        "claimed_task", "active_claims", "next_action",
+    }
+    assert v1_keys <= payload.keys()  # v1 status contract preserved
+    assert payload["coordinator"]["queued_integrations"] == 0
+    assert payload["coordinator"]["queued_tasks"] == 0

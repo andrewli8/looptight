@@ -167,8 +167,15 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
     coordinator = Coordinator.open(workdir)
     claimed_task = None
     active_claims = 0
+    coordinator_counts: dict[str, object] | None = None
     if coordinator is not None:
-        claimed_task, active_claims = coordinator.summary(current_run_id())
+        snapshot = coordinator.status(current_run_id())
+        claimed_task = snapshot["claimed_task"]
+        active_claims = snapshot["active_claims"]
+        coordinator_counts = {
+            key: snapshot[key]
+            for key in ("queued_tasks", "queued_integrations", "pending_publications")
+        }
         coordinator.close()
     else:
         private_dir = claim_dir(workdir)
@@ -193,6 +200,8 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         "active_claims": active_claims,
         "next_action": action,
     }
+    if coordinator_counts is not None:
+        payload["coordinator"] = coordinator_counts
     if args.json:
         print(json.dumps(payload, sort_keys=True))
     else:

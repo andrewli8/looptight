@@ -78,6 +78,38 @@ PRAGMA user_version = 1;
 COMMIT;
 """
 
+_INIT_RETRY_ATTEMPTS = 50
+_INIT_RETRY_SLEEP_S = 0.1
+
+
+def _initialize_schema(connection: sqlite3.Connection) -> None:
+    """Enable WAL and create the schema, tolerating concurrent first-open races.
+
+    SQLite returns SQLITE_BUSY *immediately* for a journal-mode switch (and for the
+    schema's immediate transaction) when another process is initializing the same
+    fresh database, regardless of ``busy_timeout`` — so retry briefly until one
+    writer wins and the rest observe the finished schema.
+    """
+    last: sqlite3.OperationalError | None = None
+    for _ in range(_INIT_RETRY_ATTEMPTS):
+        try:
+            connection.execute("PRAGMA journal_mode = WAL")
+            version = connection.execute("PRAGMA user_version").fetchone()[0]
+            if version == 0:
+                connection.executescript(_SCHEMA)
+            elif version != SCHEMA_VERSION:
+                raise RuntimeError(
+                    f"unsupported coordinator schema {version}; expected {SCHEMA_VERSION}"
+                )
+            return
+        except sqlite3.OperationalError as exc:
+            message = str(exc).lower()
+            if "locked" not in message and "busy" not in message:
+                raise
+            last = exc
+            time.sleep(_INIT_RETRY_SLEEP_S)
+    raise last if last is not None else sqlite3.OperationalError("coordinator init failed")
+
 
 @dataclass(frozen=True)
 class Run:
@@ -210,15 +242,11 @@ class Coordinator:
         connection = sqlite3.connect(path, timeout=5.0, isolation_level=None)
         connection.execute("PRAGMA foreign_keys = ON")
         connection.execute("PRAGMA busy_timeout = 5000")
-        connection.execute("PRAGMA journal_mode = WAL")
-        version = connection.execute("PRAGMA user_version").fetchone()[0]
-        if version == 0:
-            connection.executescript(_SCHEMA)
-        elif version != SCHEMA_VERSION:
+        try:
+            _initialize_schema(connection)
+        except BaseException:
             connection.close()
-            raise RuntimeError(
-                f"unsupported coordinator schema {version}; expected {SCHEMA_VERSION}"
-            )
+            raise
         return cls(path, connection)
 
     @contextmanager
@@ -544,6 +572,46 @@ class Coordinator:
                     "UPDATE publications SET state = 'failed', attempts = attempts + 1, error = ? WHERE id = ?",
                     (outcome.error, publication_id),
                 )
+
+    def submit_proposals(
+        self, run_id: str, candidates: list[dict[str, object]], generation: str
+    ) -> tuple[str, ...]:
+        """Record a planner's grounded proposals and dedupe equivalent tasks.
+
+        Concurrent planners that propose overlapping work converge to one task per
+        fingerprint via the uniqueness constraints, under a single immediate
+        transaction. ``generation`` tags the proposing run's plan revision.
+        """
+        accepted: list[str] = []
+        with self.transaction(immediate=True):
+            for candidate in candidates:
+                fingerprint = str(candidate["id"])
+                payload = json.dumps(candidate, sort_keys=True)
+                self.connection.execute(
+                    """INSERT OR IGNORE INTO proposals(run_id, fingerprint, payload, state)
+                       VALUES (?, ?, ?, 'proposed')""",
+                    (run_id, fingerprint, payload),
+                )
+                self.connection.execute(
+                    """INSERT INTO tasks(fingerprint, payload, state) VALUES (?, ?, 'queued')
+                       ON CONFLICT(fingerprint) DO NOTHING""",
+                    (fingerprint, payload),
+                )
+                accepted.append(fingerprint)
+        return tuple(accepted)
+
+    def status(self, run_id: str | None = None, *, now: float | None = None) -> dict[str, object]:
+        """Coordinator counts for additive projection into ``status`` output."""
+        claimed_task, active_claims = self.summary(run_id, now=now)
+        counts = {
+            "queued_tasks": "SELECT COUNT(*) FROM tasks WHERE state = 'queued'",
+            "queued_integrations": "SELECT COUNT(*) FROM integrations WHERE state = 'queued'",
+            "pending_publications": (
+                "SELECT COUNT(*) FROM publications WHERE state IN ('queued', 'publishing')"
+            ),
+        }
+        projected = {key: int(self.connection.execute(sql).fetchone()[0]) for key, sql in counts.items()}
+        return {"claimed_task": claimed_task, "active_claims": active_claims, **projected}
 
     def close(self) -> None:
         self.connection.close()
