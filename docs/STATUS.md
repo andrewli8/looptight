@@ -203,16 +203,13 @@ existing CLI session and makes no model or API calls of its own.
   their leases (tasks requeued) before TTL — covered by a time-injected test.
 - `status` human output prints the coordinator queued task/integration/publication
   counts when the repository is coordinated; JSON output unchanged. Covered by a test.
+- The publication push-rejected path is covered: a rejected push attempts only the
+  exact result SHA once (no force, no candidate replay) and leaves the publication
+  `failed`.
 
 ## Next
 
-1. Cover the publication push-rejected path: `Publisher._publish` returns `failed`
-   when the push is rejected, but no test exercises it.
-   Evidence: src/looptight/integration_queue.py:365;
-   Acceptance: a test with an injected failing push proves the publication ends
-   `failed` (not complete) without a force-push, with no production-code change.
-
-2. Cover the integration merge-conflict path: `Integrator` aborts and returns a
+1. Cover the integration merge-conflict path: `Integrator` aborts and returns a
    `conflict` outcome with a retained worktree when a candidate does not merge, but
    no test exercises it.
    Evidence: src/looptight/integration_queue.py:283;

@@ -203,3 +203,19 @@ def test_publication_pushes_exact_result_when_remote_behind(tmp_path):
 
     assert pushed == [(result_sha, "refs/heads/main")]  # exact result SHA, no candidate replay
     assert db.publication(publication_id).state == "complete"
+
+
+def test_publication_push_rejection_fails_without_force(tmp_path):
+    repo, db, integration_id, result_sha = _repo_with_remote(tmp_path)
+    publication_id = db.enqueue_publication(integration_id, "origin", "refs/heads/main")
+
+    attempts = []
+
+    def rejecting_push(root, remote, sha, ref):
+        attempts.append((sha, ref))
+        return 1  # remote rejects (non-fast-forward); no force is ever used
+
+    Publisher(db, push=rejecting_push).run_next(repo)
+
+    assert attempts == [(result_sha, "refs/heads/main")]  # exact SHA attempted once, no replay
+    assert db.publication(publication_id).state == "failed"
