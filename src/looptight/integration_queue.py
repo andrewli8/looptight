@@ -17,6 +17,9 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
+from .coordinator import Coordinator, IntegrationOutcome, IntegrationRecord
+from .verify import run_verify
+
 if os.name == "nt":  # pragma: no cover - exercised on Windows only
     import msvcrt
 else:
@@ -142,3 +145,71 @@ def prepare_integration_worktree(root: Path, target_ref: str) -> tuple[Path, str
     if status.returncode != 0 or status.stdout.strip():
         raise IntegrationError("integration worktree is not clean")
     return path, sha
+
+
+class Integrator:
+    """Drain queued integrations one at a time, under the repository lock.
+
+    Each record is fenced to its lease generation: a record whose lease has since
+    been reassigned is ``superseded`` (the new owner keeps its lease). Otherwise the
+    candidate is merged into a coordinator-owned worktree, verified, and the target
+    ref advanced with a compare-and-swap against the observed tip.
+    """
+
+    def __init__(self, coordinator: Coordinator, *, lock_timeout_s: float = 300.0, max_attempts: int = 3) -> None:
+        self.coordinator = coordinator
+        self.lock_timeout_s = lock_timeout_s
+        self.max_attempts = max_attempts
+
+    def next_id(self) -> str | None:
+        record = self.coordinator.next_queued_integration()
+        return record.id if record else None
+
+    def run_next(self, root: Path, verify: str) -> IntegrationOutcome | None:
+        with IntegrationLock.acquire(git_common_dir(root), self.lock_timeout_s):
+            record = self.coordinator.next_queued_integration()
+            if record is None:
+                return None
+            return self._run(record, root, verify)
+
+    def run_record(
+        self, record: IntegrationRecord, root: Path | None = None, verify: str | None = None
+    ) -> IntegrationOutcome:
+        return self._run(record, root, verify)
+
+    def _finish(
+        self, record: IntegrationRecord, status: str, *, result_sha: str | None = None,
+        error: str | None = None, retained: Path | None = None,
+    ) -> IntegrationOutcome:
+        outcome = IntegrationOutcome(
+            record.id, status, result_sha=result_sha, error=error,
+            retained_worktree=str(retained) if retained else None,
+        )
+        self.coordinator.finish_integration(record.id, outcome, max_attempts=self.max_attempts)
+        return outcome
+
+    def _run(
+        self, record: IntegrationRecord, root: Path | None, verify: str | None
+    ) -> IntegrationOutcome:
+        lease = self.coordinator.current_lease(record.task_id)
+        if lease is None or lease.run_id != record.run_id or lease.generation != record.lease_generation:
+            return self._finish(record, "superseded", error="lease superseded by a newer owner")
+        assert root is not None and verify is not None  # only the superseded path may omit them
+        worktree, observed = prepare_integration_worktree(root, record.target_ref)
+        merged = _git(worktree, "merge", "--no-ff", "--no-edit", record.candidate_sha)
+        if merged.returncode != 0:
+            _git(worktree, "merge", "--abort")
+            return self._finish(record, "conflict", error=merged.stderr.strip() or "merge conflict", retained=worktree)
+        verdict = run_verify(verify, worktree)
+        if not verdict.passed:
+            _git(worktree, "reset", "--hard", observed)
+            return self._finish(record, "failed", error=f"integration verify: {verdict.status}", retained=worktree)
+        result_sha = _git(worktree, "rev-parse", "HEAD").stdout.strip()
+        updated = _git(root, "update-ref", record.target_ref, result_sha, observed)
+        if updated.returncode != 0:
+            _git(worktree, "reset", "--hard", observed)
+            return self._finish(
+                record, "conflict",
+                error=updated.stderr.strip() or "target advanced; integration superseded", retained=worktree,
+            )
+        return self._finish(record, "complete", result_sha=result_sha)

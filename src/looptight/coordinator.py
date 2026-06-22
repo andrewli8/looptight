@@ -85,6 +85,10 @@ class Run:
     kind: str
 
 
+class CoordinationError(Exception):
+    """Raised when a coordinator state transition is invalid (e.g. a stale lease)."""
+
+
 @dataclass(frozen=True)
 class Lease:
     task_id: str
@@ -92,6 +96,38 @@ class Lease:
     generation: int
     payload: dict[str, object]
     _row_id: int
+
+
+@dataclass(frozen=True)
+class IntegrationRecord:
+    id: str
+    run_id: str
+    task_id: int
+    lease_generation: int
+    target_ref: str
+    candidate_sha: str
+    state: str
+
+
+@dataclass(frozen=True)
+class IntegrationOutcome:
+    id: str
+    status: str  # complete | conflict | failed | superseded
+    result_sha: str | None = None
+    error: str | None = None
+    retained_worktree: str | None = None
+
+
+def _integration_record(row: tuple[object, ...]) -> IntegrationRecord:
+    return IntegrationRecord(
+        id=str(row[0]),
+        run_id=str(row[1]),
+        task_id=int(row[2]),  # type: ignore[arg-type]
+        lease_generation=int(row[3]),  # type: ignore[arg-type]
+        target_ref=str(row[4]),
+        candidate_sha=str(row[5]),
+        state=str(row[6]),
+    )
 
 
 def current_run_id() -> str:
@@ -297,6 +333,102 @@ class Coordinator:
             ).fetchone()
             owned = str(row[0]) if row else None
         return owned, int(active)
+
+    def current_lease(self, task_id: int) -> Lease | None:
+        row = self.connection.execute(
+            """SELECT t.fingerprint, l.run_id, l.generation, t.payload
+               FROM leases l JOIN tasks t ON t.id = l.task_id WHERE l.task_id = ?""",
+            (task_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        fingerprint, run_id, generation, payload = row
+        return Lease(str(fingerprint), str(run_id), int(generation), json.loads(payload), int(task_id))
+
+    def enqueue_integration(self, lease: Lease, target_ref: str, candidate_sha: str) -> str:
+        """Queue a verified worker branch for integration; fenced to the live lease."""
+        with self.transaction(immediate=True):
+            active = self.connection.execute(
+                "SELECT 1 FROM leases WHERE task_id = ? AND run_id = ? AND generation = ?",
+                (lease._row_id, lease.run_id, lease.generation),
+            ).fetchone()
+            if active is None:
+                raise CoordinationError("cannot enqueue integration for a stale or released lease")
+            integration_id = uuid.uuid4().hex
+            self.connection.execute(
+                """INSERT INTO integrations(
+                       id, run_id, task_id, lease_generation, target_ref, candidate_sha, state)
+                   VALUES (?, ?, ?, ?, ?, ?, 'queued')""",
+                (integration_id, lease.run_id, lease._row_id, lease.generation, target_ref, candidate_sha),
+            )
+            return integration_id
+
+    def integration(self, integration_id: str) -> IntegrationRecord | None:
+        row = self.connection.execute(
+            """SELECT id, run_id, task_id, lease_generation, target_ref, candidate_sha, state
+               FROM integrations WHERE id = ?""",
+            (integration_id,),
+        ).fetchone()
+        return _integration_record(row) if row else None
+
+    def next_queued_integration(self) -> IntegrationRecord | None:
+        """Return the oldest queued integration (global FIFO by insertion sequence)."""
+        row = self.connection.execute(
+            """SELECT id, run_id, task_id, lease_generation, target_ref, candidate_sha, state
+               FROM integrations WHERE state = 'queued' ORDER BY sequence LIMIT 1"""
+        ).fetchone()
+        return _integration_record(row) if row else None
+
+    def finish_integration(
+        self, integration_id: str, outcome: IntegrationOutcome, *, max_attempts: int = 3
+    ) -> None:
+        """Apply a terminal integration outcome atomically.
+
+        complete  → integration complete, task complete, fenced lease deleted.
+        superseded→ integration superseded; the (newer) owner's lease is untouched.
+        conflict/failed → integration recorded with retained worktree, fenced lease
+                    released, and the task requeued below the attempt cap or failed.
+        """
+        with self.transaction(immediate=True):
+            row = self.connection.execute(
+                "SELECT task_id, lease_generation FROM integrations WHERE id = ?",
+                (integration_id,),
+            ).fetchone()
+            if row is None:
+                return
+            task_id, generation = int(row[0]), int(row[1])
+            if outcome.status == "complete":
+                self.connection.execute(
+                    "UPDATE integrations SET state = 'complete', result_sha = ?, error = NULL WHERE id = ?",
+                    (outcome.result_sha, integration_id),
+                )
+                self.connection.execute(
+                    "DELETE FROM leases WHERE task_id = ? AND generation = ?", (task_id, generation)
+                )
+                self.connection.execute(
+                    "UPDATE tasks SET state = 'complete' WHERE id = ?", (task_id,)
+                )
+            elif outcome.status == "superseded":
+                self.connection.execute(
+                    "UPDATE integrations SET state = 'superseded', error = ? WHERE id = ?",
+                    (outcome.error, integration_id),
+                )
+            else:  # conflict / failed
+                self.connection.execute(
+                    "UPDATE integrations SET state = ?, error = ?, retained_worktree = ? WHERE id = ?",
+                    (outcome.status, outcome.error, outcome.retained_worktree, integration_id),
+                )
+                self.connection.execute(
+                    "DELETE FROM leases WHERE task_id = ? AND generation = ?", (task_id, generation)
+                )
+                attempts_row = self.connection.execute(
+                    "SELECT attempts FROM tasks WHERE id = ?", (task_id,)
+                ).fetchone()
+                attempts = int(attempts_row[0]) if attempts_row else 0
+                self.connection.execute(
+                    "UPDATE tasks SET state = ? WHERE id = ?",
+                    ("queued" if attempts < max_attempts else "failed", task_id),
+                )
 
     def close(self) -> None:
         self.connection.close()
