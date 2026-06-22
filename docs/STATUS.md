@@ -195,18 +195,13 @@ existing CLI session and makes no model or API calls of its own.
   end-to-end test against a bare remote; the legacy direct push remains a fallback.
 - `looptight migrate` and coordinator activation are documented in README and
   architecture (activation, fail-closed, idempotent, outside-Git error).
+- `finish_integration` conflict path has direct coverage: the fenced lease is released
+  and the task requeues while attempts are below the cap, then fails at the cap and is
+  no longer claimable.
 
 ## Next
 
-1. Cover the integration conflict/failed terminal transitions directly:
-   `finish_integration` releases the fenced lease and requeues the task below the
-   attempt cap or marks it `failed` at the cap, but no test exercises that path.
-   Evidence: src/looptight/coordinator.py:506;
-   Acceptance: a test proves a `conflict` outcome releases the lease and requeues the
-   task while attempts are below the cap, and marks the task `failed` once the cap is
-   reached, with no production-code change and the suite passing.
-
-2. Reclaim leases held by abandoned runs via heartbeat: `runs.heartbeat` is written
+1. Reclaim leases held by abandoned runs via heartbeat: `runs.heartbeat` is written
    at `start_run` but never refreshed or used, so a dead session's lease lingers for
    the full TTL.
    Evidence: src/looptight/coordinator.py:302;

@@ -11,7 +11,12 @@ from multiprocessing import get_context
 import pytest
 
 from looptight.claims import ClaimStore, LegacyClaimsDisabled, claim_dir
-from looptight.coordinator import Coordinator, MigrationBlocked, coordinator_path
+from looptight.coordinator import (
+    Coordinator,
+    IntegrationOutcome,
+    MigrationBlocked,
+    coordinator_path,
+)
 
 
 def _repo(path):
@@ -168,3 +173,27 @@ def test_activation_writes_marker_and_legacy_fails_closed(tmp_path):
     store = ClaimStore(claim_dir(repo), "owner")
     with pytest.raises(LegacyClaimsDisabled):
         store.select([{"id": "x"}])
+
+
+def test_finish_integration_conflict_requeues_below_cap_then_fails(tmp_path):
+    db = Coordinator.open(_repo(tmp_path / "r"))
+    task = {"id": "t1"}
+    observed = []
+    for attempt in range(1, 4):  # attempt cap = 3
+        run = db.start_run(f"r{attempt}")
+        lease = db.claim([task], run.id, ttl_s=60)
+        assert lease is not None and lease.generation == attempt
+        integration_id = db.enqueue_integration(lease, "refs/heads/main", f"sha{attempt}")
+        db.finish_integration(
+            integration_id,
+            IntegrationOutcome(integration_id, "conflict", error="conflict", retained_worktree="wt"),
+            max_attempts=3,
+        )
+        assert db.current_lease(lease._row_id) is None  # fenced lease released
+        observed.append(
+            db.connection.execute("SELECT state FROM tasks WHERE fingerprint = 't1'").fetchone()[0]
+        )
+
+    assert observed == ["queued", "queued", "failed"]  # requeued below the cap, failed at it
+    # A failed task is no longer claimable.
+    assert db.claim([task], db.start_run("again").id, ttl_s=60) is None
