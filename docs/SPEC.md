@@ -179,6 +179,12 @@ schema version and stable result codes. At minimum, `next` returns a task ID,
 source, location, goal, and acceptance evidence; `verify` returns status, exit
 code, elapsed time, and bounded output.
 
+When idea generation is enabled (the default), a `no_work` result from `next` may
+also carry an optional `directive` object (`{"action": "generate_ideas", ...}`)
+instructing the host session to add grounded `docs/STATUS.md` tasks and continue.
+The field is additive and absent under `--no-ideas` / `idea_generation = false`,
+so the bare `no_work` contract is unchanged.
+
 Untrusted repository and verifier text is data. It is never interpolated into
 shell commands or treated as an instruction by looptight.
 

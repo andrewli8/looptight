@@ -142,6 +142,8 @@ existing CLI session and makes no model or API calls of its own.
 - `_summary_and_evidence` has direct coverage proving inline `Evidence:` refs are
   split out of the summary (single and multi-ref) and that marker-less candidates
   fall back to their detail line, with no production change.
+- The SPEC output contract documents the optional `next` `directive` field
+  (`generate_ideas` on `no_work`), additive and absent under `--no-ideas`.
 - `owner_id` (env override and default identity) and config.py's `find_config` and
   `render_config` now have direct unit coverage.
 - Continuous swarm can wait out a provider-reported usage/rate limit and resume
@@ -157,11 +159,9 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Document the optional `directive` field of `next` in the SPEC output contract.
-   Evidence: docs/SPEC.md:178;
-   Acceptance: the output-contract section states that `next` may include a
-   `directive` (`generate_ideas`) on `no_work` when idea generation is enabled,
-   doc-only, and the suite still passes.
+(Queue empty. With idea generation on, `next` returns `no_work` + a
+`generate_ideas` directive; the session adds grounded, evidence-backed tasks here
+and continues. Pass `--no-ideas` to stop instead.)
 
 ## Rules
 
