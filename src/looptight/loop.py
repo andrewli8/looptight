@@ -129,7 +129,7 @@ def _supply_loop(
         snapshot = checkpointer.snapshot()
 
         iteration = _with_limit_resume(
-            lambda: adapter.run_iteration(goal, context, workdir),
+            lambda: adapter.run_iteration(goal, context, workdir, config.model),
             resume_on_limit=resume_on_limit,
             base=limit_backoff_seconds,
             cap=limit_max_wait_seconds,

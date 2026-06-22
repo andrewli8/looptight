@@ -38,6 +38,7 @@ class Config:
     # Runtime-only controls retained for the explicit headless commands. These
     # are not part of the project configuration file contract.
     agent: str | None = None  # None = auto-detect from PATH
+    model: str | None = None  # provider model for spawned sessions (e.g. "opus"); None = CLI default
     max_iterations: int = DEFAULT_MAX_ITERATIONS
     native: bool = False  # drive the agent's own loop (e.g. Claude /goal) where it has one
     hook: bool = False  # arm the Claude Code Stop-hook auto-loop in this repo

@@ -356,3 +356,23 @@ def test_on_iteration_callback_called_in_delegate_path(workdir):
 
     assert len(seen) == 1  # one verify record from the delegate path
     assert seen[0].verify.passed
+
+
+def test_run_loop_passes_model_to_adapter(workdir):
+    received = {}
+
+    class ModelRecordingAdapter(FakeAdapter):
+        def run_iteration(self, goal, context, workdir, model=None):
+            received["model"] = model
+            return IterationResult(transcript="ok", ok=True)
+
+    run_loop(
+        "do it",
+        ModelRecordingAdapter(),
+        _config(model="opus"),
+        workdir,
+        verify_fn=make_verify(pass_on=1),
+        checkpointer=Checkpointer(workdir, enabled=False),
+    )
+
+    assert received["model"] == "opus"  # spawned session uses the configured model

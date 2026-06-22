@@ -795,3 +795,8 @@ def test_status_human_output_shows_coordinator_counts(tmp_path, monkeypatch, cap
     out = capsys.readouterr().out
     assert "coordinator:" in out
     assert "queued" in out and "integrations" in out and "publications" in out
+
+
+def test_run_and_swarm_parsers_accept_model():
+    assert build_parser().parse_args(["run", "--headless", "g", "--model", "opus"]).model == "opus"
+    assert build_parser().parse_args(["swarm", "--headless", "--model", "opus"]).model == "opus"

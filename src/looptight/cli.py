@@ -136,6 +136,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_swarm = sub.add_parser("swarm", help="run isolated headless workers from the grounded queue")
     p_swarm.add_argument("--headless", action="store_true", help="explicitly allow agent child processes")
     p_swarm.add_argument("--agent", choices=KNOWN_AGENTS, help="agent CLI for every worker")
+    p_swarm.add_argument("--model", help="provider model for every spawned worker (e.g. opus)")
     p_swarm.add_argument("--workers", type=_positive_int, default=4, help="concurrent workers (1-50)")
     p_swarm.add_argument("--verify", help="override the project verify command")
     p_swarm.add_argument("--max-iterations", type=_positive_int, help="iteration cap per worker")
@@ -204,6 +205,7 @@ def _add_run_flags(parser: argparse.ArgumentParser) -> None:
         help="explicitly allow launching the configured agent CLI as a child process",
     )
     parser.add_argument("--agent", choices=KNOWN_AGENTS, help="agent to use (auto-detected if omitted)")
+    parser.add_argument("--model", help="provider model for the spawned session (e.g. opus)")
     parser.add_argument("--verify", help="verify command (auto-detected if omitted)")
     parser.add_argument("--max-iterations", type=_positive_int, help="hard iteration cap")
     parser.add_argument(

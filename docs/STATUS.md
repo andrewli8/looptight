@@ -223,6 +223,9 @@ existing CLI session and makes no model or API calls of its own.
   deterministic `looptight` committer identity, so integration succeeds where no
   ambient git identity is configured (CI, fresh containers) — fixes the CI build
   failure; covered by an identity regression test.
+- `run`/`swarm` accept `--model` (config `model`), threaded to the provider so
+  spawned sessions use a chosen model (e.g. `--model opus`); the claude adapter's
+  existing `--model` plumbing carries it. Covered by loop and parser tests.
 
 ## Next
 

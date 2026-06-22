@@ -88,6 +88,7 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
     workdir = Path.cwd()
     config = load_config().merged(
         agent=args.agent,
+        model=args.model,
         verify=args.verify,
         max_iterations=args.max_iterations,
         patience=args.patience,

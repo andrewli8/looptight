@@ -783,6 +783,7 @@ def cmd_swarm(args, console: Console) -> int:
         return 2
     config = load_config().merged(
         agent=args.agent,
+        model=args.model,
         verify=args.verify,
         max_iterations=args.max_iterations,
         idea_generation=False if args.no_ideas else None,
