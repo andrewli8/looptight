@@ -345,6 +345,19 @@ class Coordinator:
         fingerprint, run_id, generation, payload = row
         return Lease(str(fingerprint), str(run_id), int(generation), json.loads(payload), int(task_id))
 
+    def lease_for(self, fingerprint: str, run_id: str) -> Lease | None:
+        """Return the lease ``run_id`` holds for ``fingerprint``, if any."""
+        row = self.connection.execute(
+            """SELECT t.id, l.generation, t.payload
+               FROM leases l JOIN tasks t ON t.id = l.task_id
+               WHERE t.fingerprint = ? AND l.run_id = ?""",
+            (fingerprint, run_id),
+        ).fetchone()
+        if row is None:
+            return None
+        task_id, generation, payload = row
+        return Lease(str(fingerprint), str(run_id), int(generation), json.loads(payload), int(task_id))
+
     def enqueue_integration(self, lease: Lease, target_ref: str, candidate_sha: str) -> str:
         """Queue a verified worker branch for integration; fenced to the live lease."""
         with self.transaction(immediate=True):

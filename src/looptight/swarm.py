@@ -26,7 +26,13 @@ from .limits import (
     limit_wait,
     retry_after_from_error,
 )
-from .integration_queue import CoordinationTimeout, IntegrationLock, git_common_dir
+from .coordinator import Coordinator
+from .integration_queue import (
+    CoordinationTimeout,
+    IntegrationLock,
+    Integrator,
+    git_common_dir,
+)
 from .loop import run_loop
 from .prompts import PLANNING_GOAL
 from .tasks import next_task
@@ -49,6 +55,8 @@ class Worker:
     base: str
     status: str = "ready"
     error: str | None = None
+    run_id: str | None = None  # coordinator run that holds this worker's lease
+    integration_id: str | None = None  # queued integration, set at handoff
 
 
 @dataclass(frozen=True)
@@ -242,7 +250,10 @@ def _prepare_workers(root: Path, count: int) -> tuple[list[Worker], str | None]:
         added = _git(root, "worktree", "add", "-q", "--detach", str(worktree), head.stdout.strip())
         if added.returncode != 0:
             return workers, added.stderr.strip() or "could not create worker worktree"
-        decision = next_task(worktree)
+        # A distinct run id per worker so the coordinator leases each a distinct
+        # task, and so the manager can later enqueue the worker's own lease.
+        worker_run_id = f"{run_id}-w{number}"
+        decision = next_task(worktree, run_id=worker_run_id)
         if decision.status == "no_work":
             _remove_worker_worktree(root, worktree)
             break
@@ -253,7 +264,9 @@ def _prepare_workers(root: Path, count: int) -> tuple[list[Worker], str | None]:
         if switched.returncode != 0:
             _remove_worker_worktree(root, worktree)
             return workers, switched.stderr.strip() or "could not create worker branch"
-        workers.append(Worker(number, decision.task, branch, worktree, head.stdout.strip()))
+        workers.append(
+            Worker(number, decision.task, branch, worktree, head.stdout.strip(), run_id=worker_run_id)
+        )
     return workers, None
 
 
@@ -338,6 +351,74 @@ def _integrate(root: Path, worker: Worker, verify: str) -> None:
         return
     worker.status = "merged"
     _remove_worker_worktree(root, worker.worktree)
+
+
+_INTEGRATION_STATUS = {
+    "complete": "merged",
+    "conflict": "conflict",
+    "failed": "failed",
+    "superseded": "failed",
+}
+
+
+def _integrate_via_queue(root: Path, workers: list[Worker], verify: str) -> None:
+    """Hand verified workers to the durable coordinator queue and drain it.
+
+    Each verified worker's committed branch is enqueued (fenced to its lease) and
+    integrated one-at-a-time by the Integrator (merge in a coordinator worktree,
+    verify, CAS-advance the target ref). The primary worktree, kept clean by the
+    swarm, is then synced to the advanced ref. Falls back to a locked direct merge
+    only when no coordinator is available.
+    """
+    coordinator = Coordinator.open(root)
+    if coordinator is None:  # pragma: no cover - swarm always runs inside Git
+        with IntegrationLock.acquire(git_common_dir(root), timeout_s=INTEGRATION_LOCK_TIMEOUT):
+            for worker in workers:
+                _integrate(root, worker, verify)
+        return
+    try:
+        branch = _git(root, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip() or "HEAD"
+        target_ref = f"refs/heads/{branch}"
+        queued: list[Worker] = []
+        for worker in workers:
+            if worker.status != "verified":
+                continue
+            lease = coordinator.lease_for(str(worker.task["id"]), worker.run_id or "")
+            if lease is None:
+                worker.status = "failed"
+                worker.error = "lost task lease before integration"
+                continue
+            candidate_sha = _git(worker.worktree, "rev-parse", "HEAD").stdout.strip()
+            worker.integration_id = coordinator.enqueue_integration(lease, target_ref, candidate_sha)
+            queued.append(worker)
+
+        integrator = Integrator(coordinator, lock_timeout_s=INTEGRATION_LOCK_TIMEOUT)
+        outcomes = {}
+        while True:
+            outcome = integrator.run_next(root, verify)
+            if outcome is None:
+                break
+            outcomes[outcome.id] = outcome
+
+        integrated = False
+        for worker in queued:
+            outcome = outcomes.get(worker.integration_id)
+            if outcome is None:
+                worker.status = "failed"
+                worker.error = "integration did not run"
+                continue
+            worker.status = _INTEGRATION_STATUS.get(outcome.status, "failed")
+            if outcome.status == "complete":
+                integrated = True
+                _remove_worker_worktree(root, worker.worktree)
+            else:
+                worker.error = outcome.error
+        if integrated:
+            # The swarm requires a clean primary worktree, so fast-forwarding it to
+            # the advanced ref is safe and keeps it consistent with main.
+            _git(root, "reset", "--hard", target_ref)
+    finally:
+        coordinator.close()
 
 
 def _planner_worktree(root: Path) -> tuple[Path | None, str | None, str | None]:
@@ -505,15 +586,11 @@ def run_swarm(
                 future.cancel()
             raise
     completed.sort(key=lambda item: item.number)
-    # Serialize Git integration across concurrent sessions on this repository; a
-    # crashed holder releases the advisory lock automatically.
     try:
-        with IntegrationLock.acquire(git_common_dir(root), timeout_s=INTEGRATION_LOCK_TIMEOUT):
-            for worker in completed:
-                _integrate(root, worker, config.verify)
-                _publish_state(root, prepared, "running")
+        _integrate_via_queue(root, completed, config.verify)
     except CoordinationTimeout as exc:
         return _result(root, SwarmResult(tuple(completed), str(exc)))
+    _publish_state(root, prepared, "running")
     if push and any(worker.status == "merged" for worker in completed):
         pushed = _git(root, "push")
         if pushed.returncode != 0:

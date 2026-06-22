@@ -141,9 +141,12 @@ def prepare_integration_worktree(root: Path, target_ref: str) -> tuple[Path, str
             raise IntegrationError(added.stderr.strip() or "could not create integration worktree")
     if git_common_dir(path) != common:
         raise IntegrationError("integration worktree belongs to a different repository")
-    status = _git(path, "status", "--porcelain")
-    if status.returncode != 0 or status.stdout.strip():
-        raise IntegrationError("integration worktree is not clean")
+    # Sync a reused worktree to the current target tip so each integration starts
+    # from the observed base. The worktree is coordinator-owned, never a user one.
+    reset = _git(path, "reset", "--hard", sha)
+    if reset.returncode != 0:
+        raise IntegrationError(reset.stderr.strip() or "could not reset integration worktree")
+    _git(path, "clean", "-qfd")
     return path, sha
 
 

@@ -81,7 +81,11 @@ def _idea_directive() -> dict[str, object]:
 
 
 def next_task(
-    workdir: Path, *, propose_fn: ProposeFn = propose, idea_generation: bool = True
+    workdir: Path,
+    *,
+    propose_fn: ProposeFn = propose,
+    idea_generation: bool = True,
+    run_id: str | None = None,
 ) -> NextResult:
     """Claim one grounded task without making an agent or network call.
 
@@ -116,7 +120,7 @@ def next_task(
 
     coordinator = Coordinator.open(workdir)
     if coordinator is not None:
-        run_id = current_run_id()
+        run_id = run_id or current_run_id()
         coordinator.start_run("session", run_id=run_id)
         lease = coordinator.claim(cast(list[dict[str, object]], tasks), run_id, ttl_s=24 * 60 * 60)
         task = cast(dict[str, str | None] | None, lease.payload if lease else None)

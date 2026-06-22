@@ -381,11 +381,11 @@ def test_swarm_cleans_unstarted_worktree_when_preparation_fails(tmp_path, monkey
     real_next_task = swarm.next_task
     calls = {"count": 0}
 
-    def flaky_next_task(workdir):
+    def flaky_next_task(workdir, **kwargs):
         calls["count"] += 1
         if calls["count"] == 2:
             return NextResult(status="error", error="claim broke")
-        return real_next_task(workdir)
+        return real_next_task(workdir, **kwargs)
 
     monkeypatch.setattr("looptight.swarm.next_task", flaky_next_task)
 
