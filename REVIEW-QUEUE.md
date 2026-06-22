@@ -1262,3 +1262,29 @@ land unattended). Queue otherwise empty: `propose` finds no candidates,
 `next --json` returns `no_work` + `generate_ideas`.
 
 ---
+
+## BUILDER 2026-06-22 (k) — no changes: nothing safe and valuable to do
+
+Synced to `origin/main` (`92d629a`). Note: the local `main` branch was a stale
+clone (`211a31d`, diverged 7/50 — the old CLI surface with `lessons`/`revert`/
+`install-hook`); reset it hard to `origin/main` before any check so all
+verification ran against current code, not the stale tree.
+
+All signals idle and clean: `looptight propose` → no candidates (clean tree);
+`next --json` → `no_work` + `generate_ideas`; `status` → 0 queued tasks/
+integrations/publications, workspace clean; `verify --json` → `pass`;
+`ruff check` clean. Full `pytest` ran 3x deterministically (372 passed, 1
+skipped, the env-gated eval); the run-(j) de-flake of
+`test_swarm_publishes_worker_results_in_completion_order` holds under 10x stress.
+`metacog.py` checked (older mtime) but live — imported by `loop.py`, has tests;
+not dead code.
+
+No grounded, evidence-backed improvement is supported by the repository. Open
+concerns carried forward unchanged and correctly deferred: **C3** (`_task_paths`
+stem-only heuristic — defer until a real misclassification is observed), **C4**
+(REVIEW-QUEUE.md gitignore tension — human policy decision), **C8** (heartbeat/
+`reap_abandoned` unwired — concurrency-affecting change unsafe to land
+unattended). Manufacturing work for any would be churn against the project's
+lightweight ethos.
+
+---
