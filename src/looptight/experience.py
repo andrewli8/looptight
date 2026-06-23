@@ -13,7 +13,7 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
-__all__ = ["Model", "build_model", "landed_counts"]
+__all__ = ["Model", "build_model", "landed_counts", "suppressed", "reweight_factor", "summary_text"]
 
 _OUTCOME_KEY = "Looptight-Outcome:"
 
@@ -61,3 +61,33 @@ def build_model(
     failed = coordinator.recent_failures(window_s=cooldown_s, now=now) if coordinator else {}
     category_failed = coordinator.failure_counts() if coordinator else {}
     return Model(landed=landed, failed=failed, category_failed=category_failed)
+
+
+def suppressed(model: Model, *, max_failures: int = 2) -> set[str]:
+    """Idea ids whose recent failures reached the cooldown threshold."""
+    return {idea for idea, n in model.failed.items() if n >= max_failures}
+
+
+def reweight_factor(category: str, model: Model, *, lo: float = 0.5, hi: float = 1.5) -> float:
+    """Clamped yield multiplier for a category; 1.0 when there is no data."""
+    landed = model.category_landed.get(category, 0)
+    failed = model.category_failed.get(category, 0)
+    total = landed + failed
+    if total == 0:
+        return 1.0
+    yield_rate = landed / total  # in [0, 1]
+    return lo + (hi - lo) * yield_rate
+
+
+def summary_text(model: Model, *, k: int = 5) -> str:
+    """A bounded experience note for the planner, or '' when there is nothing useful."""
+    if not model.failed and not model.landed:
+        return ""
+    lines: list[str] = []
+    if model.failed:
+        avoid = sorted(model.failed, key=lambda i: model.failed[i], reverse=True)[:k]
+        lines.append("Recently-failed ideas to avoid re-proposing: " + ", ".join(avoid) + ".")
+    if model.landed:
+        top = sorted(model.landed, key=lambda i: model.landed[i], reverse=True)[:k]
+        lines.append("Recently-landed idea kinds that paid off: " + ", ".join(top) + ".")
+    return "\n".join(lines)
