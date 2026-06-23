@@ -75,8 +75,8 @@ def reweight_factor(category: str, model: Model, *, lo: float = 0.5, hi: float =
     total = landed + failed
     if total == 0:
         return 1.0
-    yield_rate = landed / total  # in [0, 1]
-    return lo + (hi - lo) * yield_rate
+    rate = max(0.0, min(1.0, landed / total))  # clamp against malformed counts
+    return lo + (hi - lo) * rate
 
 
 def summary_text(model: Model, *, k: int = 5) -> str:

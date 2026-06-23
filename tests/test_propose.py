@@ -359,3 +359,12 @@ def test_reweight_never_inverts_curated_over_automated():
     model = Model(category_landed={"lint": 100}, category_failed={"lint": 0})
     ordered = [c.source for c in rank_with_model(cs, model)]
     assert ordered[0] == "task-file"
+
+
+def test_failed_curated_source_stays_above_automated():
+    cs = [_rc("task-file", "human task"), _rc("status-next", "planned"), _rc("lint", "nit")]
+    # task-file AND status-next each have a recorded failure; lint has none
+    model = Model(category_failed={"task-file": 3, "status-next": 2})
+    ordered = [c.source for c in rank_with_model(cs, model)]
+    assert ordered.index("task-file") < ordered.index("lint")
+    assert ordered.index("status-next") < ordered.index("lint")

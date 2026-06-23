@@ -270,13 +270,19 @@ class Integrator:
         if merged.returncode != 0:
             _git(worktree, "merge", "--abort")
             if idea:
-                self.coordinator.record_failure(idea, category)
+                try:
+                    self.coordinator.record_failure(idea, category)
+                except Exception:
+                    pass  # advisory signal; never let it break a clean integration failure
             return self._finish(record, "conflict", error=merged.stderr.strip() or "merge conflict", retained=worktree)
         verdict = run_verify(verify, worktree)
         if not verdict.passed:
             _git(worktree, "reset", "--hard", observed)
             if idea:
-                self.coordinator.record_failure(idea, category)
+                try:
+                    self.coordinator.record_failure(idea, category)
+                except Exception:
+                    pass  # advisory signal; never let it break a clean integration failure
             return self._finish(record, "failed", error=f"integration verify: {verdict.status}", retained=worktree)
         self._maybe_crash("after_merge")
         outcome_trailer = f"\nLooptight-Outcome: {idea} landed" if idea else ""

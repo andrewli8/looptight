@@ -309,3 +309,21 @@ def test_failed_integration_records_failure(tmp_path):
 
     assert outcome.status == "failed"
     assert db.recent_failures(window_s=10_000.0) == {"idea-bad": 1}
+
+
+def test_record_failure_error_does_not_break_integration(tmp_path, monkeypatch):
+    # If record_failure raises (e.g., db locked), integration must still finalize cleanly.
+    repo, candidate = _repo_with_candidate(tmp_path)
+    db = Coordinator.open(repo)
+    run = db.start_run("worker")
+    lease = db.claim([{"id": "t1", "idea_id": "idea-bad", "source": "metacog"}], run.id, ttl_s=60)
+    db.enqueue_integration(lease, "refs/heads/main", candidate)
+
+    def boom(*a, **k):
+        raise RuntimeError("db locked")
+
+    monkeypatch.setattr(db, "record_failure", boom)
+    integrator = Integrator(db)
+    outcome = integrator.run_next(repo, "exit 1")  # failing verify
+
+    assert outcome.status == "failed"  # finalized cleanly despite record_failure raising

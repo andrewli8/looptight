@@ -31,6 +31,11 @@ def _normalized(title: str) -> str:
 _REWEIGHT_LO = 0.5
 _REWEIGHT_HI = 1.08  # keep a boosted automated source below the next curated tier
 
+# Human-authored sources whose relative ordering must never be inverted by
+# learned damping. A failed task-file or status-next idea should still run
+# before any automated signal; the verifier — not ranking — is the quality gate.
+_CURATED_SOURCES = {"task-file", "status-next"}
+
 
 def rank(candidates: list[Candidate]) -> list[Candidate]:
     """Stable sort by source priority (descending). Heuristic, not validated."""
@@ -42,12 +47,17 @@ def rank(candidates: list[Candidate]) -> list[Candidate]:
 
 
 def rank_with_model(candidates: list[Candidate], model: Model) -> list[Candidate]:
-    """Stable sort by source weight, scaled by clamped category yield. Heuristic."""
-    scored = [
-        Candidate(**{**c.__dict__, "score": float(_SOURCE_WEIGHT.get(c.source, 0))
-                     * reweight_factor(c.source, model, lo=_REWEIGHT_LO, hi=_REWEIGHT_HI)})
-        for c in candidates
-    ]
+    """Stable sort by source weight, scaled by clamped category yield (automated
+    sources only). Curated sources keep their base weight so learned damping can
+    never reorder human-authored intent below an automated signal."""
+    scored = []
+    for c in candidates:
+        base = float(_SOURCE_WEIGHT.get(c.source, 0))
+        factor = (
+            1.0 if c.source in _CURATED_SOURCES
+            else reweight_factor(c.source, model, lo=_REWEIGHT_LO, hi=_REWEIGHT_HI)
+        )
+        scored.append(Candidate(**{**c.__dict__, "score": base * factor}))
     return sorted(scored, key=lambda c: c.score, reverse=True)
 
 
