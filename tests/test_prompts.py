@@ -29,6 +29,15 @@ def test_planning_goal_uses_multiple_reviewer_lenses_and_constraint_framing():
     assert PLANNING_GOAL.rstrip().endswith("make no changes.")
 
 
+def test_planning_goal_seeds_ideas_by_analogy_when_signals_run_dry():
+    # Analogical transfer keeps discovery productive on repos lacking surface signals:
+    # map a recently-improved file onto sibling modules that lack the same treatment,
+    # both grounded as evidence (Gick & Holyoak 1980/1983; Mednick 1962). The grounding
+    # gate still catches false analogies, so this widens discovery without ungrounding it.
+    assert "by analogy" in PLANNING_GOAL
+    assert "sibling" in PLANNING_GOAL
+
+
 def test_swarm_reuses_the_shared_planning_goal():
     from looptight import swarm
 
