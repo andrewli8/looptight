@@ -291,16 +291,15 @@ existing CLI session and makes no model or API calls of its own.
   coordinator state, setup readiness, and the exact next setup command without
   starting headless/swarm execution. Ready and not-ready paths are covered by
   no-write tests.
+- Human `swarm` output now prints plain recovery guarantees for stale lease
+  requeue, pending integration reconciliation, and rejected push handling while
+  preserving the final outcome tally and JSON compatibility. Recovery messaging
+  is covered by swarm CLI tests.
 
 ## Next
 
-1. Improve conflict and recovery UX for retained or requeued work. Evidence:
-   README.md:195-199, docs/architecture.md:97-112, docs/STATUS.md:198-210.
-   Acceptance: merge conflict, stale lease, rejected push, abandoned run,
-   retained worktree, and recovered integration states emit plain human messages
-   explaining what happened, whether user work was touched, where to inspect
-   retained work, and what command to run next; JSON remains compatible; tests
-   cover at least conflict, stale lease requeue, and recovered integration.
+(Queue empty — `next` returns `no_work` with a `generate_ideas` directive; the
+session adds grounded, evidence-backed tasks and continues.)
 
 ## Rules
 

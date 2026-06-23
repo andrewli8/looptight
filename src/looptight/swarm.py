@@ -877,6 +877,9 @@ def cmd_swarm(args, console: Console) -> int:
     console.print(
         "next: inspect retained worktrees for failures or continue with `looptight next --json`"
     )
+    console.print("recovery: stale leases requeue when abandoned runs are reaped")
+    console.print("recovery: pending integrations are reconciled before claiming new work")
+    console.print("recovery: rejected pushes stay failed and are never force-pushed")
     console.print(_swarm_tally(result.workers))
     return 0 if result.passed else 1
 

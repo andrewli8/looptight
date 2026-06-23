@@ -333,6 +333,23 @@ def test_swarm_human_output_explains_integration_and_next_action(
     assert out.splitlines()[-1] == "1 workers · merged 1"
 
 
+def test_swarm_human_output_explains_recovery_guarantees(
+    tmp_path, monkeypatch, capsys
+):
+    _repo(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+
+    assert main(
+        ["swarm", "--headless", "--agent", "codex", "--verify", "exit 0", "--workers", "1"]
+    ) == 0
+
+    out = capsys.readouterr().out
+    assert "recovery: stale leases requeue when abandoned runs are reaped" in out
+    assert "recovery: pending integrations are reconciled before claiming new work" in out
+    assert "recovery: rejected pushes stay failed and are never force-pushed" in out
+
+
 def test_swarm_prints_start_banner_in_human_mode_but_not_json(tmp_path, monkeypatch, capsys):
     _repo(tmp_path)
     monkeypatch.chdir(tmp_path)
