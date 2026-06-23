@@ -66,6 +66,44 @@ def read_state(root: Path) -> dict[str, object]:
     return payload
 
 
+# Status order for the terminal panel: in-flight first, then terminal outcomes.
+_WORKER_STATUS_ORDER = (
+    "running", "ready", "verified", "merged", "failed", "conflict", "timeout", "interrupted"
+)
+
+
+def render_state_panel(state: dict[str, object]) -> str:
+    """Render swarm/daemon worker state as a compact terminal panel, or "" when
+    there are no workers. Pure: takes a state dict (from :func:`read_state`)."""
+    workers = state.get("workers") or []
+    if not isinstance(workers, list) or not workers:
+        return ""
+    goals = {
+        t.get("id"): str(t.get("goal", ""))
+        for t in (state.get("tasks") or [])
+        if isinstance(t, dict)
+    }
+    counts: dict[str, int] = {}
+    for worker in workers:
+        counts[str(worker.get("status", "?"))] = counts.get(str(worker.get("status", "?")), 0) + 1
+    ordered = [s for s in _WORKER_STATUS_ORDER if s in counts]
+    ordered += [s for s in counts if s not in _WORKER_STATUS_ORDER]
+    tally = ", ".join(f"{status} {counts[status]}" for status in ordered)
+    manager = str((state.get("manager") or {}).get("status", "?"))
+    lines = [f"swarm: manager {manager} · workers: {len(workers)} ({tally})"]
+    for worker in workers:
+        goal = goals.get(worker.get("task_id"), "")
+        if len(goal) > 63:
+            goal = goal[:60] + "..."
+        line = f"  #{worker.get('number')} {str(worker.get('status', '?')):<10} " \
+               f"{worker.get('task_id', '')}  {goal}".rstrip()
+        error = worker.get("error")
+        if error:
+            line += f"  [{str(error)[:50]}]"
+        lines.append(line)
+    return "\n".join(lines)
+
+
 PAGE = r"""<!doctype html>
 <html lang="en">
 <head>

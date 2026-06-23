@@ -205,3 +205,31 @@ def test_ui_command_rejects_out_of_range_port():
     with pytest.raises(SystemExit) as exc:
         main(["ui", "--port", "65536"])
     assert exc.value.code == 2
+
+
+def test_render_state_panel_summarizes_workers():
+    from looptight.ui import render_state_panel
+
+    state = {
+        "schema_version": 1,
+        "manager": {"status": "running"},
+        "tasks": [
+            {"id": "t1", "goal": "Fix the timeout path", "source": "todo", "status": "running"},
+            {"id": "t2", "goal": "Cover the retry case", "source": "lint", "status": "merged"},
+        ],
+        "workers": [
+            {"number": 1, "task_id": "t1", "status": "running", "error": None},
+            {"number": 2, "task_id": "t2", "status": "merged", "error": None},
+        ],
+        "updated_at": "2026-06-23T00:00:00Z",
+    }
+    panel = render_state_panel(state)
+    assert "running 1" in panel and "merged 1" in panel  # status tally
+    assert "#1" in panel and "#2" in panel  # per-worker lines
+    assert "Fix the timeout path" in panel  # task goal joined by task_id
+
+
+def test_render_state_panel_empty_without_workers():
+    from looptight.ui import render_state_panel
+
+    assert render_state_panel({"manager": {"status": "idle"}, "workers": []}) == ""

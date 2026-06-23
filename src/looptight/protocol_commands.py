@@ -12,6 +12,7 @@ from .config import ConfigError, load_config
 from .console import Console
 from .coordinator import Coordinator, MigrationBlocked, coordination_scope, current_run_id
 from .detect import detect_agent, detect_verify
+from .ui import read_state, render_state_panel
 from .verify import run_verify
 
 
@@ -338,6 +339,9 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
                 f"{coordinator_counts['pending_publications']} publications"
             )
         console.print(f"next: {action}")
+        panel = render_state_panel(read_state(workdir))
+        if panel:
+            console.print(panel)
     return 0
 
 
