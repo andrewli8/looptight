@@ -399,3 +399,28 @@ def test_from_todos_ignores_js_marker_inside_string_literal(tmp_path):
     # The marker is inside a string, not a comment: must not be a hit.
     (tmp_path / "src" / "a.ts").write_text('const s = "// TODO not real";\n')
     assert from_todos(tmp_path) == []
+
+
+# --- polyglot skipped-test discovery (JS/TS) ---
+
+def test_from_skipped_tests_finds_js_ts_skips(tmp_path):
+    from looptight.discovery import from_skipped_tests
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "a.test.ts").write_text('it.skip("does the thing", () => {});\n')
+    (tmp_path / "tests" / "b.spec.js").write_text('xit("legacy case", () => {});\n')
+    (tmp_path / "tests" / "c.test.tsx").write_text('describe.skip("a group", () => {});\n')
+    cands = from_skipped_tests(tmp_path)
+    locs = {c.location for c in cands}
+    assert "tests/a.test.ts:1" in locs
+    assert "tests/b.spec.js:1" in locs
+    assert "tests/c.test.tsx:1" in locs
+    assert all(c.source == "skipped-test" for c in cands)
+
+
+def test_from_skipped_tests_ignores_js_skip_in_string_or_comment(tmp_path):
+    from looptight.discovery import from_skipped_tests
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "a.test.ts").write_text(
+        'const s = "it.skip(should not count)";\n// it.skip in a comment\nit("real", () => {});\n'
+    )
+    assert from_skipped_tests(tmp_path) == []

@@ -305,6 +305,11 @@ existing CLI session and makes no model or API calls of its own.
   string/template literals, so polyglot repos get the same grounded signal; the
   Python `tokenize` path is unchanged. Covered by tests.
 
+- Skipped-test discovery spans JS/TS (`it.skip`/`describe.skip`/`test.skip`/
+  `test.todo`/`xit`/`xdescribe`) in `tests/`, matching markers on code with string
+  literals stripped and comment lines ignored; pytest skip detection (env-gate
+  opt-in, conditional guards) is unchanged. Covered by tests.
+
 ## Next
 
 1. Add battle-tested demo fixtures for trust claims. Evidence: README.md:87-107,

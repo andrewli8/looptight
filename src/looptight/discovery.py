@@ -236,6 +236,37 @@ def _module_is_optin(lines: list[str]) -> bool:
     return False
 
 
+# JS/TS test skips: `it.skip(`, `describe.skip(`, `test.skip(`, `test.todo(`,
+# and the `xit(` / `xdescribe(` shorthands. JS has no env-gate opt-in convention
+# like pytest, so detection is a plain marker match on code (string literals
+# stripped) outside comment lines.
+_JS_SKIP_RE = re.compile(r"\b(?:x(?:it|describe)|(?:it|describe|test)\.(?:skip|todo))\s*\(")
+_JS_SKIP_NAME_RE = re.compile(
+    r"\b(?:x(?:it|describe)|(?:it|describe|test)\.(?:skip|todo))\s*\(\s*[\"'`]([^\"'`]+)[\"'`]"
+)
+
+
+def _js_skip_candidate(root: Path, path: Path, lineno: int, line: str) -> Candidate | None:
+    """Build a `skipped-test` candidate from a JS/TS skip marker, or None."""
+    stripped = line.strip()
+    if stripped.startswith(("//", "*", "/*")):  # comment line, not code
+        return None
+    if not _JS_SKIP_RE.search(_code_only(line)):  # marker only inside a string, or absent
+        return None
+    name_match = _JS_SKIP_NAME_RE.search(line)
+    name = name_match.group(1).strip() if name_match else "skipped test"
+    location = f"{_rel(root, path)}:{lineno}"
+    return Candidate(
+        title=f"un-skip / fix skipped test: {name}",
+        source="skipped-test",
+        location=location,
+        suggested_verify=None,
+        score=0.0,
+        detail=stripped,
+        acceptance=f"Re-enable the test at {location} without skip and pass project verification.",
+    )
+
+
 def from_skipped_tests(root: Path) -> list[Candidate]:
     """Skipped / xfailed tests — each is a candidate to fix and re-enable.
 
@@ -266,6 +297,13 @@ def from_skipped_tests(root: Path) -> list[Candidate]:
                     acceptance="Run this test without skip/xfail and pass project verification.",
                 )
             )
+    for path in _files_with_exts(root, "tests", _JS_EXTS):
+        for lineno, line in enumerate(
+            path.read_text(encoding="utf-8", errors="ignore").splitlines(), 1
+        ):
+            candidate = _js_skip_candidate(root, path, lineno, line)
+            if candidate is not None:
+                out.append(candidate)
     return out
 
 
