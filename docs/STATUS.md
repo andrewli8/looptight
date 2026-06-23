@@ -395,17 +395,15 @@ existing CLI session and makes no model or API calls of its own.
   JSON on stdin defensively (picks the repo from `workspace.current_dir`/`cwd` else
   cwd) and never erroring; README documents the settings.json `statusLine` wiring.
   Covered by tests.
+- README's runtime-dependency claim matches reality: the package declares zero runtime
+  dependencies (`pyproject.toml` `dependencies = []`, stdlib `Console` replaced rich),
+  and the README states there are no third-party runtime dependencies. Guarded by a
+  doc-accuracy test that fails if `src/` imports rich or the stale claim returns.
 
 ## Next
 
-1. Correct the README runtime-dependency claim, which contradicts the project's
-   zero-dependency principle. Evidence: README.md:31 ("The installed package has no
-   third-party runtime dependency beyond `rich`."); pyproject.toml:23 (`dependencies =
-   []`); no `rich` import exists under src/ (the stdlib `Console` in
-   src/looptight/console.py replaced it). Acceptance: README no longer claims a `rich`
-   runtime dependency and instead states the package has no third-party runtime
-   dependencies; a test or grep confirms `src/` imports no third-party runtime package
-   and the README wording matches `pyproject.toml`'s empty `dependencies`.
+_Queue drained. The next `next` returns `no_work` with a `generate_ideas` directive;
+the loop adds grounded refinement/hardening tasks here or stops on convergence._
 
 ## Rules
 

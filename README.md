@@ -28,7 +28,7 @@ New to terms like verify, worktree, headless, claim, swarm, or daemon? See the
 `next` and `verify` make no model or network calls. They read the repository and
 run your test command, nothing else. The agent CLI owns authentication, model
 choice, and usage limits. The installed package has no third-party runtime
-dependency beyond `rich`.
+dependency at all; it runs on the Python standard library.
 
 ## When to use it
 
