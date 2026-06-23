@@ -9,6 +9,7 @@ passing verifier, not this sort, is what authorizes any work (see docs/SPEC.md).
 from __future__ import annotations
 
 from .discovery import Candidate
+from .experience import Model, reweight_factor
 
 # Source-priority weights for ranking. Higher runs first. This is a transparent
 # heuristic, not a validated ordering (see docs/SPEC.md).
@@ -27,10 +28,24 @@ def _normalized(title: str) -> str:
     return " ".join(title.lower().split())
 
 
+_REWEIGHT_LO = 0.5
+_REWEIGHT_HI = 1.08  # keep a boosted automated source below the next curated tier
+
+
 def rank(candidates: list[Candidate]) -> list[Candidate]:
     """Stable sort by source priority (descending). Heuristic, not validated."""
     scored = [
         Candidate(**{**c.__dict__, "score": float(_SOURCE_WEIGHT.get(c.source, 0))})
+        for c in candidates
+    ]
+    return sorted(scored, key=lambda c: c.score, reverse=True)
+
+
+def rank_with_model(candidates: list[Candidate], model: Model) -> list[Candidate]:
+    """Stable sort by source weight, scaled by clamped category yield. Heuristic."""
+    scored = [
+        Candidate(**{**c.__dict__, "score": float(_SOURCE_WEIGHT.get(c.source, 0))
+                     * reweight_factor(c.source, model, lo=_REWEIGHT_LO, hi=_REWEIGHT_HI)})
         for c in candidates
     ]
     return sorted(scored, key=lambda c: c.score, reverse=True)

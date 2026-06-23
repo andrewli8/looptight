@@ -336,3 +336,26 @@ def test_apply_cooldown_filters_suppressed_ideas():
 def test_apply_cooldown_noop_without_model():
     cands = [_c("fix E501: x")]
     assert _apply_cooldown(cands, Model(), max_failures=2) == cands
+
+
+# --- rank_with_model -----------------------------------------------------------
+
+from looptight.ranking import rank_with_model  # noqa: E402
+
+
+def _rc(source, title):
+    return Candidate(title=title, source=source, location="x:1",
+                     suggested_verify=None, score=0.0, detail="d", acceptance="a")
+
+
+def test_rank_with_empty_model_matches_plain_rank():
+    cs = [_rc("lint", "a"), _rc("task-file", "b"), _rc("todo", "c")]
+    assert [c.title for c in rank_with_model(cs, Model())] == [c.title for c in rank(cs)]
+
+
+def test_reweight_never_inverts_curated_over_automated():
+    cs = [_rc("task-file", "curated"), _rc("lint", "auto")]
+    # lint lands a lot, task-file has no data: lint is boosted but must stay below curated
+    model = Model(category_landed={"lint": 100}, category_failed={"lint": 0})
+    ordered = [c.source for c in rank_with_model(cs, model)]
+    assert ordered[0] == "task-file"

@@ -18,7 +18,7 @@ from .coordinator import Coordinator
 from .discovery import Candidate, discover
 from .experience import Model, build_model, suppressed
 from .idea_identity import idea_id
-from .ranking import dedupe, rank
+from .ranking import dedupe, rank, rank_with_model
 
 __all__ = ["Candidate", "propose"]
 
@@ -39,14 +39,15 @@ def propose(root: Path, *, limit: int = 10) -> list[Candidate]:
     config_path = find_config(root)
     config = load_config(config_path) if config_path else Config()
     discovery_root = config_path.parent if config_path else root
-    ranked = rank(dedupe(discover(discovery_root, task_files=config.tasks)))
-
     coordinator = Coordinator.open(discovery_root)
     if coordinator is not None:
         try:
             model = build_model(discovery_root, "HEAD", coordinator, cooldown_s=_COOLDOWN_S)
-            ranked = _apply_cooldown(ranked, model, max_failures=_MAX_FAILURES)
+            base = dedupe(discover(discovery_root, task_files=config.tasks))
+            ranked = _apply_cooldown(rank_with_model(base, model), model, max_failures=_MAX_FAILURES)
         finally:
             coordinator.close()
+    else:
+        ranked = rank(dedupe(discover(discovery_root, task_files=config.tasks)))
 
     return ranked[:limit] if limit and limit > 0 else ranked
