@@ -330,9 +330,23 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-(Queue empty. `next` returns `no_work` with a `generate_ideas` directive; the
-autonomous loop generates 1-6 bite-sized grounded tasks here, or promotes a parked
-item from REVIEW-QUEUE when one is small enough.)
+1. Surface TODO/FIXME markers inside multi-line JS/TS block comments. Evidence:
+   src/looptight/discovery.py:125-131 (`_js_line_comment` reads only the opening
+   line of a `/* */` block, so a marker on a continuation line is missed).
+   Acceptance: a TODO/FIXME on a continuation line inside a multi-line `/* ... */`
+   comment in a `.ts` file is surfaced as a `todo` candidate; single-line `//` and
+   inline single-line `/* */` behavior is unchanged; a test covers a multi-line block.
+2. Document the daemon `--on-fault` hook in docs/daemon.md. Evidence:
+   docs/daemon.md:67-70 (the flag list omits `--on-fault`), src/looptight/cli.py:245.
+   Acceptance: docs/daemon.md documents `--on-fault CMD`, names its JSON payload
+   fields (`cycle`, `reason`, `backoff_s`, `last_error`), and states a failing hook
+   never stops the daemon; no code change.
+3. Prune vendored and build directories from the JS/TS file scan. Evidence:
+   src/looptight/discovery.py:62-66 (`_files_with_exts` rglobs without pruning,
+   while `_js_test_files` already prunes node_modules/.git/build). Acceptance: a JS
+   TODO or skip under a `node_modules/` directory inside `src/` is not surfaced,
+   non-vendored `src/` and `tests/` files still are, and a test covers a
+   `node_modules` path under `src/`.
 
 ## Rules
 
