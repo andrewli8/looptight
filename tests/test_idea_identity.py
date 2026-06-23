@@ -35,3 +35,15 @@ def test_status_next_identity_uses_normalized_title():
 def test_identity_is_twelve_char_hex():
     v = idea_id(_c("lint", "src/looptight/foo.py:10", "fix E501: x"))
     assert len(v) == 12 and all(ch in "0123456789abcdef" for ch in v)
+
+
+def test_lint_fallback_without_rule_code_is_line_stable():
+    a = _c("lint", "src/foo.py:10", "remove trailing whitespace")
+    b = _c("lint", "src/foo.py:42", "remove trailing whitespace")
+    assert idea_id(a) == idea_id(b)
+
+
+def test_skipped_test_identity_ignores_location():
+    a = _c("skipped-test", "tests/test_a.py:10", "test_retry_path")
+    b = _c("skipped-test", "tests/test_b.py:99", "test_retry_path")
+    assert idea_id(a) == idea_id(b)

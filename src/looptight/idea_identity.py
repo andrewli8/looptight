@@ -14,6 +14,8 @@ import re
 
 from .discovery import Candidate
 
+__all__ = ["idea_id"]
+
 _LINT_RULE_RE = re.compile(r"\bfix\s+([A-Z]+[0-9]+)\b", re.IGNORECASE)
 _CURATED = {"status-next", "task-file"}
 
