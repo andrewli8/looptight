@@ -7,11 +7,11 @@ import json
 import subprocess
 from pathlib import Path
 
-from .claims import ClaimStore, claim_dir, owner_id
+from .claims import MARKER_NAME, ClaimStore, claim_dir, owner_id
 from .config import ConfigError, load_config
 from .console import Console
 from .coordinator import Coordinator, MigrationBlocked, current_run_id
-from .detect import detect_verify
+from .detect import detect_agent, detect_verify
 from .verify import run_verify
 
 
@@ -168,7 +168,9 @@ def cmd_migrate(args: argparse.Namespace, console: Console) -> int:
 def cmd_status(args: argparse.Namespace, console: Console) -> int:
     """Report safety state without running validation or claiming work."""
     workdir = Path.cwd()
-    verify = load_config().verify or detect_verify(workdir)
+    config = load_config()
+    verify = config.verify or detect_verify(workdir)
+    agent = config.agent or detect_agent()
     try:
         git = subprocess.run(
             ["git", "status", "--porcelain"],
@@ -212,6 +214,14 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
     else:
         action = "run `looptight next --json`"
 
+    readiness = _readiness(
+        workdir=workdir,
+        verify=verify,
+        workspace=workspace,
+        config_tasks=config.tasks,
+        agent=agent,
+        fallback_action=action,
+    )
     payload = {
         "schema_version": 1,
         "command": "status",
@@ -220,12 +230,21 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         "claimed_task": claimed_task,
         "active_claims": active_claims,
         "next_action": action,
+        "readiness": readiness,
     }
     if coordinator_counts is not None:
         payload["coordinator"] = coordinator_counts
     if args.json:
         print(json.dumps(payload, sort_keys=True))
     else:
+        console.print(f"readiness: {readiness['tier']}")
+        console.print(
+            "readiness checks: "
+            + " · ".join(
+                f"{key} {value}" for key, value in readiness["checks"].items()
+            )
+        )
+        console.print(f"readiness next: {readiness['next_remediation']}")
         console.print(f"validation: {payload['validation']}")
         if verify:
             console.print(f"verify: {verify}")
@@ -240,3 +259,85 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
             )
         console.print(f"next: {action}")
     return 0
+
+
+def _readiness(
+    *,
+    workdir: Path,
+    verify: str | None,
+    workspace: str,
+    config_tasks: tuple[str, ...],
+    agent: str | None,
+    fallback_action: str,
+) -> dict[str, object]:
+    checks = {
+        "verify": "configured" if verify else "missing",
+        "git": workspace,
+        "coordinator": _coordinator_activation(workdir, workspace),
+        "task_sources": _task_source_health(workdir, config_tasks),
+        "agent": "available" if agent else "missing",
+    }
+    if checks["verify"] == "missing" or checks["git"] != "clean":
+        tier = "unsafe"
+    elif (
+        checks["coordinator"] != "active"
+        or checks["task_sources"] != "configured"
+        or checks["agent"] != "available"
+    ):
+        tier = "partial"
+    else:
+        tier = "ready"
+    return {
+        "tier": tier,
+        "checks": checks,
+        "next_remediation": _readiness_remediation(checks, fallback_action),
+    }
+
+
+def _coordinator_activation(workdir: Path, workspace: str) -> str:
+    if workspace == "not_git":
+        return "not_git"
+    common = _git_common_dir(workdir)
+    if common is None:
+        return "unknown"
+    return "active" if (common / "looptight" / MARKER_NAME).is_file() else "inactive"
+
+
+def _git_common_dir(workdir: Path) -> Path | None:
+    result = subprocess.run(
+        ["git", "rev-parse", "--git-common-dir"],
+        cwd=workdir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return None
+    common = Path(result.stdout.strip())
+    if not common.is_absolute():
+        common = workdir / common
+    return common
+
+
+def _task_source_health(workdir: Path, config_tasks: tuple[str, ...]) -> str:
+    if config_tasks:
+        return "configured"
+    if (workdir / "docs" / "STATUS.md").is_file():
+        return "configured"
+    return "missing"
+
+
+def _readiness_remediation(checks: dict[str, str], fallback_action: str) -> str:
+    if checks["verify"] == "missing":
+        return "run `looptight init`"
+    if checks["git"] == "not_git":
+        return "run inside a Git repository"
+    if checks["git"] == "dirty":
+        return "review changes and run `looptight verify --json`"
+    if checks["coordinator"] == "inactive":
+        return "run `looptight migrate`"
+    if checks["task_sources"] == "missing":
+        return "add grounded tasks or configure `tasks` in .looptight.toml"
+    if checks["agent"] == "missing":
+        return "install a supported agent CLI"
+    return fallback_action

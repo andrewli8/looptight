@@ -436,8 +436,110 @@ def test_status_json_is_read_only_and_actionable(tmp_path, monkeypatch, capsys):
     assert data["validation"] == "missing"
     assert data["workspace"] == "not_git"
     assert data["claimed_task"] is None
+    assert data["readiness"]["tier"] == "unsafe"
+    assert data["readiness"]["checks"]["git"] == "not_git"
     assert "looptight init" in data["next_action"]
     assert list(tmp_path.iterdir()) == []
+
+
+def test_status_readiness_reports_ready_repo(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text(
+        'verify = "exit 0"\ntasks = ["docs/STATUS.md"]\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text("## Next\n\n_No work._\n", encoding="utf-8")
+    subprocess.run(["git", "add", ".looptight.toml", "docs/STATUS.md"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=looptight@example.invalid",
+            "-c",
+            "user.name=looptight",
+            "commit",
+            "-qm",
+            "init",
+        ],
+        check=True,
+    )
+    (tmp_path / ".git" / "looptight").mkdir(parents=True)
+    (tmp_path / ".git" / "looptight" / "coordinator-format.json").write_text("{}\n", encoding="utf-8")
+    monkeypatch.setattr("looptight.protocol_commands.detect_agent", lambda: "codex")
+
+    assert main(["status", "--json"]) == 0
+
+    data = json.loads(capsys.readouterr().out)
+    assert data["readiness"]["tier"] == "ready"
+    assert data["readiness"]["next_remediation"] == "run `looptight next --json`"
+    assert data["readiness"]["checks"] == {
+        "verify": "configured",
+        "git": "clean",
+        "coordinator": "active",
+        "task_sources": "configured",
+        "agent": "available",
+    }
+
+
+def test_status_readiness_reports_partial_repo_with_remediation(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "exit 0"\n', encoding="utf-8")
+    subprocess.run(["git", "add", ".looptight.toml"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=looptight@example.invalid",
+            "-c",
+            "user.name=looptight",
+            "commit",
+            "-qm",
+            "init",
+        ],
+        check=True,
+    )
+    monkeypatch.setattr("looptight.protocol_commands.detect_agent", lambda: None)
+
+    assert main(["status", "--json"]) == 0
+
+    data = json.loads(capsys.readouterr().out)
+    assert data["readiness"]["tier"] == "partial"
+    assert data["readiness"]["checks"]["coordinator"] == "inactive"
+    assert data["readiness"]["checks"]["task_sources"] == "missing"
+    assert data["readiness"]["checks"]["agent"] == "missing"
+    assert data["readiness"]["next_remediation"] == "run `looptight migrate`"
+
+
+def test_status_human_prints_readiness_tier(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "exit 0"\n', encoding="utf-8")
+    subprocess.run(["git", "add", ".looptight.toml"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=looptight@example.invalid",
+            "-c",
+            "user.name=looptight",
+            "commit",
+            "-qm",
+            "init",
+        ],
+        check=True,
+    )
+    monkeypatch.setattr("looptight.protocol_commands.detect_agent", lambda: None)
+
+    assert main(["status"]) == 0
+
+    out = capsys.readouterr().out
+    assert "readiness: partial" in out
+    assert "readiness next: run `looptight migrate`" in out
 
 
 def test_status_human_shows_verify_command_without_changing_json(
@@ -460,6 +562,7 @@ def test_status_human_shows_verify_command_without_changing_json(
         "claimed_task",
         "active_claims",
         "next_action",
+        "readiness",
     }
     assert "verify" not in data
 
