@@ -129,6 +129,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_status = sub.add_parser("status", help="show validation readiness and the next safe action")
     p_status.add_argument("--json", action="store_true", help="emit the versioned status as JSON")
+    p_status.add_argument(
+        "--watch", action="store_true",
+        help="live-refresh the swarm/daemon worker panel until interrupted",
+    )
+    p_status.add_argument(
+        "--interval", type=_positive_float, default=2.0,
+        help="seconds between --watch refreshes (default 2)",
+    )
 
     p_migrate = sub.add_parser(
         "migrate", help="activate the repository coordinator (migrate from legacy claims)"

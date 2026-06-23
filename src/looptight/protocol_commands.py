@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import json
 import subprocess
+import time
+from collections.abc import Callable
 from pathlib import Path
 
 from .claims import MARKER_NAME, ClaimStore, claim_dir, has_live_claim, owner_id
@@ -223,9 +225,42 @@ def cmd_migrate(args: argparse.Namespace, console: Console) -> int:
     return 0
 
 
+def _watch_status(
+    workdir: Path,
+    console: Console,
+    *,
+    interval: float = 2.0,
+    sleep: Callable[[float], None] = time.sleep,
+    max_ticks: int = 0,
+    clear: bool = True,
+) -> int:
+    """Re-render the swarm/daemon panel on an interval until interrupted.
+
+    Reads the latest state each tick. ``sleep`` and ``max_ticks`` are injected so a
+    test can drive a single render without waiting. Returns the number of ticks.
+    """
+    ticks = 0
+    try:
+        while max_ticks == 0 or ticks < max_ticks:
+            panel = render_state_panel(read_state(workdir)) or "swarm: no active workers"
+            if clear:
+                console.print("\033[2J\033[H", end="")  # clear screen, cursor home
+            console.print(panel)
+            ticks += 1
+            if max_ticks and ticks >= max_ticks:
+                break
+            sleep(interval)
+    except KeyboardInterrupt:
+        pass
+    return ticks
+
+
 def cmd_status(args: argparse.Namespace, console: Console) -> int:
     """Report safety state without running validation or claiming work."""
     workdir = Path.cwd()
+    if getattr(args, "watch", False):
+        _watch_status(workdir, console, interval=getattr(args, "interval", 2.0))
+        return 0
     config = load_config()
     verify = config.verify or detect_verify(workdir)
     agent = config.agent or detect_agent()

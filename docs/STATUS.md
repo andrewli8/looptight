@@ -368,20 +368,20 @@ existing CLI session and makes no model or API calls of its own.
   Git-private swarm-state file via a pure `ui.render_state_panel`; empty when no
   workers; status JSON is unchanged. In-CLI visibility without a browser. Covered by tests.
 
+- `looptight status --watch` live-refreshes the swarm/daemon panel on an interval
+  (`--interval`, default 2s), re-reading state each tick until interrupted; the loop
+  takes an injected sleep/tick-cap so it is testable without waiting. Stdlib only.
+  Covered by a test that drives one render tick.
+
 ## Next
 
-1. Add `looptight status --watch` for a live-refreshing panel. Evidence: builds on
-   the new `ui.render_state_panel`; long swarm/daemon runs have no live terminal view.
-   Acceptance: `--watch` re-renders the panel on an interval, reading the latest state
-   each tick, until interrupted; stdlib-only and bounded; a test drives one render
-   tick via an injected clock/state.
-2. Add a Claude Code status-line integration. Evidence: Claude Code supports a
+1. Add a Claude Code status-line integration. Evidence: Claude Code supports a
    `statusLine` command; looptight has no one-line status surface. Acceptance:
    `looptight statusline` reads the Claude Code status-line JSON on stdin and prints
    one concise line (workers running/merged plus last verify) suitable for
    settings.json `statusLine`; documented in the README; a test covers the line for a
    sample state. Confirm Claude Code's stdin contract during implementation.
-3. Finish two-sided experience reweighting so the learning loop boosts, not only
+2. Finish two-sided experience reweighting so the learning loop boosts, not only
    damps. Evidence: src/looptight/experience.py (`build_model` never populates
    `category_landed`, so `reweight_factor`'s boost branch is dead). Acceptance: the
    landed trailer records the task source; `build_model` populates `category_landed`;

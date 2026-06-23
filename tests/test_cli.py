@@ -1249,3 +1249,31 @@ def test_daemon_cli_paths_do_not_require_agent_on_path(tmp_path, monkeypatch):
     assert main(["daemon", "--headless", "--agent", "claude", "--verify", "true", "--max-cycles", "1"]) == 0
     # nothing provided and nothing on PATH: clean exit 2, not a crash.
     assert main(["daemon", "--headless", "--verify", "true"]) == 2
+
+
+def test_status_watch_parser_accepts_flags():
+    args = build_parser().parse_args(["status", "--watch", "--interval", "5"])
+    assert args.watch is True and args.interval == 5.0
+
+
+def test_watch_status_renders_one_tick_without_sleeping(tmp_path, capsys):
+    from looptight.console import Console
+    from looptight.protocol_commands import _watch_status
+    from looptight.ui import write_state
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    write_state(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "manager": {"status": "running"},
+            "tasks": [{"id": "t1", "goal": "Fix timeout", "source": "todo", "status": "running"}],
+            "workers": [{"number": 1, "task_id": "t1", "status": "running", "error": None}],
+        },
+    )
+    slept: list[float] = []
+    ticks = _watch_status(tmp_path, Console(), interval=5.0, sleep=slept.append, max_ticks=1, clear=False)
+    assert ticks == 1
+    assert slept == []  # a bounded run does not sleep after its final tick
+    out = capsys.readouterr().out
+    assert "running 1" in out and "#1" in out
