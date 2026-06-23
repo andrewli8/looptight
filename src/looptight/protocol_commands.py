@@ -7,7 +7,7 @@ import json
 import subprocess
 from pathlib import Path
 
-from .claims import MARKER_NAME, ClaimStore, claim_dir, owner_id
+from .claims import MARKER_NAME, ClaimStore, claim_dir, has_live_claim, owner_id
 from .config import ConfigError, load_config
 from .console import Console
 from .coordinator import Coordinator, MigrationBlocked, current_run_id
@@ -223,6 +223,12 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         fallback_action=action,
     )
     verifier_quality = _verifier_quality(verify)
+    concurrency = _concurrency(
+        workdir=workdir,
+        workspace=workspace,
+        active_claims=active_claims,
+        coordinator_counts=coordinator_counts,
+    )
     payload = {
         "schema_version": 1,
         "command": "status",
@@ -233,6 +239,7 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         "next_action": action,
         "readiness": readiness,
         "verifier_quality": verifier_quality,
+        "concurrency": concurrency,
     }
     if coordinator_counts is not None:
         payload["coordinator"] = coordinator_counts
@@ -254,6 +261,14 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
             f"verifier quality: {verifier_quality['classification']} — "
             f"{verifier_quality['risk']}"
         )
+        console.print(f"concurrency: {concurrency['status']}")
+        console.print(
+            "concurrency checks: "
+            + " · ".join(
+                f"{key} {value}" for key, value in concurrency["checks"].items()
+            )
+        )
+        console.print(f"concurrency next: {concurrency['next_remediation']}")
         console.print(f"workspace: {workspace}")
         owner = f" · yours: {claimed_task}" if claimed_task else ""
         console.print(f"claims: {active_claims} active{owner}")
@@ -383,3 +398,60 @@ def _verifier_quality(command: str | None) -> dict[str, str]:
         "classification": "custom/unknown",
         "risk": "Custom verifier; Looptight cannot infer what this command covers.",
     }
+
+
+def _concurrency(
+    *,
+    workdir: Path,
+    workspace: str,
+    active_claims: int,
+    coordinator_counts: dict[str, object] | None,
+) -> dict[str, object]:
+    coordinator = _coordinator_activation(workdir, workspace)
+    claims = claim_dir(workdir)
+    legacy_claims = bool(claims and has_live_claim(claims))
+    queued_integrations = _count(coordinator_counts, "queued_integrations")
+    pending_publications = _count(coordinator_counts, "pending_publications")
+    checks: dict[str, object] = {
+        "coordinator": coordinator,
+        "legacy_claims": "live" if legacy_claims else "none",
+        "active_leases": active_claims,
+        "queued_integrations": queued_integrations,
+        "pending_publications": pending_publications,
+        "scope": "local-filesystem",
+    }
+    if workspace == "not_git" or coordinator != "active" or legacy_claims:
+        status = "unsafe"
+    elif active_claims or queued_integrations or pending_publications:
+        status = "degraded"
+    else:
+        status = "safe"
+    return {
+        "status": status,
+        "scope": "local-filesystem",
+        "checks": checks,
+        "next_remediation": _concurrency_remediation(
+            workspace, coordinator, legacy_claims, status
+        ),
+    }
+
+
+def _count(counts: dict[str, object] | None, key: str) -> int:
+    if counts is None:
+        return 0
+    value = counts.get(key, 0)
+    return value if isinstance(value, int) else 0
+
+
+def _concurrency_remediation(
+    workspace: str, coordinator: str, legacy_claims: bool, status: str
+) -> str:
+    if workspace == "not_git":
+        return "run inside a Git repository"
+    if legacy_claims:
+        return "wait for legacy claims to expire or clear them, then run `looptight migrate`"
+    if coordinator != "active":
+        return "run `looptight migrate`"
+    if status == "degraded":
+        return "wait for active coordinator work to drain"
+    return "none"

@@ -280,28 +280,26 @@ existing CLI session and makes no model or API calls of its own.
   `unit`, `integration`, `e2e`, or `custom/unknown`) plus a plain risk note in
   human output. Missing verifier, pytest, ruff, npm test, and make test cases are
   covered without claiming semantic coverage.
+- `status` reports additive concurrency safety (`safe`, `degraded`, `unsafe`)
+  with local-filesystem scope, coordinator activation, legacy-claim, active-lease,
+  integration-queue, and publication-queue checks plus remediation. Safe,
+  degraded, unsafe, and v1-compatible JSON paths are covered by tests.
 
 ## Next
 
-1. Surface explicit multi-agent safety status. Evidence: README.md:187-199,
-   README.md:228-247, docs/architecture.md:81-112. Acceptance: `status` or
-   `doctor` prints `Concurrency: safe`, `degraded`, or `unsafe`; the check
-   accounts for coordinator activation, legacy claims, active leases,
-   integration/publication queues, and the local-filesystem scope; unsafe output
-   gives exact remediation such as `looptight migrate`; tests cover each state.
-2. Add human-readable run explanations derived from real loop state. Evidence:
+1. Add human-readable run explanations derived from real loop state. Evidence:
    README.md:93-128, README.md:187-199, docs/architecture.md:192-202.
    Acceptance: a command or human-output mode summarizes why a task was selected,
    its evidence and acceptance condition, changed files when available, verifier
    result, integration/publication state, and the next safe action; JSON remains
    backward-compatible; tests cover next, verify, and swarm explanation paths.
-3. Provide a guided setup or smoke-test path that proves Looptight is ready
+2. Provide a guided setup or smoke-test path that proves Looptight is ready
    without silently enabling risky behavior. Evidence: README.md:45-64,
    README.md:130-138, README.md:228-247. Acceptance: one documented command path
    validates config, detected verifier, Git state, coordinator state, and agent
    availability; it prints the exact next command; tests prove expected writes
    are limited to config/instruction changes and no swarm/headless run starts.
-4. Improve conflict and recovery UX for retained or requeued work. Evidence:
+3. Improve conflict and recovery UX for retained or requeued work. Evidence:
    README.md:195-199, docs/architecture.md:97-112, docs/STATUS.md:198-210.
    Acceptance: merge conflict, stale lease, rejected push, abandoned run,
    retained worktree, and recovered integration states emit plain human messages

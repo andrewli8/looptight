@@ -585,6 +585,62 @@ def test_status_human_explains_verifier_quality_risk(
     assert "only protects style/static checks" in out
 
 
+def test_status_json_reports_safe_concurrency_when_coordinator_active(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".git" / "looptight").mkdir(parents=True)
+    (tmp_path / ".git" / "looptight" / "coordinator-format.json").write_text("{}\n", encoding="utf-8")
+
+    assert main(["status", "--json"]) == 0
+
+    data = json.loads(capsys.readouterr().out)
+    assert data["concurrency"]["status"] == "safe"
+    assert data["concurrency"]["scope"] == "local-filesystem"
+    assert data["concurrency"]["checks"]["coordinator"] == "active"
+    assert data["concurrency"]["next_remediation"] == "none"
+
+
+def test_status_json_reports_degraded_concurrency_for_active_work(
+    tmp_path, monkeypatch, capsys
+):
+    from looptight.coordinator import Coordinator
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    coordinator = Coordinator.open(tmp_path)
+    assert coordinator is not None
+    coordinator.activate_from_legacy()
+    run = coordinator.start_run("test", run_id="worker-a")
+    coordinator.claim(
+        [{"id": "task-a", "goal": "do", "source": "status-next", "location": None}],
+        run.id,
+        ttl_s=60,
+    )
+    coordinator.close()
+
+    assert main(["status", "--json"]) == 0
+
+    data = json.loads(capsys.readouterr().out)
+    assert data["concurrency"]["status"] == "degraded"
+    assert data["concurrency"]["checks"]["active_leases"] == 1
+    assert data["concurrency"]["next_remediation"] == "wait for active coordinator work to drain"
+
+
+def test_status_human_reports_unsafe_concurrency_with_migrate_hint(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+
+    assert main(["status"]) == 0
+
+    out = capsys.readouterr().out
+    assert "concurrency: unsafe" in out
+    assert "concurrency next: run `looptight migrate`" in out
+
+
 def test_status_human_shows_verify_command_without_changing_json(
     tmp_path, monkeypatch, capsys
 ):
@@ -607,6 +663,7 @@ def test_status_human_shows_verify_command_without_changing_json(
         "next_action",
         "readiness",
         "verifier_quality",
+        "concurrency",
     }
     assert "verify" not in data
 
