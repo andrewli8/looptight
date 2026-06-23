@@ -13,7 +13,10 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
-__all__ = ["Model", "build_model", "landed_counts", "suppressed", "reweight_factor", "summary_text"]
+__all__ = [
+    "Model", "build_model", "landed_counts", "landed_category_counts",
+    "suppressed", "reweight_factor", "summary_text",
+]
 
 _OUTCOME_KEY = "Looptight-Outcome:"
 
@@ -44,6 +47,23 @@ def landed_counts(root: Path, target_ref: str, *, limit: int = 500) -> dict[str,
     return counts
 
 
+def landed_category_counts(root: Path, target_ref: str, *, limit: int = 500) -> dict[str, int]:
+    """Verified-landed counts per task source (category), from `<idea> landed <source>`
+    trailers reachable from target_ref. Trailers without a source token are skipped."""
+    result = _git(
+        root, "log", target_ref, f"-n{limit}", f"--grep={_OUTCOME_KEY}",
+        "--pretty=%(trailers:key=Looptight-Outcome,valueonly)",
+    )
+    if result.returncode != 0:
+        return {}
+    counts: dict[str, int] = {}
+    for line in result.stdout.splitlines():
+        parts = line.split()
+        if len(parts) >= 3 and parts[1] == "landed":
+            counts[parts[2]] = counts.get(parts[2], 0) + 1
+    return counts
+
+
 @dataclass(frozen=True)
 class Model:
     landed: dict[str, int] = field(default_factory=dict)
@@ -58,9 +78,13 @@ def build_model(
 ) -> Model:
     """Union verified-landed (git) and recent local failures (coordinator)."""
     landed = landed_counts(root, target_ref, limit=limit)
+    category_landed = landed_category_counts(root, target_ref, limit=limit)
     failed = coordinator.recent_failures(window_s=cooldown_s, now=now) if coordinator else {}
     category_failed = coordinator.failure_counts() if coordinator else {}
-    return Model(landed=landed, failed=failed, category_failed=category_failed)
+    return Model(
+        landed=landed, failed=failed,
+        category_landed=category_landed, category_failed=category_failed,
+    )
 
 
 def suppressed(model: Model, *, max_failures: int = 2) -> set[str]:

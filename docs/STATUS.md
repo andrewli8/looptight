@@ -379,6 +379,12 @@ existing CLI session and makes no model or API calls of its own.
   marked complete because each rewrite minted a new line-based fingerprint). Covered
   by a line-drift stability test; the cross-route stability test still holds.
 
+- Experience reweighting is two-sided: the landed trailer records the task source
+  (`<idea> landed <source>`), `build_model` populates `category_landed` from it via
+  `landed_category_counts`, and `reweight_factor` boosts a high-yield category above
+  1.0 (still clamped below curated tiers). The learning loop now lifts what pays off,
+  not only damps failures. Covered by tests; backward-compatible trailer parsing.
+
 ## Next
 
 1. Add a Claude Code status-line integration. Evidence: Claude Code supports a
@@ -387,12 +393,6 @@ existing CLI session and makes no model or API calls of its own.
    one concise line (workers running/merged plus last verify) suitable for
    settings.json `statusLine`; documented in the README; a test covers the line for a
    sample state. Confirm Claude Code's stdin contract during implementation.
-2. Finish two-sided experience reweighting so the learning loop boosts, not only
-   damps. Evidence: src/looptight/experience.py (`build_model` never populates
-   `category_landed`, so `reweight_factor`'s boost branch is dead). Acceptance: the
-   landed trailer records the task source; `build_model` populates `category_landed`;
-   a high-yield automated category gets a factor above 1.0 while still ranking below
-   curated `task-file`/`status-next`; tests cover both boost and damp.
 
 ## Rules
 

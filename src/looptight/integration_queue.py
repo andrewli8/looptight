@@ -285,7 +285,10 @@ class Integrator:
                     pass  # advisory signal; never let it break a clean integration failure
             return self._finish(record, "failed", error=f"integration verify: {verdict.status}", retained=worktree)
         self._maybe_crash("after_merge")
-        outcome_trailer = f"\nLooptight-Outcome: {idea} landed" if idea else ""
+        # Record the task source too (`<idea> landed <source>`), so the self-model
+        # can credit the category that produced a landed change, not only the idea.
+        outcome_value = f"{idea} landed {category}".strip() if idea else ""
+        outcome_trailer = f"\nLooptight-Outcome: {outcome_value}" if outcome_value else ""
         message = (
             f"merge: looptight integration {record.id}\n\n"
             f"{_TRAILER_KEY}: {record.id}{outcome_trailer}"

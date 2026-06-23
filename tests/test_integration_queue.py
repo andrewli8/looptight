@@ -294,6 +294,7 @@ def test_landed_writes_outcome_trailer(tmp_path):
     assert outcome.status == "complete"
     body = _git(repo, "log", "refs/heads/main", "-1", "--pretty=%B").stdout
     assert "Looptight-Outcome: idea-xyz landed" in body
+    assert "landed metacog" in body  # the task source is recorded for category yield
 
 
 def test_failed_integration_records_failure(tmp_path):

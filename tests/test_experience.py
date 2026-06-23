@@ -77,3 +77,24 @@ def test_summary_text_bounded_and_empty_when_no_data():
     text = summary_text(m, k=5)
     assert "x" in text  # avoid list mentions the failed idea
     assert text.count("\n") <= 6  # bounded
+
+
+def test_build_model_populates_category_landed_from_trailers(tmp_path):
+    from looptight.experience import build_model
+
+    root = _repo(tmp_path)
+    _run(root, "commit", "--allow-empty", "-qm", "w1\n\nLooptight-Outcome: idea-a landed lint")
+    _run(root, "commit", "--allow-empty", "-qm", "w2\n\nLooptight-Outcome: idea-b landed lint")
+    _run(root, "commit", "--allow-empty", "-qm", "w3\n\nLooptight-Outcome: idea-c landed todo")
+    model = build_model(Path(root), "HEAD", None, cooldown_s=1000.0)
+    assert model.category_landed == {"lint": 2, "todo": 1}  # boost signal by source
+    assert model.landed == {"idea-a": 1, "idea-b": 1, "idea-c": 1}  # per-idea still parsed
+
+
+def test_reweight_boosts_a_high_yield_category_from_built_model(tmp_path):
+    from looptight.experience import build_model, reweight_factor
+
+    root = _repo(tmp_path)
+    _run(root, "commit", "--allow-empty", "-qm", "w\n\nLooptight-Outcome: idea-a landed lint")
+    model = build_model(Path(root), "HEAD", None, cooldown_s=1000.0)
+    assert reweight_factor("lint", model) > 1.0  # landed, no failures => boost
