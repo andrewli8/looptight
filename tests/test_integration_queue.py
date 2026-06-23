@@ -278,3 +278,34 @@ def test_integration_commits_with_deterministic_identity(tmp_path):
         capture_output=True, text=True, check=True,
     ).stdout.strip()
     assert committer == "looptight"
+
+
+def test_landed_writes_outcome_trailer(tmp_path):
+    # After a complete integration, the carrying commit must contain the idea's
+    # outcome trailer so outcomes are visible in git log.
+    repo, candidate = _repo_with_candidate(tmp_path)
+    db = Coordinator.open(repo)
+    run = db.start_run("worker")
+    lease = db.claim([{"id": "t1", "idea_id": "idea-xyz", "source": "metacog"}], run.id, ttl_s=60)
+    db.enqueue_integration(lease, "refs/heads/main", candidate)
+
+    outcome = Integrator(db).run_next(repo, "exit 0")
+
+    assert outcome.status == "complete"
+    body = _git(repo, "log", "refs/heads/main", "-1", "--pretty=%B").stdout
+    assert "Looptight-Outcome: idea-xyz landed" in body
+
+
+def test_failed_integration_records_failure(tmp_path):
+    # After a failed integration (verify fails), coordinator must record the failure
+    # so the metacognitive loop can track idea quality.
+    repo, candidate = _repo_with_candidate(tmp_path)
+    db = Coordinator.open(repo)
+    run = db.start_run("worker")
+    lease = db.claim([{"id": "t1", "idea_id": "idea-bad", "source": "metacog"}], run.id, ttl_s=60)
+    db.enqueue_integration(lease, "refs/heads/main", candidate)
+
+    outcome = Integrator(db).run_next(repo, "exit 1")  # failing verify
+
+    assert outcome.status == "failed"
+    assert db.recent_failures(window_s=10_000.0) == {"idea-bad": 1}

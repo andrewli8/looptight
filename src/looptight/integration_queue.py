@@ -256,23 +256,34 @@ class Integrator:
             return self._finish(record, "superseded", error="lease superseded by a newer owner")
         if root is None or verify is None:  # only the superseded path may omit them
             raise ValueError("root and verify are required to integrate a non-superseded record")
+        idea = str(lease.payload.get("idea_id") or "")
+        category = str(lease.payload.get("source") or "")
         worktree, observed = prepare_integration_worktree(root, record.target_ref)
         self.coordinator.begin_integration(record.id, observed)
-        return self._apply(record, root, verify, worktree, observed)
+        return self._apply(record, root, verify, worktree, observed, idea, category)
 
     def _apply(
-        self, record: IntegrationRecord, root: Path, verify: str, worktree: Path, observed: str
+        self, record: IntegrationRecord, root: Path, verify: str, worktree: Path, observed: str,
+        idea: str = "", category: str = "",
     ) -> IntegrationOutcome:
         merged = _git(worktree, "merge", "--no-commit", "--no-ff", record.candidate_sha)
         if merged.returncode != 0:
             _git(worktree, "merge", "--abort")
+            if idea:
+                self.coordinator.record_failure(idea, category)
             return self._finish(record, "conflict", error=merged.stderr.strip() or "merge conflict", retained=worktree)
         verdict = run_verify(verify, worktree)
         if not verdict.passed:
             _git(worktree, "reset", "--hard", observed)
+            if idea:
+                self.coordinator.record_failure(idea, category)
             return self._finish(record, "failed", error=f"integration verify: {verdict.status}", retained=worktree)
         self._maybe_crash("after_merge")
-        message = f"merge: looptight integration {record.id}\n\n{_TRAILER_KEY}: {record.id}"
+        outcome_trailer = f"\nLooptight-Outcome: {idea} landed" if idea else ""
+        message = (
+            f"merge: looptight integration {record.id}\n\n"
+            f"{_TRAILER_KEY}: {record.id}{outcome_trailer}"
+        )
         committed = _git(worktree, "commit", "-m", message)
         if committed.returncode != 0:
             _git(worktree, "reset", "--hard", observed)
@@ -312,7 +323,10 @@ class Integrator:
             return self._finish(record, "conflict", error="target advanced during reconcile", retained=worktree)
         # Nothing committed (crashed mid-merge): re-apply from the observed base.
         fresh_worktree, fresh_observed = prepare_integration_worktree(root, record.target_ref)
-        return self._apply(record, root, verify, fresh_worktree, fresh_observed)
+        lease = self.coordinator.current_lease(record.task_id)
+        idea = str(lease.payload.get("idea_id") or "") if lease else ""
+        category = str(lease.payload.get("source") or "") if lease else ""
+        return self._apply(record, root, verify, fresh_worktree, fresh_observed, idea, category)
 
 
 def _is_ancestor(root: Path, sha: str, tip: str) -> bool:
