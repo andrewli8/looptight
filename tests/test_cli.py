@@ -686,6 +686,7 @@ def test_status_human_shows_verify_command_without_changing_json(
         "readiness",
         "verifier_quality",
         "concurrency",
+        "policy",
     }
     assert "verify" not in data
 
@@ -873,6 +874,39 @@ def test_verify_json_configuration_error_is_machine_readable(tmp_path, monkeypat
     assert data["status"] == "error"
     assert data["exit_code"] is None
     assert "No verify command" in data["output"]
+
+
+def test_verify_json_refuses_protected_path_changes(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text(
+        'verify = "exit 0"\nprotected_paths = ["secrets/"]\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "secrets").mkdir()
+    (tmp_path / "secrets" / "token.txt").write_text("old\n", encoding="utf-8")
+    subprocess.run(["git", "add", ".looptight.toml", "secrets/token.txt"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=looptight@example.invalid",
+            "-c",
+            "user.name=looptight",
+            "commit",
+            "-qm",
+            "init",
+        ],
+        check=True,
+    )
+    (tmp_path / "secrets" / "token.txt").write_text("new\n", encoding="utf-8")
+
+    assert main(["verify", "--json"]) == 2
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "error"
+    assert "protected path" in payload["output"]
+    assert "secrets/token.txt" in payload["output"]
 
 
 @pytest.mark.parametrize(

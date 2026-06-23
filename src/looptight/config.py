@@ -34,6 +34,10 @@ class Config:
     tasks: tuple[str, ...] = ()
     direct_main: bool = False  # explicitly permit unattended execution in the primary worktree
     idea_generation: bool = True  # generate grounded tasks when the queue is empty (off: --no-ideas)
+    protected_paths: tuple[str, ...] = ()
+    no_direct_push: bool = False
+    max_changed_files: int | None = None
+    allowed_verify_commands: tuple[str, ...] = ()
 
     # Runtime-only controls retained for the explicit headless commands. These
     # are not part of the project configuration file contract.
@@ -75,6 +79,10 @@ def load_config(path: Path | None = None) -> Config:
             tasks=_string_list(data, "tasks"),
             direct_main=_boolean(data, "direct_main", False),
             idea_generation=_boolean(data, "idea_generation", True),
+            protected_paths=_string_list(data, "protected_paths"),
+            no_direct_push=_boolean(data, "no_direct_push", False),
+            max_changed_files=_optional_int(data, "max_changed_files"),
+            allowed_verify_commands=_string_list(data, "allowed_verify_commands"),
         )
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{resolved} has an invalid value: {exc}") from exc
@@ -91,6 +99,15 @@ def _optional_string(data: dict[str, object], field: str) -> str | None:
     value = data.get(field)
     if value is not None and not isinstance(value, str):
         raise ValueError(f"{field} must be a string")
+    return value
+
+
+def _optional_int(data: dict[str, object], field: str) -> int | None:
+    value = data.get(field)
+    if value is None:
+        return None
+    if not isinstance(value, int) or value < 0:
+        raise ValueError(f"{field} must be a nonnegative integer")
     return value
 
 
@@ -118,6 +135,11 @@ direct_main = {str(config.direct_main).lower()}
 
 # Generate grounded tasks when the queue empties (set false, or pass --no-ideas).
 idea_generation = {str(config.idea_generation).lower()}
+
+# Optional policy controls. Empty values are disabled.
+protected_paths = []
+no_direct_push = false
+allowed_verify_commands = []
 """
 
 

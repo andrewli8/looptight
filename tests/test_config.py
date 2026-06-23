@@ -133,7 +133,15 @@ def test_rendered_config_contains_only_supported_settings(tmp_path):
         for line in text.splitlines()
         if line.strip() and not line.lstrip().startswith("#") and "=" in line
     }
-    assert settings == {"verify", "tasks", "direct_main", "idea_generation"}
+    assert settings == {
+        "verify",
+        "tasks",
+        "direct_main",
+        "idea_generation",
+        "protected_paths",
+        "no_direct_push",
+        "allowed_verify_commands",
+    }
 
 
 def test_write_then_load_preserves_idea_generation(tmp_path):

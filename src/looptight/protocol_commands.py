@@ -18,7 +18,8 @@ from .verify import run_verify
 def cmd_verify(args: argparse.Namespace, console: Console) -> int:
     workdir = Path.cwd()
     try:
-        command = args.verify or load_config().verify or detect_verify(workdir)
+        config = load_config()
+        command = args.verify or config.verify or detect_verify(workdir)
     except ConfigError as exc:
         if args.json:
             _print_verify_json(status="error", output=f"config error: {exc}")
@@ -31,6 +32,13 @@ def cmd_verify(args: argparse.Namespace, console: Console) -> int:
             _print_verify_json(status="error", output=message)
         else:
             console.print(f"[red]{message}[/red]")
+        return 2
+    policy_error = _verify_policy_error(command, config, workdir)
+    if policy_error:
+        if args.json:
+            _print_verify_json(status="error", output=policy_error)
+        else:
+            console.print(f"[red]policy error:[/red] {policy_error}")
         return 2
     result = run_verify(command, workdir)
     if args.json:
@@ -158,6 +166,13 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
 
 
 def _changed_files(workdir: Path) -> str:
+    files = _changed_file_list(workdir)
+    if files is None:
+        return "unavailable"
+    return ", ".join(files) if files else "none"
+
+
+def _changed_file_list(workdir: Path) -> list[str] | None:
     result = subprocess.run(
         ["git", "status", "--short"],
         cwd=workdir,
@@ -166,9 +181,24 @@ def _changed_files(workdir: Path) -> str:
         check=False,
     )
     if result.returncode != 0:
-        return "unavailable"
-    files = [line[3:] for line in result.stdout.splitlines() if len(line) > 3]
-    return ", ".join(files) if files else "none"
+        return None
+    return [line[3:] for line in result.stdout.splitlines() if len(line) > 3]
+
+
+def _verify_policy_error(command: str, config, workdir: Path) -> str | None:
+    if config.allowed_verify_commands and command not in config.allowed_verify_commands:
+        return f"verify command not allowed by policy: {command}"
+    files = _changed_file_list(workdir) or []
+    if config.max_changed_files is not None and len(files) > config.max_changed_files:
+        return (
+            f"changed file count exceeds policy max_changed_files="
+            f"{config.max_changed_files}: {len(files)}"
+        )
+    for changed in files:
+        for protected in config.protected_paths:
+            if changed == protected.rstrip("/") or changed.startswith(protected.rstrip("/") + "/"):
+                return f"protected path changed by policy: {changed}"
+    return None
 
 
 def cmd_migrate(args: argparse.Namespace, console: Console) -> int:
@@ -267,6 +297,7 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         "readiness": readiness,
         "verifier_quality": verifier_quality,
         "concurrency": concurrency,
+        "policy": _policy_summary(config),
     }
     if coordinator_counts is not None:
         payload["coordinator"] = coordinator_counts
@@ -482,3 +513,12 @@ def _concurrency_remediation(
     if status == "degraded":
         return "wait for active coordinator work to drain"
     return "none"
+
+
+def _policy_summary(config) -> dict[str, object]:
+    return {
+        "protected_paths": list(config.protected_paths),
+        "no_direct_push": config.no_direct_push,
+        "max_changed_files": config.max_changed_files,
+        "allowed_verify_commands": list(config.allowed_verify_commands),
+    }

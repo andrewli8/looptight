@@ -215,6 +215,8 @@ opens a public listener itself.
 - Concurrent tasks use atomic private claims.
 - No force-push, hard reset, dependency installation, or fabricated work.
 - Runtime state does not pollute project history.
+- Optional `.looptight.toml` policy controls can fail closed on protected paths,
+  direct pushes, changed-file count, and unapproved verifier commands.
 
 See [the product specification](docs/SPEC.md), [current architecture](docs/architecture.md),
 and [bounded self-improvement plan](docs/STATUS.md).

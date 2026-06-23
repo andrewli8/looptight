@@ -828,6 +828,9 @@ def cmd_swarm(args, console: Console) -> int:
     if not config.verify:
         console.print("[red]No verify command.[/red] Configure one before starting a swarm.")
         return 2
+    if args.push and config.no_direct_push:
+        console.print("[red]direct push disabled by policy.[/red] Remove --push or update .looptight.toml.")
+        return 2
     runner = run_continuous_swarm if args.continuous else run_swarm
     options = {
         "agent": agent,

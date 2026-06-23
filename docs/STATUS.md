@@ -295,25 +295,24 @@ existing CLI session and makes no model or API calls of its own.
   requeue, pending integration reconciliation, and rejected push handling while
   preserving the final outcome tally and JSON compatibility. Recovery messaging
   is covered by swarm CLI tests.
+- Policy controls are parsed from `.looptight.toml`, rendered in default config,
+  exposed additively on `status --json`, and fail closed for protected-path verify
+  changes and `swarm --push` when direct pushes are disabled. Covered by CLI,
+  swarm, and config tests.
 
 ## Next
 
-1. Add enforceable policy controls for serious-team use. Evidence:
-   README.md:209-217, docs/architecture.md:186-196. Acceptance: configuration
-   can express at least protected paths, no-direct-push, max changed files, and
-   allowed verifier commands; violations fail closed with actionable human output
-   and additive JSON; tests cover protected-path and direct-push refusal.
-2. Add battle-tested demo fixtures for trust claims. Evidence: README.md:87-107,
+1. Add battle-tested demo fixtures for trust claims. Evidence: README.md:87-107,
    README.md:172-190, docs/architecture.md:51-82. Acceptance: local fixture
    scripts or tests demonstrate simple bugfix, concurrent workers, retained
    conflict worktree, recovered integration, rejected push, and weak-verifier
    warning; docs link each demo to the guarantee it proves.
-3. Add a simple task graph/status projection beyond live swarm state. Evidence:
+2. Add a simple task graph/status projection beyond live swarm state. Evidence:
    README.md:196-207, docs/architecture.md:80-82. Acceptance: a command or UI
    projection shows queued, leased/running, integrating, complete, and failed
    coordinator states without inventing dependencies; JSON output is stable and
    tests cover projection from coordinator state.
-4. Add a gated 0-to-1 project creation workflow. Evidence: README.md:7-30,
+3. Add a gated 0-to-1 project creation workflow. Evidence: README.md:7-30,
    README.md:58-70, docs/architecture.md:109-126. Acceptance: a documented
    command path guides brief -> spec -> plan -> scaffold -> verify, refuses vague
    goals without observable acceptance criteria, writes grounded tasks only, and

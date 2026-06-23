@@ -128,6 +128,22 @@ def test_swarm_requires_explicit_headless(capsys):
     assert "--headless" in capsys.readouterr().out
 
 
+def test_swarm_refuses_direct_push_when_policy_disables_it(
+    tmp_path, monkeypatch, capsys
+):
+    _repo(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".looptight.toml").write_text(
+        'verify = "exit 0"\nno_direct_push = true\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("looptight.swarm.run_swarm", lambda *a, **k: pytest.fail("ran swarm"))
+
+    assert main(["swarm", "--headless", "--agent", "codex", "--push"]) == 2
+
+    assert "direct push disabled by policy" in capsys.readouterr().out
+
+
 def test_swarm_rejects_more_than_fifty_workers(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     assert main(["swarm", "--headless", "--agent", "codex", "--workers", "51"]) == 2
