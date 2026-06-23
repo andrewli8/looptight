@@ -117,6 +117,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_propose.add_argument(
         "--limit", type=_non_negative_int, default=10, help="max candidates to show (default 10)"
     )
+    p_propose.add_argument(
+        "--eval", action="store_true", dest="eval_batch",
+        help="score the generated docs/STATUS.md ## Next batch on grounding metrics",
+    )
 
     p_next = sub.add_parser(
         "next",

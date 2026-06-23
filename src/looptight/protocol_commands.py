@@ -98,39 +98,61 @@ def _print_verify_json(
     )
 
 
+def _eval_line(score: object) -> str:
+    """One-line human summary of an idea-batch eval (a BatchScore)."""
+    return (
+        "idea-batch eval (docs/STATUS.md ## Next): "
+        f"grounded {score.grounded}/{score.size} "
+        f"(groundedness {score.groundedness:.2f}) · "
+        f"areas {score.flexibility} · distinct {score.distinct} · "
+        f"bounded {'yes' if score.bounded else 'no'}"
+    )
+
+
 def cmd_propose(args: argparse.Namespace, console: Console) -> int:
     from .propose import propose
 
     candidates = propose(Path.cwd(), limit=args.limit)
+    evaluation = None
+    if getattr(args, "eval_batch", False):
+        from .idea_eval import score_status_next
+
+        evaluation = score_status_next(Path.cwd())
+
     if args.json:
-        print(json.dumps([c.__dict__ for c in candidates], indent=2))
+        payload: dict[str, object] | list[dict[str, object]] = [c.__dict__ for c in candidates]
+        if evaluation is not None:
+            payload = {"candidates": [c.__dict__ for c in candidates], "eval": evaluation.as_dict()}
+        print(json.dumps(payload, indent=2))
         return 0
 
     if not candidates:
         console.print("No candidate tasks found from repo signals (clean tree).")
-        return 0
+    else:
+        console.print(
+            f"[bold]{len(candidates)} candidate task(s)[/bold] "
+            "(grouped by source priority; pick what to run):"
+        )
+        console.print()
+        last_source: str | None = None
+        for i, candidate in enumerate(candidates, 1):
+            if candidate.source != last_source:
+                console.print(
+                    f"[cyan]{candidate.source}[/cyan] [dim](source priority "
+                    f"{int(candidate.score)})[/dim]"
+                )
+                last_source = candidate.source
+            where = f" [dim]{candidate.location}[/dim]" if candidate.location else ""
+            console.print(f"  {i}. {candidate.title}{where}")
+        console.print()
+        console.print(
+            "[dim]Ranking is a source-priority heuristic. The operating agent selects the "
+            "highest-value actionable task in the current session, validates it with[/dim] "
+            "[bold]looptight verify[/bold][dim], then commits and pushes a coherent change.[/dim]"
+        )
 
-    console.print(
-        f"[bold]{len(candidates)} candidate task(s)[/bold] "
-        "(grouped by source priority; pick what to run):"
-    )
-    console.print()
-    last_source: str | None = None
-    for i, candidate in enumerate(candidates, 1):
-        if candidate.source != last_source:
-            console.print(
-                f"[cyan]{candidate.source}[/cyan] [dim](source priority "
-                f"{int(candidate.score)})[/dim]"
-            )
-            last_source = candidate.source
-        where = f" [dim]{candidate.location}[/dim]" if candidate.location else ""
-        console.print(f"  {i}. {candidate.title}{where}")
-    console.print()
-    console.print(
-        "[dim]Ranking is a source-priority heuristic. The operating agent selects the "
-        "highest-value actionable task in the current session, validates it with[/dim] "
-        "[bold]looptight verify[/bold][dim], then commits and pushes a coherent change.[/dim]"
-    )
+    if evaluation is not None:
+        console.print(_eval_line(evaluation))
     return 0
 
 

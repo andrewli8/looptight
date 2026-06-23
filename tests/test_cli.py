@@ -206,6 +206,31 @@ def test_next_json_no_work_directs_idea_generation_by_default(tmp_path, monkeypa
     assert "docs/STATUS.md" in data["directive"]["prompt"]
 
 
+def test_propose_eval_scores_the_generated_queue(tmp_path, monkeypatch, capsys):
+    # `propose --eval` scores the generated docs/STATUS.md ## Next batch so its
+    # grounding can be measured, not just trusted.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# a\n")
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "STATUS.md").write_text(
+        "## Next\n\n"
+        "1. Harden a. Evidence: src/a.py:1; Acceptance: passes.\n"
+        "2. Do x. Evidence: src/ghost.py:1; Acceptance: passes.\n"
+    )
+
+    assert main(["propose", "--eval", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert "candidates" in data
+    assert data["eval"]["size"] == 2
+    assert data["eval"]["grounded"] == 1  # only the real anchor resolves
+    assert data["eval"]["bounded"] is True
+
+    assert main(["propose", "--eval"]) == 0  # human output does not error
+    assert "groundedness" in capsys.readouterr().out
+
+
 def test_next_json_contract_is_grounded_and_stable(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "src").mkdir()
