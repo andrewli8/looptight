@@ -79,6 +79,16 @@ def test_summary_text_bounded_and_empty_when_no_data():
     assert text.count("\n") <= 6  # bounded
 
 
+def test_summary_text_surfaces_failure_modes_by_source():
+    # Attribution capture: the note names WHY a source tends to fail, so the host can
+    # avoid the failure mode (e.g. "scope") rather than just an opaque idea id.
+    m = Model(category_failure_reasons={"status-next": "scope", "lint": "timeout"})
+    text = summary_text(m)
+    assert "status-next" in text and "scope" in text
+    assert "timeout" in text
+    assert text.count("\n") <= 6  # still bounded
+
+
 def test_build_model_populates_category_landed_from_trailers(tmp_path):
     from looptight.experience import build_model
 
@@ -89,6 +99,25 @@ def test_build_model_populates_category_landed_from_trailers(tmp_path):
     model = build_model(Path(root), "HEAD", None, cooldown_s=1000.0)
     assert model.category_landed == {"lint": 2, "todo": 1}  # boost signal by source
     assert model.landed == {"idea-a": 1, "idea-b": 1, "idea-c": 1}  # per-idea still parsed
+
+
+class _FakeCoord:
+    def recent_failures(self, *, window_s, now=None):
+        return {}
+
+    def failure_counts(self):
+        return {}
+
+    def failure_reasons(self):
+        return {"status-next": "scope"}
+
+
+def test_build_model_populates_failure_reasons_from_coordinator(tmp_path):
+    from looptight.experience import build_model
+
+    root = _repo(tmp_path)
+    model = build_model(Path(root), "HEAD", _FakeCoord(), cooldown_s=1000.0)
+    assert model.category_failure_reasons == {"status-next": "scope"}
 
 
 def test_reweight_boosts_a_high_yield_category_from_built_model(tmp_path):

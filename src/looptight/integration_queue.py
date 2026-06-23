@@ -271,7 +271,7 @@ class Integrator:
             _git(worktree, "merge", "--abort")
             if idea:
                 try:
-                    self.coordinator.record_failure(idea, category)
+                    self.coordinator.record_failure(idea, category, reason="conflict")
                 except Exception:
                     pass  # advisory signal; never let it break a clean integration failure
             return self._finish(record, "conflict", error=merged.stderr.strip() or "merge conflict", retained=worktree)
@@ -280,7 +280,7 @@ class Integrator:
             _git(worktree, "reset", "--hard", observed)
             if idea:
                 try:
-                    self.coordinator.record_failure(idea, category)
+                    self.coordinator.record_failure(idea, category, reason=verdict.status)
                 except Exception:
                     pass  # advisory signal; never let it break a clean integration failure
             return self._finish(record, "failed", error=f"integration verify: {verdict.status}", retained=worktree)

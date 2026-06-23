@@ -70,6 +70,7 @@ class Model:
     failed: dict[str, int] = field(default_factory=dict)
     category_landed: dict[str, int] = field(default_factory=dict)
     category_failed: dict[str, int] = field(default_factory=dict)
+    category_failure_reasons: dict[str, str] = field(default_factory=dict)
 
 
 def build_model(
@@ -81,9 +82,11 @@ def build_model(
     category_landed = landed_category_counts(root, target_ref, limit=limit)
     failed = coordinator.recent_failures(window_s=cooldown_s, now=now) if coordinator else {}
     category_failed = coordinator.failure_counts() if coordinator else {}
+    category_failure_reasons = coordinator.failure_reasons() if coordinator else {}
     return Model(
         landed=landed, failed=failed,
         category_landed=category_landed, category_failed=category_failed,
+        category_failure_reasons=category_failure_reasons,
     )
 
 
@@ -105,7 +108,7 @@ def reweight_factor(category: str, model: Model, *, lo: float = 0.5, hi: float =
 
 def summary_text(model: Model, *, k: int = 5) -> str:
     """A bounded experience note for the planner, or '' when there is nothing useful."""
-    if not model.failed and not model.landed:
+    if not model.failed and not model.landed and not model.category_failure_reasons:
         return ""
     lines: list[str] = []
     if model.failed:
@@ -114,4 +117,10 @@ def summary_text(model: Model, *, k: int = 5) -> str:
     if model.landed:
         top = sorted(model.landed, key=lambda i: model.landed[i], reverse=True)[:k]
         lines.append("Recently-landed idea kinds that paid off: " + ", ".join(top) + ".")
+    if model.category_failure_reasons:
+        modes = ", ".join(
+            f"{category} often fails on {reason}"
+            for category, reason in sorted(model.category_failure_reasons.items())[:k]
+        )
+        lines.append("Common failure modes by source: " + modes + ".")
     return "\n".join(lines)

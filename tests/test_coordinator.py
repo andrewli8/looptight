@@ -45,7 +45,7 @@ def test_coordinator_is_private_and_isolated_by_repository(tmp_path):
     assert two.path != one.path
     assert one.connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
     assert one.connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
-    assert one.connection.execute("PRAGMA user_version").fetchone()[0] == 2
+    assert one.connection.execute("PRAGMA user_version").fetchone()[0] == 3
 
 
 def test_coordinator_path_is_none_outside_git(tmp_path):
@@ -113,6 +113,44 @@ def test_experience_records_failures_and_cooldown(tmp_path):
     assert coord.recent_failures(window_s=50.0, now=1200.0) == {}
 
     assert coord.failure_counts() == {"lint": 2, "todo": 1}
+    coord.close()
+
+
+def test_record_failure_captures_reason_and_reports_dominant_per_category(tmp_path):
+    coord = Coordinator.open(_repo(tmp_path / "repo"))
+    assert coord is not None
+    coord.record_failure("idea-a", "status-next", reason="scope", now=1.0)
+    coord.record_failure("idea-b", "status-next", reason="scope", now=2.0)
+    coord.record_failure("idea-c", "status-next", reason="timeout", now=3.0)
+    coord.record_failure("idea-d", "lint", reason="fail", now=4.0)
+    # dominant (most frequent) failure reason per category
+    assert coord.failure_reasons() == {"status-next": "scope", "lint": "fail"}
+    # backward compatible: a reasonless failure is still recorded but adds no reason
+    coord.record_failure("idea-e", "todo", now=5.0)
+    assert "todo" not in coord.failure_reasons()
+    assert coord.recent_failures(window_s=100.0, now=5.0).get("idea-e") == 1
+    coord.close()
+
+
+def test_migration_v2_to_v3_adds_reason_column(tmp_path):
+    repo = _repo(tmp_path / "repo")
+    path = coordinator_path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    raw = sqlite3.connect(path)
+    raw.executescript(
+        """CREATE TABLE experience (
+            id INTEGER PRIMARY KEY, idea_id TEXT NOT NULL, category TEXT NOT NULL,
+            outcome TEXT NOT NULL CHECK (outcome IN ('failed')), created_at REAL NOT NULL
+        );
+        PRAGMA user_version = 2;"""
+    )
+    raw.close()
+
+    coord = Coordinator.open(repo)
+    assert coord is not None
+    # would raise "no such column: reason" if the v2->v3 migration didn't run
+    coord.record_failure("idea-x", "status-next", reason="timeout", now=1.0)
+    assert coord.failure_reasons() == {"status-next": "timeout"}
     coord.close()
 
 

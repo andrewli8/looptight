@@ -15,7 +15,7 @@ from typing import Iterator
 
 from .claims import MARKER_NAME, has_live_claim
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 _SCHEMA = """
 BEGIN IMMEDIATE;
@@ -81,12 +81,32 @@ CREATE TABLE IF NOT EXISTS experience (
     idea_id TEXT NOT NULL,
     category TEXT NOT NULL,
     outcome TEXT NOT NULL CHECK (outcome IN ('failed')),
+    created_at REAL NOT NULL,
+    reason TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS experience_idea ON experience(idea_id);
+PRAGMA user_version = 3;
+COMMIT;
+"""
+
+# Migrations are applied in sequence from the database's current version up to
+# SCHEMA_VERSION, so a database two versions behind upgrades in a single open.
+_MIGRATE_1_TO_2 = """BEGIN IMMEDIATE;
+CREATE TABLE IF NOT EXISTS experience (
+    id INTEGER PRIMARY KEY,
+    idea_id TEXT NOT NULL,
+    category TEXT NOT NULL,
+    outcome TEXT NOT NULL CHECK (outcome IN ('failed')),
     created_at REAL NOT NULL
 );
 CREATE INDEX IF NOT EXISTS experience_idea ON experience(idea_id);
 PRAGMA user_version = 2;
-COMMIT;
-"""
+COMMIT;"""
+
+_MIGRATE_2_TO_3 = """BEGIN IMMEDIATE;
+ALTER TABLE experience ADD COLUMN reason TEXT NOT NULL DEFAULT '';
+PRAGMA user_version = 3;
+COMMIT;"""
 
 _INIT_RETRY_ATTEMPTS = 50
 _INIT_RETRY_SLEEP_S = 0.1
@@ -107,21 +127,14 @@ def _initialize_schema(connection: sqlite3.Connection) -> None:
             version = connection.execute("PRAGMA user_version").fetchone()[0]
             if version == 0:
                 connection.executescript(_SCHEMA)
-            elif version == 1:
-                connection.executescript(
-                    """BEGIN IMMEDIATE;
-                    CREATE TABLE IF NOT EXISTS experience (
-                        id INTEGER PRIMARY KEY,
-                        idea_id TEXT NOT NULL,
-                        category TEXT NOT NULL,
-                        outcome TEXT NOT NULL CHECK (outcome IN ('failed')),
-                        created_at REAL NOT NULL
-                    );
-                    CREATE INDEX IF NOT EXISTS experience_idea ON experience(idea_id);
-                    PRAGMA user_version = 2;
-                    COMMIT;"""
-                )
-            elif version != SCHEMA_VERSION:
+                return
+            if version == 1:
+                connection.executescript(_MIGRATE_1_TO_2)
+                version = 2
+            if version == 2:
+                connection.executescript(_MIGRATE_2_TO_3)
+                version = 3
+            if version != SCHEMA_VERSION:
                 raise RuntimeError(
                     f"unsupported coordinator schema {version}; expected {SCHEMA_VERSION}"
                 )
@@ -716,15 +729,33 @@ class Coordinator:
         projected = {key: int(self.connection.execute(sql).fetchone()[0]) for key, sql in counts.items()}
         return {"claimed_task": claimed_task, "active_claims": active_claims, **projected}
 
-    def record_failure(self, idea_id: str, category: str, *, now: float | None = None) -> None:
-        """Record one local 'failed' outcome for an idea. Never pushed."""
+    def record_failure(
+        self, idea_id: str, category: str, *, reason: str = "", now: float | None = None
+    ) -> None:
+        """Record one local 'failed' outcome for an idea, with an optional reason
+        (e.g. 'conflict', 'fail', 'timeout'). Never pushed."""
         timestamp = time.time() if now is None else now
         with self.transaction(immediate=True):
             self.connection.execute(
-                "INSERT INTO experience(idea_id, category, outcome, created_at) "
-                "VALUES (?, ?, 'failed', ?)",
-                (idea_id, category, timestamp),
+                "INSERT INTO experience(idea_id, category, outcome, created_at, reason) "
+                "VALUES (?, ?, 'failed', ?, ?)",
+                (idea_id, category, timestamp, reason),
             )
+
+    def failure_reasons(self) -> dict[str, str]:
+        """Dominant (most frequent) non-empty failure reason per category, so the
+        planner note can say *why* a source tends to fail, not just that it does."""
+        rows = self.connection.execute(
+            "SELECT category, reason, COUNT(*) FROM experience "
+            "WHERE outcome = 'failed' AND reason != '' GROUP BY category, reason"
+        ).fetchall()
+        best: dict[str, tuple[int, str]] = {}
+        for category, reason, count in rows:
+            n = int(count)
+            current = best.get(str(category))
+            if current is None or n > current[0]:
+                best[str(category)] = (n, str(reason))
+        return {category: reason for category, (_n, reason) in best.items()}
 
     def recent_failures(self, *, window_s: float, now: float | None = None) -> dict[str, int]:
         """Failure counts per idea whose most recent failure is within window_s."""
