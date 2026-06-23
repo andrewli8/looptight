@@ -344,9 +344,18 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-(Queue empty. `next` returns `no_work` with a `generate_ideas` directive; the
-autonomous loop generates 1-6 bite-sized grounded tasks here, or promotes a parked
-item from REVIEW-QUEUE when one is small enough.)
+1. Stop the JS/TS skip detector from false-positiving on a marker inside a
+   trailing comment. Evidence: src/looptight/discovery.py (`_js_skip_candidate`
+   uses `_code_only`, which strips string literals but not `//` or `/* */`
+   comments, so a line like `const x = 1; // it.skip(foo)` matches `_JS_SKIP_RE`).
+   Acceptance: a skip marker inside a trailing `//` or `/* */` comment on a code
+   line is NOT surfaced as a `skipped-test` candidate; a real `it.skip("x", ...)`
+   on a code line still is; a test covers the trailing-comment case.
+2. Document polyglot (JS/TS) discovery in the docs. Evidence: README.md (the
+   "How work is found" section and worked example show only Python TODO/skip
+   markers, though discovery now covers JS/TS). Acceptance: the docs state that
+   TODO/FIXME and skipped-test discovery covers JS/TS (`.js`/`.ts`/`.tsx`, plus
+   colocated `*.test.*` and `__tests__/`) alongside Python; no code change.
 
 ## Rules
 
