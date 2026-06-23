@@ -11,7 +11,9 @@ from looptight.discovery import (
     from_status_next,
     from_todos,
 )
-from looptight.propose import propose
+from looptight.experience import Model
+from looptight.idea_identity import idea_id
+from looptight.propose import _apply_cooldown, propose
 from looptight.ranking import rank
 
 
@@ -313,3 +315,24 @@ def test_propose_respects_limit(tmp_path):
     body = "".join(f"# TODO: task {i}\n" for i in range(20))
     _write(tmp_path, "src/a.py", body)
     assert len(propose(tmp_path, limit=5)) == 5
+
+
+# --- cooldown suppression --------------------------------------------------
+
+
+def _c(title):
+    return Candidate(title=title, source="lint", location="src/a.py:1",
+                     suggested_verify=None, score=60.0, detail="d", acceptance="a")
+
+
+def test_apply_cooldown_filters_suppressed_ideas():
+    keep = _c("fix E501: x")
+    drop = _c("fix F401: y")
+    model = Model(failed={idea_id(drop): 2})
+    out = _apply_cooldown([keep, drop], model, max_failures=2)
+    assert out == [keep]
+
+
+def test_apply_cooldown_noop_without_model():
+    cands = [_c("fix E501: x")]
+    assert _apply_cooldown(cands, Model(), max_failures=2) == cands

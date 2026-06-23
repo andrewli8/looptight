@@ -14,16 +14,39 @@ from __future__ import annotations
 from pathlib import Path
 
 from .config import Config, find_config, load_config
+from .coordinator import Coordinator
 from .discovery import Candidate, discover
+from .experience import Model, build_model, suppressed
+from .idea_identity import idea_id
 from .ranking import dedupe, rank
 
 __all__ = ["Candidate", "propose"]
 
+_COOLDOWN_S = 24 * 3600.0
+_MAX_FAILURES = 2
+
+
+def _apply_cooldown(candidates: list[Candidate], model: Model, *, max_failures: int) -> list[Candidate]:
+    """Drop candidates whose idea is in cooldown. Pure; no-op on an empty model."""
+    blocked = suppressed(model, max_failures=max_failures)
+    if not blocked:
+        return candidates
+    return [c for c in candidates if idea_id(c) not in blocked]
+
 
 def propose(root: Path, *, limit: int = 10) -> list[Candidate]:
-    """Scan all signals, dedupe, rank, and return the top ``limit`` candidates."""
+    """Scan all signals, dedupe, rank, suppress cooled-down ideas, return the top N."""
     config_path = find_config(root)
     config = load_config(config_path) if config_path else Config()
     discovery_root = config_path.parent if config_path else root
     ranked = rank(dedupe(discover(discovery_root, task_files=config.tasks)))
+
+    coordinator = Coordinator.open(discovery_root)
+    if coordinator is not None:
+        try:
+            model = build_model(discovery_root, "HEAD", coordinator, cooldown_s=_COOLDOWN_S)
+            ranked = _apply_cooldown(ranked, model, max_failures=_MAX_FAILURES)
+        finally:
+            coordinator.close()
+
     return ranked[:limit] if limit and limit > 0 else ranked
