@@ -472,3 +472,17 @@ def test_discovery_prunes_vendored_dirs_under_src(tmp_path):
     locs = {c.location for c in from_todos(tmp_path)}
     assert "src/real.ts:1" in locs
     assert not any("node_modules" in loc for loc in locs)
+
+
+def test_from_skipped_tests_ignores_skip_marker_in_trailing_comment(tmp_path):
+    from looptight.discovery import from_skipped_tests
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "a.test.ts").write_text(
+        "const x = 1; // it.skip(foo) handle later\n"
+        "const y = 2; /* describe.skip(bar) */\n"
+        'it.skip("real one", () => {});\n'
+    )
+    locs = {c.location for c in from_skipped_tests(tmp_path)}
+    assert "tests/a.test.ts:3" in locs  # the real skip on a code line
+    assert "tests/a.test.ts:1" not in locs  # marker inside a trailing // comment
+    assert "tests/a.test.ts:2" not in locs  # marker inside a trailing /* */ comment

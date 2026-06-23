@@ -309,7 +309,15 @@ def _js_skip_candidate(root: Path, path: Path, lineno: int, line: str) -> Candid
     stripped = line.strip()
     if stripped.startswith(("//", "*", "/*")):  # comment line, not code
         return None
-    if not _JS_SKIP_RE.search(_code_only(line)):  # marker only inside a string, or absent
+    # Strip string literals (via _code_only) AND any trailing // or /* comment, so a
+    # skip marker mentioned in a comment on a code line is not a false hit. A // or /*
+    # surviving in code-only text is a real comment (strings are already removed).
+    code = _code_only(line)
+    for marker in ("//", "/*"):
+        cut = code.find(marker)
+        if cut != -1:
+            code = code[:cut]
+    if not _JS_SKIP_RE.search(code):  # marker only inside a string/comment, or absent
         return None
     name_match = _JS_SKIP_NAME_RE.search(line)
     name = name_match.group(1).strip() if name_match else "skipped test"

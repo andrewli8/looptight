@@ -342,16 +342,14 @@ existing CLI session and makes no model or API calls of its own.
   `node_modules/` directory inside `src/` is not surfaced as noise; non-vendored
   files are unchanged. Covered by a test.
 
+- The JS/TS skip detector ignores a skip marker mentioned in a trailing `//` or
+  `/* */` comment on a code line (it strips comments as well as string literals
+  before matching), so only real `it.skip`/`describe.skip`/`xit` calls are
+  surfaced. Covered by a test.
+
 ## Next
 
-1. Stop the JS/TS skip detector from false-positiving on a marker inside a
-   trailing comment. Evidence: src/looptight/discovery.py (`_js_skip_candidate`
-   uses `_code_only`, which strips string literals but not `//` or `/* */`
-   comments, so a line like `const x = 1; // it.skip(foo)` matches `_JS_SKIP_RE`).
-   Acceptance: a skip marker inside a trailing `//` or `/* */` comment on a code
-   line is NOT surfaced as a `skipped-test` candidate; a real `it.skip("x", ...)`
-   on a code line still is; a test covers the trailing-comment case.
-2. Document polyglot (JS/TS) discovery in the docs. Evidence: README.md (the
+1. Document polyglot (JS/TS) discovery in the docs. Evidence: README.md (the
    "How work is found" section and worked example show only Python TODO/skip
    markers, though discovery now covers JS/TS). Acceptance: the docs state that
    TODO/FIXME and skipped-test discovery covers JS/TS (`.js`/`.ts`/`.tsx`, plus
