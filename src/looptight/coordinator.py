@@ -15,7 +15,7 @@ from typing import Iterator
 
 from .claims import MARKER_NAME, has_live_claim
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 _SCHEMA = """
 BEGIN IMMEDIATE;
@@ -76,7 +76,15 @@ CREATE TABLE IF NOT EXISTS publications (
     attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0),
     error TEXT
 );
-PRAGMA user_version = 1;
+CREATE TABLE IF NOT EXISTS experience (
+    id INTEGER PRIMARY KEY,
+    idea_id TEXT NOT NULL,
+    category TEXT NOT NULL,
+    outcome TEXT NOT NULL CHECK (outcome IN ('failed')),
+    created_at REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS experience_idea ON experience(idea_id);
+PRAGMA user_version = 2;
 COMMIT;
 """
 
@@ -99,6 +107,20 @@ def _initialize_schema(connection: sqlite3.Connection) -> None:
             version = connection.execute("PRAGMA user_version").fetchone()[0]
             if version == 0:
                 connection.executescript(_SCHEMA)
+            elif version == 1:
+                connection.executescript(
+                    """BEGIN IMMEDIATE;
+                    CREATE TABLE IF NOT EXISTS experience (
+                        id INTEGER PRIMARY KEY,
+                        idea_id TEXT NOT NULL,
+                        category TEXT NOT NULL,
+                        outcome TEXT NOT NULL CHECK (outcome IN ('failed')),
+                        created_at REAL NOT NULL
+                    );
+                    CREATE INDEX IF NOT EXISTS experience_idea ON experience(idea_id);
+                    PRAGMA user_version = 2;
+                    COMMIT;"""
+                )
             elif version != SCHEMA_VERSION:
                 raise RuntimeError(
                     f"unsupported coordinator schema {version}; expected {SCHEMA_VERSION}"
@@ -681,6 +703,33 @@ class Coordinator:
         }
         projected = {key: int(self.connection.execute(sql).fetchone()[0]) for key, sql in counts.items()}
         return {"claimed_task": claimed_task, "active_claims": active_claims, **projected}
+
+    def record_failure(self, idea_id: str, category: str, *, now: float | None = None) -> None:
+        """Record one local 'failed' outcome for an idea. Never pushed."""
+        timestamp = time.time() if now is None else now
+        with self.transaction(immediate=True):
+            self.connection.execute(
+                "INSERT INTO experience(idea_id, category, outcome, created_at) "
+                "VALUES (?, ?, 'failed', ?)",
+                (idea_id, category, timestamp),
+            )
+
+    def recent_failures(self, *, window_s: float, now: float | None = None) -> dict[str, int]:
+        """Failure counts per idea whose most recent failure is within window_s."""
+        timestamp = time.time() if now is None else now
+        cutoff = timestamp - window_s
+        rows = self.connection.execute(
+            """SELECT idea_id, COUNT(*), MAX(created_at) FROM experience
+               WHERE outcome = 'failed' GROUP BY idea_id"""
+        ).fetchall()
+        return {str(r[0]): int(r[1]) for r in rows if float(r[2]) >= cutoff}
+
+    def failure_counts(self) -> dict[str, int]:
+        """Total failures per category (for yield statistics)."""
+        rows = self.connection.execute(
+            "SELECT category, COUNT(*) FROM experience WHERE outcome = 'failed' GROUP BY category"
+        ).fetchall()
+        return {str(r[0]): int(r[1]) for r in rows}
 
     def close(self) -> None:
         self.connection.close()

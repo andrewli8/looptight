@@ -45,7 +45,7 @@ def test_coordinator_is_private_and_isolated_by_repository(tmp_path):
     assert two.path != one.path
     assert one.connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
     assert one.connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
-    assert one.connection.execute("PRAGMA user_version").fetchone()[0] == 1
+    assert one.connection.execute("PRAGMA user_version").fetchone()[0] == 2
 
 
 def test_coordinator_path_is_none_outside_git(tmp_path):
@@ -96,6 +96,24 @@ def test_schema_contains_coordinator_state_tables(tmp_path):
         )
     }
     assert {"runs", "tasks", "leases", "proposals", "integrations", "publications"} <= tables
+
+
+def test_experience_records_failures_and_cooldown(tmp_path):
+    coord = Coordinator.open(_repo(tmp_path / "repo"))
+    assert coord is not None
+    coord.record_failure("idea-a", "lint", now=1000.0)
+    coord.record_failure("idea-a", "lint", now=1100.0)
+    coord.record_failure("idea-b", "todo", now=1100.0)
+
+    # within window: both recent; idea-a counted twice
+    recent = coord.recent_failures(window_s=500.0, now=1200.0)
+    assert recent == {"idea-a": 2, "idea-b": 1}
+
+    # outside window: idea-a's last failure (1100) is older than now-50
+    assert coord.recent_failures(window_s=50.0, now=1200.0) == {}
+
+    assert coord.failure_counts() == {"lint": 2, "todo": 1}
+    coord.close()
 
 
 def test_ten_same_directory_processes_claim_distinct_tasks(tmp_path):
