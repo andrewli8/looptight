@@ -36,3 +36,14 @@ def test_landed_counts_reads_reachable_trailers(tmp_path):
 def test_landed_counts_empty_when_no_trailers(tmp_path):
     root = _repo(tmp_path)
     assert landed_counts(Path(root), "HEAD") == {}
+
+
+def test_landed_counts_excludes_unmerged_branch(tmp_path):
+    root = _repo(tmp_path)
+    default = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                             cwd=root, capture_output=True, text=True).stdout.strip()
+    _run(root, "checkout", "-b", "feature")
+    (root / "f.txt").write_text("branch")
+    _run(root, "commit", "-aqm", "branch\n\nLooptight-Outcome: idea-c landed")
+    _run(root, "checkout", default)
+    assert "idea-c" not in landed_counts(Path(root), "HEAD")
