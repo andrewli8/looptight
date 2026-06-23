@@ -222,6 +222,7 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         agent=agent,
         fallback_action=action,
     )
+    verifier_quality = _verifier_quality(verify)
     payload = {
         "schema_version": 1,
         "command": "status",
@@ -231,6 +232,7 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         "active_claims": active_claims,
         "next_action": action,
         "readiness": readiness,
+        "verifier_quality": verifier_quality,
     }
     if coordinator_counts is not None:
         payload["coordinator"] = coordinator_counts
@@ -248,6 +250,10 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         console.print(f"validation: {payload['validation']}")
         if verify:
             console.print(f"verify: {verify}")
+        console.print(
+            f"verifier quality: {verifier_quality['classification']} — "
+            f"{verifier_quality['risk']}"
+        )
         console.print(f"workspace: {workspace}")
         owner = f" · yours: {claimed_task}" if claimed_task else ""
         console.print(f"claims: {active_claims} active{owner}")
@@ -341,3 +347,39 @@ def _readiness_remediation(checks: dict[str, str], fallback_action: str) -> str:
     if checks["agent"] == "missing":
         return "install a supported agent CLI"
     return fallback_action
+
+
+def _verifier_quality(command: str | None) -> dict[str, str]:
+    if not command:
+        return {
+            "classification": "none",
+            "risk": "No verifier is configured, so Looptight cannot gate changes.",
+        }
+    normalized = command.lower()
+    if any(tool in normalized for tool in ("ruff", "flake8", "eslint", "prettier")):
+        return {
+            "classification": "lint-only",
+            "risk": "This only protects style/static checks; behavior can still break.",
+        }
+    if any(tool in normalized for tool in ("playwright", "cypress")) or "e2e" in normalized:
+        return {
+            "classification": "e2e",
+            "risk": "End-to-end checks are strong for covered flows, but uncovered paths can still break.",
+        }
+    if "integration" in normalized:
+        return {
+            "classification": "integration",
+            "risk": "Integration checks cover connected components, but may not cover every user flow.",
+        }
+    if any(
+        tool in normalized
+        for tool in ("pytest", "unittest", "npm test", "pnpm test", "yarn test", "vitest", "jest")
+    ):
+        return {
+            "classification": "unit",
+            "risk": "Unit tests protect covered behavior, but integration and user-flow regressions can remain.",
+        }
+    return {
+        "classification": "custom/unknown",
+        "risk": "Custom verifier; Looptight cannot infer what this command covers.",
+    }

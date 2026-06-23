@@ -542,6 +542,49 @@ def test_status_human_prints_readiness_tier(tmp_path, monkeypatch, capsys):
     assert "readiness next: run `looptight migrate`" in out
 
 
+def test_status_json_classifies_common_verifier_quality(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    cases = {
+        "pytest -q": "unit",
+        "ruff check": "lint-only",
+        "npm test": "unit",
+        "make test": "custom/unknown",
+    }
+    for command, expected in cases.items():
+        (tmp_path / ".looptight.toml").write_text(f'verify = "{command}"\n')
+        assert main(["status", "--json"]) == 0
+        data = json.loads(capsys.readouterr().out)
+        assert data["verifier_quality"]["classification"] == expected
+        assert data["verifier_quality"]["risk"]
+
+
+def test_status_json_classifies_missing_verifier_quality(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+
+    assert main(["status", "--json"]) == 0
+
+    data = json.loads(capsys.readouterr().out)
+    assert data["verifier_quality"]["classification"] == "none"
+    assert "No verifier" in data["verifier_quality"]["risk"]
+
+
+def test_status_human_explains_verifier_quality_risk(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".looptight.toml").write_text('verify = "ruff check"\n')
+
+    assert main(["status"]) == 0
+
+    out = capsys.readouterr().out
+    assert "verifier quality: lint-only" in out
+    assert "only protects style/static checks" in out
+
+
 def test_status_human_shows_verify_command_without_changing_json(
     tmp_path, monkeypatch, capsys
 ):
@@ -563,6 +606,7 @@ def test_status_human_shows_verify_command_without_changing_json(
         "active_claims",
         "next_action",
         "readiness",
+        "verifier_quality",
     }
     assert "verify" not in data
 

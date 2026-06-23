@@ -276,34 +276,32 @@ existing CLI session and makes no model or API calls of its own.
   remediation) plus matching human output, covering verify presence, Git
   cleanliness, coordinator activation, task-source health, and agent availability.
   Ready, partial, unsafe, and read-only status paths are covered by tests.
+- `status` reports additive verifier-quality classification (`none`, `lint-only`,
+  `unit`, `integration`, `e2e`, or `custom/unknown`) plus a plain risk note in
+  human output. Missing verifier, pytest, ruff, npm test, and make test cases are
+  covered without claiming semantic coverage.
 
 ## Next
 
-1. Classify verifier quality without overclaiming semantic coverage. Evidence:
-   README.md:7-9, README.md:141-144, docs/architecture.md:23-25.
-   Acceptance: common commands classify as `none`, `lint-only`, `unit`,
-   `integration`, `e2e`, or `custom/unknown`; human output explains the risk
-   plainly; JSON exposes the classification additively; tests cover pytest,
-   ruff, npm test, make test, and missing verifier cases.
-2. Surface explicit multi-agent safety status. Evidence: README.md:187-199,
+1. Surface explicit multi-agent safety status. Evidence: README.md:187-199,
    README.md:228-247, docs/architecture.md:81-112. Acceptance: `status` or
    `doctor` prints `Concurrency: safe`, `degraded`, or `unsafe`; the check
    accounts for coordinator activation, legacy claims, active leases,
    integration/publication queues, and the local-filesystem scope; unsafe output
    gives exact remediation such as `looptight migrate`; tests cover each state.
-3. Add human-readable run explanations derived from real loop state. Evidence:
+2. Add human-readable run explanations derived from real loop state. Evidence:
    README.md:93-128, README.md:187-199, docs/architecture.md:192-202.
    Acceptance: a command or human-output mode summarizes why a task was selected,
    its evidence and acceptance condition, changed files when available, verifier
    result, integration/publication state, and the next safe action; JSON remains
    backward-compatible; tests cover next, verify, and swarm explanation paths.
-4. Provide a guided setup or smoke-test path that proves Looptight is ready
+3. Provide a guided setup or smoke-test path that proves Looptight is ready
    without silently enabling risky behavior. Evidence: README.md:45-64,
    README.md:130-138, README.md:228-247. Acceptance: one documented command path
    validates config, detected verifier, Git state, coordinator state, and agent
    availability; it prints the exact next command; tests prove expected writes
    are limited to config/instruction changes and no swarm/headless run starts.
-5. Improve conflict and recovery UX for retained or requeued work. Evidence:
+4. Improve conflict and recovery UX for retained or requeued work. Evidence:
    README.md:195-199, docs/architecture.md:97-112, docs/STATUS.md:198-210.
    Acceptance: merge conflict, stale lease, rejected push, abandoned run,
    retained worktree, and recovered integration states emit plain human messages
