@@ -63,7 +63,13 @@ def _files_with_exts(root: Path, subdir: str, exts: tuple[str, ...]) -> list[Pat
     base = root / subdir
     if not base.is_dir():
         return []
-    return sorted(p for p in base.rglob("*") if p.is_file() and p.suffix in exts)
+    return sorted(
+        p
+        for p in base.rglob("*")
+        if p.is_file()
+        and p.suffix in exts
+        and not (_PRUNE_DIRS & set(p.relative_to(base).parts))
+    )
 
 
 _PRUNE_DIRS = {"node_modules", ".git", ".venv", "venv", "dist", "build"}

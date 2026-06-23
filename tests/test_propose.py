@@ -462,3 +462,13 @@ def test_from_todos_block_comment_still_ignores_string_with_marker(tmp_path):
     # A `//` marker inside a string must still not count (single-line behavior).
     (tmp_path / "src" / "b.ts").write_text('const s = "// TODO nope";\n')
     assert from_todos(tmp_path) == []
+
+
+def test_discovery_prunes_vendored_dirs_under_src(tmp_path):
+    from looptight.discovery import from_todos
+    (tmp_path / "src" / "node_modules" / "pkg").mkdir(parents=True)
+    (tmp_path / "src" / "node_modules" / "pkg" / "a.ts").write_text("// TODO: vendored, ignore\n")
+    (tmp_path / "src" / "real.ts").write_text("// TODO: keep me\n")
+    locs = {c.location for c in from_todos(tmp_path)}
+    assert "src/real.ts:1" in locs
+    assert not any("node_modules" in loc for loc in locs)

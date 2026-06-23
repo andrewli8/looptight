@@ -337,14 +337,16 @@ existing CLI session and makes no model or API calls of its own.
   (`cycle`, `reason`, `backoff_s`, `last_error`), that it is optional, and that a
   failing or slow hook never stops the daemon. Covered by a doc-accuracy test.
 
+- The `src/` and `tests/` JS/TS file scan (`_files_with_exts`) prunes vendored and
+  build directories (node_modules, .git, .venv, dist, build), so a marker under a
+  `node_modules/` directory inside `src/` is not surfaced as noise; non-vendored
+  files are unchanged. Covered by a test.
+
 ## Next
 
-1. Prune vendored and build directories from the JS/TS file scan. Evidence:
-   src/looptight/discovery.py:62-66 (`_files_with_exts` rglobs without pruning,
-   while `_js_test_files` already prunes node_modules/.git/build). Acceptance: a JS
-   TODO or skip under a `node_modules/` directory inside `src/` is not surfaced,
-   non-vendored `src/` and `tests/` files still are, and a test covers a
-   `node_modules` path under `src/`.
+(Queue empty. `next` returns `no_work` with a `generate_ideas` directive; the
+autonomous loop generates 1-6 bite-sized grounded tasks here, or promotes a parked
+item from REVIEW-QUEUE when one is small enough.)
 
 ## Rules
 
