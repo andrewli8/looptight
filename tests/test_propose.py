@@ -424,3 +424,25 @@ def test_from_skipped_tests_ignores_js_skip_in_string_or_comment(tmp_path):
         'const s = "it.skip(should not count)";\n// it.skip in a comment\nit("real", () => {});\n'
     )
     assert from_skipped_tests(tmp_path) == []
+
+
+# --- broaden JS/TS discovery to colocated test files (task-file Next #1) ---
+
+def test_discovery_finds_colocated_and_root_js_tests(tmp_path):
+    from looptight.discovery import from_skipped_tests, from_todos
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "foo.test.ts").write_text('it.skip("x", () => {}); // TODO: fix later\n')
+    (tmp_path / "__tests__").mkdir()
+    (tmp_path / "__tests__" / "bar.spec.js").write_text('xit("y", () => {});\n')
+    todo_locs = {c.location for c in from_todos(tmp_path)}
+    skip_locs = {c.location for c in from_skipped_tests(tmp_path)}
+    assert "src/foo.test.ts:1" in todo_locs
+    assert "src/foo.test.ts:1" in skip_locs
+    assert "__tests__/bar.spec.js:1" in skip_locs
+
+
+def test_discovery_skips_node_modules(tmp_path):
+    from looptight.discovery import from_skipped_tests
+    (tmp_path / "node_modules" / "pkg").mkdir(parents=True)
+    (tmp_path / "node_modules" / "pkg" / "a.test.js").write_text('it.skip("x", () => {});\n')
+    assert from_skipped_tests(tmp_path) == []

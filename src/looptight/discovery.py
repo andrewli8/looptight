@@ -13,6 +13,7 @@ Ranking the discovered candidates is a separate concern (see ``ranking.py``).
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -63,6 +64,44 @@ def _files_with_exts(root: Path, subdir: str, exts: tuple[str, ...]) -> list[Pat
     if not base.is_dir():
         return []
     return sorted(p for p in base.rglob("*") if p.is_file() and p.suffix in exts)
+
+
+_PRUNE_DIRS = {"node_modules", ".git", ".venv", "venv", "dist", "build"}
+
+
+def _js_test_files(root: Path) -> list[Path]:
+    """JS/TS test files anywhere in the tree: `*.test.*`, `*.spec.*`, or under a
+    `__tests__/` directory. Prunes vendored/build dirs so a big repo stays cheap.
+    """
+    out: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in _PRUNE_DIRS]
+        in_tests_dir = "__tests__" in Path(dirpath).parts
+        for name in filenames:
+            path = Path(dirpath) / name
+            if path.suffix not in _JS_EXTS:
+                continue
+            if in_tests_dir or ".test." in name or ".spec." in name:
+                out.append(path)
+    return sorted(out)
+
+
+def _js_discovery_files(root: Path) -> list[Path]:
+    """Deduplicated JS/TS files to scan: everything under `src/` and `tests/`,
+    plus any colocated test file (`*.test.*` / `*.spec.*` / `__tests__/`) elsewhere.
+    """
+    seen: set[Path] = set()
+    files: list[Path] = []
+    for sub in ("src", "tests"):
+        for path in _files_with_exts(root, sub, _JS_EXTS):
+            if path not in seen:
+                seen.add(path)
+                files.append(path)
+    for path in _js_test_files(root):
+        if path not in seen:
+            seen.add(path)
+            files.append(path)
+    return files
 
 
 def _rel(root: Path, path: Path) -> str:
@@ -152,11 +191,11 @@ def from_todos(root: Path) -> list[Candidate]:
                 candidate = _todo_candidate(root, path, lineno, comment.lstrip("#"), comment)
                 if candidate is not None:
                     out.append(candidate)
-        for path in _files_with_exts(root, sub, _JS_EXTS):
-            for lineno, body in _js_comments(path):
-                candidate = _todo_candidate(root, path, lineno, body, body)
-                if candidate is not None:
-                    out.append(candidate)
+    for path in _js_discovery_files(root):
+        for lineno, body in _js_comments(path):
+            candidate = _todo_candidate(root, path, lineno, body, body)
+            if candidate is not None:
+                out.append(candidate)
     return out
 
 
@@ -297,7 +336,7 @@ def from_skipped_tests(root: Path) -> list[Candidate]:
                     acceptance="Run this test without skip/xfail and pass project verification.",
                 )
             )
-    for path in _files_with_exts(root, "tests", _JS_EXTS):
+    for path in _js_discovery_files(root):
         for lineno, line in enumerate(
             path.read_text(encoding="utf-8", errors="ignore").splitlines(), 1
         ):

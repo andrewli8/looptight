@@ -310,27 +310,25 @@ existing CLI session and makes no model or API calls of its own.
   literals stripped and comment lines ignored; pytest skip detection (env-gate
   opt-in, conditional guards) is unchanged. Covered by tests.
 
+- JS/TS TODO and skipped-test discovery covers colocated tests anywhere
+  (`*.test.*`, `*.spec.*`, `__tests__/`), not just `tests/`, pruning vendored
+  and build dirs; Python and existing `tests/` behavior unchanged. Covered by tests.
+
 ## Next
 
-1. Broaden JS/TS TODO and skipped-test discovery beyond `tests/` to colocated
-   tests. Evidence: src/looptight/discovery.py:48-66, src/looptight/discovery.py
-   (the JS loops in from_todos and from_skipped_tests scan only `tests/`).
-   Acceptance: a TODO/skip in `src/foo.test.ts` and in `__tests__/bar.spec.js` is
-   surfaced with the right source tag; existing `tests/` and Python behavior is
-   unchanged; tests cover a colocated `.test.ts` and a `__tests__` file.
-2. Surface the single-machine coordination scope in `doctor`. Evidence:
+1. Surface the single-machine coordination scope in `doctor`. Evidence:
    docs/architecture.md (coordination is local to one machine), src/looptight/commands.py
    (cmd_doctor). Acceptance: `doctor` prints a `Coordination:` line reading
    local-only (SQLite coordinator), local-only (file claims), or not activated,
    plus one sentence that cross-machine sharing is unsupported; `--json` adds an
    additive `coordination_scope`; tests cover the three states.
-3. Add an optional daemon fault hook. Evidence: src/looptight/daemon.py,
+2. Add an optional daemon fault hook. Evidence: src/looptight/daemon.py,
    src/looptight/cli.py (daemon parser has no notification surface). Acceptance:
    `daemon --on-fault CMD` execs CMD with a JSON payload (`cycle`, `reason`,
    `backoff_s`, `last_error`) on a fault backoff; the flag is optional (default
    no-op); a hook failure does not stop the daemon; tests inject a fault and
    assert the payload and that the daemon survives a failing hook.
-4. Add a plain-language glossary to the README. Evidence: README.md (verify,
+3. Add a plain-language glossary to the README. Evidence: README.md (verify,
    worktree, headless, claim, swarm, daemon are used without definition).
    Acceptance: a short glossary section defines each term in one line, and the
    first use of each links to it; no behavior change; the section is present.
