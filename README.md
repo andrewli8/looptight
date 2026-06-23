@@ -1,225 +1,282 @@
 # looptight
 
-The same validation-gated task loop inside Codex, Claude Code, or OpenCode.
-Looptight coordinates the agent session you already have; it does not need to
-launch another agent.
+A test-gated work loop that runs inside the coding agent you already use. Point
+it at Codex, Claude Code, or OpenCode and it drives the same cycle: pick a real
+task, let the agent do it, run your tests, commit only if they pass, repeat.
 
-## Install and integrate
+looptight does not launch another agent or call a model. It coordinates the
+session that is already open. The one idea you have to care about is `verify`:
+the command that decides pass or fail. No verify, no loop.
+
+## The loop
+
+```text
+   your agent session  (Claude Code / Codex / OpenCode)
+   owns the model, auth, context, and code editing
+        |
+        v
+   looptight next  ->  agent implements  ->  looptight verify
+        ^                                          |
+        |              commit if it passes         |
+        +------------------ repeat <---------------+
+                   stop when there is NO_WORK
+```
+
+`next` and `verify` make no model or network calls. They read the repository and
+run your test command, nothing else. The agent CLI owns authentication, model
+choice, and usage limits. The installed package has no third-party runtime
+dependency beyond `rich`.
+
+## When to use it
+
+- You pair with an agent and want every change gated by your real test suite,
+  not by the model saying "looks good."
+- You want the same loop across agents. Set it up once, then switch from Codex
+  to Claude Code without re-teaching the workflow.
+- You have a backlog of TODOs, skipped tests, or lint findings and want an agent
+  to burn it down, in order, with a test gate on each fix.
+- You want several agents working a repo at once in isolated worktrees, merged
+  one at a time only when tests still pass.
+- You want the repo to keep improving itself overnight or while you are away.
+
+If what you want is a second agent harness, looptight is not it. It is the
+control plane the editors lack, not another editor.
+
+## Quick start
 
 ```bash
 uvx looptight init --integrate
-uvx looptight doctor
 ```
 
-`init` detects the project verification command and writes `.looptight.toml`.
-`--integrate` installs one bounded instruction block in `AGENTS.md` for Codex
-and OpenCode and `CLAUDE.md` for Claude Code.
-`doctor` is the non-mutating setup check: it reports config, detected verifier,
-Git state, coordinator activation, agent availability, and the exact next
-command. It does not start a headless run or swarm.
-
-The installed native-session loop is:
-
-```text
-next → implement → verify → review → update status → commit → repeat
-```
-
-It stops successfully when `next` returns `NO_WORK`. The current agent CLI owns
-authentication, models, context, and usage limits. `next`, `verify`, and
-`status` make no model or network calls.
-The installed package has no third-party runtime dependencies.
-
-## Verification is the contract
+`init` detects your test command and writes `.looptight.toml`. `--integrate`
+adds one short, reviewable instruction block to `AGENTS.md` (Codex, OpenCode) or
+`CLAUDE.md` (Claude Code) so the agent runs the loop without you re-prompting
+after each task.
 
 ```toml
 # .looptight.toml
-verify = "pytest -q"
+verify = "pytest -q"        # exit 0 is the only passing verdict
+tasks = ["docs/STATUS.md"]  # optional: files that list grounded work
+direct_main = false         # require a worktree for unattended runs
 ```
 
-Exit zero is the only passing verdict. For integrations and scripts:
+Then, in your agent session, ask it to improve the repo. It will run `next`,
+implement the task it gets back, run `verify`, and commit on a pass.
+
+## A worked example
+
+Say you have a tiny package with one loose end and one parked test. looptight
+scans `src/` and `tests/` for signals:
+
+```text
+calc/
+  src/calc/core.py     # line 14:  # TODO: raise on divide by zero
+  tests/test_core.py   # @pytest.mark.skip("decide behaviour first")
+```
+
+Set the test command and look at what looptight already sees:
 
 ```bash
-looptight verify --json
+$ looptight init
+wrote .looptight.toml (verify = "pytest -q")
+
+$ looptight propose
+2 candidate task(s) (grouped by source priority; pick what to run):
+
+todo
+  1. raise on divide by zero  src/calc/core.py:14
+
+skipped-test
+  2. un-skip / fix skipped test in test_core.py  tests/test_core.py:8
 ```
 
-The versioned result distinguishes `pass`, `fail`, `timeout`, and `error`.
-Command exit codes are `0` for pass, `1` for a valid negative verdict, and `2`
-for configuration or validator-execution errors.
-
-## Session commands
+Claim the first task. The agent reads this, not you:
 
 ```bash
-looptight next --json    # atomically claim one grounded task, or NO_WORK
-looptight verify --json  # run the objective project contract
-looptight status --json  # inspect validation, workspace, claims, and next action
-looptight propose        # inspect the ranked grounded task queue
+$ looptight next --json
+{
+  "command": "next",
+  "schema_version": 1,
+  "status": "task",
+  "task": {
+    "id": "3f9a1c0b7d22",
+    "source": "todo",
+    "location": "src/calc/core.py:14",
+    "goal": "raise on divide by zero",
+    "evidence": "src/calc/core.py:14",
+    "acceptance": "Remove the marker at src/calc/core.py:14 and pass project verification."
+  }
+}
 ```
 
-Tasks come from concrete repository signals such as the bounded `Next` list in
-`docs/STATUS.md`, source TODOs, skipped tests, and lint findings; human-curated
-sources (`docs/STATUS.md` Next, configured task files) rank above automated lint
-and TODO signals. A dirty Git worktree returns a machine-readable error before
-proposal discovery or claim mutation.
+The agent edits `src/calc/core.py`. Now the gate runs:
 
-By default an empty queue does not end the loop: `next` returns `no_work` carrying
-a `generate_ideas` directive, and the session is instructed to add 1-6
-evidence-backed tasks to `docs/STATUS.md` Next and continue. looptight makes no
-model call to do this — the host session generates; only grounded, evidence-backed
-tasks are added, so the loop still terminates when nothing real remains. Pass
-`looptight next --no-ideas` (or set `idea_generation = false` in `.looptight.toml`)
-to restore stop-on-empty. The continuous swarm honors the same `--no-ideas`.
+```bash
+$ looptight verify --json
+{"command": "verify", "status": "pass", "exit_code": 0, "duration_ms": 812.4, ...}
+```
 
-In Git repositories, task claims live under Git's private common directory.
-They are shared across worktrees, never appear as tracked files, and expire
-after 24 hours. Parallel sessions should use separate worktrees.
+A pass authorizes the commit. The agent commits the focused change and loops
+back to `next`, which hands over the skipped test next. When both are done:
 
-## Optional headless compatibility
+```bash
+$ looptight next --json
+{"command": "next", "schema_version": 1, "status": "no_work", "task": null}
+```
+
+`NO_WORK` ends the loop. Two real fixes landed, each one gated by your tests,
+and nothing was invented to keep the session busy.
+
+## Commands
+
+```bash
+looptight init      # detect the test command, write config, optionally integrate
+looptight next      # claim one grounded task, or return NO_WORK
+looptight verify    # run the project's test command and report the verdict
+looptight status    # show readiness and the next safe action, change nothing
+looptight propose   # show the ranked task queue without claiming anything
+looptight doctor    # show the detected agent, verify command, and adapters
+```
+
+Every command takes `--json` for scripting. `verify` exit codes: `0` pass,
+`1` a real failing verdict, `2` a config or validator-execution error. The JSON
+result tells `pass`, `fail`, `timeout`, and `error` apart, so a crashed test
+runner never looks like failing code.
+
+## How work is found
+
+Tasks come from concrete repository signals, never from a model inventing audits
+to stay busy:
+
+| Source | What it reads |
+|--------|---------------|
+| `status-next` | the bounded `## Next` list in `docs/STATUS.md` |
+| `task-file` | files you list under `tasks` in config |
+| `skipped-test` | `@pytest.mark.skip` / `xfail` and bare `pytest.skip()` |
+| `todo` | real `TODO` / `FIXME` / `HACK` / `XXX` comments, not strings |
+| `lint` | findings from your linter |
+
+Human-curated sources (`status-next`, `task-file`) rank above automated signals
+(`lint`, `todo`), so deliberate intent gets claimed before incidental nits. A
+dirty Git worktree returns a machine-readable error before any task is claimed.
+
+When the queue empties, looptight does not stop by default. `next` returns
+`no_work` with a `generate_ideas` directive that asks the host session to add 1
+to 6 evidence-backed tasks to `docs/STATUS.md`, then continue. looptight makes no
+model call to do this. The agent that is already running and billed does the
+thinking, and the directive's rule is strict: no evidence, no task, so the loop
+still terminates when nothing real is left. Pass `--no-ideas` (or set
+`idea_generation = false`) to stop on an empty queue instead.
+
+Task claims live under Git's private common directory. They are shared across
+worktrees, never show up as tracked files, and expire after 24 hours. Parallel
+sessions should use separate worktrees.
+
+## Running it unattended
+
+The default loop runs inside your interactive session. Three explicit modes run
+without you sitting there.
+
+**One headless agent.** `run` launches your provider CLI and applies the same
+verifier after each iteration:
 
 ```bash
 looptight run --headless "fix the failing tests"
 ```
 
-`run` is an explicit compatibility path that launches the selected provider
-CLI and applies the same verifier after each iteration. Looptight does not claim
-how provider CLIs authenticate or bill child processes. The former `improve`
-orchestrator is deprecated; use the native-session loop above.
-
-## Isolated headless swarm
+**A swarm.** A deterministic manager claims one task per worker, gives each its
+own worktree and branch, runs them at once, and merges successful branches one
+at a time, re-running the verifier before every merge:
 
 ```bash
-looptight swarm --headless --agent codex --workers 4 --worker-timeout 3600 --push
-# or: --agent claude
+looptight swarm --headless --agent codex --workers 4
 ```
 
-The deterministic manager claims up to one grounded task per worker, creates an
-isolated Git worktree and branch for each, runs workers concurrently, and merges
-successful branches one at a time only when the project verifier still passes.
-The hard limit is 50 workers; start with a small value because provider limits
-are shared and repository tasks rarely scale linearly. Failed, conflicting, or
-timed-out worktrees are retained; a timeout terminates the provider process tree.
-Successfully merged worktrees are removed.
-Pushing is opt-in with `--push`.
+One invocation drains one snapshot of the queue and exits. Failed or conflicting
+worktrees are kept for inspection (`git worktree list`); merged ones are removed.
+Pushing is opt-in with `--push`. Add `--continuous` to plan new work and run more
+rounds, and `--resume-on-limit` to wait out a provider usage limit and resume
+instead of stopping.
 
-One invocation drains one snapshot of the grounded queue and then exits. Run it
-again to consume tasks exposed by merged changes; `NO_WORK` means no provider
-process was launched. Worker branches use `looptight/swarm/...`. On failure,
-inspect retained workers with `git worktree list`; successful branches remain as
-an audit/recovery point even after their worktrees are removed.
-
-For automatic planning and repeated rounds, opt in explicitly:
-
-```bash
-looptight swarm --headless --continuous --agent codex --workers 4 --push
-# optional safety cap: --max-rounds 10 (0 means uncapped)
+```text
+grounded queue
+   |--> worktree A --> worker --> verify --+
+   |--> worktree B --> worker --> verify --+--> merge one at a time
+   |--> worktree C --> worker --> verify --+    (re-verify before each)
 ```
 
-Continuous mode drains grounded tasks, then runs the selected provider CLI once
-as a planning manager in an isolated worktree. A plan is merged only when it
-changes `docs/STATUS.md`, contains 1–6 tasks with existing-file `Evidence:`
-references and observable `Acceptance:` clauses, and passes verification in the
-planner worktree and again during integration. It then starts another swarm
-round. It stops on an evidence-backed `NO_WORK`, provider or verification
-failure, the optional round cap, or interruption. Invalid planner worktrees are
-retained for inspection. Task fingerprints remain stable when the same task is
-found through another configured source, and interruption terminates active
-provider process trees before returning control.
-
-### Unattended through usage limits
-
-By default a usage/rate limit stops the run. Opt in to wait it out and resume —
-the keystone for self-improving overnight or while you are away:
-
-```bash
-looptight swarm --headless --continuous --resume-on-limit --agent codex --workers 4
-# tuning: --limit-backoff-seconds 30   --limit-max-wait-seconds 3600
-```
-
-Looptight never tracks tokens; it only reacts to a usage/rate limit the provider
-reports in its own output, then sleeps (preferring the provider's named reset,
-otherwise exponential back-off capped by `--limit-max-wait-seconds`) and resumes.
-A long reset is handled by re-polling, not one unbounded wait. The same flags
-work on the single-agent loop (`looptight run --headless --resume-on-limit ...`),
-which is the path a scheduled/cloud trigger drives.
-
-To survive a closed laptop, keep the process alive and the machine awake:
-
-```bash
-tmux new -s looptight
-caffeinate -s looptight swarm --headless --continuous --resume-on-limit --agent codex
-# detach with Ctrl-b d; `caffeinate -s` keeps macOS awake while plugged in
-```
-
-### Persistent 24/7 daemon
-
-`swarm --continuous` is bounded — it returns when the backlog is exhausted, so
-nothing restarts it. `looptight daemon` is the supervisor that does: it reruns the
-continuous swarm forever, looping immediately after merged progress, polling after
-a back-off when idle, and backing off (capped) on faults — surviving crashes and
-stopping gracefully on `SIGTERM`.
+**A daemon.** `swarm --continuous` still returns when the backlog is empty.
+`looptight daemon` is the supervisor that reruns it forever: it loops at once
+after merged progress, polls after a back-off when idle, and backs off on faults.
 
 ```bash
 looptight daemon --headless --agent claude --model opus --workers 4 --push
 ```
 
-It needs a host that stays up and an authenticated agent; run it as the sole
+It needs a host that stays up and an authenticated agent, and should be the only
 writer to `main`. See [`docs/daemon.md`](docs/daemon.md) for the systemd unit,
-container image, and flags.
+the container image, and every flag.
 
-The orchestrator (`swarm`/`run`) is deterministic and spends no allowance; only
-the workers it spawns — and the occasional planner — invoke the provider. See
-`docs/architecture.md` for the full role breakdown.
+To survive a closed laptop, keep the process alive and the machine awake:
 
-### Multiple sessions on one repository
+```bash
+tmux new -s looptight
+caffeinate -s looptight daemon --headless --agent claude --workers 4 --push
+# detach with Ctrl-b d
+```
 
-A repository-private SQLite coordinator lets many local sessions share one repo:
-shared task queue → isolated worktrees → verify → one-at-a-time Git integration.
-Task leases are fenced, integration serializes behind a repository advisory lock in
-a coordinator-owned worktree, and crash recovery is idempotent (integration trailers;
-fetch-before-push publication). Coordination is local to one machine and filesystem.
-`next`/`status` JSON keys are unchanged — coordinator counts appear additively under
-a `coordinator` block on `status`. See `docs/architecture.md` for the model.
+## Multiple sessions on one repository
 
-Activate the coordinator for a repository with:
+A repository-private SQLite coordinator lets many local sessions share one repo
+safely:
+
+```text
+many sessions --> shared queue --> isolated worktrees --> verify --> merge one at a time
+```
+
+Task leases are fenced, integration serializes behind a repository lock in a
+coordinator-owned worktree, and crash recovery is idempotent. Coordination is
+local to one machine and filesystem. Turn it on with:
 
 ```bash
 looptight migrate    # writes the coordinator marker; --json for machine output
 ```
 
-`migrate` refuses (exit 2) while any legacy file claim is still live, errors outside
-Git, and is idempotent. After activation the coordinator owns task ownership and
-legacy file claims fail closed.
+`migrate` refuses (exit 2) while any legacy file claim is still live, errors
+outside Git, and is idempotent. See [`docs/architecture.md`](docs/architecture.md)
+for the model.
 
-Swarm mode invokes the installed provider CLI. Looptight neither supplies API
-keys nor guarantees billing mode: provider authentication determines whether
-work consumes subscription allowance, credits, or another account.
-
-### Local orchestration view
+## Local view
 
 ```bash
-looptight ui                 # http://127.0.0.1:8765
-looptight ui --port 9123
+looptight ui    # http://127.0.0.1:8765
 ```
 
-The dependency-free, read-only signal map polls Git-private swarm state and
-shows the manager, grounded tasks, workers, arrows, and live outcomes. It binds
-only to loopback and sends restrictive browser headers. Provider-native Codex,
-Claude Code, or OpenCode surfaces remain the manager interface; Looptight never
-opens a public listener itself.
+A dependency-free, read-only map of the swarm: manager, tasks, workers, and live
+outcomes. It binds to loopback only and never opens a public listener. Your
+provider-native surface stays the place you steer from.
 
 ## Safety
 
-- Objective verifier output outranks model confidence.
-- Only `pass` authorizes a commit.
+- Verifier output outranks model confidence. Only `pass` authorizes a commit.
 - Timeout and launch errors never look like failing code.
-- Headless execution requires explicit `--headless`.
-- Concurrent tasks use atomic private claims.
+- Headless execution needs an explicit `--headless`.
+- Concurrent tasks use atomic private claims, so two agents never do the same
+  work.
 - No force-push, hard reset, dependency installation, or fabricated work.
-- Runtime state does not pollute project history.
-- Optional `.looptight.toml` policy controls can fail closed on protected paths,
-  direct pushes, changed-file count, and unapproved verifier commands.
+- Optional `.looptight.toml` policy controls can fail closed on protected paths.
+- Runtime state stays out of project history.
 
-See [the product specification](docs/SPEC.md), [current architecture](docs/architecture.md),
-and [bounded self-improvement plan](docs/STATUS.md).
+Swarm and daemon modes invoke your provider CLI. looptight supplies no API keys
+and makes no billing guarantee: your provider's authentication decides whether
+work spends a subscription, credits, or another account.
+
+## Learn more
+
+- [Product specification](docs/SPEC.md): what looptight is and is not.
+- [Architecture](docs/architecture.md): modules, roles, and the coordinator.
+- [Running 24/7](docs/daemon.md): the daemon and how to deploy it.
+- [`docs/STATUS.md`](docs/STATUS.md): the bounded self-improvement plan.
 
 ## Development
 

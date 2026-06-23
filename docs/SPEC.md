@@ -8,7 +8,7 @@ designs; implementation status lives in [`STATUS.md`](STATUS.md).
 
 ## Product promise
 
-**The same test-gated task loop inside Codex, Claude Code, or OpenCode—without
+**The same test-gated task loop inside Codex, Claude Code, or OpenCode, without
 spawning another agent.**
 
 AI editors already provide capable models, tools, context management, and
@@ -62,11 +62,11 @@ this protocol without requiring the user to re-prompt after each task.
 
 By default, an empty queue is not the end: `next` returns `no_work` with a
 `generate_ideas` directive, and the loop adds 1-6 evidence-backed tasks to
-`docs/STATUS.md` before continuing. Crucially, looptight makes no model call to do
-this — in the session-native loop the **host agent** generates (it is already
-running and billed); in the swarm the existing **planner subagent** does. The
-directive's grounding rail ("if no evidence-backed improvement exists, make no
-changes") keeps generation honest and lets the loop terminate. `--no-ideas` (or
+`docs/STATUS.md` before continuing. looptight makes no model call to do this. In
+the session-native loop the **host agent** generates (it is already running and
+billed); in the swarm the existing **planner subagent** does. The directive's
+grounding rail ("if no evidence-backed improvement exists, make no changes")
+keeps generation honest and lets the loop terminate. `--no-ideas` (or
 `idea_generation = false`) restores stop-on-empty. `NO_WORK` with idea generation
 disabled is successful completion. A dirty or conflicting workspace, invalid
 configuration, and an unexecutable verifier are failures. Consuming the rest of a
@@ -74,8 +74,24 @@ provider allowance is never a success criterion.
 
 ## Validation model
 
-Validation is looptight's most important decision logic. Every automated action
-must follow this order:
+Validation is looptight's most important decision logic. Each gate must pass
+before the next one is checked, and any failure stops safely with a reason:
+
+```text
+config ok? --> task grounded & unclaimed? --> verifier ran cleanly?
+   |                  |                              |
+   no                 no                             no (timeout / launch error)
+   v                  v                              v
+  stop               stop                           stop  (not a failing verdict)
+
+   ... then: exit code 0 ? --> valid claim + pass ? --> commit / continue
+                  |                    |
+                  no                   no
+                  v                    v
+                 fail                 stop
+```
+
+Every automated action must follow this order:
 
 1. **Configuration validation:** the verifier and task source are explicit and
    executable.
@@ -169,8 +185,8 @@ direct_main = false
 Provider credentials, models, pricing, and token budgets do not belong in this
 file. Provider-native usage limits are authoritative. looptight never counts
 tokens or tracks billing; the continuous swarm may, when explicitly opted in,
-*react* to a usage limit the provider itself reports — waiting it out and
-resuming — which honors that authority rather than modeling it.
+*react* to a usage limit the provider itself reports, waiting it out and
+resuming. This honors that authority rather than modeling it.
 
 ## Output contract
 

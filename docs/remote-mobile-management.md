@@ -2,6 +2,14 @@
 
 Status: accepted
 
+At a glance, three ways to reach a running swarm from your phone:
+
+```text
+provider-native remote control   ->  preferred (auth stays with the provider)
+authenticated HTTPS tunnel        ->  allowed (loopback bind, operator supplies it)
+LAN / public bind + URL secret    ->  rejected (too easy to leak)
+```
+
 ## Decision
 
 Remote management is opt-in. Prefer a provider's native remote-control feature
