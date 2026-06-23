@@ -1194,8 +1194,12 @@ def test_daemon_dispatches_to_run_daemon(tmp_path, monkeypatch, capsys):
 
     monkeypatch.setattr("looptight.commands.run_daemon", fake_run_daemon)
 
+    # Pass --agent explicitly: `agent` is not a .looptight.toml key, so relying on
+    # config or a claude binary on PATH would make this pass only where claude is
+    # installed (it did locally, but not on CI).
     rc = main(
-        ["daemon", "--headless", "--workers", "2", "--model", "opus", "--push", "--max-cycles", "1"]
+        ["daemon", "--headless", "--agent", "claude", "--workers", "2",
+         "--model", "opus", "--push", "--max-cycles", "1"]
     )
     assert rc == 0
     assert captured["workers"] == 2
