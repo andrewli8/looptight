@@ -871,6 +871,12 @@ def cmd_swarm(args, console: Console) -> int:
         console.print(f"worker {worker.number} · {worker.task['id']} · {worker.status}{detail}")
         if worker.status in {"failed", "timeout", "conflict"}:
             console.print(f"  worktree retained for recovery: {worker.worktree}")
+    counts = Counter(worker.status for worker in result.workers)
+    console.print("explanation: verified workers integrate one at a time")
+    console.print(f"integration: merged {counts['merged']}")
+    console.print(
+        "next: inspect retained worktrees for failures or continue with `looptight next --json`"
+    )
     console.print(_swarm_tally(result.workers))
     return 0 if result.passed else 1
 

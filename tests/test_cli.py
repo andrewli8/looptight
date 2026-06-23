@@ -261,6 +261,28 @@ def test_next_json_trims_redundant_goal_for_grounded_status_task(tmp_path, monke
     assert "a test imports thing" in task["acceptance"]
 
 
+def test_next_human_explains_task_selection(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "thing.py").write_text("x = 1\n")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text(
+        "# S\n\n## Next\n\n"
+        "1. Cover the thing module. Evidence: src/thing.py:1; "
+        "Acceptance: a test imports thing and passes.\n",
+        encoding="utf-8",
+    )
+
+    assert main(["next"]) == 0
+
+    out = capsys.readouterr().out
+    assert "selected task:" in out
+    assert "why: status-next from docs/STATUS.md" in out
+    assert "evidence: Evidence: src/thing.py:1" in out
+    assert "acceptance: a test imports thing and passes." in out
+    assert "next: implement the task, then run `looptight verify --json`" in out
+
+
 def test_next_and_swarm_parsers_accept_no_ideas():
     assert build_parser().parse_args(["next", "--no-ideas"]).no_ideas is True
     assert build_parser().parse_args(["swarm", "--headless", "--no-ideas"]).no_ideas is True
@@ -724,6 +746,34 @@ def test_version_exits_zero(capsys):
 def test_verify_passing_command(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert main(["verify", "--verify", "exit 0"]) == 0
+
+
+def test_verify_human_explains_result_and_changed_files(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / "tracked.txt").write_text("before\n", encoding="utf-8")
+    subprocess.run(["git", "add", "tracked.txt"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=looptight@example.invalid",
+            "-c",
+            "user.name=looptight",
+            "commit",
+            "-qm",
+            "init",
+        ],
+        check=True,
+    )
+    (tmp_path / "tracked.txt").write_text("after\n", encoding="utf-8")
+
+    assert main(["verify", "--verify", "exit 0"]) == 0
+
+    out = capsys.readouterr().out
+    assert "verifier result: pass" in out
+    assert "changed files: tracked.txt" in out
+    assert "next: review the diff, update status, then commit" in out
 
 
 def test_verify_failing_command(tmp_path, monkeypatch):

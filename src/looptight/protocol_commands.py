@@ -45,6 +45,13 @@ def cmd_verify(args: argparse.Namespace, console: Console) -> int:
         return _verify_exit_code(result.status)
     style = "green" if result.passed else "red"
     console.print(f"verify: [{style}]{result.short()}[/{style}] (exit {result.exit_code})")
+    console.print(f"verifier result: {result.status}")
+    console.print(f"changed files: {_changed_files(workdir)}")
+    console.print(
+        "next: review the diff, update status, then commit"
+        if result.passed
+        else "next: continue fixing, then rerun `looptight verify --json`"
+    )
     return _verify_exit_code(result.status)
 
 
@@ -137,11 +144,31 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
             print("NO_WORK")
     else:
         assert result.task is not None
-        print(result.task["goal"])
+        print(f"selected task: {result.task['goal']}")
+        where = f" from {result.task['location']}" if result.task.get("location") else ""
+        print(f"why: {result.task['source']}{where}")
+        evidence = result.task.get("evidence")
+        if evidence:
+            print(f"evidence: {evidence}")
         acceptance = result.task.get("acceptance")
         if acceptance:
-            print(f"Acceptance: {acceptance}")
+            print(f"acceptance: {acceptance}")
+        print("next: implement the task, then run `looptight verify --json`")
     return 2 if result.status == "error" else 0
+
+
+def _changed_files(workdir: Path) -> str:
+    result = subprocess.run(
+        ["git", "status", "--short"],
+        cwd=workdir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return "unavailable"
+    files = [line[3:] for line in result.stdout.splitlines() if len(line) > 3]
+    return ", ".join(files) if files else "none"
 
 
 def cmd_migrate(args: argparse.Namespace, console: Console) -> int:

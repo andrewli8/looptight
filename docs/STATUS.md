@@ -284,22 +284,19 @@ existing CLI session and makes no model or API calls of its own.
   with local-filesystem scope, coordinator activation, legacy-claim, active-lease,
   integration-queue, and publication-queue checks plus remediation. Safe,
   degraded, unsafe, and v1-compatible JSON paths are covered by tests.
+- Human `next`, `verify`, and `swarm` output now explains selected task evidence
+  and acceptance, verifier result and changed files, serialized integration, and
+  next safe action while preserving JSON contracts. Each path is covered by tests.
 
 ## Next
 
-1. Add human-readable run explanations derived from real loop state. Evidence:
-   README.md:93-128, README.md:187-199, docs/architecture.md:192-202.
-   Acceptance: a command or human-output mode summarizes why a task was selected,
-   its evidence and acceptance condition, changed files when available, verifier
-   result, integration/publication state, and the next safe action; JSON remains
-   backward-compatible; tests cover next, verify, and swarm explanation paths.
-2. Provide a guided setup or smoke-test path that proves Looptight is ready
+1. Provide a guided setup or smoke-test path that proves Looptight is ready
    without silently enabling risky behavior. Evidence: README.md:45-64,
    README.md:130-138, README.md:228-247. Acceptance: one documented command path
    validates config, detected verifier, Git state, coordinator state, and agent
    availability; it prints the exact next command; tests prove expected writes
    are limited to config/instruction changes and no swarm/headless run starts.
-3. Improve conflict and recovery UX for retained or requeued work. Evidence:
+2. Improve conflict and recovery UX for retained or requeued work. Evidence:
    README.md:195-199, docs/architecture.md:97-112, docs/STATUS.md:198-210.
    Acceptance: merge conflict, stale lease, rejected push, abandoned run,
    retained worktree, and recovered integration states emit plain human messages

@@ -315,6 +315,24 @@ def test_swarm_human_output_ends_with_outcome_tally(tmp_path, monkeypatch, capsy
     assert lines[-1] == "2 workers · merged 2"
 
 
+def test_swarm_human_output_explains_integration_and_next_action(
+    tmp_path, monkeypatch, capsys
+):
+    _repo(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+
+    assert main(
+        ["swarm", "--headless", "--agent", "codex", "--verify", "exit 0", "--workers", "1"]
+    ) == 0
+
+    out = capsys.readouterr().out
+    assert "explanation: verified workers integrate one at a time" in out
+    assert "integration: merged 1" in out
+    assert "next: inspect retained worktrees for failures or continue with `looptight next --json`" in out
+    assert out.splitlines()[-1] == "1 workers · merged 1"
+
+
 def test_swarm_prints_start_banner_in_human_mode_but_not_json(tmp_path, monkeypatch, capsys):
     _repo(tmp_path)
     monkeypatch.chdir(tmp_path)
