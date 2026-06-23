@@ -233,3 +233,19 @@ def test_reap_abandoned_releases_dead_run_leases(tmp_path):
 
     fresh = db.start_run("fresh", now=200)
     assert db.claim([{"id": "t1"}], fresh.id, ttl_s=60, now=200) is not None
+
+
+def test_migration_v1_to_v2_adds_experience_table(tmp_path):
+    repo = _repo(tmp_path / "repo")
+    path = coordinator_path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    raw = sqlite3.connect(path)
+    raw.executescript("PRAGMA user_version = 1;")  # empty v1 DB
+    raw.close()
+
+    coord = Coordinator.open(repo)
+    assert coord is not None
+    # would raise sqlite OperationalError "no such table" if the migration didn't run
+    coord.record_failure("idea-x", "lint", now=1.0)
+    assert coord.recent_failures(window_s=100.0, now=2.0) == {"idea-x": 1}
+    coord.close()
