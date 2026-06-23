@@ -20,6 +20,9 @@ htmlcov/
 *.looptight.log
 REVIEW-QUEUE.md
 
+# Agent scratch (superpowers SDD ledgers, briefs, reports, reviews)
+.superpowers/
+
 # Editors / OS
 .DS_Store
 .idea/
