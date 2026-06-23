@@ -19,6 +19,7 @@ from .commands import (
     cmd_revert,
     cmd_run,
     cmd_status,
+    cmd_statusline,
     cmd_swarm,
     cmd_verify,
 )
@@ -38,6 +39,7 @@ _COMMANDS = {
     "propose",
     "next",
     "status",
+    "statusline",
     "swarm",
     "daemon",
     "migrate",
@@ -255,6 +257,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="run CMD with a JSON fault payload on stdin when a cycle faults (optional)",
     )
 
+    sub.add_parser(
+        "statusline",
+        help="print a one-line swarm summary for a status bar (reads Claude Code statusLine JSON on stdin)",
+    )
+
     p_ui = sub.add_parser("ui", help="serve the read-only swarm view on localhost")
     p_ui.add_argument("--port", type=_port, default=8765, help="loopback port (default 8765)")
 
@@ -348,6 +355,7 @@ def main(argv: list[str] | None = None) -> int:
         "propose": cmd_propose,
         "next": cmd_next,
         "status": cmd_status,
+        "statusline": cmd_statusline,
         "swarm": cmd_swarm,
         "daemon": cmd_daemon,
         "migrate": cmd_migrate,

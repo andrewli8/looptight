@@ -257,12 +257,22 @@ for the model.
 ## Local view
 
 ```bash
-looptight ui    # http://127.0.0.1:8765
+looptight status            # readiness plus a live worker panel, in the terminal
+looptight status --watch    # the same panel, refreshing until you stop it
+looptight ui                # http://127.0.0.1:8765 (read-only browser map)
 ```
 
-A dependency-free, read-only map of the swarm: manager, tasks, workers, and live
-outcomes. It binds to loopback only and never opens a public listener. Your
-provider-native surface stays the place you steer from.
+`status` shows the swarm/daemon worker panel right in the CLI; `ui` is a
+dependency-free, read-only browser map. Both read the same loopback-only state and
+never open a public listener.
+
+To see loop state in your Claude Code status bar, point `statusLine` at
+`looptight statusline` (it reads Claude Code's status-line JSON on stdin and prints
+one line like `looptight: 3 running · 1 merged`):
+
+```json
+{ "statusLine": { "type": "command", "command": "looptight statusline" } }
+```
 
 ## Safety
 

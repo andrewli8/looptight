@@ -1277,3 +1277,31 @@ def test_watch_status_renders_one_tick_without_sleeping(tmp_path, capsys):
     assert slept == []  # a bounded run does not sleep after its final tick
     out = capsys.readouterr().out
     assert "running 1" in out and "#1" in out
+
+
+def test_statusline_command_reads_stdin_and_prints_one_line(tmp_path, monkeypatch, capsys):
+    import io
+
+    from looptight.ui import write_state
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    write_state(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "manager": {"status": "running"},
+            "tasks": [],
+            "workers": [{"number": 1, "task_id": "t", "status": "running", "error": None}],
+        },
+    )
+    payload = json.dumps({"workspace": {"current_dir": str(tmp_path)}, "model": {"id": "x"}})
+    monkeypatch.setattr("sys.stdin", io.StringIO(payload))
+    assert main(["statusline"]) == 0
+    out = capsys.readouterr().out.strip()
+    assert out.splitlines()[0].startswith("looptight:")
+    assert "running" in out
+
+
+def test_statusline_parser_registered():
+    args = build_parser().parse_args(["statusline"])
+    assert args.command == "statusline"

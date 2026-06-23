@@ -29,6 +29,7 @@ from .protocol_commands import (
 from .summary import render_rich
 from .swarm import MAX_WORKERS, cmd_swarm
 from .types import StopReason
+from .ui import read_state, statusline
 
 __all__ = [
     "cmd_daemon",
@@ -43,6 +44,7 @@ __all__ = [
     "cmd_revert",
     "cmd_run",
     "cmd_status",
+    "cmd_statusline",
     "cmd_swarm",
     "cmd_verify",
 ]
@@ -420,6 +422,37 @@ def cmd_revert(args: argparse.Namespace, console: Console) -> int:
             f"[yellow]{len(leftovers)} untracked file(s) left in place[/yellow] — revert only "
             "touches tracked files; remove them with `git clean -fd` if unwanted."
         )
+    return 0
+
+
+def cmd_statusline(args: argparse.Namespace, console: Console) -> int:
+    """Claude Code status-line entry point. Reads the status-line JSON on stdin and
+    prints one concise line of swarm state to stdout. Must never error or hang."""
+    import json
+
+    raw = ""
+    try:
+        if not sys.stdin.isatty():
+            raw = sys.stdin.read()
+    except (OSError, ValueError):
+        raw = ""
+    repo = Path.cwd()
+    try:
+        data = json.loads(raw) if raw.strip() else {}
+        candidate = None
+        if isinstance(data, dict):
+            workspace = data.get("workspace")
+            if isinstance(workspace, dict):
+                candidate = workspace.get("current_dir") or workspace.get("project_dir")
+            candidate = candidate or data.get("cwd")
+        if isinstance(candidate, str) and candidate:
+            repo = Path(candidate)
+    except (ValueError, TypeError):
+        pass
+    try:
+        print(statusline(read_state(repo)))
+    except Exception:  # a status line must never break the host editor
+        print("looptight: idle")
     return 0
 
 

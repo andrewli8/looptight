@@ -385,14 +385,24 @@ existing CLI session and makes no model or API calls of its own.
   1.0 (still clamped below curated tiers). The learning loop now lifts what pays off,
   not only damps failures. Covered by tests; backward-compatible trailer parsing.
 
+- `looptight statusline` prints a one-line swarm summary (`looptight: 3 running ·
+  1 merged`, or `looptight: idle`) for a status bar, reading Claude Code's status-line
+  JSON on stdin defensively (picks the repo from `workspace.current_dir`/`cwd` else
+  cwd) and never erroring; README documents the settings.json `statusLine` wiring.
+  Covered by tests.
+
 ## Next
 
-1. Add a Claude Code status-line integration. Evidence: Claude Code supports a
-   `statusLine` command; looptight has no one-line status surface. Acceptance:
-   `looptight statusline` reads the Claude Code status-line JSON on stdin and prints
-   one concise line (workers running/merged plus last verify) suitable for
-   settings.json `statusLine`; documented in the README; a test covers the line for a
-   sample state. Confirm Claude Code's stdin contract during implementation.
+1. Stop incomplete claims from blocking the loop for a full lease TTL. Evidence:
+   src/looptight/coordinator.py (claim leases at a 24h ttl; the session `next` path
+   neither completes nor heartbeats the lease, so a task claimed by a prior `next`
+   that was not removed from `## Next` lingers leased and `next` returns no_work
+   though the task is unfinished — observed live: a statusline task stuck leased by an
+   abandoned run). Acceptance: a task leased by an abandoned/stale run becomes
+   claimable again WITHOUT waiting the full ttl (e.g. `next` reaps runs whose
+   heartbeat predates a short deadline via the existing `reap_abandoned`, or the
+   claim path records a heartbeat and stale leases are freed); active-lease fencing
+   for live runs is unchanged; a test proves an abandoned-run lease is reclaimed.
 
 ## Rules
 

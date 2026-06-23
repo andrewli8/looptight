@@ -233,3 +233,16 @@ def test_render_state_panel_empty_without_workers():
     from looptight.ui import render_state_panel
 
     assert render_state_panel({"manager": {"status": "idle"}, "workers": []}) == ""
+
+
+def test_statusline_summarizes_workers_or_idle():
+    from looptight.ui import statusline
+
+    assert statusline({"workers": []}) == "looptight: idle"
+    line = statusline({"workers": [
+        {"number": 1, "status": "running"},
+        {"number": 2, "status": "merged"},
+        {"number": 3, "status": "running"},
+    ]})
+    assert line.startswith("looptight:")
+    assert "2 running" in line and "1 merged" in line

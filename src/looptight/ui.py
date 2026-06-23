@@ -104,6 +104,21 @@ def render_state_panel(state: dict[str, object]) -> str:
     return "\n".join(lines)
 
 
+def statusline(state: dict[str, object]) -> str:
+    """One-line swarm summary for a status bar (e.g. Claude Code's statusLine).
+
+    `looptight: 3 running · 1 merged`, or `looptight: idle` with no workers."""
+    workers = state.get("workers") or []
+    if not isinstance(workers, list) or not workers:
+        return "looptight: idle"
+    counts: dict[str, int] = {}
+    for worker in workers:
+        counts[str(worker.get("status", "?"))] = counts.get(str(worker.get("status", "?")), 0) + 1
+    ordered = [s for s in _WORKER_STATUS_ORDER if s in counts]
+    ordered += [s for s in counts if s not in _WORKER_STATUS_ORDER]
+    return "looptight: " + " · ".join(f"{counts[s]} {s}" for s in ordered)
+
+
 PAGE = r"""<!doctype html>
 <html lang="en">
 <head>
