@@ -10,6 +10,7 @@ from typing import Callable, cast
 
 from .claims import ClaimStore, claim_dir, owner_id
 from .coordinator import Coordinator, current_run_id
+from .idea_identity import idea_id
 from .prompts import IDEA_DIRECTIVE_ACTION, PLANNING_GOAL
 from .propose import Candidate, propose
 
@@ -109,6 +110,7 @@ def next_task(
         tasks.append(
             {
                 "id": hashlib.sha256(identity.encode()).hexdigest()[:12],
+                "idea_id": idea_id(candidate),
                 "source": candidate.source,
                 "location": candidate.location,
                 "goal": _grounded_goal(summary, candidate.location),

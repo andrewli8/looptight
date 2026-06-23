@@ -48,6 +48,20 @@ def test_summary_and_evidence_falls_back_to_detail_without_marker():
     assert evidence == "# TODO: fix the timeout"
 
 
+def test_next_task_attaches_idea_id(tmp_path):
+    cand = Candidate(title="fix E501: line too long", source="lint",
+                     location="src/looptight/foo.py:10", suggested_verify=None,
+                     score=60.0, detail="line too long", acceptance="ruff clean")
+
+    def fake_propose(workdir, limit=0):
+        return [cand]
+
+    result = next_task(tmp_path, propose_fn=fake_propose)
+    assert result.status == "task"
+    from looptight.idea_identity import idea_id
+    assert result.task["idea_id"] == idea_id(cand)
+
+
 def test_task_id_is_stable_when_discovery_route_changes(tmp_path, monkeypatch):
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     # One logical session (stable run id) re-claims its own lease, so the second
