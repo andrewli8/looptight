@@ -155,9 +155,14 @@ to stay busy:
 |--------|---------------|
 | `status-next` | the bounded `## Next` list in `docs/STATUS.md` |
 | `task-file` | files you list under `tasks` in config |
-| `skipped-test` | `@pytest.mark.skip` / `xfail` and bare `pytest.skip()` |
+| `skipped-test` | `@pytest.mark.skip` / `xfail` / `pytest.skip()`, plus JS/TS `it.skip` / `describe.skip` / `xit` |
 | `todo` | real `TODO` / `FIXME` / `HACK` / `XXX` comments, not strings |
 | `lint` | findings from your linter |
+
+TODO and skipped-test discovery is polyglot: it scans Python and JS/TS (`.js`,
+`.ts`, `.tsx`, and the rest of that family), including colocated `*.test.*` /
+`*.spec.*` files and `__tests__/` directories, while ignoring markers inside
+strings or comments and pruning vendored directories like `node_modules`.
 
 Human-curated sources (`status-next`, `task-file`) rank above automated signals
 (`lint`, `todo`), so deliberate intent gets claimed before incidental nits. A

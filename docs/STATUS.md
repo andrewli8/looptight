@@ -347,13 +347,18 @@ existing CLI session and makes no model or API calls of its own.
   before matching), so only real `it.skip`/`describe.skip`/`xit` calls are
   surfaced. Covered by a test.
 
+- The README documents that TODO/FIXME and skipped-test discovery is polyglot:
+  Python plus JS/TS (`.js`/`.ts`/`.tsx`), including colocated `*.test.*` files and
+  `__tests__/` directories, with string/comment markers ignored and vendored dirs
+  pruned. Covered by a doc-accuracy test.
+
 ## Next
 
-1. Document polyglot (JS/TS) discovery in the docs. Evidence: README.md (the
-   "How work is found" section and worked example show only Python TODO/skip
-   markers, though discovery now covers JS/TS). Acceptance: the docs state that
-   TODO/FIXME and skipped-test discovery covers JS/TS (`.js`/`.ts`/`.tsx`, plus
-   colocated `*.test.*` and `__tests__/`) alongside Python; no code change.
+(Queue empty. `next` returns `no_work` with a `generate_ideas` directive; the
+autonomous loop generates 1-6 bite-sized grounded tasks here, or promotes a parked
+item from REVIEW-QUEUE when one is small enough. The large parked items (branch-only
+publication exit, demo fixtures, task-graph projection, 0-to-1 creation) need
+dedicated plan-build-review effort, not a single loop iteration.)
 
 ## Rules
 
