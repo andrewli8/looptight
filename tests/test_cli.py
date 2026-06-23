@@ -729,6 +729,54 @@ def test_doctor_omits_hints_when_prerequisites_present(tmp_path, monkeypatch, ca
     assert "hint:" not in out  # both present → existing lines unchanged
 
 
+def test_doctor_guides_setup_without_writing_or_starting_agents(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: None)
+
+    assert main(["doctor"]) == 0
+
+    out = capsys.readouterr().out
+    assert "setup: not ready" in out
+    assert "coordinator: not a git repo" in out
+    assert "setup next: run `looptight init --integrate`" in out
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_doctor_guides_ready_repository_to_next_command(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "exit 0"\n', encoding="utf-8")
+    subprocess.run(["git", "add", ".looptight.toml"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=looptight@example.invalid",
+            "-c",
+            "user.name=looptight",
+            "commit",
+            "-qm",
+            "init",
+        ],
+        check=True,
+    )
+    (tmp_path / ".git" / "looptight").mkdir(parents=True)
+    (tmp_path / ".git" / "looptight" / "coordinator-format.json").write_text("{}\n", encoding="utf-8")
+    monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: "codex")
+
+    before = sorted(p.relative_to(tmp_path).as_posix() for p in tmp_path.rglob("*"))
+    assert main(["doctor"]) == 0
+    after = sorted(p.relative_to(tmp_path).as_posix() for p in tmp_path.rglob("*"))
+
+    out = capsys.readouterr().out
+    assert "setup: ready" in out
+    assert "coordinator: active" in out
+    assert "setup next: run `looptight next --json`" in out
+    assert after == before
+
+
 def test_malformed_config_exits_cleanly_not_traceback(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / ".looptight.toml").write_text('verify = "pytest"\nbad = = toml\n')

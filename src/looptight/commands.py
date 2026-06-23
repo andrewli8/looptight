@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import argparse
 import signal
+import subprocess
 import sys
 import time
 from pathlib import Path
 
 from .adapters import available_adapter_names, get_adapter
 from .checkpoint import is_git_primary_worktree, is_git_repo
+from .claims import MARKER_NAME
 from .config import CONFIG_NAME, Config, find_config, load_config, write_config
 from .console import Console
 from .daemon import run_daemon
@@ -283,7 +285,15 @@ def cmd_doctor(args: argparse.Namespace, console: Console) -> int:
     )
     console.print(f"  agent (detected): {agent or '[red]none on PATH[/red]'}")
     console.print(f"  verify (detected): {verify or '[yellow]none[/yellow]'}")
-    console.print(f"  git checkpoints: {'on' if is_git_repo(workdir) else '[yellow]off (not a git repo)[/yellow]'}")
+    git_ready = is_git_repo(workdir)
+    coordinator = _doctor_coordinator_state(workdir, git_ready)
+    console.print(f"  git checkpoints: {'on' if git_ready else '[yellow]off (not a git repo)[/yellow]'}")
+    console.print(f"  coordinator: {coordinator}")
+    setup_ready = bool(verify and agent and git_ready and coordinator == "active")
+    console.print(f"  setup: {'ready' if setup_ready else 'not ready'}")
+    console.print(
+        f"  setup next: {_doctor_next_setup_command(verify, agent, git_ready, coordinator)}"
+    )
     console.print("  adapters:")
     for name in available_adapter_names():
         adapter = get_adapter(name)
@@ -302,6 +312,39 @@ def cmd_doctor(args: argparse.Namespace, console: Console) -> int:
             f"  [yellow]hint:[/yellow] no agent on PATH — install one of: {supported}."
         )
     return 0
+
+
+def _doctor_coordinator_state(workdir: Path, git_ready: bool) -> str:
+    if not git_ready:
+        return "not a git repo"
+    result = subprocess.run(
+        ["git", "rev-parse", "--git-common-dir"],
+        cwd=workdir,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return "unknown"
+    common = Path(result.stdout.strip())
+    if not common.is_absolute():
+        common = workdir / common
+    return "active" if (common / "looptight" / MARKER_NAME).is_file() else "inactive"
+
+
+def _doctor_next_setup_command(
+    verify: str | None, agent: str | None, git_ready: bool, coordinator: str
+) -> str:
+    if not verify:
+        return "run `looptight init --integrate`"
+    if not git_ready:
+        return "run inside a Git repository"
+    if coordinator != "active":
+        return "run `looptight migrate`"
+    if not agent:
+        supported = ", ".join(KNOWN_AGENTS)
+        return f"install a supported agent CLI ({supported})"
+    return "run `looptight next --json`"
 
 
 def cmd_revert(args: argparse.Namespace, console: Console) -> int:

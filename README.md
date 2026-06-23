@@ -8,11 +8,15 @@ launch another agent.
 
 ```bash
 uvx looptight init --integrate
+uvx looptight doctor
 ```
 
 `init` detects the project verification command and writes `.looptight.toml`.
 `--integrate` installs one bounded instruction block in `AGENTS.md` for Codex
 and OpenCode and `CLAUDE.md` for Claude Code.
+`doctor` is the non-mutating setup check: it reports config, detected verifier,
+Git state, coordinator activation, agent availability, and the exact next
+command. It does not start a headless run or swarm.
 
 The installed native-session loop is:
 

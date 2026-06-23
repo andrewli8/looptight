@@ -287,16 +287,14 @@ existing CLI session and makes no model or API calls of its own.
 - Human `next`, `verify`, and `swarm` output now explains selected task evidence
   and acceptance, verifier result and changed files, serialized integration, and
   next safe action while preserving JSON contracts. Each path is covered by tests.
+- `doctor` is documented as the non-mutating guided setup check and now reports
+  coordinator state, setup readiness, and the exact next setup command without
+  starting headless/swarm execution. Ready and not-ready paths are covered by
+  no-write tests.
 
 ## Next
 
-1. Provide a guided setup or smoke-test path that proves Looptight is ready
-   without silently enabling risky behavior. Evidence: README.md:45-64,
-   README.md:130-138, README.md:228-247. Acceptance: one documented command path
-   validates config, detected verifier, Git state, coordinator state, and agent
-   availability; it prints the exact next command; tests prove expected writes
-   are limited to config/instruction changes and no swarm/headless run starts.
-2. Improve conflict and recovery UX for retained or requeued work. Evidence:
+1. Improve conflict and recovery UX for retained or requeued work. Evidence:
    README.md:195-199, docs/architecture.md:97-112, docs/STATUS.md:198-210.
    Acceptance: merge conflict, stale lease, rejected push, abandoned run,
    retained worktree, and recovered integration states emit plain human messages
