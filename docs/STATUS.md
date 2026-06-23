@@ -354,11 +354,22 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-(Queue empty. `next` returns `no_work` with a `generate_ideas` directive; the
-autonomous loop generates 1-6 bite-sized grounded tasks here, or promotes a parked
-item from REVIEW-QUEUE when one is small enough. The large parked items (branch-only
-publication exit, demo fixtures, task-graph projection, 0-to-1 creation) need
-dedicated plan-build-review effort, not a single loop iteration.)
+1. Make experience reweighting two-sided so the loop boosts high-yield work, not
+   only damps failures (deepens looptight's core differentiator: a learning loop).
+   Evidence: src/looptight/experience.py (`build_model` never populates
+   `category_landed`, so `reweight_factor`'s boost branch is dead and the
+   self-model can only damp). Acceptance: the `Looptight-Outcome` landed trailer
+   also records the task source; `build_model` populates `category_landed` from it;
+   a high-yield automated category gets a factor above 1.0 while still ranking below
+   curated `task-file`/`status-next`; existing `landed_counts` parsing is unchanged;
+   tests cover both boost and damp.
+2. Give the daemon a structured, queryable cycle log for unattended runs. Evidence:
+   docs/daemon.md (the daemon only prints one line per cycle; the adoption review
+   flagged no way to query what recent cycles did), src/looptight/daemon.py
+   (`DaemonCycle` is emitted only to `on_cycle`). Acceptance: `daemon --log PATH`
+   appends one JSON object per cycle (`cycle`, `outcome`, `reason`, `merged`,
+   `error`, `delay`) to PATH; without the flag nothing is written; a failing log
+   write never stops the daemon; tests assert the emitted records.
 
 ## Rules
 
