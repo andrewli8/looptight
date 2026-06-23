@@ -887,6 +887,67 @@ def test_swarm_classifies_timeout_by_exit_code_not_message(tmp_path, monkeypatch
     assert result.workers[0].status == "timeout"  # classified by returncode 124, not the string
 
 
+def test_planner_goal_includes_experience_when_available(tmp_path, monkeypatch):
+    from looptight.coordinator import Coordinator
+
+    _repo(tmp_path)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text("# Status\n\n## Next\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "status")
+
+    # Record a failure so the experience model is non-empty.
+    coord = Coordinator.open(tmp_path)
+    coord.record_failure("idea-z", "lint")
+    coord.close()
+
+    captured: dict[str, str] = {}
+
+    class _CapturingPlanningAdapter(PlanningAdapter):
+        def run_iteration(self, goal, context, workdir, model=None):
+            captured["goal"] = goal
+            return super().run_iteration(goal, context, workdir, model)
+
+    monkeypatch.setattr(
+        "looptight.swarm.get_adapter", lambda name: _CapturingPlanningAdapter()
+    )
+
+    plan_next_tasks(tmp_path, agent="fake", verify="exit 0")
+
+    assert "goal" in captured, "run_iteration was never called"
+    assert "Learned from past runs" in captured["goal"]
+    assert "idea-z" in captured["goal"]
+
+
+def test_planner_goal_equals_planning_goal_without_coordinator(tmp_path, monkeypatch):
+    from looptight.prompts import PLANNING_GOAL
+
+    _repo(tmp_path)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text("# Status\n\n## Next\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "status")
+
+    # No coordinator DB — Coordinator.open should return None outside a git repo
+    # with no coordinator. We verify by pointing open at a non-coordinator path.
+    captured: dict[str, str] = {}
+
+    class _CapturingPlanningAdapter(PlanningAdapter):
+        def run_iteration(self, goal, context, workdir, model=None):
+            captured["goal"] = goal
+            return super().run_iteration(goal, context, workdir, model)
+
+    monkeypatch.setattr(
+        "looptight.swarm.get_adapter", lambda name: _CapturingPlanningAdapter()
+    )
+    # Stub Coordinator.open to return None (no coordinator available).
+    monkeypatch.setattr("looptight.swarm.Coordinator.open", staticmethod(lambda root: None))
+
+    plan_next_tasks(tmp_path, agent="fake", verify="exit 0")
+
+    assert captured.get("goal") == PLANNING_GOAL
+
+
 def test_continuous_swarm_stops_after_idle_planning_rounds(tmp_path, monkeypatch):
     # Rounds never produce workers and planning always "plans": must stop, not loop.
     monkeypatch.setattr("looptight.swarm.run_swarm", lambda *a, **k: SwarmResult(()))

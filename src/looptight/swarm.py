@@ -36,7 +36,8 @@ from .integration_queue import (
     git_common_dir,
 )
 from .loop import run_loop
-from .prompts import PLANNING_GOAL
+from .experience import build_model
+from .prompts import PLANNING_GOAL, planning_goal
 from .tasks import next_task
 from .types import StopReason
 from .ui import STATE_SCHEMA_VERSION, write_state
@@ -508,7 +509,15 @@ def plan_next_tasks(
         return PlanningResult("failed", error)
     adapter = get_adapter(agent)
     adapter.worker_timeout_s = timeout
-    outcome = adapter.run_iteration(PLANNING_GOAL, "", worktree)
+    coordinator = Coordinator.open(root)
+    goal = PLANNING_GOAL
+    if coordinator is not None:
+        try:
+            model = build_model(root, "HEAD", coordinator, cooldown_s=24 * 3600.0)
+            goal = planning_goal(model)
+        finally:
+            coordinator.close()
+    outcome = adapter.run_iteration(goal, "", worktree)
     status = _git(worktree, "status", "--porcelain")
     if status.returncode != 0:
         return PlanningResult(
