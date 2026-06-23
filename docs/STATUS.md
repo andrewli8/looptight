@@ -201,6 +201,11 @@ existing CLI session and makes no model or API calls of its own.
 - Coordinator runs carry a usable heartbeat: `heartbeat` refreshes an active run and
   `reap_abandoned` marks runs whose heartbeat predates a deadline `abandoned` and frees
   their leases (tasks requeued) before TTL — covered by a time-injected test.
+- The session `next` path reaps abandoned-run leases instead of stalling for a full
+  lease TTL: it heartbeats its own run, then reaps runs idle past a 10-minute deadline
+  before claiming, so a leaked lease from a one-shot `next` that claimed and exited is
+  reclaimed quickly while a live looping session keeps its own lease. Integration
+  fencing is unchanged. Covered by reclaim and live-lease-spared tests in test_tasks.py.
 - `status` human output prints the coordinator queued task/integration/publication
   counts when the repository is coordinated; JSON output unchanged. Covered by a test.
 - The publication push-rejected path is covered: a rejected push attempts only the
@@ -393,16 +398,8 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Stop incomplete claims from blocking the loop for a full lease TTL. Evidence:
-   src/looptight/coordinator.py (claim leases at a 24h ttl; the session `next` path
-   neither completes nor heartbeats the lease, so a task claimed by a prior `next`
-   that was not removed from `## Next` lingers leased and `next` returns no_work
-   though the task is unfinished — observed live: a statusline task stuck leased by an
-   abandoned run). Acceptance: a task leased by an abandoned/stale run becomes
-   claimable again WITHOUT waiting the full ttl (e.g. `next` reaps runs whose
-   heartbeat predates a short deadline via the existing `reap_abandoned`, or the
-   claim path records a heartbeat and stale leases are freed); active-lease fencing
-   for live runs is unchanged; a test proves an abandoned-run lease is reclaimed.
+_Queue drained. The next `next` returns `no_work` with a `generate_ideas` directive;
+the loop adds grounded refinement/hardening tasks here or stops on convergence._
 
 ## Rules
 

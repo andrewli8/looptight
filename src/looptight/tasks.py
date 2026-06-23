@@ -16,6 +16,15 @@ from .propose import Candidate, propose
 
 ProposeFn = Callable[..., list[Candidate]]
 
+# A one-shot `next` that claims a task then exits never completes or renews its
+# lease, so the task would stay leased for the full 24h TTL and stall the loop.
+# Reap runs whose heartbeat predates this short deadline before claiming, freeing
+# leaked leases. A live looping session refreshes its heartbeat on every `next`,
+# so its own lease is never reaped; reaping only runs at claim time, so a swarm's
+# in-flight worker leases (claimed once, integrated without another `next`) are
+# untouched, and integration fencing in the coordinator is unchanged.
+_ABANDONED_RUN_DEADLINE_S = 10 * 60
+
 
 @dataclass(frozen=True)
 class NextResult:
@@ -130,6 +139,10 @@ def next_task(
     if coordinator is not None:
         run_id = run_id or current_run_id()
         coordinator.start_run("session", run_id=run_id)
+        # Mark this run live, then free leases stranded by abandoned runs before
+        # claiming. Heartbeating first keeps a live looping session's own lease safe.
+        coordinator.heartbeat(run_id)
+        coordinator.reap_abandoned(older_than_s=_ABANDONED_RUN_DEADLINE_S)
         lease = coordinator.claim(cast(list[dict[str, object]], tasks), run_id, ttl_s=24 * 60 * 60)
         task = cast(dict[str, str | None] | None, lease.payload if lease else None)
         coordinator.close()

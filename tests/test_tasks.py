@@ -127,3 +127,52 @@ def test_curated_claim_id_differs_by_title(tmp_path):
     a = next_task(tmp_path, propose_fn=lambda w, limit=0: candidate("Task A")).task["id"]
     b = next_task(tmp_path, propose_fn=lambda w, limit=0: candidate("Task B")).task["id"]
     assert a != b
+
+
+def _leaked_candidate():
+    return [
+        Candidate(
+            title="Do the leaked task",
+            source="status-next",
+            location="docs/STATUS.md:10",
+            suggested_verify=None,
+            score=65.0,
+            detail="Do it. Evidence: src/x.py:1",
+            acceptance="done",
+        )
+    ]
+
+
+def test_next_task_reclaims_abandoned_run_lease(tmp_path):
+    # A one-shot `next` that claims a task then exits leaves the lease held by an
+    # abandoned run. The lease's 24h TTL has not expired, so without reaping the loop
+    # would stall for a full day. A later `next` must reclaim it WITHOUT that wait.
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+
+    probe = next_task(tmp_path, propose_fn=lambda w, limit=0: _leaked_candidate(), run_id="probe")
+    assert probe.status == "task"
+
+    # Simulate the probe process dying: its heartbeat falls far behind the reap
+    # deadline while the long lease still looks live to the TTL check.
+    from looptight.coordinator import Coordinator
+
+    coord = Coordinator.open(tmp_path)
+    coord.connection.execute("UPDATE runs SET heartbeat = 0 WHERE id = 'probe'")
+    coord.close()
+
+    reclaimed = next_task(tmp_path, propose_fn=lambda w, limit=0: _leaked_candidate(), run_id="loop")
+    assert reclaimed.status == "task"  # abandoned lease reaped, task reclaimed
+    assert reclaimed.task["id"] == probe.task["id"]
+
+
+def test_next_task_does_not_reap_a_fresh_live_lease(tmp_path):
+    # Active-lease fencing for live runs is unchanged: a run that just claimed keeps
+    # its lease (heartbeat is fresh, not past the reap deadline), so a concurrent run
+    # cannot steal the same task out from under it.
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+
+    owner = next_task(tmp_path, propose_fn=lambda w, limit=0: _leaked_candidate(), run_id="owner")
+    assert owner.status == "task"
+
+    other = next_task(tmp_path, propose_fn=lambda w, limit=0: _leaked_candidate(), run_id="other")
+    assert other.status == "no_work"  # fresh lease spared; the other run gets nothing
