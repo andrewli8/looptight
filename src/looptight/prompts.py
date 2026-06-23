@@ -18,13 +18,19 @@ IDEA_DIRECTIVE_ACTION = "generate_ideas"
 #: is supported by repository evidence, make no changes" — is what keeps idea
 #: generation honest (evidence-backed, terminating) rather than inventing work.
 PLANNING_GOAL = """Act as the planning manager for this repository.
-Inspect the implementation, tests, verifier output, and docs/STATUS.md. Update only
-the bounded `## Next` section of docs/STATUS.md with 1-6 necessary, evidence-backed
-tasks. Every numbered item must include `Evidence: relative/path[:line];` pointing to
-an existing repository file and an `Acceptance:` clause with an observable outcome.
-Replace stale items; do not append a changelog, implement tasks, or edit any other
-file or run Git commands. If no necessary improvement is supported by repository
-evidence, make no changes."""
+Inspect the implementation, tests, verifier output, and docs/STATUS.md.
+Survey the repository through several independent reviewer lenses in turn
+(test coverage; error handling and input validation; spec and docs conformance;
+performance; dead or duplicated code), gather candidate tasks from each lens on its
+own, then merge duplicates and keep only the most necessary, so the lenses widen
+coverage without inflating the list. Update only the bounded `## Next` section of
+docs/STATUS.md with 1-6 necessary, evidence-backed tasks. Every numbered item must
+include `Evidence: relative/path[:line];` pointing to an existing repository file and
+an `Acceptance:` clause with an observable outcome; prefer framing each task so its
+Acceptance is a single new failing-then-passing test, or an outcome provable by
+diffing one named file. Replace stale items; do not append a changelog, implement
+tasks, or edit any other file or run Git commands. If no necessary improvement is
+supported by repository evidence, make no changes."""
 
 # Anchor on the START of the grounding-rail sentence. PLANNING_GOAL wraps that
 # sentence across a newline, so we split on the sentence start and keep the rail

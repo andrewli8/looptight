@@ -13,6 +13,22 @@ def test_planning_goal_is_grounded_and_bounded():
     assert "make no changes" in PLANNING_GOAL
 
 
+def test_planning_goal_uses_multiple_reviewer_lenses_and_constraint_framing():
+    # Multi-view generation: survey the repo under several independent reviewer lenses
+    # then merge duplicates, widening coverage without inflating the bounded list
+    # (Diehl & Stroebe 1987 nominal>real groups; Si et al. 2024 LLM diversity ceiling).
+    assert "reviewer lenses" in PLANNING_GOAL
+    for lens in ("test", "error handling", "performance"):
+        assert lens in PLANNING_GOAL
+    assert "merge duplicates" in PLANNING_GOAL
+    # Constraints-as-scaffold: push the grounding constraint upstream into the
+    # generation framing, not only the downstream reject gate (Haught-Tromp 2017).
+    assert "failing-then-passing test" in PLANNING_GOAL
+    # Widening coverage must not break the bound or move the grounding rail.
+    assert "1-6" in PLANNING_GOAL
+    assert PLANNING_GOAL.rstrip().endswith("make no changes.")
+
+
 def test_swarm_reuses_the_shared_planning_goal():
     from looptight import swarm
 
