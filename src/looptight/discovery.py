@@ -122,13 +122,14 @@ def _comments(path: Path):
         return
 
 
-def _js_line_comment(line: str) -> str | None:
-    """Return a line's `//` (or inline `/* */`) comment body, or None.
+def _js_line_comment(line: str) -> tuple[str | None, bool]:
+    """Scan one line for a `//` or `/* ... */` comment, quote-aware.
 
-    Quote-aware: a `//` inside a string or template literal is not a comment, so
-    a marker written inside a JS string is not a false hit. This mirrors how the
-    Python path relies on ``tokenize`` to ignore string literals. Block comments
-    spanning multiple lines are read only on their opening line.
+    Returns ``(body, block_open)``: ``body`` is the comment text found on this line
+    (or None), and ``block_open`` is True when a `/*` opened without a closing `*/`,
+    so the caller treats following lines as comment continuation until `*/`. A `//`
+    or `/*` inside a string or template literal is ignored, so a marker written
+    inside a JS string is not a false hit (as the Python path uses ``tokenize``).
     """
     i, n, quote = 0, len(line), None
     while i < n:
@@ -144,24 +145,36 @@ def _js_line_comment(line: str) -> str | None:
         if char in "\"'`":
             quote = char
         elif char == "/" and i + 1 < n and line[i + 1] == "/":
-            return line[i + 2 :]
+            return line[i + 2 :], False
         elif char == "/" and i + 1 < n and line[i + 1] == "*":
             end = line.find("*/", i + 2)
-            return line[i + 2 : end] if end != -1 else line[i + 2 :]
+            if end == -1:
+                return line[i + 2 :], True
+            return line[i + 2 : end], False
         i += 1
-    return None
+    return None, False
 
 
 def _js_comments(path: Path):
-    """Yield (lineno, comment_body) for JS/TS line and inline block comments."""
+    """Yield (lineno, comment_body) for JS/TS line comments and block comments,
+    including block comments that span multiple lines."""
     try:
-        with path.open("r", encoding="utf-8", errors="ignore") as fh:
-            for lineno, line in enumerate(fh, 1):
-                body = _js_line_comment(line.rstrip("\n"))
-                if body is not None:
-                    yield lineno, body
+        lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
     except OSError:
         return
+    in_block = False
+    for lineno, line in enumerate(lines, 1):
+        if in_block:
+            end = line.find("*/")
+            if end == -1:
+                yield lineno, line  # whole continuation line is comment body
+            else:
+                yield lineno, line[:end]
+                in_block = False
+            continue
+        body, in_block = _js_line_comment(line)
+        if body is not None:
+            yield lineno, body
 
 
 def _todo_candidate(root: Path, path: Path, lineno: int, body: str, detail: str) -> Candidate | None:

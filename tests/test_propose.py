@@ -446,3 +446,19 @@ def test_discovery_skips_node_modules(tmp_path):
     (tmp_path / "node_modules" / "pkg").mkdir(parents=True)
     (tmp_path / "node_modules" / "pkg" / "a.test.js").write_text('it.skip("x", () => {});\n')
     assert from_skipped_tests(tmp_path) == []
+
+
+def test_from_todos_reads_multiline_block_comment(tmp_path):
+    from looptight.discovery import from_todos
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.ts").write_text("/*\n  TODO: refactor this\n*/\nconst x = 1;\n")
+    locs = {c.location for c in from_todos(tmp_path)}
+    assert "src/a.ts:2" in locs  # marker on a continuation line inside the block
+
+
+def test_from_todos_block_comment_still_ignores_string_with_marker(tmp_path):
+    from looptight.discovery import from_todos
+    (tmp_path / "src").mkdir()
+    # A `//` marker inside a string must still not count (single-line behavior).
+    (tmp_path / "src" / "b.ts").write_text('const s = "// TODO nope";\n')
+    assert from_todos(tmp_path) == []
