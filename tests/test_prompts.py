@@ -21,3 +21,22 @@ def test_swarm_reuses_the_shared_planning_goal():
 
 def test_idea_directive_action_is_stable():
     assert IDEA_DIRECTIVE_ACTION == "generate_ideas"
+
+
+def test_planning_goal_unchanged_without_model():
+    from looptight.experience import Model
+    from looptight.prompts import planning_goal
+
+    assert planning_goal(None) == PLANNING_GOAL
+    assert planning_goal(Model()) == PLANNING_GOAL
+
+
+def test_planning_goal_injects_summary_before_grounding_rail():
+    from looptight.experience import Model
+    from looptight.prompts import planning_goal
+
+    m = Model(failed={"idea-x": 2})
+    text = planning_goal(m)
+    assert "idea-x" in text
+    # the grounding rail stays the final instruction
+    assert text.rstrip().endswith("make no changes.")

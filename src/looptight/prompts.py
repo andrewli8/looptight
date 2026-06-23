@@ -8,6 +8,8 @@ surfaced by `next`. Keeping it here avoids importing the swarm's heavy module
 
 from __future__ import annotations
 
+from .experience import Model, summary_text
+
 #: Action name the `next` no-work directive carries so a host agent knows what to
 #: do without parsing prose.
 IDEA_DIRECTIVE_ACTION = "generate_ideas"
@@ -23,3 +25,19 @@ an existing repository file and an `Acceptance:` clause with an observable outco
 Replace stale items; do not append a changelog, implement tasks, or edit any other
 file or run Git commands. If no necessary improvement is supported by repository
 evidence, make no changes."""
+
+# Anchor on the START of the grounding-rail sentence. PLANNING_GOAL wraps that
+# sentence across a newline, so we split on the sentence start and keep the rail
+# verbatim rather than matching its exact (newline-containing) text.
+_RAIL_ANCHOR = "If no necessary improvement"
+
+
+def planning_goal(model: Model | None = None) -> str:
+    """PLANNING_GOAL, optionally with a bounded experience note before the rail."""
+    note = summary_text(model) if model is not None else ""
+    if not note:
+        return PLANNING_GOAL
+    idx = PLANNING_GOAL.rindex(_RAIL_ANCHOR)
+    head = PLANNING_GOAL[:idx].rstrip()
+    rail = PLANNING_GOAL[idx:]
+    return f"{head}\n\nLearned from past runs:\n{note}\n\n{rail}"
