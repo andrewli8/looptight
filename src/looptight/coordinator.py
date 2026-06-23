@@ -254,6 +254,18 @@ def coordinator_path(workdir: Path) -> Path | None:
     return common.resolve() / "looptight" / "coordinator.db"
 
 
+def coordination_scope(workdir: Path) -> str:
+    """Where task coordination is shared, as one of ``coordinator`` (SQLite
+    coordinator activated), ``file-claims`` (Git repo, legacy file claims), or
+    ``none`` (outside Git). Coordination is local to one machine and filesystem;
+    cross-machine and network-filesystem coordination are not supported.
+    """
+    path = coordinator_path(workdir)
+    if path is None:
+        return "none"
+    return "coordinator" if (path.parent / MARKER_NAME).is_file() else "file-claims"
+
+
 @dataclass
 class Coordinator:
     """One connection to a repository's process-safe coordination database."""

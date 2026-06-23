@@ -686,6 +686,7 @@ def test_status_human_shows_verify_command_without_changing_json(
         "readiness",
         "verifier_quality",
         "concurrency",
+        "coordination_scope",
         "policy",
     }
     assert "verify" not in data
@@ -1204,3 +1205,20 @@ def test_daemon_dispatches_to_run_daemon(tmp_path, monkeypatch, capsys):
     assert captured["resume_on_limit"] is True  # on by default for a 24/7 daemon
     out = capsys.readouterr().out
     assert "daemon stopped" in out
+
+
+def test_doctor_reports_single_machine_coordination(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    assert main(["doctor"]) == 0
+    out = capsys.readouterr().out.lower()
+    assert "coordination:" in out
+    assert "cross-machine" in out
+
+
+def test_status_json_includes_coordination_scope(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    assert main(["status", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["coordination_scope"] in ("coordinator", "file-claims", "none")

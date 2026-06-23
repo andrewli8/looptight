@@ -249,3 +249,21 @@ def test_migration_v1_to_v2_adds_experience_table(tmp_path):
     coord.record_failure("idea-x", "lint", now=1.0)
     assert coord.recent_failures(window_s=100.0, now=2.0) == {"idea-x": 1}
     coord.close()
+
+
+def test_coordination_scope_reports_three_states(tmp_path):
+    from looptight.claims import MARKER_NAME
+    from looptight.coordinator import coordination_scope, coordinator_path
+
+    plain = tmp_path / "plain"
+    plain.mkdir()
+    assert coordination_scope(plain) == "none"  # outside Git
+
+    repo = tmp_path / "repo"
+    _repo(repo)  # the fixture creates the directory and runs git init
+    assert coordination_scope(repo) == "file-claims"  # Git, coordinator not activated
+
+    marker = coordinator_path(repo).parent
+    marker.mkdir(parents=True, exist_ok=True)
+    (marker / MARKER_NAME).write_text("{}", encoding="utf-8")
+    assert coordination_scope(repo) == "coordinator"  # marker present

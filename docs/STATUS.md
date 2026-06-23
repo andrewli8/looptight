@@ -314,21 +314,20 @@ existing CLI session and makes no model or API calls of its own.
   (`*.test.*`, `*.spec.*`, `__tests__/`), not just `tests/`, pruning vendored
   and build dirs; Python and existing `tests/` behavior unchanged. Covered by tests.
 
+- `doctor` reports a `coordination:` line (local-only SQLite coordinator / file
+  claims / not activated) naming the single-machine boundary, and `status --json`
+  carries an additive `coordination_scope` field, via a `coordination_scope`
+  helper. Covered by tests across the three states.
+
 ## Next
 
-1. Surface the single-machine coordination scope in `doctor`. Evidence:
-   docs/architecture.md (coordination is local to one machine), src/looptight/commands.py
-   (cmd_doctor). Acceptance: `doctor` prints a `Coordination:` line reading
-   local-only (SQLite coordinator), local-only (file claims), or not activated,
-   plus one sentence that cross-machine sharing is unsupported; `--json` adds an
-   additive `coordination_scope`; tests cover the three states.
-2. Add an optional daemon fault hook. Evidence: src/looptight/daemon.py,
+1. Add an optional daemon fault hook. Evidence: src/looptight/daemon.py,
    src/looptight/cli.py (daemon parser has no notification surface). Acceptance:
    `daemon --on-fault CMD` execs CMD with a JSON payload (`cycle`, `reason`,
    `backoff_s`, `last_error`) on a fault backoff; the flag is optional (default
    no-op); a hook failure does not stop the daemon; tests inject a fault and
    assert the payload and that the daemon survives a failing hook.
-3. Add a plain-language glossary to the README. Evidence: README.md (verify,
+2. Add a plain-language glossary to the README. Evidence: README.md (verify,
    worktree, headless, claim, swarm, daemon are used without definition).
    Acceptance: a short glossary section defines each term in one line, and the
    first use of each links to it; no behavior change; the section is present.

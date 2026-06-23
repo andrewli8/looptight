@@ -14,6 +14,7 @@ from .checkpoint import is_git_primary_worktree, is_git_repo
 from .claims import MARKER_NAME
 from .config import CONFIG_NAME, Config, find_config, load_config, write_config
 from .console import Console
+from .coordinator import coordination_scope
 from .daemon import run_daemon
 from .detect import KNOWN_AGENTS, detect_agent, detect_verify
 from .integration import install_session_instructions
@@ -289,6 +290,7 @@ def cmd_doctor(args: argparse.Namespace, console: Console) -> int:
     coordinator = _doctor_coordinator_state(workdir, git_ready)
     console.print(f"  git checkpoints: {'on' if git_ready else '[yellow]off (not a git repo)[/yellow]'}")
     console.print(f"  coordinator: {coordinator}")
+    console.print(f"  coordination: {_coordination_line(workdir)}")
     setup_ready = bool(verify and agent and git_ready and coordinator == "active")
     console.print(f"  setup: {'ready' if setup_ready else 'not ready'}")
     console.print(
@@ -312,6 +314,22 @@ def cmd_doctor(args: argparse.Namespace, console: Console) -> int:
             f"  [yellow]hint:[/yellow] no agent on PATH — install one of: {supported}."
         )
     return 0
+
+
+_COORDINATION_LABELS = {
+    "coordinator": "local-only (SQLite coordinator)",
+    "file-claims": "local-only (file claims)",
+    "none": "not activated",
+}
+
+
+def _coordination_line(workdir: Path) -> str:
+    """One-line coordination scope for `doctor`, naming the single-machine boundary."""
+    scope = coordination_scope(workdir)
+    label = _COORDINATION_LABELS[scope]
+    if scope == "none":
+        return label
+    return f"{label}; cross-machine sharing is unsupported"
 
 
 def _doctor_coordinator_state(workdir: Path, git_ready: bool) -> str:

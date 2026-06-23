@@ -10,7 +10,7 @@ from pathlib import Path
 from .claims import MARKER_NAME, ClaimStore, claim_dir, has_live_claim, owner_id
 from .config import ConfigError, load_config
 from .console import Console
-from .coordinator import Coordinator, MigrationBlocked, current_run_id
+from .coordinator import Coordinator, MigrationBlocked, coordination_scope, current_run_id
 from .detect import detect_agent, detect_verify
 from .verify import run_verify
 
@@ -297,6 +297,7 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         "readiness": readiness,
         "verifier_quality": verifier_quality,
         "concurrency": concurrency,
+        "coordination_scope": coordination_scope(workdir),
         "policy": _policy_summary(config),
     }
     if coordinator_counts is not None:
