@@ -70,6 +70,10 @@ Useful flags (see `looptight daemon --help` for all):
 - `--max-cycles N`: stop after N cycles (0 = forever); handy for smoke tests.
 - `--no-ideas`: when the queue empties, idle instead of generating grounded tasks.
 - `--no-resume-on-limit`: treat a provider usage limit as a fault (default: wait it out).
+- `--on-fault CMD`: run `CMD` when a cycle faults, for operator alerting. The
+  daemon execs `CMD` with a JSON payload on stdin holding `cycle`, `reason`,
+  `backoff_s`, and `last_error`. It is optional (default: no hook), and a failing
+  or slow hook never stops the daemon (it is guarded and time-bounded).
 
 The daemon prints one line per cycle (`cycle 7 -> idle; next in 600s`), so the
 journal shows exactly why it is or is not building at any moment. Idle is a

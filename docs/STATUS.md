@@ -333,14 +333,13 @@ existing CLI session and makes no model or API calls of its own.
   opening line; single-line `//` and inline `/* */` behavior and string-literal
   guarding are unchanged. Covered by tests.
 
+- docs/daemon.md documents the `--on-fault CMD` hook: its JSON payload fields
+  (`cycle`, `reason`, `backoff_s`, `last_error`), that it is optional, and that a
+  failing or slow hook never stops the daemon. Covered by a doc-accuracy test.
+
 ## Next
 
-1. Document the daemon `--on-fault` hook in docs/daemon.md. Evidence:
-   docs/daemon.md:67-70 (the flag list omits `--on-fault`), src/looptight/cli.py:245.
-   Acceptance: docs/daemon.md documents `--on-fault CMD`, names its JSON payload
-   fields (`cycle`, `reason`, `backoff_s`, `last_error`), and states a failing hook
-   never stops the daemon; no code change.
-2. Prune vendored and build directories from the JS/TS file scan. Evidence:
+1. Prune vendored and build directories from the JS/TS file scan. Evidence:
    src/looptight/discovery.py:62-66 (`_files_with_exts` rglobs without pruning,
    while `_js_test_files` already prunes node_modules/.git/build). Acceptance: a JS
    TODO or skip under a `node_modules/` directory inside `src/` is not surfaced,
