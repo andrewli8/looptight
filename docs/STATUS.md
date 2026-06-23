@@ -324,12 +324,15 @@ existing CLI session and makes no model or API calls of its own.
   (default no-op) and a failing hook never stops the daemon (guarded in both
   run_daemon and the exec). Covered by tests.
 
+- The README has a Glossary defining its core jargon (verify, worktree, headless,
+  claim, swarm, daemon) in one line each, with a pointer link from the intro, so
+  a newcomer can decode the terms without leaving the page. Covered by a test.
+
 ## Next
 
-1. Add a plain-language glossary to the README. Evidence: README.md (verify,
-   worktree, headless, claim, swarm, daemon are used without definition).
-   Acceptance: a short glossary section defines each term in one line, and the
-   first use of each links to it; no behavior change; the section is present.
+(Queue empty. `next` returns `no_work` with a `generate_ideas` directive; the
+autonomous loop generates 1-6 bite-sized grounded tasks here, or promotes a parked
+item from REVIEW-QUEUE when one is small enough.)
 
 ## Rules
 

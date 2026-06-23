@@ -8,6 +8,9 @@ looptight does not launch another agent or call a model. It coordinates the
 session that is already open. The one idea you have to care about is `verify`:
 the command that decides pass or fail. No verify, no loop.
 
+New to terms like verify, worktree, headless, claim, swarm, or daemon? See the
+[Glossary](#glossary).
+
 ## The loop
 
 ```text
@@ -270,6 +273,22 @@ provider-native surface stays the place you steer from.
 Swarm and daemon modes invoke your provider CLI. looptight supplies no API keys
 and makes no billing guarantee: your provider's authentication decides whether
 work spends a subscription, credits, or another account.
+
+## Glossary
+
+- **verify**: the command that decides pass or fail, usually your test command.
+  looptight runs it after each change and commits only when it passes. No verify, no loop.
+- **worktree**: a separate working directory backed by the same Git repository, so
+  parallel or unattended work stays isolated and never touches your open files.
+- **headless**: running a coding agent as a child process instead of your
+  interactive session. You opt in with `--headless`; the default loop stays in the
+  session you already have open.
+- **claim**: a private, atomic lock on a task so two sessions never do the same
+  work. Claims live outside tracked history and expire after 24 hours.
+- **swarm**: several headless workers doing independent tasks at once in isolated
+  worktrees, with their verified results merged one at a time.
+- **daemon**: a long-running supervisor that reruns a continuous swarm so the loop
+  keeps going on its own, backing off when idle and recovering from faults.
 
 ## Learn more
 
