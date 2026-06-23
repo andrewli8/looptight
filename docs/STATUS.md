@@ -359,29 +359,30 @@ existing CLI session and makes no model or API calls of its own.
   GIT_COMMITTER_* overrides the integrator's `-c user.name=looptight` and breaks the
   deterministic-identity guarantee, and the suite already passes with no global config.
 
+- CI pins non-deprecated GitHub Actions (`actions/checkout@v5`,
+  `actions/setup-python@v6`), clearing the Node 20 deprecation warning. Confirmed
+  green on both Python 3.11 and 3.12.
+
 ## Next
 
-1. Bump the deprecated GitHub Actions. Evidence: CI annotations warn
-   actions/checkout@v4 and actions/setup-python@v5 are forced off Node 20.
-   Acceptance: .github/workflows/*.yml pin non-deprecated action versions; CI is green.
-2. Add a terminal status panel for live swarm/daemon state. Evidence: src/looptight/ui.py
+1. Add a terminal status panel for live swarm/daemon state. Evidence: src/looptight/ui.py
    serves swarm worker state from a Git-private state file but only via a browser;
    there is no in-CLI view. Acceptance: `looptight status` renders, in the terminal,
    current worker states (running/verified/merged/failed/conflict counts and each
    worker's task) from that state when present, plain when absent; existing status
    JSON is unchanged; a test renders from a sample state.
-3. Add `looptight status --watch` for a live-refreshing panel. Evidence: builds on
-   task 2; long swarm/daemon runs have no live terminal view. Acceptance: `--watch`
+2. Add `looptight status --watch` for a live-refreshing panel. Evidence: builds on
+   task 1; long swarm/daemon runs have no live terminal view. Acceptance: `--watch`
    re-renders the panel on an interval, reading the latest state each tick, until
    interrupted; stdlib-only and bounded; a test drives one render tick via an
    injected clock/state.
-4. Add a Claude Code status-line integration. Evidence: Claude Code supports a
+3. Add a Claude Code status-line integration. Evidence: Claude Code supports a
    `statusLine` command; looptight has no one-line status surface. Acceptance:
    `looptight statusline` reads the Claude Code status-line JSON on stdin and prints
    one concise line (workers running/merged plus last verify) suitable for
    settings.json `statusLine`; documented in the README; a test covers the line for a
    sample state. Confirm Claude Code's stdin contract during implementation.
-5. Finish two-sided experience reweighting so the learning loop boosts, not only
+4. Finish two-sided experience reweighting so the learning loop boosts, not only
    damps. Evidence: src/looptight/experience.py (`build_model` never populates
    `category_landed`, so `reweight_factor`'s boost branch is dead). Acceptance: the
    landed trailer records the task source; `build_model` populates `category_landed`;
