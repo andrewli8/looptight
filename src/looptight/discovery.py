@@ -52,6 +52,19 @@ def _py_files(root: Path, subdir: str) -> list[Path]:
     return sorted(p for p in base.rglob("*.py") if p.is_file())
 
 
+# JavaScript/TypeScript family extensions scanned for TODO markers. Discovery is
+# Python-first, but most real repos are polyglot; surfacing JS/TS markers keeps
+# the lightweight signal capture useful beyond Python.
+_JS_EXTS = (".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs")
+
+
+def _files_with_exts(root: Path, subdir: str, exts: tuple[str, ...]) -> list[Path]:
+    base = root / subdir
+    if not base.is_dir():
+        return []
+    return sorted(p for p in base.rglob("*") if p.is_file() and p.suffix in exts)
+
+
 def _rel(root: Path, path: Path) -> str:
     try:
         return str(path.relative_to(root))
@@ -70,27 +83,80 @@ def _comments(path: Path):
         return
 
 
+def _js_line_comment(line: str) -> str | None:
+    """Return a line's `//` (or inline `/* */`) comment body, or None.
+
+    Quote-aware: a `//` inside a string or template literal is not a comment, so
+    a marker written inside a JS string is not a false hit. This mirrors how the
+    Python path relies on ``tokenize`` to ignore string literals. Block comments
+    spanning multiple lines are read only on their opening line.
+    """
+    i, n, quote = 0, len(line), None
+    while i < n:
+        char = line[i]
+        if quote is not None:
+            if char == "\\":
+                i += 2
+                continue
+            if char == quote:
+                quote = None
+            i += 1
+            continue
+        if char in "\"'`":
+            quote = char
+        elif char == "/" and i + 1 < n and line[i + 1] == "/":
+            return line[i + 2 :]
+        elif char == "/" and i + 1 < n and line[i + 1] == "*":
+            end = line.find("*/", i + 2)
+            return line[i + 2 : end] if end != -1 else line[i + 2 :]
+        i += 1
+    return None
+
+
+def _js_comments(path: Path):
+    """Yield (lineno, comment_body) for JS/TS line and inline block comments."""
+    try:
+        with path.open("r", encoding="utf-8", errors="ignore") as fh:
+            for lineno, line in enumerate(fh, 1):
+                body = _js_line_comment(line.rstrip("\n"))
+                if body is not None:
+                    yield lineno, body
+    except OSError:
+        return
+
+
+def _todo_candidate(root: Path, path: Path, lineno: int, body: str, detail: str) -> Candidate | None:
+    """Build a `todo` candidate from a comment body, or None if it is not a marker."""
+    match = _TODO_RE.match(body.strip())
+    if not match:
+        return None
+    text = match.group("text").strip() or match.group(1).upper()
+    location = f"{_rel(root, path)}:{lineno}"
+    return Candidate(
+        title=text,
+        source="todo",
+        location=location,
+        suggested_verify=None,
+        score=0.0,
+        detail=detail.strip(),
+        acceptance=f"Remove the marker at {location} and pass project verification.",
+    )
+
+
 def from_todos(root: Path) -> list[Candidate]:
-    """TODO/FIXME/HACK/XXX in real comments (not string literals), with file:line."""
+    """TODO/FIXME/HACK/XXX in real comments (not string literals) across Python and JS/TS."""
     out: list[Candidate] = []
     for sub in ("src", "tests"):
         for path in _py_files(root, sub):
             for lineno, comment in _comments(path):
-                match = _TODO_RE.match(comment.lstrip("#").strip())
-                if not match:
-                    continue
-                text = match.group("text").strip() or match.group(1).upper()
-                out.append(
-                    Candidate(
-                        title=text,
-                        source="todo",
-                        location=f"{_rel(root, path)}:{lineno}",
-                        suggested_verify=None,
-                        score=0.0,
-                        detail=comment.strip(),
-                        acceptance=f"Remove the marker at {_rel(root, path)}:{lineno} and pass project verification.",
-                    )
-                )
+                candidate = _todo_candidate(root, path, lineno, comment.lstrip("#"), comment)
+                if candidate is not None:
+                    out.append(candidate)
+        for path in _files_with_exts(root, sub, _JS_EXTS):
+            for lineno, body in _js_comments(path):
+                candidate = _todo_candidate(root, path, lineno, body, body)
+                if candidate is not None:
+                    out.append(candidate)
     return out
 
 

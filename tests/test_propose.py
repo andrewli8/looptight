@@ -368,3 +368,34 @@ def test_failed_curated_source_stays_above_automated():
     ordered = [c.source for c in rank_with_model(cs, model)]
     assert ordered.index("task-file") < ordered.index("lint")
     assert ordered.index("status-next") < ordered.index("lint")
+
+
+# --- polyglot TODO discovery (JS/TS), grounded by the adoption review ---
+
+def test_from_todos_finds_typescript_and_python_in_one_repo(tmp_path):
+    from looptight.discovery import from_todos
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.ts").write_text("const x = 1; // TODO: wire up retries\n")
+    (tmp_path / "src" / "b.py").write_text("# TODO: handle empty case\n")
+    locs = {c.location for c in from_todos(tmp_path)}
+    assert "src/a.ts:1" in locs
+    assert "src/b.py:1" in locs
+    assert all(c.source == "todo" for c in from_todos(tmp_path))
+
+
+def test_from_todos_reads_jsx_tsx_and_block_comments(tmp_path):
+    from looptight.discovery import from_todos
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "c.tsx").write_text("export const C = () => null; /* FIXME: a11y */\n")
+    (tmp_path / "src" / "d.jsx").write_text("// TODO: memoize\nconst d = 1;\n")
+    locs = {c.location for c in from_todos(tmp_path)}
+    assert "src/c.tsx:1" in locs
+    assert "src/d.jsx:1" in locs
+
+
+def test_from_todos_ignores_js_marker_inside_string_literal(tmp_path):
+    from looptight.discovery import from_todos
+    (tmp_path / "src").mkdir()
+    # The marker is inside a string, not a comment: must not be a hit.
+    (tmp_path / "src" / "a.ts").write_text('const s = "// TODO not real";\n')
+    assert from_todos(tmp_path) == []

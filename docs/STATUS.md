@@ -300,6 +300,11 @@ existing CLI session and makes no model or API calls of its own.
   changes and `swarm --push` when direct pushes are disabled. Covered by CLI,
   swarm, and config tests.
 
+- TODO/FIXME/HACK/XXX discovery spans JS/TS (`.js`, `.jsx`, `.ts`, `.tsx`,
+  `.mjs`, `.cjs`) via a quote-aware comment scanner that ignores markers inside
+  string/template literals, so polyglot repos get the same grounded signal; the
+  Python `tokenize` path is unchanged. Covered by tests.
+
 ## Next
 
 1. Add battle-tested demo fixtures for trust claims. Evidence: README.md:87-107,
