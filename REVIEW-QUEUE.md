@@ -1402,3 +1402,26 @@ behind `origin/main`; the fix commit was correctly based on `origin/main`
 (`2a82c62`) and pushed as a clean fast-forward (`2a82c62..9f64c3a`).
 
 ---
+
+---
+
+## 2026-06-23 PLAN: parked larger tasks (need dedicated effort, not a single loop iteration)
+
+Moved out of docs/STATUS.md `## Next` so the autonomous loop runs on bite-sized,
+executable tasks. Promote back when given focused attention.
+
+- Branch-only publication exit: `swarm --push --branch` / `daemon` push each
+  verified worker to `looptight/<run-id>/<task-id>` instead of `main`; merging to
+  `main` becomes an explicit opt-in. Evidence: README.md (--push integrates to the
+  target ref), docs/daemon.md (sole writer to main). Multi-file: needs a new
+  `branched` worker status, SwarmResult.passed/status handling, daemon progress
+  classification, JSON, and CLI. Both adoption personas named unattended writes to
+  main as their top fear. Deserves plan -> build -> review rigor.
+- Battle-tested demo fixtures for the six trust guarantees (bugfix, concurrent
+  workers, retained conflict worktree, recovered integration, rejected push,
+  weak-verifier warning). Several need multi-process/remote setup; build runnable
+  demos plus docs linking each to its proving test.
+- Simple task-graph/status projection of coordinator states (queued, leased/
+  running, integrating, complete, failed) with stable JSON and tests.
+- Gated 0-to-1 project creation workflow (brief -> spec -> plan -> scaffold ->
+  verify), refusing vague goals without observable acceptance.
