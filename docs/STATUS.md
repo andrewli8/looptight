@@ -255,6 +255,23 @@ existing CLI session and makes no model or API calls of its own.
   and turns the bounded loop into genuine 24/7 operation on a host that stays up.
   Stdlib-only (`daemon.py`); systemd unit + Dockerfile under `deploy/`; documented
   in `docs/daemon.md`. Covered by daemon and CLI tests.
+- Idea identity: `idea_identity.py` computes a stable, deliberately lossy 12-hex
+  `idea_id` per candidate. The identity is stable across line-number shifts and
+  minor title rewording; the same function is used on both the write and read paths.
+- Outcome recording: a `landed` outcome is a `Looptight-Outcome: <idea_id> landed`
+  git trailer on the integration commit (verified by scanning commits reachable from
+  the target ref only). A `failed` outcome is recorded locally in the coordinator
+  `experience` table and never pushed. Positive learning is shared and structurally
+  verifiable; negative learning is local.
+- Self-model: `experience.py` builds an in-memory `Model` from verified-landed counts
+  (git log) and recent local failures (coordinator). Per-idea and per-category
+  aggregates; advisory only (callers degrade to defaults when the model is empty or
+  unavailable).
+- Advisory control: `propose.py` suppresses candidates at the failure cooldown
+  threshold; `ranking.py` applies a clamped category-yield reweight (floor 0.5,
+  ceiling 1.08) to source weights; `prompts.py` injects a bounded experience note
+  before the grounding rail in the planning prompt. The verifier remains the sole
+  authority on pass/fail.
 
 ## Next
 

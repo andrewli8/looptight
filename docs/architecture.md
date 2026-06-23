@@ -125,6 +125,52 @@ claimed before incidental nits. Generation is bounded by the planner prompt's
 grounding rail — no evidence, no task — so the loop still terminates honestly, and
 `--no-ideas` / `idea_generation = false` restores stop-on-empty everywhere.
 
+### Metacognitive monitor and control (Phase 2)
+
+A lightweight monitor, self-model, and control layer lets looptight learn from
+past idea outcomes without storing state outside the repository or the
+coordinator.
+
+**Idea identity.** `idea_identity.py` computes a deliberately lossy 12-hex
+identity for each candidate (`idea_id`). It is stable across line moves and
+minor title rewording, while keeping genuinely different ideas distinct.
+Both the write path (recording outcomes) and the read path (building the
+self-model) use the same function, so the two cannot drift.
+
+**Outcome recording.** A `landed` outcome is recorded as a
+`Looptight-Outcome: <idea_id> landed` git trailer on the integration commit
+(`integration_queue.py`). It is verified structurally: only commits reachable
+from the target ref are scanned, so a trailer on an unmerged branch never
+counts. A `failed` outcome is recorded locally in the coordinator's `experience`
+table (`coordinator.py`) and is never pushed.
+
+This asymmetry is deliberate. Positive learning (what worked) is shared via git
+history and is structurally verifiable by any session. Negative learning (what
+failed recently) is local to one machine: it guides the current session without
+risking incorrect suppression in other environments or polluting the shared
+history.
+
+**Self-model.** `experience.py` builds an in-memory `Model` by unioning
+verified-landed counts (read from git log) with recent local failures (read from
+the coordinator). The model carries per-idea counts and per-category aggregates.
+It is advisory: callers degrade to default behavior when the model is empty or
+the coordinator is unavailable.
+
+**Advisory control.** Three mechanisms apply the model without ever overriding
+the verifier:
+
+- `propose.py` suppresses candidates whose idea has reached the cooldown
+  failure threshold (configurable, default 2 recent failures within 24 hours).
+- `ranking.py` scales each source's base weight by a clamped category yield
+  factor (floor 0.5, ceiling 1.08) computed from landed and failed counts, so
+  a boosted automated source stays below the next curated tier.
+- `prompts.py` injects a bounded experience note (top failing and landing
+  idea IDs) before the grounding rail when building the planning prompt, used
+  by both the swarm planner and the session-native directive.
+
+Deferred items (churn detection, shared negative learning, session-native
+writes, and EVOC-style value-aware scoring) are documented in `docs/SPEC.md`.
+
 ## Usage-limit resume
 
 Provider-native usage limits stay authoritative (`SPEC.md`): looptight never
