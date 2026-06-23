@@ -241,6 +241,11 @@ def build_parser() -> argparse.ArgumentParser:
         default=0,
         help="stop after this many supervised cycles (0 = run forever)",
     )
+    p_daemon.add_argument(
+        "--on-fault",
+        metavar="CMD",
+        help="run CMD with a JSON fault payload on stdin when a cycle faults (optional)",
+    )
 
     p_ui = sub.add_parser("ui", help="serve the read-only swarm view on localhost")
     p_ui.add_argument("--port", type=_port, default=8765, help="loopback port (default 8765)")

@@ -96,6 +96,7 @@ def run_daemon(
     should_stop: Callable[[], bool] | None = None,
     run_cycle: Callable[..., SwarmResult] = run_continuous_swarm,
     on_cycle: Callable[[DaemonCycle], None] | None = None,
+    on_fault: Callable[[dict], None] | None = None,
 ) -> DaemonReport:
     """Supervise a continuous swarm so the loop never permanently stops.
 
@@ -157,6 +158,14 @@ def run_daemon(
 
         if on_cycle is not None:
             on_cycle(DaemonCycle(cycles, outcome, reason, merged, error, delay))
+
+        if on_fault is not None and outcome == "fault":
+            try:
+                on_fault(
+                    {"cycle": cycles, "reason": reason, "backoff_s": delay, "last_error": error}
+                )
+            except Exception:
+                pass  # a failing fault hook must never stop the daemon
 
         if max_cycles and cycles >= max_cycles:
             break

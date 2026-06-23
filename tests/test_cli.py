@@ -1222,3 +1222,9 @@ def test_status_json_includes_coordination_scope(tmp_path, monkeypatch, capsys):
     assert main(["status", "--json"]) == 0
     data = json.loads(capsys.readouterr().out)
     assert data["coordination_scope"] in ("coordinator", "file-claims", "none")
+
+
+def test_daemon_parser_accepts_on_fault():
+    args = build_parser().parse_args(["daemon", "--headless", "--on-fault", "notify.sh"])
+    assert args.on_fault == "notify.sh"
+    assert build_parser().parse_args(["daemon", "--headless"]).on_fault is None

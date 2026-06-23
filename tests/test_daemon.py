@@ -229,3 +229,43 @@ def test_daemon_drives_an_unbounded_continuous_swarm_with_idea_generation():
 
 def test_default_fault_backoff_is_sane():
     assert 0 < DEFAULT_FAULT_BACKOFF <= 60.0
+
+
+# --- optional fault hook (--on-fault) ---
+
+def test_daemon_fires_on_fault_with_payload():
+    rec = _Recorder([_result(REASON_ERROR, error="boom")])
+    faults = []
+    run_daemon(
+        Path("."), agent="claude", config=_config(), workers=2,
+        max_cycles=1, fault_backoff_seconds=30.0,
+        sleep=rec.sleep, run_cycle=rec.run_cycle, on_fault=faults.append,
+    )
+    assert faults == [
+        {"cycle": 1, "reason": REASON_ERROR, "backoff_s": 30.0, "last_error": "boom"}
+    ]
+
+
+def test_daemon_on_fault_not_called_on_idle_or_progress():
+    rec = _Recorder([_result(REASON_IDLE)])
+    faults = []
+    run_daemon(
+        Path("."), agent="claude", config=_config(), workers=2, max_cycles=1,
+        sleep=rec.sleep, run_cycle=rec.run_cycle, on_fault=faults.append,
+    )
+    assert faults == []
+
+
+def test_daemon_survives_a_failing_on_fault_hook():
+    rec = _Recorder([_result(REASON_ERROR, error="boom")])
+
+    def boom(_payload):
+        raise RuntimeError("hook blew up")
+
+    report = run_daemon(
+        Path("."), agent="claude", config=_config(), workers=2,
+        max_cycles=2, fault_backoff_seconds=5.0,
+        sleep=rec.sleep, run_cycle=rec.run_cycle, on_fault=boom,
+    )
+    assert report.cycles == 2
+    assert report.faults == 2  # the daemon kept going despite the hook raising

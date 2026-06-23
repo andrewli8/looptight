@@ -225,6 +225,19 @@ def cmd_daemon(args: argparse.Namespace, console: Console) -> int:
     console.print("Ctrl-C or SIGTERM to stop after the current cycle.")
     console.print()
 
+    def fault_hook(payload: dict) -> None:
+        # Operator notification on a fault backoff. Best-effort: a failing hook
+        # must never crash the daemon (run_daemon also guards, this guards exec).
+        import json
+
+        try:
+            subprocess.run(
+                args.on_fault, shell=True, input=json.dumps(payload),
+                text=True, timeout=30, check=False,
+            )
+        except Exception:
+            pass
+
     restore: list[tuple[int, object]] = []
     for sig in (signal.SIGTERM, signal.SIGINT):
         try:
@@ -248,6 +261,7 @@ def cmd_daemon(args: argparse.Namespace, console: Console) -> int:
             sleep=interruptible_sleep,
             should_stop=lambda: stop["flag"],
             on_cycle=on_cycle,
+            on_fault=fault_hook if args.on_fault else None,
         )
     finally:
         for sig, prev in restore:

@@ -319,15 +319,14 @@ existing CLI session and makes no model or API calls of its own.
   carries an additive `coordination_scope` field, via a `coordination_scope`
   helper. Covered by tests across the three states.
 
+- `daemon --on-fault CMD` runs CMD with a JSON fault payload (`cycle`, `reason`,
+  `backoff_s`, `last_error`) on stdin when a cycle faults; the flag is optional
+  (default no-op) and a failing hook never stops the daemon (guarded in both
+  run_daemon and the exec). Covered by tests.
+
 ## Next
 
-1. Add an optional daemon fault hook. Evidence: src/looptight/daemon.py,
-   src/looptight/cli.py (daemon parser has no notification surface). Acceptance:
-   `daemon --on-fault CMD` execs CMD with a JSON payload (`cycle`, `reason`,
-   `backoff_s`, `last_error`) on a fault backoff; the flag is optional (default
-   no-op); a hook failure does not stop the daemon; tests inject a fault and
-   assert the payload and that the daemon survives a failing hook.
-2. Add a plain-language glossary to the README. Evidence: README.md (verify,
+1. Add a plain-language glossary to the README. Evidence: README.md (verify,
    worktree, headless, claim, swarm, daemon are used without definition).
    Acceptance: a short glossary section defines each term in one line, and the
    first use of each links to it; no behavior change; the section is present.
