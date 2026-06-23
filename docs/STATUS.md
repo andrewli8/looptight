@@ -354,22 +354,39 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Make experience reweighting two-sided so the loop boosts high-yield work, not
-   only damps failures (deepens looptight's core differentiator: a learning loop).
-   Evidence: src/looptight/experience.py (`build_model` never populates
-   `category_landed`, so `reweight_factor`'s boost branch is dead and the
-   self-model can only damp). Acceptance: the `Looptight-Outcome` landed trailer
-   also records the task source; `build_model` populates `category_landed` from it;
+1. Prevent the local gate from drifting from CI (the build sat red ~10 commits
+   while local was green). Evidence: tests/test_cli.py (daemon dispatch relied on a
+   `claude` binary on PATH; fixed in ade3e41), CI uses bare `pytest` with no agent
+   and no git identity. Acceptance: a conftest autouse fixture gives all tests a
+   deterministic git identity; a documented command runs the suite under CI
+   conditions (no agent on PATH, git global config disabled) and passes; a
+   regression test asserts the daemon/agent CLI paths do not require an agent on PATH.
+2. Bump the deprecated GitHub Actions. Evidence: CI annotations warn
+   actions/checkout@v4 and actions/setup-python@v5 are forced off Node 20.
+   Acceptance: .github/workflows/*.yml pin non-deprecated action versions; CI is green.
+3. Add a terminal status panel for live swarm/daemon state. Evidence: src/looptight/ui.py
+   serves swarm worker state from a Git-private state file but only via a browser;
+   there is no in-CLI view. Acceptance: `looptight status` renders, in the terminal,
+   current worker states (running/verified/merged/failed/conflict counts and each
+   worker's task) from that state when present, plain when absent; existing status
+   JSON is unchanged; a test renders from a sample state.
+4. Add `looptight status --watch` for a live-refreshing panel. Evidence: builds on
+   task 3; long swarm/daemon runs have no live terminal view. Acceptance: `--watch`
+   re-renders the panel on an interval, reading the latest state each tick, until
+   interrupted; stdlib-only and bounded; a test drives one render tick via an
+   injected clock/state.
+5. Add a Claude Code status-line integration. Evidence: Claude Code supports a
+   `statusLine` command; looptight has no one-line status surface. Acceptance:
+   `looptight statusline` reads the Claude Code status-line JSON on stdin and prints
+   one concise line (workers running/merged plus last verify) suitable for
+   settings.json `statusLine`; documented in the README; a test covers the line for a
+   sample state. Confirm Claude Code's stdin contract during implementation.
+6. Finish two-sided experience reweighting so the learning loop boosts, not only
+   damps. Evidence: src/looptight/experience.py (`build_model` never populates
+   `category_landed`, so `reweight_factor`'s boost branch is dead). Acceptance: the
+   landed trailer records the task source; `build_model` populates `category_landed`;
    a high-yield automated category gets a factor above 1.0 while still ranking below
-   curated `task-file`/`status-next`; existing `landed_counts` parsing is unchanged;
-   tests cover both boost and damp.
-2. Give the daemon a structured, queryable cycle log for unattended runs. Evidence:
-   docs/daemon.md (the daemon only prints one line per cycle; the adoption review
-   flagged no way to query what recent cycles did), src/looptight/daemon.py
-   (`DaemonCycle` is emitted only to `on_cycle`). Acceptance: `daemon --log PATH`
-   appends one JSON object per cycle (`cycle`, `outcome`, `reason`, `merged`,
-   `error`, `delay`) to PATH; without the flag nothing is written; a failing log
-   write never stops the daemon; tests assert the emitted records.
+   curated `task-file`/`status-next`; tests cover both boost and damp.
 
 ## Rules
 
