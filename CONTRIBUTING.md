@@ -41,6 +41,10 @@ adapter (especially driving a native loop) are very welcome.
 
 ```bash
 pytest
+
+# Run it the way CI does, with no coding agent on PATH and no global git config,
+# so an environment-dependent test fails here instead of going red on CI:
+GIT_CONFIG_GLOBAL=/dev/null PATH="/usr/bin:/bin:$(dirname "$(command -v pytest)")" pytest
 ```
 
 Keep PRs focused. A good PR is one idea, with tests.

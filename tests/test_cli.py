@@ -1232,3 +1232,20 @@ def test_daemon_parser_accepts_on_fault():
     args = build_parser().parse_args(["daemon", "--headless", "--on-fault", "notify.sh"])
     assert args.on_fault == "notify.sh"
     assert build_parser().parse_args(["daemon", "--headless"]).on_fault is None
+
+
+def test_daemon_cli_paths_do_not_require_agent_on_path(tmp_path, monkeypatch):
+    """CI runners have no claude/codex/opencode installed; providing --agent must
+    make the daemon path independent of a PATH binary (regression for ade3e41)."""
+    from looptight.daemon import DaemonReport
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: None)
+    monkeypatch.setattr(
+        "looptight.commands.run_daemon",
+        lambda root, **kw: DaemonReport(cycles=1, progress=1, idle=0, faults=0, last_reason="ok"),
+    )
+    # --agent provided: dispatches even with nothing on PATH.
+    assert main(["daemon", "--headless", "--agent", "claude", "--verify", "true", "--max-cycles", "1"]) == 0
+    # nothing provided and nothing on PATH: clean exit 2, not a crash.
+    assert main(["daemon", "--headless", "--verify", "true"]) == 2
