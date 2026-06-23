@@ -86,3 +86,44 @@ def test_task_id_is_stable_when_discovery_route_changes(tmp_path, monkeypatch):
     assert first.task is not None and second.task is not None
     assert first.task["id"] == second.task["id"]
     assert second.task["source"] == "task-file"
+
+
+def test_curated_claim_id_is_stable_across_status_line_drift(tmp_path):
+    # status-next/task-file live in docs/STATUS.md, whose line numbers shift as the
+    # Validated section grows. The claim id must NOT change with the line, or a
+    # re-queued task gets a fresh fingerprint each rewrite and is silently skipped.
+    from looptight.discovery import Candidate
+    from looptight.tasks import next_task
+
+    def candidate(line):
+        return [
+            Candidate(
+                title="Finish the experience reweighting",
+                source="status-next",
+                location=f"docs/STATUS.md:{line}",
+                suggested_verify=None,
+                score=65.0,
+                detail="Finish reweighting. Evidence: src/looptight/experience.py:1",
+                acceptance="boost works and is covered by a test",
+            )
+        ]
+
+    id_a = next_task(tmp_path, propose_fn=lambda w, limit=0: candidate(10)).task["id"]
+    id_b = next_task(tmp_path, propose_fn=lambda w, limit=0: candidate(412)).task["id"]
+    assert id_a == id_b  # same curated task, different line => same claim fingerprint
+
+
+def test_curated_claim_id_differs_by_title(tmp_path):
+    from looptight.discovery import Candidate
+    from looptight.tasks import next_task
+
+    def candidate(title):
+        return [
+            Candidate(title=title, source="status-next", location="docs/STATUS.md:10",
+                      suggested_verify=None, score=65.0, detail=f"{title}. Evidence: x:1",
+                      acceptance="done")
+        ]
+
+    a = next_task(tmp_path, propose_fn=lambda w, limit=0: candidate("Task A")).task["id"]
+    b = next_task(tmp_path, propose_fn=lambda w, limit=0: candidate("Task B")).task["id"]
+    assert a != b

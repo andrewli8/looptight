@@ -373,6 +373,12 @@ existing CLI session and makes no model or API calls of its own.
   takes an injected sleep/tick-cap so it is testable without waiting. Stdlib only.
   Covered by a test that drives one render tick.
 
+- Claim fingerprints for curated lists (`status-next`/`task-file`) drop the docs
+  file's line number, so a re-queued task is not silently skipped when the line
+  drifts as docs/STATUS.md grows. Root-caused from a stuck queue (every task row
+  marked complete because each rewrite minted a new line-based fingerprint). Covered
+  by a line-drift stability test; the cross-route stability test still holds.
+
 ## Next
 
 1. Add a Claude Code status-line integration. Evidence: Claude Code supports a

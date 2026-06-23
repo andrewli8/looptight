@@ -104,8 +104,14 @@ def next_task(
             continue
         # Discovery routing may change (for example, a status file can become an
         # explicitly configured task file) without changing the underlying task.
-        # Keep claims stable across those equivalent sources.
-        identity = "\0".join((candidate.location or "", candidate.title))
+        # Keep claims stable across those equivalent sources. For curated lists
+        # (status-next/task-file) the location is a docs file:line whose line drifts
+        # as the file grows, which would mint a new fingerprint each rewrite and
+        # silently skip a re-queued task; key those on the file (without the line).
+        location = candidate.location or ""
+        if candidate.source in ("status-next", "task-file"):
+            location = location.rsplit(":", 1)[0] if ":" in location else location
+        identity = "\0".join((location, candidate.title))
         summary, evidence = _summary_and_evidence(candidate)
         tasks.append(
             {
