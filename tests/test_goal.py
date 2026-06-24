@@ -1,0 +1,53 @@
+"""Repo-private goal state for the vision-driven build loop."""
+
+from __future__ import annotations
+
+import subprocess
+
+from looptight.goal import Goal, clear_goal, goal_path, read_goal, write_goal
+
+
+def _repo(tmp_path):
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    return tmp_path
+
+
+def test_goal_state_round_trips(tmp_path):
+    repo = _repo(tmp_path)
+    goal = Goal(
+        vision="a CLI todo app", done_check="pytest -q",
+        continuous=True, max_iterations=10, iteration=3,
+    )
+    write_goal(repo, goal)
+    assert read_goal(repo) == goal
+
+
+def test_read_goal_absent_is_none(tmp_path):
+    assert read_goal(_repo(tmp_path)) is None
+
+
+def test_clear_goal_removes_state(tmp_path):
+    repo = _repo(tmp_path)
+    write_goal(repo, Goal(vision="x"))
+    assert clear_goal(repo) is True
+    assert read_goal(repo) is None
+    assert clear_goal(repo) is False  # already gone
+
+
+def test_goal_state_is_repo_private_and_untracked(tmp_path):
+    repo = _repo(tmp_path)
+    write_goal(repo, Goal(vision="x"))
+    # State lives under the git common dir, so git never tracks it.
+    assert (repo / ".git" / "looptight" / "goal.json").is_file()
+    status = subprocess.run(
+        ["git", "status", "--porcelain"], cwd=repo, capture_output=True, text=True
+    )
+    assert "goal.json" not in status.stdout
+
+
+def test_read_goal_ignores_unknown_schema(tmp_path):
+    repo = _repo(tmp_path)
+    path = goal_path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text('{"schema_version": 99, "vision": "x"}', encoding="utf-8")
+    assert read_goal(repo) is None
