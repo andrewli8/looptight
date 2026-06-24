@@ -88,6 +88,11 @@ def cmd_init(args: argparse.Namespace, console: Console) -> int:
     elif not config_exists:
         console.print()
         console.print("For the native current-session loop: [bold]looptight init --integrate[/bold]")
+    if detect_agent() == "claude":
+        console.print(
+            "To let Claude Code discover looptight in any session: "
+            "[bold]looptight install-skill[/bold]"
+        )
     return 0
 
 

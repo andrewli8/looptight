@@ -24,3 +24,14 @@ def test_install_skill_cli_uses_the_home_skills_dir(tmp_path, monkeypatch, capsy
     installed = tmp_path / ".claude" / "skills" / "looptight" / "SKILL.md"
     assert installed.is_file()
     assert "installed" in capsys.readouterr().out
+
+
+def test_init_hints_at_install_skill_under_claude_code(tmp_path, monkeypatch, capsys):
+    # init stays project-scoped (it does not write the global skill), but it points
+    # the user to install-skill when Claude Code is the detected agent.
+    from looptight import commands
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(commands, "detect_agent", lambda *a, **k: "claude")
+    assert main(["init"]) == 0
+    assert "install-skill" in capsys.readouterr().out
