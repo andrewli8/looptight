@@ -14,7 +14,8 @@ pip install -e ".[dev]"
 pytest
 ```
 
-Python 3.11+ (we use stdlib `tomllib`). The only runtime dependency is `rich`.
+Python 3.11+ (we use stdlib `tomllib`). There is no runtime dependency; the package
+runs on the standard library.
 
 ## Layout
 
@@ -48,3 +49,21 @@ GIT_CONFIG_GLOBAL=/dev/null PATH="/usr/bin:/bin:$(dirname "$(command -v pytest)"
 ```
 
 Keep PRs focused. A good PR is one idea, with tests.
+
+## Releasing
+
+The package builds with hatchling and has no runtime dependencies.
+
+```bash
+uv build            # writes an sdist and wheel to dist/
+uv publish          # uploads to PyPI; needs a PyPI API token
+```
+
+For a dry run, publish to TestPyPI first:
+
+```bash
+uv publish --publish-url https://test.pypi.org/legacy/
+```
+
+A published version is permanent. You can yank a release but cannot reuse a version
+number, so bump `version` in `pyproject.toml` for each release.

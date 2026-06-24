@@ -27,6 +27,7 @@ choice, context, and usage limits stay inside the active agent CLI.
 | `idea_eval.py` | score a generated batch on groundedness, area spread, and distinctness |
 | `commands.py` | expose the protocol as text and versioned JSON |
 | `integration.py` | install the same loop instruction for each detected agent |
+| `skill.py` | install a Claude Code skill so the agent discovers looptight in any session |
 
 ## Who does what in a continuous run
 

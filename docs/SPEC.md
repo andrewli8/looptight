@@ -198,10 +198,12 @@ looptight status     show current claim and verifier without changing state
 
 `run` is an optional headless convenience. `goal` is an optional vision-driven build
 mode (see Goal mode) that composes the verifier with goal-grounded generation.
-Existing experimental commands may remain during migration, but new behavior must
-compose the four commands above. Commands for generated reflection, tracked run
-reports, cost estimation, and unbounded repository audits are outside the target
-product.
+`install-skill` writes a Claude Code skill so the agent discovers looptight in any
+session; it is opt-in and writes outside the project, so it stays a separate command
+rather than part of `init`. Existing experimental commands may remain during
+migration, but new behavior must compose the four commands above. Commands for
+generated reflection, tracked run reports, cost estimation, and unbounded repository
+audits are outside the target product.
 
 ## Configuration
 
