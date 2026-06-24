@@ -72,6 +72,35 @@ disabled is successful completion. A dirty or conflicting workspace, invalid
 configuration, and an unexecutable verifier are failures. Consuming the rest of a
 provider allowance is never a success criterion.
 
+## Goal mode
+
+`looptight goal` is a second entry point for building a project from nothing toward
+a stated vision, rather than refining an existing one. Where `next` grounds work in
+repository signals and stops when they run out, `goal` grounds work in a vision you
+give it plus the current state of the code.
+
+```text
+looptight goal "<vision>"   store the vision (optional --done, --continuous, --max-iterations)
+
+repeat in the current agent session:
+  looptight goal next        return one verify-gated increment toward the vision
+  implement the increment
+  looptight verify           commit only when verification passes
+  stop when the goal is done, the iteration cap is hit, or usage is spent
+```
+
+The same boundary holds: `goal` makes no model call. The host session generates and
+implements each increment; looptight stores the vision, hands over one directive at a
+time, runs the verifier, and checks the optional done command. On an empty project the
+first increment establishes a test command, so the verifier gates every later step.
+
+A goal ends on any of four conditions: the `--done` command exits zero, the
+`--max-iterations` cap is reached, the host judges the vision met, or the session runs
+out of usage. looptight cannot read provider usage, so the usage stop is owned by the
+native loop driver (for example Claude Code's `/loop until: looptight goal check`) and
+the session itself, not by looptight. The verifier stays the only thing that authorizes
+a commit, which is what keeps an open-ended run from committing work that does not pass.
+
 ## Validation model
 
 Validation is looptight's most important decision logic. Each gate must pass
@@ -167,10 +196,12 @@ looptight verify     run the project contract and return bounded evidence
 looptight status     show current claim and verifier without changing state
 ```
 
-`run` is an optional headless convenience. Existing experimental commands may
-remain during migration, but new behavior must compose the four commands above.
-Commands for generated reflection, tracked run reports, cost estimation, and
-unbounded repository audits are outside the target product.
+`run` is an optional headless convenience. `goal` is an optional vision-driven build
+mode (see Goal mode) that composes the verifier with goal-grounded generation.
+Existing experimental commands may remain during migration, but new behavior must
+compose the four commands above. Commands for generated reflection, tracked run
+reports, cost estimation, and unbounded repository audits are outside the target
+product.
 
 ## Configuration
 

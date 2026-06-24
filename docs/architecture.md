@@ -22,6 +22,9 @@ choice, context, and usage limits stay inside the active agent CLI.
 | `tasks.py` | turn the top candidate into versioned `next` output |
 | `claims.py` | prevent duplicate work across worktrees with private atomic files |
 | `verify.py` | run the project contract; tell a real pass/fail from timeout/launch errors |
+| `goal.py` | store a build vision and hand the host one verify-gated increment at a time |
+| `grounding.py` | check that a task's `Evidence:` anchors resolve to real files |
+| `idea_eval.py` | score a generated batch on groundedness, area spread, and distinctness |
 | `commands.py` | expose the protocol as text and versioned JSON |
 | `integration.py` | install the same loop instruction for each detected agent |
 
@@ -131,6 +134,26 @@ intent is claimed before incidental nits. Generation is bounded by the planner
 prompt's grounding rail (no evidence, no task), so the loop still terminates
 honestly. `--no-ideas` or `idea_generation = false` restores stop-on-empty
 everywhere.
+
+A generated `## Next` task is also gated on its evidence. `from_status_next`
+(`discovery.py`) drops an item whose `Evidence:` anchor names a file that does not
+exist, using `grounding.py`, so a fabricated reference cannot enter the queue.
+Items that name no anchor are left alone, so hand-written lists keep working.
+`idea_eval.py` scores a generated batch on the same grounding plus area spread and
+intra-batch distinctness, and `propose --eval` reports it for the live queue.
+
+## Goal mode
+
+`goal.py` runs the vision-driven build loop, the counterpart to evidence-first
+`next`. It stores a goal (`vision`, optional `done_check`, `continuous`,
+`max_iterations`, `iteration`) in repo-private state beside the coordinator, then
+`goal next` decides the next step without a model call: stop at the iteration cap,
+report done when the `done_check` command exits zero, or emit one build directive
+(`prompts.GOAL_BUILD`, filled with the vision) and advance the iteration. The host
+session builds each increment and `verify` gates the commit, so the verifier is the
+trust anchor even though the direction comes from the vision rather than repo
+signals. `goal check` exits zero when the done command passes, which lets a native
+loop driver such as `/loop until: looptight goal check` run the loop hands-off.
 
 ### Metacognitive monitor and control (Phase 2)
 

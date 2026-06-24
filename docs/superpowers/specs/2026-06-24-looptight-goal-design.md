@@ -1,4 +1,4 @@
-# looptight goal — design
+# looptight goal design
 
 **Status:** approved design, pending implementation plan.
 **Date:** 2026-06-24.
@@ -65,7 +65,7 @@ evidence-first `next` refinement loop, not a replacement.
   Show the active goal, its done-check, and the iteration count. Changes nothing.
 - `looptight goal clear`
   Deactivate and remove the goal state.
-- `looptight verify` — unchanged. The commit gate.
+- `looptight verify`: unchanged. The commit gate.
 
 ## The loop (host-driven, provider-neutral, wrappable)
 
@@ -152,14 +152,14 @@ removed by `goal clear`.
 
 ## Modules (anticipated; finalized in the plan)
 
-- `src/looptight/goal.py` — goal state read/write, the `goal next` decision
+- `src/looptight/goal.py`: goal state read/write, the `goal next` decision
   (run the done-check, build the directive, bump iteration), and the build prompt
   constant (a `GOAL_BUILD` analog to `prompts.PLANNING_GOAL`).
-- `src/looptight/prompts.py` — host-facing build directive text lives here with the
+- `src/looptight/prompts.py`: host-facing build directive text lives here with the
   other prompts (one source).
-- `src/looptight/cli.py` + `protocol_commands.py` — the `goal` subparser and
+- `src/looptight/cli.py` + `protocol_commands.py`: the `goal` subparser and
   `cmd_goal` dispatch (positional vision to set, `next`, `check`, `status`, `clear`).
-- `src/looptight/integration.py` — the managed `CLAUDE.md`/`AGENTS.md` block.
+- `src/looptight/integration.py`: the managed `CLAUDE.md`/`AGENTS.md` block.
 - Reuse: `verify` (the gate), `idea_eval` (optional scoring), the repo-private path
   helper from `coordinator.py`.
 
@@ -178,7 +178,7 @@ removed by `goal clear`.
    with reason `max_iterations`; `--max-iterations 0` never stops on the cap.
 6. `--continuous`: activation prints a driver recipe for the detected agent, and the
    flag round-trips through `goal status`.
-7. No-model-call: `goal` makes no network/model call (pure, deterministic) — same
+7. No-model-call: `goal` makes no network/model call (pure, deterministic), the same
    contract the suite already enforces for `next`/`verify`.
 8. The managed integration block is present and idempotent.
 
