@@ -223,8 +223,10 @@ def test_propose_eval_scores_the_generated_queue(tmp_path, monkeypatch, capsys):
     assert main(["propose", "--eval", "--json"]) == 0
     data = json.loads(capsys.readouterr().out)
     assert "candidates" in data
-    assert data["eval"]["size"] == 2
-    assert data["eval"]["grounded"] == 1  # only the real anchor resolves
+    # The grounding gate drops the fabricated-evidence item before the eval sees it,
+    # so the scored live queue is just the surviving, grounded task.
+    assert data["eval"]["size"] == 1
+    assert data["eval"]["grounded"] == 1
     assert data["eval"]["bounded"] is True
 
     assert main(["propose", "--eval"]) == 0  # human output does not error

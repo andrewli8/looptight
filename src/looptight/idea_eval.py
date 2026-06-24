@@ -15,44 +15,32 @@ Pure functions over Candidates and the working tree. No model or network calls.
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from pathlib import Path
 
 from .discovery import Candidate, from_status_next
+from .grounding import evidence_refs as _evidence_refs_text
+from .grounding import is_grounded as _is_grounded_text
 from .idea_identity import idea_id
 
 __all__ = [
     "evidence_refs", "is_grounded", "BatchScore", "score_batch", "score_status_next",
 ]
 
-# One path token after each ``Evidence:`` marker. A path carries no spaces, so the
-# token ends at the first whitespace, ``;`` or ``,`` (which separate refs/clauses).
-_EVIDENCE_RE = re.compile(r"\bEvidence:\s*([^\s;,]+)")
 _MIN_TASKS = 1
 _MAX_TASKS = 6
 
 
 def evidence_refs(candidate: Candidate) -> list[str]:
     """Every ``Evidence:`` anchor named in a candidate's text (``path`` or ``path:line``)."""
-    return _EVIDENCE_RE.findall(candidate.detail or "")
-
-
-def _resolves(root: Path, ref: str) -> bool:
-    """True when an evidence ref points at a real file inside the repository."""
-    path_text = ref.rsplit(":", 1)[0] if ":" in ref else ref  # drop an optional :line
-    relative = Path(path_text)
-    if not path_text or relative.is_absolute() or ".." in relative.parts:
-        return False
-    return (root / relative).is_file()
+    return _evidence_refs_text(candidate.detail or "")
 
 
 def is_grounded(root: Path, candidate: Candidate) -> bool:
     """A task is grounded when it names at least one evidence anchor and every one
     of them resolves to an existing repository file. This is the deterministic guard
     against grounded-looking tasks whose evidence is invented."""
-    refs = evidence_refs(candidate)
-    return bool(refs) and all(_resolves(root, ref) for ref in refs)
+    return _is_grounded_text(root, candidate.detail or "")
 
 
 def _area(candidate: Candidate) -> str:

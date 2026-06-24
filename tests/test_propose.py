@@ -211,6 +211,27 @@ def test_from_status_next_rejects_task_without_acceptance(tmp_path):
     assert from_status_next(tmp_path) == []
 
 
+def test_from_status_next_rejects_fabricated_evidence_but_keeps_real_and_unanchored(tmp_path):
+    # The live grounding gate: a generated task that CLAIMS evidence which does not
+    # resolve is dropped (the busywork trap), while a task with resolving evidence and
+    # a legacy task that names no evidence both survive (backward compatible).
+    _write(tmp_path, "src/real.py", "# real\n")
+    _write(
+        tmp_path,
+        "docs/STATUS.md",
+        "## Next\n\n"
+        "1. Real task. Evidence: src/real.py:1; Acceptance: it passes.\n"
+        "2. Busywork. Evidence: src/made_up.py:1; Acceptance: it passes.\n"
+        "3. Legacy task. Acceptance: it passes.\n",
+    )
+
+    titles = [c.title for c in from_status_next(tmp_path)]
+    assert len(titles) == 2  # the fabricated-evidence item is dropped
+    assert any(t.startswith("Real task") for t in titles)  # resolving evidence survives
+    assert "Legacy task" in titles  # unanchored legacy item survives
+    assert not any("Busywork" in t for t in titles)
+
+
 def test_from_status_next_returns_only_first_six_executable_tasks(tmp_path):
     tasks = "".join(
         f"{number}. Task {number}. Acceptance: task {number} passes.\n"

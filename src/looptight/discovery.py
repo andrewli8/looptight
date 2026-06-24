@@ -21,6 +21,8 @@ import tokenize
 from dataclasses import dataclass
 from pathlib import Path
 
+from .grounding import evidence_is_truthful
+
 # Marker inside a real comment token (tokenize gives us only comments, never
 # string literals — so a "# TODO" written inside a test fixture string is not a
 # false hit).
@@ -373,8 +375,19 @@ def from_skipped_tests(root: Path) -> list[Candidate]:
     return out
 
 
-def from_task_file(root: Path, task_file: str, *, next_section_only: bool = False) -> list[Candidate]:
-    """Return executable numbered tasks from one explicit repository file."""
+def from_task_file(
+    root: Path,
+    task_file: str,
+    *,
+    next_section_only: bool = False,
+    enforce_truthful_evidence: bool = False,
+) -> list[Candidate]:
+    """Return executable numbered tasks from one explicit repository file.
+
+    With ``enforce_truthful_evidence``, an item whose named ``Evidence:`` anchors do
+    not all resolve to real files is dropped (the grounding gate for generated
+    tasks); items naming no anchor are kept, so hand-written lists are unaffected.
+    """
     relative = Path(task_file)
     if relative.is_absolute() or ".." in relative.parts:
         return []
@@ -420,6 +433,8 @@ def from_task_file(root: Path, task_file: str, *, next_section_only: bool = Fals
         task_text, marker, acceptance = text.partition("Acceptance:")
         if not marker or not task_text.strip() or not acceptance.strip():
             continue
+        if enforce_truthful_evidence and not evidence_is_truthful(root, text):
+            continue  # claims evidence that does not resolve: a grounding-gate drop
         out.append(
             Candidate(
                 title=task_text.strip().rstrip(".;"),
@@ -437,8 +452,14 @@ def from_task_file(root: Path, task_file: str, *, next_section_only: bool = Fals
 
 
 def from_status_next(root: Path) -> list[Candidate]:
-    """Return at most the first six executable tasks under the status Next heading."""
-    return from_task_file(root, "docs/STATUS.md", next_section_only=True)
+    """Return at most the first six executable tasks under the status Next heading.
+
+    This is the generated/planned queue, so its evidence anchors are enforced: an
+    item claiming evidence that does not resolve is dropped as ungrounded busywork.
+    """
+    return from_task_file(
+        root, "docs/STATUS.md", next_section_only=True, enforce_truthful_evidence=True
+    )
 
 
 def from_lint(root: Path) -> list[Candidate]:
