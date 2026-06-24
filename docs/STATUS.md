@@ -402,13 +402,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Wire the goal CLI surface. Evidence:
-   docs/superpowers/specs/2026-06-24-looptight-goal-design.md; src/looptight/cli.py:113;
-   Acceptance: a `goal` subparser (positional vision, --done, --continuous,
-   --max-iterations; actions next/check/status/clear) and cmd_goal dispatch; `looptight
-   goal "x"`, `goal next --json`, `goal check` (exit code), `goal status`, and `goal
-   clear` work end to end; covered by CLI tests.
-2. Print the continuous driver recipe and install the goal integration block. Evidence:
+1. Print the continuous driver recipe and install the goal integration block. Evidence:
    docs/superpowers/specs/2026-06-24-looptight-goal-design.md; src/looptight/integration.py:34;
    Acceptance: activating a goal with --continuous prints an agent-appropriate driver
    recipe; the managed CLAUDE.md/AGENTS.md block documents the goal loop and is

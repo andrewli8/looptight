@@ -584,3 +584,61 @@ def _policy_summary(config) -> dict[str, object]:
         "max_changed_files": config.max_changed_files,
         "allowed_verify_commands": list(config.allowed_verify_commands),
     }
+
+
+def cmd_goal(args: argparse.Namespace, console: Console) -> int:
+    """Set or run a vision-driven build goal. Makes no model call."""
+    from .goal import Goal, clear_goal, goal_next, read_goal, run_done_check, write_goal
+
+    workdir = Path.cwd()
+    arg = args.arg
+
+    if arg == "status" or arg is None:
+        goal = read_goal(workdir)
+        if args.json:
+            payload: dict[str, object] = {"command": "goal", "active": goal is not None}
+            if goal is not None:
+                payload.update(goal.as_dict())
+            print(json.dumps(payload, sort_keys=True))
+        elif goal is None:
+            console.print("no active goal")
+        else:
+            console.print(
+                f"goal: {goal.vision} (iteration {goal.iteration}"
+                f"{', continuous' if goal.continuous else ''}"
+                f"{f', max {goal.max_iterations}' if goal.max_iterations else ''})"
+            )
+        return 0
+
+    if arg == "clear":
+        console.print("cleared the active goal" if clear_goal(workdir) else "no active goal")
+        return 0
+
+    if arg == "next":
+        decision = goal_next(workdir)
+        if args.json:
+            print(json.dumps(decision.as_dict(), sort_keys=True))
+        elif decision.status == "no_goal":
+            console.print("no active goal; set one with `looptight goal \"<vision>\"`")
+        elif decision.status == "active":
+            console.print(decision.directive["prompt"])
+        else:
+            console.print(f"goal {decision.status}" + (f" ({decision.reason})" if decision.reason else ""))
+        return 0
+
+    if arg == "check":
+        goal = read_goal(workdir)
+        if goal is None or not goal.done_check:
+            return 1
+        return 0 if run_done_check(workdir, goal.done_check) else 1
+
+    # Otherwise `arg` is a vision to set/activate.
+    goal = Goal(
+        vision=arg,
+        done_check=args.done_check,
+        continuous=args.continuous,
+        max_iterations=args.max_iterations,
+    )
+    write_goal(workdir, goal)
+    console.print(f"goal set: {arg}")
+    return 0

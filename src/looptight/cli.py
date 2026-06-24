@@ -18,6 +18,7 @@ from .commands import (
     cmd_propose,
     cmd_revert,
     cmd_run,
+    cmd_goal,
     cmd_status,
     cmd_statusline,
     cmd_swarm,
@@ -44,6 +45,7 @@ _COMMANDS = {
     "daemon",
     "migrate",
     "ui",
+    "goal",
 }
 
 
@@ -109,6 +111,23 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_revert = sub.add_parser("revert", help="undo the agent's uncommitted edits (restore to HEAD)")
     p_revert.add_argument("--yes", action="store_true", help="skip the confirmation prompt")
+
+    p_goal = sub.add_parser(
+        "goal", help="set or run a vision-driven build goal (next/check/status/clear)"
+    )
+    p_goal.add_argument(
+        "arg", nargs="?",
+        help="a vision to build toward, or an action: next, check, status, clear",
+    )
+    p_goal.add_argument("--done", dest="done_check", help="shell command whose exit 0 ends the goal")
+    p_goal.add_argument(
+        "--continuous", action="store_true", help="hands-off: run until usage is spent"
+    )
+    p_goal.add_argument(
+        "--max-iterations", type=_non_negative_int, default=0, dest="max_iterations",
+        help="soft backstop; stop after N iterations (0 = unlimited)",
+    )
+    p_goal.add_argument("--json", action="store_true", help="machine-readable next/status output")
 
     p_propose = sub.add_parser(
         "propose", help="rank grounded repository tasks without model or network calls"
@@ -364,6 +383,7 @@ def main(argv: list[str] | None = None) -> int:
         "daemon": cmd_daemon,
         "migrate": cmd_migrate,
         "ui": cmd_ui,
+        "goal": cmd_goal,
     }[args.command]
     try:
         return handler(args, console)

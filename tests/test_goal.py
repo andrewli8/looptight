@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import subprocess
 
 from looptight.goal import Goal, clear_goal, goal_path, read_goal, write_goal
@@ -99,3 +100,51 @@ def test_goal_build_prompt_carries_vision_and_bootstrap():
     text = goal_build("a CLI todo app")
     assert "a CLI todo app" in text
     assert "test" in text.lower()  # bootstrap a verify command when none exists
+
+
+def test_goal_cli_set_status_clear(tmp_path, monkeypatch, capsys):
+    from looptight.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    _repo(tmp_path)
+    assert main(["goal", "a CLI todo app", "--done", "true", "--max-iterations", "5"]) == 0
+    capsys.readouterr()
+
+    assert main(["goal", "status", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["active"] is True
+    assert data["vision"] == "a CLI todo app"
+    assert data["max_iterations"] == 5
+
+    assert main(["goal", "clear"]) == 0
+    capsys.readouterr()
+    assert main(["goal", "status", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out)["active"] is False
+
+
+def test_goal_cli_next_emits_directive(tmp_path, monkeypatch, capsys):
+    from looptight.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    _repo(tmp_path)
+    main(["goal", "build x", "--done", "false"])
+    capsys.readouterr()
+
+    assert main(["goal", "next", "--json"]) == 0
+    decision = json.loads(capsys.readouterr().out)
+    assert decision["status"] == "active"
+    assert "build x" in decision["directive"]["prompt"]
+
+
+def test_goal_cli_check_exit_code_reflects_done(tmp_path, monkeypatch, capsys):
+    from looptight.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    _repo(tmp_path)
+    main(["goal", "build x", "--done", "false"])
+    capsys.readouterr()
+    assert main(["goal", "check"]) == 1  # done-check fails
+
+    main(["goal", "build x", "--done", "true"])
+    capsys.readouterr()
+    assert main(["goal", "check"]) == 0  # done-check passes -> goal complete

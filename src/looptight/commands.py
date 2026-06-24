@@ -20,6 +20,7 @@ from .detect import KNOWN_AGENTS, detect_agent, detect_verify
 from .integration import install_session_instructions
 from .loop import run_loop
 from .protocol_commands import (
+    cmd_goal,
     cmd_migrate,
     cmd_next,
     cmd_propose,
@@ -34,6 +35,7 @@ from .ui import read_state, statusline
 __all__ = [
     "cmd_daemon",
     "cmd_doctor",
+    "cmd_goal",
     "cmd_hook",
     "cmd_improve",
     "cmd_init",
