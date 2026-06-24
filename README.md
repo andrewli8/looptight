@@ -1,15 +1,21 @@
 # looptight
 
-A test-gated work loop that runs inside the coding agent you already use. Point
-it at Codex, Claude Code, or OpenCode and it drives the same cycle: pick a real
-task, let the agent do it, run your tests, commit only if they pass, repeat.
+looptight keeps a coding agent honest with your tests. Point it at Claude Code,
+Codex, or OpenCode and it runs one simple cycle: pick a real task, let the agent
+do it, run your tests, and commit only if they pass. Then it goes again.
 
-looptight does not launch another agent or call a model. It coordinates the
-session that is already open. The one idea you have to care about is `verify`:
-the command that decides pass or fail. No verify, no loop.
+The point is that your tests decide, not the model. If `verify` (your test
+command) does not pass, nothing gets committed. No verify, no loop.
 
-New to terms like verify, worktree, headless, claim, swarm, or daemon? See the
-[Glossary](#glossary).
+looptight never starts another agent or calls a model of its own. It just drives
+the session you already have open, so there is no extra setup and no API key to
+manage.
+
+Built with looptight: [asciimotion](https://github.com/andrewli8/asciimotion), an
+animated ASCII-art engine with a web app and a terminal CLI.
+
+New here? Terms like verify, worktree, claim, swarm, and daemon are explained in
+the [Glossary](#glossary).
 
 ## The loop
 
