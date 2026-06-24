@@ -36,10 +36,21 @@ evidence-first `next` refinement loop, not a replacement.
 
 ## Command surface
 
-- `looptight goal "<vision>" [--done "<cmd>"]`
+- `looptight goal "<vision>" [--done "<cmd>"] [--continuous] [--max-iterations N]`
   Store and activate the goal. `<vision>` is a free-text north star. `--done` is an
   optional shell command whose exit-0 marks the goal complete (the deterministic
-  early exit). Default is open-ended. Re-running replaces the active goal.
+  early exit). Re-running replaces the active goal.
+  - `--continuous` declares hands-off intent: open-ended, run until usage is spent.
+    On activation looptight prints the **driver recipe** for the detected agent (the
+    native `/loop` / `/goal` wrapper for Claude Code, or the integration-block loop
+    instruction for Codex / OpenCode) so a single command can start truly continuous
+    operation. Honest limit: looptight still cannot see provider usage; the driver
+    plus the session's own limit is what actually stops on usage.
+  - `--max-iterations N` is a **soft backstop** looptight owns: after N verified
+    iterations, `goal next` returns `status: stop` (reason `max_iterations`) so the
+    loop ends gracefully instead of running away. It has a finite default (set in the
+    plan); `--max-iterations 0` means unlimited (paired with `--continuous` for the
+    fully hands-off case).
 - `looptight goal next [--json]`
   Emit the next directive for the host: the vision, a note to inspect current state,
   and the instruction to make the single smallest increment that advances the vision
@@ -79,6 +90,27 @@ A short managed instruction block is added to `CLAUDE.md` / `AGENTS.md` (idempot
 markers, same mechanism as the existing session-loop block) describing the loop so
 the host runs it without re-prompting.
 
+### Continuous until usage (the hands-off recipe)
+
+`--continuous` is the explicit "run until I'm out of usage" mode. It prints the
+driver for the detected agent so kickoff is one step:
+
+```
+# Claude Code: looptight is the substrate, /loop is the engine that spans turns.
+looptight goal "make this the best CLI todo app" --continuous --max-iterations 0
+/loop until: looptight goal check        # keeps iterating turn-after-turn,
+                                         # the session ends when usage is spent
+
+# Any agent (provider-neutral), host self-driving per the integration block:
+looptight goal "<vision>" --continuous   # host loops goal next -> build -> verify
+                                         # -> commit until stop, no re-prompting
+```
+
+looptight owns the soft `--max-iterations` backstop; the native driver (or the
+session limit) owns the actual "until usage runs out." The two compose: a finite
+cap gives a guaranteed end even if usage is effectively unbounded, and `0` hands
+the stop entirely to the driver / session.
+
 ## Grounding model (minimal: vision string only)
 
 No roadmap file. Each `goal next` directs the host to choose the next single
@@ -99,21 +131,24 @@ test command and record it" the first increment.
 
 ## Termination
 
-Three independent stops, any of which ends the loop:
+Four independent stops, any of which ends the loop:
 1. **Done-check passes** (`--done "<cmd>"` exits 0). Deterministic, looptight-owned.
    `goal next` returns `status: done`.
-2. **Session usage spent.** Implicit: the host session simply stops when it hits its
+2. **Max-iterations reached** (`--max-iterations N`, N > 0). Soft backstop,
+   looptight-owned. `goal next` returns `status: stop` (reason `max_iterations`).
+   Finite default; `0` disables it for fully hands-off runs.
+3. **Session usage spent.** Implicit: the host session simply stops when it hits its
    provider limit. looptight cannot see provider usage and does not pretend to; this
-   is the host's / native wrapper's concern.
-3. **No further grounded progress.** The host judges the vision met or no verifiable
-   increment remains and stops calling `goal next`. A high iteration cap guards
-   against runaway loops (the cap value is set in the implementation plan).
+   is the host's / native driver's concern.
+4. **No further grounded progress.** The host judges the vision met or no verifiable
+   increment remains and stops calling `goal next`.
 
 ## State
 
 A repo-private `goal.json` under the git common dir (`…/looptight/goal.json`, beside
-the coordinator), holding `{schema_version, vision, done_check, created_at,
-iteration}`. Never tracked, shared across worktrees, removed by `goal clear`.
+the coordinator), holding `{schema_version, vision, done_check, continuous,
+max_iterations, created_at, iteration}`. Never tracked, shared across worktrees,
+removed by `goal clear`.
 
 ## Modules (anticipated; finalized in the plan)
 
@@ -139,9 +174,13 @@ iteration}`. Never tracked, shared across worktrees, removed by `goal clear`.
    `active` with a directive and `goal check` exits non-zero.
 4. Bootstrap: on a repo with no configured `verify`, the directive instructs
    establishing a test command first.
-5. No-model-call: `goal` makes no network/model call (pure, deterministic) — same
+5. `--max-iterations N`: after N `goal next` calls, the next returns `status: stop`
+   with reason `max_iterations`; `--max-iterations 0` never stops on the cap.
+6. `--continuous`: activation prints a driver recipe for the detected agent, and the
+   flag round-trips through `goal status`.
+7. No-model-call: `goal` makes no network/model call (pure, deterministic) — same
    contract the suite already enforces for `next`/`verify`.
-6. The managed integration block is present and idempotent.
+8. The managed integration block is present and idempotent.
 
 ## Out of scope (this spec)
 
