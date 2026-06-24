@@ -138,6 +138,7 @@ looptight next      # claim one grounded task, or return NO_WORK
 looptight verify    # run the project's test command and report the verdict
 looptight status    # show readiness and the next safe action, change nothing
 looptight propose   # show the ranked task queue without claiming anything
+looptight goal      # set or run a vision-driven build goal (see below)
 looptight doctor    # show the detected agent, verify command, and adapters
 ```
 
@@ -145,6 +146,42 @@ Every command takes `--json` for scripting. `verify` exit codes: `0` pass,
 `1` a real failing verdict, `2` a config or validator-execution error. The JSON
 result tells `pass`, `fail`, `timeout`, and `error` apart, so a crashed test
 runner never looks like failing code.
+
+## Building toward a goal
+
+`next` is evidence-first: it refines an existing codebase from real repo signals.
+`goal` is the other direction. Give it a vision and it drives the loop forward, one
+verify-gated increment at a time, generating the next step from the vision and the
+current state. It is the looptight take on a self-driving build: a real exit-code
+gate instead of a model judging the transcript, and it works in any agent session.
+
+```bash
+looptight goal "a CLI todo app with add, list, and done, plus pytest coverage"
+```
+
+The host session then loops: `looptight goal next` hands it one increment to build,
+`looptight verify` gates the commit, repeat. On an empty repo the first increment
+scaffolds the project and a test command, so the gate is real within a step or two.
+
+- `--done "<cmd>"` ends the goal when that command exits `0` (a real, deterministic
+  finish, not a model's guess).
+- `--max-iterations N` is a soft backstop: the loop stops after `N` increments
+  (`0` = unlimited).
+- `--continuous` declares a hands-off run until usage is spent and prints the driver
+  recipe for your agent.
+
+looptight cannot see your provider usage, so "run until usage is spent" is owned by
+the driver and the session limit, not looptight. On Claude Code, drive it hands-off
+with the native loop:
+
+```bash
+looptight goal "<vision>" --continuous
+/loop until: looptight goal check
+```
+
+`goal next` and `verify` make no model or network calls; the already-running session
+does the building. `looptight goal status` shows the active goal; `looptight goal
+clear` ends it.
 
 ## How work is found
 

@@ -400,13 +400,20 @@ existing CLI session and makes no model or API calls of its own.
   and the README states there are no third-party runtime dependencies. Guarded by a
   doc-accuracy test that fails if `src/` imports rich or the stale claim returns.
 
+- `looptight goal` adds a vision-driven build mode beside the evidence-first `next`
+  loop: `goal "<vision>" [--done CMD] [--continuous] [--max-iterations N]` stores a
+  repo-private goal; `goal next` emits one verify-gated build directive (bootstrapping
+  a test command first on an empty repo), `goal check` exits 0 when the done-check
+  passes (for `/loop until:` wrappers), `goal status`/`clear` manage it. No model
+  calls; the host builds. An idempotent goal-loop block installs via `init
+  --integrate`, and `--continuous` prints an agent-tailored hands-off driver recipe.
+  Designed in docs/superpowers/specs/2026-06-24-looptight-goal-design.md; covered by
+  tests in test_goal.py and a README doc test.
+
 ## Next
 
-1. Document the goal command in the README. Evidence:
-   docs/superpowers/specs/2026-06-24-looptight-goal-design.md; README.md:133;
-   Acceptance: the README documents `looptight goal` (vision, --done, --continuous,
-   --max-iterations) and the continuous `/loop` recipe; a doc test asserts the key
-   strings are present; verify passes.
+_Queue drained. The next `next` returns `no_work` with a `generate_ideas` directive;
+the loop adds grounded refinement/hardening tasks here or stops on convergence._
 
 ## Rules
 

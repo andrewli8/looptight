@@ -23,6 +23,14 @@ def test_readme_documents_polyglot_discovery():
     assert "it.skip" in text, "README does not mention JS/TS skip discovery"
 
 
+def test_readme_documents_the_goal_command():
+    text = _README.read_text(encoding="utf-8")
+    assert "looptight goal" in text, "README does not document the goal command"
+    for flag in ("--done", "--continuous", "--max-iterations"):
+        assert flag in text, f"README does not document goal's {flag}"
+    assert "/loop until: looptight goal check" in text, "README lacks the continuous recipe"
+
+
 _PYPROJECT = Path(__file__).resolve().parent.parent / "pyproject.toml"
 _SRC = Path(__file__).resolve().parent.parent / "src"
 
