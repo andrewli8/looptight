@@ -9,13 +9,18 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import asdict, dataclass
+import subprocess
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
+from typing import Callable
 
 from .coordinator import coordinator_path
+from .prompts import goal_build
 
 SCHEMA_VERSION = 1
 _GOAL_FILE = "goal.json"
+
+CheckRunner = Callable[[Path, str], bool]
 
 
 def goal_path(workdir: Path) -> Path | None:
@@ -79,3 +84,59 @@ def clear_goal(workdir: Path) -> bool:
         return False
     path.unlink()
     return True
+
+
+def run_done_check(workdir: Path, command: str) -> bool:
+    """Run a goal's --done command and return True on exit 0. Makes no model call."""
+    try:
+        result = subprocess.run(command, shell=True, cwd=str(workdir), check=False)
+    except OSError:
+        return False
+    return result.returncode == 0
+
+
+@dataclass(frozen=True)
+class GoalDecision:
+    """The result of one ``goal next``: keep building, stop, finish, or no goal."""
+
+    status: str  # active | done | stop | no_goal
+    directive: dict[str, object] | None = None
+    reason: str | None = None
+    iteration: int = 0
+    schema_version: int = SCHEMA_VERSION
+
+    def as_dict(self) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "schema_version": self.schema_version,
+            "command": "goal",
+            "status": self.status,
+            "iteration": self.iteration,
+        }
+        if self.directive is not None:
+            payload["directive"] = self.directive
+        if self.reason is not None:
+            payload["reason"] = self.reason
+        return payload
+
+
+def goal_next(workdir: Path, *, check_runner: CheckRunner = run_done_check) -> GoalDecision:
+    """Decide the next step for the active goal without making a model call.
+
+    Stops at the iteration cap, reports done when the --done check passes, otherwise
+    emits one build directive for the host and advances the iteration counter.
+    """
+    goal = read_goal(workdir)
+    if goal is None:
+        return GoalDecision(status="no_goal")
+    if goal.max_iterations and goal.iteration >= goal.max_iterations:
+        return GoalDecision(status="stop", reason="max_iterations", iteration=goal.iteration)
+    if goal.done_check and check_runner(workdir, goal.done_check):
+        return GoalDecision(status="done", iteration=goal.iteration)
+    advanced = replace(goal, iteration=goal.iteration + 1)
+    write_goal(workdir, advanced)
+    directive = {
+        "action": "build_increment",
+        "prompt": goal_build(goal.vision),
+        "done_check": goal.done_check,
+    }
+    return GoalDecision(status="active", directive=directive, iteration=advanced.iteration)

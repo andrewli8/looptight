@@ -402,24 +402,18 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Add the goal build directive and the goal_next decision. Evidence:
-   docs/superpowers/specs/2026-06-24-looptight-goal-design.md; src/looptight/prompts.py:20;
-   Acceptance: prompts.py defines a vision-grounded GOAL_BUILD directive (one verifiable
-   increment, bootstrap a verify command first when none is configured); goal_next emits
-   a directive carrying the vision, returns done when the --done check passes, returns
-   stop when max_iterations is reached, and bumps the iteration; covered by tests.
-2. Wire the goal CLI surface. Evidence:
+1. Wire the goal CLI surface. Evidence:
    docs/superpowers/specs/2026-06-24-looptight-goal-design.md; src/looptight/cli.py:113;
    Acceptance: a `goal` subparser (positional vision, --done, --continuous,
    --max-iterations; actions next/check/status/clear) and cmd_goal dispatch; `looptight
    goal "x"`, `goal next --json`, `goal check` (exit code), `goal status`, and `goal
    clear` work end to end; covered by CLI tests.
-3. Print the continuous driver recipe and install the goal integration block. Evidence:
+2. Print the continuous driver recipe and install the goal integration block. Evidence:
    docs/superpowers/specs/2026-06-24-looptight-goal-design.md; src/looptight/integration.py:34;
    Acceptance: activating a goal with --continuous prints an agent-appropriate driver
    recipe; the managed CLAUDE.md/AGENTS.md block documents the goal loop and is
    idempotent; covered by tests.
-4. Document the goal command in the README. Evidence:
+3. Document the goal command in the README. Evidence:
    docs/superpowers/specs/2026-06-24-looptight-goal-design.md; README.md:133;
    Acceptance: the README documents `looptight goal` (vision, --done, --continuous,
    --max-iterations) and the continuous `/loop` recipe; a doc test asserts the key

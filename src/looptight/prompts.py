@@ -41,6 +41,26 @@ make no changes."""
 _RAIL_ANCHOR = "If no necessary improvement"
 
 
+#: The vision-driven build directive for `goal next`. The host advances the stated
+#: vision one verifiable increment at a time; the `{vision}` slot is filled per goal.
+GOAL_BUILD = """You are building a project toward this vision:
+
+{vision}
+
+Inspect the current repository state, then make the single smallest increment that
+moves toward the vision and is provable by a test. If the project has no runnable
+test command yet, your first increment is to scaffold the project and establish a
+test harness plus a `verify` command, so every later step is gated. Implement exactly
+one coherent increment and then stop, so `looptight verify` can gate it before the
+commit. Do not invent work unrelated to the vision; if the vision is already fully
+met, say so and stop."""
+
+
+def goal_build(vision: str) -> str:
+    """The build directive for a specific vision."""
+    return GOAL_BUILD.format(vision=vision.strip())
+
+
 def planning_goal(model: Model | None = None) -> str:
     """PLANNING_GOAL, optionally with a bounded experience note before the rail."""
     note = summary_text(model) if model is not None else ""
