@@ -48,13 +48,24 @@ control plane the editors lack, not another editor.
 ## Quick start
 
 ```bash
-uvx looptight init --integrate
+uv tool install looptight        # or: uvx looptight ... , pipx install looptight
+looptight init --integrate
 ```
 
 `init` detects your test command and writes `.looptight.toml`. `--integrate`
 adds one short, reviewable instruction block to `AGENTS.md` (Codex, OpenCode) or
 `CLAUDE.md` (Claude Code) so the agent runs the loop without you re-prompting
 after each task.
+
+To let Claude Code discover looptight in every session, install its skill once:
+
+```bash
+looptight install-skill
+```
+
+This writes a small `SKILL.md` to `~/.claude/skills/looptight/`. Claude reads its
+description and reaches for looptight when a task calls for a test-gated loop, with
+no per-repo setup.
 
 ```toml
 # .looptight.toml
@@ -139,6 +150,7 @@ looptight verify    # run the project's test command and report the verdict
 looptight status    # show readiness and the next safe action, change nothing
 looptight propose   # show the ranked task queue without claiming anything
 looptight goal      # set or run a vision-driven build goal (see below)
+looptight install-skill  # let Claude Code discover looptight in any session
 looptight doctor    # show the detected agent, verify command, and adapters
 ```
 

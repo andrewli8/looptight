@@ -13,6 +13,7 @@ from .commands import (
     cmd_improve,
     cmd_init,
     cmd_install_hook,
+    cmd_install_skill,
     cmd_migrate,
     cmd_next,
     cmd_propose,
@@ -37,6 +38,7 @@ _COMMANDS = {
     "revert",
     "hook",
     "install-hook",
+    "install-skill",
     "propose",
     "next",
     "status",
@@ -298,6 +300,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_install.add_argument("--uninstall", action="store_true", help="remove the looptight Stop hook instead")
 
+    sub.add_parser(
+        "install-skill", help="install the looptight skill so Claude Code discovers it in any session"
+    )
+
     return parser
 
 
@@ -375,6 +381,7 @@ def main(argv: list[str] | None = None) -> int:
         "revert": cmd_revert,
         "hook": cmd_hook,
         "install-hook": cmd_install_hook,
+        "install-skill": cmd_install_skill,
         "propose": cmd_propose,
         "next": cmd_next,
         "status": cmd_status,

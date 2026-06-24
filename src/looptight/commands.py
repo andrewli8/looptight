@@ -40,6 +40,7 @@ __all__ = [
     "cmd_improve",
     "cmd_init",
     "cmd_install_hook",
+    "cmd_install_skill",
     "cmd_migrate",
     "cmd_next",
     "cmd_propose",
@@ -469,6 +470,15 @@ def cmd_hook(args: argparse.Namespace, console: Console) -> int:
     if output:
         sys.stdout.write(output + "\n")
     return code
+
+
+def cmd_install_skill(args: argparse.Namespace, console: Console) -> int:
+    from .skill import install_skill
+
+    path = install_skill()
+    console.print(f"[green]installed[/green] the looptight skill at {path}")
+    console.print("Claude Code will now discover looptight in any session.")
+    return 0
 
 
 def cmd_install_hook(args: argparse.Namespace, console: Console) -> int:
