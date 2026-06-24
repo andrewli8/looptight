@@ -641,4 +641,18 @@ def cmd_goal(args: argparse.Namespace, console: Console) -> int:
     )
     write_goal(workdir, goal)
     console.print(f"goal set: {arg}")
+    if args.continuous:
+        console.print(_goal_driver_recipe(workdir))
     return 0
+
+
+def _goal_driver_recipe(workdir: Path) -> str:
+    """Hands-off driver recipe for the active goal, tailored to the detected agent."""
+    lines = ["Run hands-off until the goal's done-check passes or usage is spent:"]
+    if detect_agent() == "claude":
+        lines.append("  Claude Code:  /loop until: looptight goal check")
+    lines.append(
+        "  Any agent:    repeat `looptight goal next` -> build -> `looptight verify`"
+        " -> commit, until `looptight goal check` passes"
+    )
+    return "\n".join(lines)

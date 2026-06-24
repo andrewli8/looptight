@@ -402,12 +402,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Print the continuous driver recipe and install the goal integration block. Evidence:
-   docs/superpowers/specs/2026-06-24-looptight-goal-design.md; src/looptight/integration.py:34;
-   Acceptance: activating a goal with --continuous prints an agent-appropriate driver
-   recipe; the managed CLAUDE.md/AGENTS.md block documents the goal loop and is
-   idempotent; covered by tests.
-3. Document the goal command in the README. Evidence:
+1. Document the goal command in the README. Evidence:
    docs/superpowers/specs/2026-06-24-looptight-goal-design.md; README.md:133;
    Acceptance: the README documents `looptight goal` (vision, --done, --continuous,
    --max-iterations) and the continuous `/loop` recipe; a doc test asserts the key

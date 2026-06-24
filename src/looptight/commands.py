@@ -17,7 +17,7 @@ from .console import Console
 from .coordinator import coordination_scope
 from .daemon import run_daemon
 from .detect import KNOWN_AGENTS, detect_agent, detect_verify
-from .integration import install_session_instructions
+from .integration import install_goal_instructions, install_session_instructions
 from .loop import run_loop
 from .protocol_commands import (
     cmd_goal,
@@ -81,8 +81,9 @@ def cmd_init(args: argparse.Namespace, console: Console) -> int:
 
     if args.integrate:
         changed = install_session_instructions(workdir)
+        changed += install_goal_instructions(workdir)
         state = "installed" if changed else "already installed"
-        console.print(f"[green]{state}[/green] session loop for Codex, Claude Code, and OpenCode")
+        console.print(f"[green]{state}[/green] session and goal loops for Codex, Claude Code, and OpenCode")
     elif not config_exists:
         console.print()
         console.print("For the native current-session loop: [bold]looptight init --integrate[/bold]")

@@ -148,3 +148,24 @@ def test_goal_cli_check_exit_code_reflects_done(tmp_path, monkeypatch, capsys):
     main(["goal", "build x", "--done", "true"])
     capsys.readouterr()
     assert main(["goal", "check"]) == 0  # done-check passes -> goal complete
+
+
+def test_install_goal_instructions_is_idempotent(tmp_path):
+    from looptight.integration import GOAL_START, install_goal_instructions
+
+    assert install_goal_instructions(tmp_path)  # installs, returns changed paths
+    claude = (tmp_path / "CLAUDE.md").read_text(encoding="utf-8")
+    assert GOAL_START in claude
+    assert "looptight goal next" in claude
+    assert install_goal_instructions(tmp_path) == []  # already installed
+    assert (tmp_path / "CLAUDE.md").read_text(encoding="utf-8").count(GOAL_START) == 1
+
+
+def test_goal_continuous_prints_driver_recipe(tmp_path, monkeypatch, capsys):
+    from looptight.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    _repo(tmp_path)
+    assert main(["goal", "build x", "--continuous"]) == 0
+    out = capsys.readouterr().out
+    assert "looptight goal check" in out  # the provider-neutral hands-off driver
