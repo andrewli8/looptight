@@ -15,20 +15,27 @@ def test_daemon_doc_documents_on_fault_hook():
 
 
 _README = Path(__file__).resolve().parent.parent / "README.md"
+_DOCS = Path(__file__).resolve().parent.parent / "docs"
 
 
-def test_readme_documents_polyglot_discovery():
-    text = _README.read_text(encoding="utf-8")
-    assert "__tests__" in text, "README does not mention colocated JS/TS test discovery"
-    assert "it.skip" in text, "README does not mention JS/TS skip discovery"
+def test_usage_doc_documents_polyglot_discovery():
+    text = (_DOCS / "usage.md").read_text(encoding="utf-8")
+    assert "__tests__" in text, "usage.md does not mention colocated JS/TS test discovery"
+    assert "it.skip" in text, "usage.md does not mention JS/TS skip discovery"
 
 
-def test_readme_documents_the_goal_command():
-    text = _README.read_text(encoding="utf-8")
-    assert "looptight goal" in text, "README does not document the goal command"
+def test_goal_doc_documents_the_goal_command():
+    text = (_DOCS / "goal.md").read_text(encoding="utf-8")
+    assert "looptight goal" in text, "goal.md does not document the goal command"
     for flag in ("--done", "--continuous", "--max-iterations"):
-        assert flag in text, f"README does not document goal's {flag}"
-    assert "/loop until: looptight goal check" in text, "README lacks the continuous recipe"
+        assert flag in text, f"goal.md does not document goal's {flag}"
+    assert "/loop until: looptight goal check" in text, "goal.md lacks the continuous recipe"
+
+
+def test_readme_links_to_the_moved_docs():
+    text = _README.read_text(encoding="utf-8")
+    for link in ("docs/usage.md", "docs/goal.md", "docs/unattended.md"):
+        assert link in text, f"README does not link to {link}"
 
 
 _PYPROJECT = Path(__file__).resolve().parent.parent / "pyproject.toml"
