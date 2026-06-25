@@ -415,8 +415,24 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_Queue drained. The next `next` returns `no_work` with a `generate_ideas` directive;
-the loop adds grounded refinement/hardening tasks here or stops on convergence._
+1. Add direct unit tests for the CLI type-validator helpers. Evidence:
+   src/looptight/cli.py:61; tests/test_cli.py; Acceptance: a test imports
+   `_positive_int` and `_port` from `looptight.cli`, asserts `_positive_int("0")`
+   raises `argparse.ArgumentTypeError`, and asserts `_port("65536")` raises
+   `argparse.ArgumentTypeError`; covered by running `looptight verify`.
+2. Cover `_optional_int` negative-value rejection in `config.py`. Evidence:
+   src/looptight/config.py:105; tests/test_config.py; Acceptance: a test writes a
+   `.looptight.toml` with `max_changed_files = -1`, calls `load_config`, and asserts
+   a `ConfigError` is raised; covered by running `looptight verify`.
+3. Cover `_string_list` empty-string rejection in `config.py`. Evidence:
+   src/looptight/config.py:114; tests/test_config.py; Acceptance: a test writes a
+   `.looptight.toml` with `protected_paths = [""]`, calls `load_config`, and asserts
+   a `ConfigError` is raised; covered by running `looptight verify`.
+4. Cover the `12:00am` midnight boundary in `_parse_absolute_reset`. Evidence:
+   src/looptight/limits.py:90; tests/test_limits.py; Acceptance: a test calls
+   `classify_limit` with a reset string containing `"12:00am"` and a `now` of
+   23:00, asserts the result is not `None` and `retry_after_s` is approximately
+   3600; covered by running `looptight verify`.
 
 ## Rules
 
