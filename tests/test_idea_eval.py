@@ -164,3 +164,18 @@ def test_evidence_is_truthful_is_the_lenient_gate(tmp_path):
     assert is_grounded(tmp_path, "no anchor here") is False  # strict needs an anchor
     assert evidence_is_truthful(tmp_path, "Evidence: src/a.py:1") is True
     assert evidence_is_truthful(tmp_path, "Evidence: src/ghost.py:1") is False
+
+
+def test_batch_score_as_dict_pins_all_fields():
+    # as_dict() is used in protocol_commands.py:133 for JSON output; pin all 6 fields.
+    from looptight.idea_eval import BatchScore
+    score = BatchScore(size=3, grounded=2, flexibility=2, distinct=3, bounded=True)
+    d = score.as_dict()
+    assert d == {
+        "size": 3,
+        "grounded": 2,
+        "groundedness": round(2 / 3, 3),
+        "flexibility": 2,
+        "distinct": 3,
+        "bounded": True,
+    }

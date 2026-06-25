@@ -496,16 +496,13 @@ existing CLI session and makes no model or API calls of its own.
 - `test_run_hook_carries_count_across_continuations` proves the persisted count
   is read on continuation events: three invocations with `max_iterations=2`
   block the first two and allow on the third (cap reached).
+- `test_batch_score_as_dict_pins_all_fields` pins all 6 fields of
+  `BatchScore.as_dict()` (size, grounded, groundedness, flexibility, distinct,
+  bounded), guarding the JSON output contract used by `propose --eval --json`.
 
 ## Next
 
-1. `BatchScore.as_dict()` is called in `protocol_commands.py:133` and its
-   exact field set is not directly pinned; the existing CLI test checks only 3
-   of 6 fields.
-   Evidence: src/looptight/idea_eval.py:72
-   Acceptance: A new test `test_batch_score_as_dict_pins_all_fields` in
-   tests/test_idea_eval.py passes: constructs a known `BatchScore` and asserts
-   every key/value in `as_dict()` matches the documented JSON schema.
+_None pending. The loop generates evidence-backed tasks here when this drains._
 
 ## Rules
 
