@@ -332,12 +332,18 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         if private_dir is not None:
             claimed_task, active_claims = ClaimStore(private_dir, owner_id(workdir)).summary()
 
+    from .goal import read_goal
+
+    active_goal = read_goal(workdir)
+
     if not verify:
         action = "configure verify with `looptight init`"
     elif workspace == "dirty":
         action = "review changes and run `looptight verify --json`"
     elif claimed_task:
         action = f"continue claimed task {claimed_task}"
+    elif active_goal is not None:
+        action = "run `looptight goal next` (a build goal is active)"
     else:
         action = "run `looptight next --json`"
 
@@ -372,6 +378,12 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
     }
     if coordinator_counts is not None:
         payload["coordinator"] = coordinator_counts
+    if active_goal is not None:
+        payload["goal"] = {
+            "vision": active_goal.vision,
+            "iteration": active_goal.iteration,
+            "continuous": active_goal.continuous,
+        }
 
     from .idea_eval import score_status_next
 
@@ -423,6 +435,11 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
                 f"coordinator: {coordinator_counts['queued_tasks']} queued · "
                 f"{coordinator_counts['queued_integrations']} integrations · "
                 f"{coordinator_counts['pending_publications']} publications"
+            )
+        if active_goal is not None:
+            console.print(
+                f"goal: {active_goal.vision} (iteration {active_goal.iteration}"
+                f"{', continuous' if active_goal.continuous else ''})"
             )
         if idea_quality is not None:
             console.print(

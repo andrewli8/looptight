@@ -1499,3 +1499,26 @@ def test_propose_source_filter_respects_limit_after_filtering(tmp_path, monkeypa
     assert main(["propose", "--source", "todo", "--limit", "1", "--json"]) == 0
     out = json.loads(capsys.readouterr().out)
     assert len(out) == 1 and out[0]["source"] == "todo"
+
+
+def test_status_is_goal_aware(tmp_path, monkeypatch, capsys):
+    # With a build goal active, status points at `goal next` and surfaces the goal.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "true"\n', encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "x"],
+        cwd=tmp_path, check=True,
+    )
+    assert main(["goal", "build a CLI todo app"]) == 0
+    capsys.readouterr()
+
+    assert main(["status", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["goal"]["vision"] == "build a CLI todo app"
+    assert "goal next" in data["next_action"]
+
+    assert main(["status"]) == 0
+    out = capsys.readouterr().out.lower()
+    assert "goal: build a cli todo app" in out
