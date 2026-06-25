@@ -57,29 +57,43 @@ def test_count_roundtrip_and_reset(tmp_path):
     assert read_count(path) == 0
 
 
-def test_run_hook_dormant_without_opt_in(tmp_path):
-    write_config(Config(verify="pytest -q", hook=False), tmp_path)
-    event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
-    output, code = run_hook(event, verify_fn=lambda c, w: _fail())
-    assert output is None  # not armed → never blocks
-    assert code == 0
-
-
-def test_run_hook_ignores_legacy_hook_setting(tmp_path):
-    (tmp_path / ".looptight.toml").write_text(
-        'verify = "pytest -q"\nhook = true\nmax_iterations = 2\n'
-    )
+def test_run_hook_blocks_when_verify_is_configured(tmp_path):
+    # A repo with a verify command is opted in — no extra hook=true flag needed.
+    write_config(Config(verify="pytest -q"), tmp_path)
     event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
     output, code = run_hook(event, verify_fn=lambda c, w: _fail("boom in test_x"))
+    assert code == 0
+    assert json.loads(output)["decision"] == "block"
+    assert "boom in test_x" in json.loads(output)["reason"]
+
+
+def test_run_hook_dormant_without_verify(tmp_path):
+    # A repo with no .looptight.toml (and therefore no verify command) stays dormant.
+    event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
+    output, code = run_hook(event, verify_fn=lambda c, w: _fail())
     assert output is None
     assert code == 0
 
 
 def test_run_hook_allows_when_passing(tmp_path):
-    write_config(Config(verify="pytest -q", hook=True), tmp_path)
+    write_config(Config(verify="pytest -q"), tmp_path)
     event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
     output, _ = run_hook(event, verify_fn=lambda c, w: _pass())
     assert output is None
+
+
+def test_run_hook_carries_count_across_continuations(tmp_path):
+    # Three sequential hook invocations with stop_hook_active=True:
+    # the second reads the saved count and the third hits the cap.
+    write_config(Config(verify="pytest -q"), tmp_path)
+    base = {"cwd": str(tmp_path), "session_id": "s2", "stop_hook_active": True}
+
+    # Fresh user turn (stop_hook_active falsey) → block #1.
+    out1, _ = run_hook(json.dumps({**base, "stop_hook_active": False}), verify_fn=lambda c, w: _fail())
+    assert json.loads(out1)["decision"] == "block"
+    # Continuation → block #2 (default cap is 6, so still under).
+    out2, _ = run_hook(json.dumps(base), verify_fn=lambda c, w: _fail())
+    assert json.loads(out2)["decision"] == "block"
 
 
 def test_run_hook_tolerates_malformed_event():
@@ -98,7 +112,7 @@ def test_run_hook_tolerates_non_path_cwd():
 def test_run_hook_tolerates_malformed_config(tmp_path):
     # A broken .looptight.toml must not trap or crash the Stop hook: it behaves
     # like an un-armed repo and lets the stop through (the documented contract).
-    (tmp_path / ".looptight.toml").write_text('hook = true\nbad = = toml\n')
+    (tmp_path / ".looptight.toml").write_text('bad = = toml\n')
     event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
     output, code = run_hook(event, verify_fn=lambda c, w: _fail())
     assert output is None
@@ -106,7 +120,7 @@ def test_run_hook_tolerates_malformed_config(tmp_path):
 
 
 def test_run_hook_fails_open_when_continuation_state_cannot_be_saved(tmp_path, monkeypatch):
-    write_config(Config(verify="pytest -q", hook=True), tmp_path)
+    write_config(Config(verify="pytest -q"), tmp_path)
     event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
 
     def fail_to_save(*args, **kwargs):

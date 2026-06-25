@@ -545,6 +545,6 @@ def cmd_install_hook(args: argparse.Namespace, console: Console) -> int:
     else:
         console.print(f"already installed in {path}")
     console.print()
-    console.print("The hook stays dormant until a repo opts in. In a project you want")
-    console.print("auto-looping, set [cyan]hook = true[/cyan] in its .looptight.toml.")
+    console.print("The hook fires in any repo that has a [cyan]verify[/cyan] command configured.")
+    console.print("Run [cyan]looptight init[/cyan] in a project to set one up.")
     return 0

@@ -125,7 +125,7 @@ def run_hook(stdin_text: str, *, verify_fn: VerifyFn = run_verify) -> tuple[str 
     session_id = str(event.get("session_id") or "default")
 
     config = _config_for(cwd)
-    if not config.hook or not config.verify:
+    if not config.verify:
         return None, 0
 
     state = _state_path(session_id, cwd)
