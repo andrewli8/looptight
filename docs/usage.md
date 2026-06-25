@@ -137,6 +137,10 @@ clause stating an observable outcome (so the verifier can tell when it is done).
 An item whose `Evidence:` path does not resolve is dropped, so a fabricated reference
 cannot enter the queue. This is the same bar the loop applies to tasks it generates.
 
+To triage the queue, `looptight propose --source todo` (or `lint`, `skipped-test`,
+`status-next`, `task-file`) shows only one signal type, and `looptight propose --eval`
+scores the generated `## Next` batch on groundedness and diversity.
+
 When the queue empties, looptight does not stop by default. `next` returns `no_work`
 with a `generate_ideas` directive that asks the host session to add 1 to 6
 evidence-backed tasks to `docs/STATUS.md`, then continue. looptight makes no model
