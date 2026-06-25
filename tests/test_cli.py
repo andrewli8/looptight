@@ -220,6 +220,29 @@ def test_propose_empty_state_guides_new_dev_to_next_and_goal(tmp_path, monkeypat
     assert json.loads(capsys.readouterr().out) == []
 
 
+def test_init_warns_when_verify_is_lint_only(tmp_path, monkeypatch, capsys):
+    # A linter as the verify command passes even with broken logic; warn the new dev.
+    from looptight import commands
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(commands, "detect_verify", lambda *a, **k: "ruff check")
+    monkeypatch.setattr(commands, "detect_agent", lambda *a, **k: None)
+    assert main(["init"]) == 0
+    out = capsys.readouterr().out.lower()
+    assert "ruff check" in out
+    assert "behavior can still break" in out  # the lint-only risk note
+
+
+def test_init_does_not_warn_for_a_unit_test_verify(tmp_path, monkeypatch, capsys):
+    from looptight import commands
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(commands, "detect_verify", lambda *a, **k: "pytest -q")
+    monkeypatch.setattr(commands, "detect_agent", lambda *a, **k: None)
+    assert main(["init"]) == 0
+    assert "note:" not in capsys.readouterr().out.lower()  # a real test gate needs no nag
+
+
 def test_doctor_human_output_shows_readiness_tier_matching_exit(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)

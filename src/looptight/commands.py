@@ -73,6 +73,11 @@ def cmd_init(args: argparse.Namespace, console: Console) -> int:
         console.print("`verify` is the command that decides pass/fail. No verify, no loop.")
         if verify:
             console.print(f"Detected: [cyan]{verify}[/cyan]. Edit {path.name} if that's wrong.")
+            from .protocol_commands import _verifier_quality
+
+            quality = _verifier_quality(verify)
+            if quality["classification"] in ("lint-only", "none", "custom/unknown"):
+                console.print(f"[yellow]note:[/yellow] {quality['risk']}")
         else:
             console.print("[yellow]Could not detect a test command — set `verify` in the config.[/yellow]")
         if agent:
