@@ -468,15 +468,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Add direct unit tests for `grounding.ref_resolves` boundary cases: a
-   colon-only ref (`:5`), an empty string, a ref ending in a sentence period, and
-   a path with `..` traversal, each asserting the correct bool return without
-   production changes.
-   Evidence: `src/looptight/grounding.py:34`
-   Acceptance: New tests in `tests/test_idea_eval.py` calling `ref_resolves` directly
-   pass; existing tests are unchanged.
-
-4. Document the `goal next --json` output fields (`schema_version`, `command`,
+1. Document the `goal next --json` output fields (`schema_version`, `command`,
    `status`, `iteration`, `directive`, `reason`) in `docs/SPEC.md`'s Output
    contract section, and guard it with a doc-accuracy test.
    Evidence: `src/looptight/goal.py:117`

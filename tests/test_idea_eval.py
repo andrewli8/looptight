@@ -140,6 +140,19 @@ def test_grounding_tolerates_a_trailing_sentence_period(tmp_path):
     assert is_grounded(tmp_path, "Do it. Evidence: src/ghost.py.") is False
 
 
+def test_ref_resolves_boundary_cases(tmp_path):
+    # Direct coverage of ref_resolves edge cases not reached through is_grounded.
+    from looptight.grounding import ref_resolves
+
+    (tmp_path / "real.py").write_text("x", encoding="utf-8")
+    assert ref_resolves(tmp_path, "real.py") is True           # plain path, no line
+    assert ref_resolves(tmp_path, "real.py:42") is True        # path with line number
+    assert ref_resolves(tmp_path, ":5") is False               # colon-only, empty path
+    assert ref_resolves(tmp_path, "") is False                 # empty string
+    assert ref_resolves(tmp_path, "/etc/passwd") is False      # absolute path
+    assert ref_resolves(tmp_path, "../sibling.py") is False    # path traversal
+
+
 def test_evidence_is_truthful_is_the_lenient_gate(tmp_path):
     # The gate discovery uses: every named anchor must resolve, but an item naming no
     # anchor is allowed (so hand-written lists work), unlike strict is_grounded.
