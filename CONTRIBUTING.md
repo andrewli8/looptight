@@ -67,3 +67,7 @@ uv publish --publish-url https://test.pypi.org/legacy/
 
 A published version is permanent. You can yank a release but cannot reuse a version
 number, so bump `version` in `pyproject.toml` for each release.
+
+Once the PyPI trusted publisher is configured for the `looptight` project, releasing
+is just a tag: bump the version, then `git tag v0.1.0 && git push --tags`. The
+`release` workflow builds and publishes to PyPI over OIDC, with no token in the repo.

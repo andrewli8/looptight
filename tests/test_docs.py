@@ -61,6 +61,13 @@ def test_composite_action_is_shipped():
     assert "looptight verify" in text, "action.yml does not run looptight verify"
 
 
+def test_release_workflow_publishes_on_a_tag():
+    text = (_ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    assert 'tags: ["v*"]' in text, "release workflow does not trigger on version tags"
+    assert "uv publish" in text, "release workflow does not publish to PyPI"
+    assert "id-token: write" in text, "release workflow lacks OIDC trusted-publishing permission"
+
+
 def test_changelog_names_the_current_version():
     changelog = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     pyproject = (_ROOT / "pyproject.toml").read_text(encoding="utf-8")
