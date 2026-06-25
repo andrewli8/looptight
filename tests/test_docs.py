@@ -55,6 +55,12 @@ def test_pre_commit_hook_definition_is_shipped():
     assert "entry: looptight verify" in text, "hook does not run looptight verify"
 
 
+def test_composite_action_is_shipped():
+    text = (_ROOT / "action.yml").read_text(encoding="utf-8")
+    assert "using: composite" in text, "action.yml is not a composite action"
+    assert "looptight verify" in text, "action.yml does not run looptight verify"
+
+
 _PYPROJECT = Path(__file__).resolve().parent.parent / "pyproject.toml"
 _SRC = Path(__file__).resolve().parent.parent / "src"
 

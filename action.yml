@@ -1,0 +1,9 @@
+name: looptight verify
+description: Install looptight and gate the job on the project's verify command.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: pipx install looptight
+    - shell: bash
+      run: looptight verify --json

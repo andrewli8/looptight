@@ -30,6 +30,14 @@ a clear reason instead of inside the verifier. The `--json` verdict from `verify
 tells `pass`, `fail`, `timeout`, and `error` apart, so a crashed runner never looks
 like failing code.
 
+Or skip the boilerplate with the reusable composite action (it installs looptight and
+runs the verifier for you):
+
+```yaml
+      - uses: actions/checkout@v5
+      - uses: andrewli8/looptight@v1   # pin a tag; needs the looptight PyPI release
+```
+
 ## Pre-commit
 
 Run the verifier before every commit so a failing change never lands locally.
