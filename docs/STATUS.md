@@ -482,16 +482,11 @@ existing CLI session and makes no model or API calls of its own.
   subclass-of-`int` loophole is closed by an explicit `isinstance(value, bool)` guard
   checked before the `isinstance(value, int)` check. Covered by a test in
   test_config.py.
+- `_non_negative_int` and `_positive_float` in `cli.py` now have direct unit tests
+  (`test_non_negative_int_and_positive_float_validators` in test_cli.py): both reject
+  invalid values with `ArgumentTypeError` at parse time and accept valid ones.
 
 ## Next
-
-2. `_non_negative_int` and `_positive_float` in `cli.py` have no direct unit tests;
-   the existing test at `tests/test_cli.py:1568` covers `_positive_int` and `_port`
-   but not these two sibling validators.
-   Evidence: `src/looptight/cli.py:54`
-   Acceptance: a new test in `tests/test_cli.py` asserting `_non_negative_int`
-   rejects `-1` with `ArgumentTypeError` and accepts `0`, and `_positive_float`
-   rejects `0` with `ArgumentTypeError` and accepts `1.5`.
 
 3. `Console.print` accepts multiple positional arguments joined by `sep`, and a
    custom `end`, but `tests/test_console.py` has only one test covering a single

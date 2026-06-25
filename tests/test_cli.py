@@ -1580,3 +1580,18 @@ def test_positive_int_rejects_zero_and_port_rejects_out_of_range():
     assert _port("0") == 0
     with pytest.raises(argparse.ArgumentTypeError):
         _port("65536")
+
+
+def test_non_negative_int_and_positive_float_validators():
+    from looptight.cli import _non_negative_int, _positive_float
+
+    assert _non_negative_int("0") == 0
+    assert _non_negative_int("5") == 5
+    with pytest.raises(argparse.ArgumentTypeError):
+        _non_negative_int("-1")
+
+    assert _positive_float("1.5") == 1.5
+    with pytest.raises(argparse.ArgumentTypeError):
+        _positive_float("0")
+    with pytest.raises(argparse.ArgumentTypeError):
+        _positive_float("-0.1")
