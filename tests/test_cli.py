@@ -183,6 +183,31 @@ def test_next_human_output_shows_acceptance_without_changing_json(
     assert set(data) == {"schema_version", "command", "status", "task"}
 
 
+def test_status_surfaces_generated_queue_quality(tmp_path, monkeypatch, capsys):
+    # `status` reports the groundedness of the generated `## Next` batch as a
+    # self-improvement signal, without disturbing its existing keys.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# a\n")
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "STATUS.md").write_text(
+        "## Next\n\n1. Harden a. Evidence: src/a.py:1; Acceptance: it passes.\n"
+    )
+
+    assert main(["status", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["idea_quality"]["size"] == 1
+    assert data["idea_quality"]["groundedness"] == 1.0
+    assert "readiness" in data  # existing keys intact
+
+    # An empty queue carries no idea_quality block.
+    (docs / "STATUS.md").write_text("## Next\n\n_drained_\n")
+    assert main(["status", "--json"]) == 0
+    assert "idea_quality" not in json.loads(capsys.readouterr().out)
+
+
 def test_next_human_output_guides_through_verify_and_commit(tmp_path, monkeypatch, capsys):
     # A new dev should see the whole loop from the task: implement, verify, commit on pass.
     monkeypatch.chdir(tmp_path)

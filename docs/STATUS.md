@@ -412,18 +412,12 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Surface generated-queue quality in `status` as a self-improvement signal. Evidence:
-   src/looptight/idea_eval.py; src/looptight/protocol_commands.py; Acceptance: `status
-   --json` carries an additive `idea_quality` object (groundedness, flexibility,
-   bounded) from idea_eval over the `## Next` batch, omitted when the batch is empty;
-   human `status` prints a one-line score when a generated queue exists; existing
-   status keys are unchanged; covered by a test.
-2. Add an integrations guide for experienced devs. Evidence:
+1. Add an integrations guide for experienced devs. Evidence:
    .github/workflows/ci.yml; README.md; Acceptance: docs/integrations.md documents
    running `looptight verify` in GitHub Actions and as a pre-commit hook; README
    "Learn more" links it; a doc test asserts the key commands are present; verify
    passes.
-3. Make `looptight doctor` scriptable so CI can gate on readiness. Evidence:
+2. Make `looptight doctor` scriptable so CI can gate on readiness. Evidence:
    src/looptight/protocol_commands.py; Acceptance: `doctor` exits non-zero when the
    repo is unsafe to loop (no verify command, dirty or non-Git worktree) and zero
    when it is ready, and its `--json` includes the readiness tier; covered by a test.

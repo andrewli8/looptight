@@ -360,6 +360,23 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
     }
     if coordinator_counts is not None:
         payload["coordinator"] = coordinator_counts
+
+    from .idea_eval import score_status_next
+
+    batch = score_status_next(workdir)
+    idea_quality = (
+        {
+            "size": batch.size,
+            "groundedness": round(batch.groundedness, 3),
+            "flexibility": batch.flexibility,
+            "bounded": batch.bounded,
+        }
+        if batch.size
+        else None
+    )
+    if idea_quality is not None:
+        payload["idea_quality"] = idea_quality
+
     if args.json:
         print(json.dumps(payload, sort_keys=True))
     else:
@@ -394,6 +411,13 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
                 f"coordinator: {coordinator_counts['queued_tasks']} queued · "
                 f"{coordinator_counts['queued_integrations']} integrations · "
                 f"{coordinator_counts['pending_publications']} publications"
+            )
+        if idea_quality is not None:
+            console.print(
+                f"idea quality: {idea_quality['size']} task(s) · "
+                f"groundedness {idea_quality['groundedness']} · "
+                f"areas {idea_quality['flexibility']} · "
+                f"bounded {'yes' if idea_quality['bounded'] else 'no'}"
             )
         console.print(f"next: {action}")
         panel = render_state_panel(read_state(workdir))
