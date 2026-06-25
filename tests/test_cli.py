@@ -767,6 +767,28 @@ def test_status_json_classifies_common_verifier_quality(
         assert data["verifier_quality"]["risk"]
 
 
+def test_status_json_classifies_e2e_and_integration_verifier_quality(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    cases = {
+        "playwright test": "e2e",
+        "cypress run": "e2e",
+        "pytest e2e": "e2e",
+        "pytest integration": "integration",
+        "run-integration-tests.sh": "integration",
+    }
+    for command, expected in cases.items():
+        (tmp_path / ".looptight.toml").write_text(f'verify = "{command}"\n')
+        assert main(["status", "--json"]) == 0
+        data = json.loads(capsys.readouterr().out)
+        assert data["verifier_quality"]["classification"] == expected, (
+            f"expected {expected!r} for {command!r}, "
+            f"got {data['verifier_quality']['classification']!r}"
+        )
+        assert data["verifier_quality"]["risk"]
+
+
 def test_status_json_classifies_missing_verifier_quality(
     tmp_path, monkeypatch, capsys
 ):
