@@ -73,6 +73,13 @@ def test_write_goal_cleans_up_tmp_when_replace_fails(tmp_path, monkeypatch):
     assert read_goal(repo) is None  # the goal file was never created
 
 
+def test_write_goal_raises_outside_git(tmp_path):
+    # goal_path returns None outside a Git repo, so write_goal must raise a
+    # clear RuntimeError rather than crashing with an AttributeError or OSError.
+    with pytest.raises(RuntimeError, match="outside a Git repository"):
+        write_goal(tmp_path, Goal(vision="x"))
+
+
 def test_read_goal_returns_none_on_non_utf8_file(tmp_path):
     # An unreadable (non-UTF-8) goal file must yield None, not raise: the
     # contract promises None when the state is unreadable.

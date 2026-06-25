@@ -468,14 +468,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Add a test that `write_goal` raises `RuntimeError` when called outside a Git
-   repository (goal_path returns None), covering the untested error branch.
-   Evidence: `src/looptight/goal.py:75`
-   Acceptance: A new `test_write_goal_raises_outside_git` in `tests/test_goal.py`
-   asserts `pytest.raises(RuntimeError)` for a non-git `tmp_path`; no production
-   code change.
-
-3. Add direct unit tests for `grounding.ref_resolves` boundary cases: a
+1. Add direct unit tests for `grounding.ref_resolves` boundary cases: a
    colon-only ref (`:5`), an empty string, a ref ending in a sentence period, and
    a path with `..` traversal, each asserting the correct bool return without
    production changes.
