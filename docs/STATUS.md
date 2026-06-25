@@ -419,14 +419,12 @@ existing CLI session and makes no model or API calls of its own.
   names the file and field, covered by a test in test_config.py.
 - `load_config` rejects an empty string inside `protected_paths` with a
   `ConfigError` naming the file and field, covered by a test in test_config.py.
+- `_parse_absolute_reset` treats `12:00am` as midnight (hour 0): from 11pm the
+  next reset is one hour out, covered by a test in test_limits.py.
 
 ## Next
 
-1. Cover the `12:00am` midnight boundary in `_parse_absolute_reset`. Evidence:
-   src/looptight/limits.py:90; tests/test_limits.py; Acceptance: a test calls
-   `classify_limit` with a reset string containing `"12:00am"` and a `now` of
-   23:00, asserts the result is not `None` and `retry_after_s` is approximately
-   3600; covered by running `looptight verify`.
+_None pending. The loop generates evidence-backed tasks here when this drains._
 
 ## Rules
 
