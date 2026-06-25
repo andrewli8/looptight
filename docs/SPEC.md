@@ -228,7 +228,10 @@ schema version and stable result codes. At minimum, `next` returns a task ID,
 source, location, goal, and acceptance evidence; it also carries `idea_id` (a
 stable dedup identity for the candidate) and `suggested_verify` (a per-task verify
 hint such as `ruff check` for a lint finding, or `null`). `verify` returns status,
-exit code, elapsed time, and bounded output.
+exit code, elapsed time, and bounded output. `goal next` returns `schema_version`,
+`command`, `status` (`active` | `done` | `stop` | `no_goal`), and `iteration`;
+additively it carries a `directive` object (the build increment, when `active`) and
+a `reason` string (e.g. `max_iterations`, when `stop`).
 
 When idea generation is enabled (the default), a `no_work` result from `next` may
 also carry an optional `directive` object (`{"action": "generate_ideas", ...}`)

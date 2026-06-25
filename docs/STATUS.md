@@ -465,15 +465,13 @@ existing CLI session and makes no model or API calls of its own.
   so an interrupted `init --integrate` cannot truncate a user's instructions file;
   all user-file write paths (goal/ui/settings/integration) now share the pattern.
   Covered by a test in test_integration.py.
+- SPEC's Output contract documents the `goal next --json` fields (`schema_version`,
+  `command`, `status`, `iteration`, additive `directive`/`reason`), guarded by a
+  doc test in test_docs.py.
 
 ## Next
 
-1. Document the `goal next --json` output fields (`schema_version`, `command`,
-   `status`, `iteration`, `directive`, `reason`) in `docs/SPEC.md`'s Output
-   contract section, and guard it with a doc-accuracy test.
-   Evidence: `src/looptight/goal.py:117`
-   Acceptance: A new test in `tests/test_docs.py` asserts SPEC names each field;
-   `test_spec_output_contract_names_all_next_task_fields` is unchanged.
+_None pending. The loop generates evidence-backed tasks here when this drains._
 
 ## Rules
 

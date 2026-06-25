@@ -82,6 +82,15 @@ def test_spec_output_contract_names_all_next_task_fields():
         assert field in spec, f"SPEC output contract does not document {field!r}"
 
 
+def test_spec_output_contract_documents_goal_next_fields():
+    # goal next --json emits these fields (goal.py GoalDecision.as_dict); the output
+    # contract must name them so integrators know the goal-loop shape.
+    spec = (_ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
+    output_contract = spec.split("## Output contract", 1)[1].split("## ", 1)[0]
+    for field in ("schema_version", "command", "status", "iteration", "directive", "reason"):
+        assert field in output_contract, f"SPEC output contract omits goal next {field!r}"
+
+
 def test_changelog_names_the_current_version():
     changelog = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     pyproject = (_ROOT / "pyproject.toml").read_text(encoding="utf-8")
