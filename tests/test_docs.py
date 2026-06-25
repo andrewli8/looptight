@@ -126,3 +126,9 @@ def test_bug_report_template_collects_diagnostics():
     text = (_ROOT / ".github" / "ISSUE_TEMPLATE" / "bug_report.md").read_text(encoding="utf-8")
     assert "looptight --version" in text, "bug template does not ask for the version"
     assert "looptight doctor --json" in text, "bug template does not ask for doctor output"
+
+
+def test_pull_request_template_reinforces_the_gate():
+    text = (_ROOT / ".github" / "pull_request_template.md").read_text(encoding="utf-8")
+    assert "looptight verify" in text, "PR template does not remind contributors to verify"
+    assert "ruff check" in text, "PR template does not mention the lint gate"
