@@ -45,6 +45,15 @@ def test_integrations_doc_documents_ci_and_pre_commit():
     assert "pre-commit" in text, "integrations.md lacks the pre-commit recipe"
 
 
+_ROOT = Path(__file__).resolve().parent.parent
+
+
+def test_pre_commit_hook_definition_is_shipped():
+    text = (_ROOT / ".pre-commit-hooks.yaml").read_text(encoding="utf-8")
+    assert "id: looptight-verify" in text, "missing the looptight-verify hook id"
+    assert "entry: looptight verify" in text, "hook does not run looptight verify"
+
+
 _PYPROJECT = Path(__file__).resolve().parent.parent / "pyproject.toml"
 _SRC = Path(__file__).resolve().parent.parent / "src"
 

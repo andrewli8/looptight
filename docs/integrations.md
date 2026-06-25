@@ -30,7 +30,19 @@ runner never looks like failing code.
 
 Run the verifier before every commit so a failing change never lands locally.
 
-With [pre-commit](https://pre-commit.com):
+With [pre-commit](https://pre-commit.com), point at looptight as a hook repo (it
+ships a `.pre-commit-hooks.yaml` defining `looptight-verify`):
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/andrewli8/looptight
+    rev: v0.1.0
+    hooks:
+      - id: looptight-verify
+```
+
+Or define it locally without pinning a revision:
 
 ```yaml
 # .pre-commit-config.yaml

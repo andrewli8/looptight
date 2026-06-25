@@ -1,0 +1,6 @@
+- id: looptight-verify
+  name: looptight verify
+  description: Run the project's verify command and gate the commit on a pass.
+  entry: looptight verify
+  language: system
+  pass_filenames: false
