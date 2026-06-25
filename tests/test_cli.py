@@ -1426,3 +1426,22 @@ def test_statusline_command_reads_stdin_and_prints_one_line(tmp_path, monkeypatc
 def test_statusline_parser_registered():
     args = build_parser().parse_args(["statusline"])
     assert args.command == "statusline"
+
+
+def test_propose_source_filter_shows_only_that_source(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# TODO: fix it\n", encoding="utf-8")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text(
+        "## Next\n\n1. Cover a. Evidence: src/a.py:1; Acceptance: passes.\n", encoding="utf-8"
+    )
+
+    assert main(["propose", "--json"]) == 0
+    sources = {c["source"] for c in json.loads(capsys.readouterr().out)}
+    assert {"todo", "status-next"} <= sources  # both present unfiltered
+
+    assert main(["propose", "--source", "todo", "--json"]) == 0
+    filtered = json.loads(capsys.readouterr().out)
+    assert filtered and all(c["source"] == "todo" for c in filtered)

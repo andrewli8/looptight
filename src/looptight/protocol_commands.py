@@ -113,6 +113,9 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
     from .propose import propose
 
     candidates = propose(Path.cwd(), limit=args.limit)
+    source = getattr(args, "source", None)
+    if source:
+        candidates = [candidate for candidate in candidates if candidate.source == source]
     evaluation = None
     if getattr(args, "eval_batch", False):
         from .idea_eval import score_status_next

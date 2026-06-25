@@ -147,6 +147,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--eval", action="store_true", dest="eval_batch",
         help="score the generated docs/STATUS.md ## Next batch on grounding metrics",
     )
+    p_propose.add_argument(
+        "--source",
+        choices=["status-next", "task-file", "skipped-test", "todo", "lint"],
+        help="show only candidates from this source",
+    )
 
     p_next = sub.add_parser(
         "next",
