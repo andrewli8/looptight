@@ -198,6 +198,21 @@ the verifier:
   IDs) before the grounding rail when building the planning prompt, used by both
   the swarm planner and the session-native directive.
 
+**Grounding and generation quality.** A second layer keeps generated work honest
+and measurable:
+
+- `grounding.py` resolves a task's `Evidence:` anchors against the working tree.
+  `from_status_next` (`discovery.py`) drops a generated `## Next` item whose evidence
+  does not point at a real file, so a fabricated reference cannot enter the queue;
+  unanchored items are left alone, so hand-written lists keep working.
+- `idea_eval.py` scores a generated batch on groundedness, area flexibility, and
+  intra-batch distinctness. `propose --eval` reports it on demand, `status` carries
+  an additive `idea_quality` block, and the `no_work` directive carries a
+  `current_quality` feedback signal, so the loop can see how its generation lands.
+- Failure attribution: the coordinator records *why* a task failed (conflict, test
+  failure, timeout) alongside the category, and the planner note can name the
+  dominant failure mode so the host avoids it, not just an opaque idea ID.
+
 Deferred items (churn detection, shared negative learning, session-native writes,
 and EVOC-style value-aware scoring) are documented in `docs/SPEC.md`.
 
