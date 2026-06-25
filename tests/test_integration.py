@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import pytest
+
+from looptight.config import ConfigError
 from looptight.integration import END, SESSION_LOOP, START, install_session_instructions
 
 
@@ -44,3 +47,17 @@ def test_install_is_idempotent_and_preserves_surrounding_instructions(tmp_path):
     assert path.read_text().count(END) == 1
     assert "Keep this." in path.read_text()
     assert changed == []
+
+
+def test_install_raises_clear_error_on_non_utf8_file_without_partial_write(tmp_path):
+    # A non-UTF-8 managed-block file must produce a clear ConfigError naming the
+    # file, not a raw UnicodeDecodeError, and no other file may be written first.
+    (tmp_path / "CLAUDE.md").write_bytes(b"\xff\xfe not utf-8")
+
+    with pytest.raises(ConfigError) as exc:
+        install_session_instructions(tmp_path)
+
+    assert "CLAUDE.md" in str(exc.value)
+    # AGENTS.md is processed first in the loop; validation must happen before any
+    # write, so it is never created when CLAUDE.md cannot be read.
+    assert not (tmp_path / "AGENTS.md").exists()

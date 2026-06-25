@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from .config import ConfigError
+
 START = "<!-- looptight:session-loop:start -->"
 END = "<!-- looptight:session-loop:end -->"
 
@@ -56,10 +58,25 @@ does the building. For hands-off runs use `looptight goal "<vision>" --continuou
 
 def _install_block(root: Path, block: str, start: str, end: str) -> list[Path]:
     """Install/refresh one idempotent managed block for all three supported CLIs."""
-    changed: list[Path] = []
-    for name in ("AGENTS.md", "CLAUDE.md"):
+    targets = ("AGENTS.md", "CLAUDE.md")
+    # Read every target up front so a non-UTF-8 file fails with a clear error
+    # before any write, never leaving one file integrated and the other not.
+    currents: dict[str, str] = {}
+    for name in targets:
         path = root / name
-        current = path.read_text(encoding="utf-8") if path.exists() else ""
+        if not path.exists():
+            currents[name] = ""
+            continue
+        try:
+            currents[name] = path.read_text(encoding="utf-8")
+        except ValueError:
+            raise ConfigError(
+                f"{path} is not UTF-8 text; re-save it as UTF-8 before integrating."
+            ) from None
+    changed: list[Path] = []
+    for name in targets:
+        path = root / name
+        current = currents[name]
         if start in current:
             before, remainder = current.split(start, 1)
             after = remainder.split(end, 1)[1] if end in remainder else ""
