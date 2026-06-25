@@ -454,7 +454,15 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_None pending. The loop generates evidence-backed tasks here when this drains._
+1. JS skip discovery misses Jest's `xtest(` alias. Evidence:
+   src/looptight/discovery.py:303; `_JS_SKIP_RE` matches `xit(`/`xdescribe(` via
+   `x(?:it|describe)` but not `xtest(`, a documented Jest alias for `test.skip()`,
+   so a skipped `xtest("...")` is overlooked while `xit`/`it.skip` are found.
+   Acceptance: a test in tests/test_propose.py writes a `*.test.js` with
+   `xtest("legacy", () => {})` and asserts `from_skipped_tests` surfaces it as a
+   `skipped-test` candidate; the fix adds `test` to the alternation in both
+   `_JS_SKIP_RE` and `_JS_SKIP_NAME_RE` (and the comment/usage docs note `xtest`);
+   covered by running `looptight verify`.
 
 ## Rules
 
