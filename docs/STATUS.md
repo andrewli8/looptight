@@ -412,12 +412,8 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Give idea generation a feedback signal so the loop can self-improve. Evidence:
-   src/looptight/tasks.py; src/looptight/idea_eval.py; Acceptance: the `no_work`
-   `generate_ideas` directive carries an additive `current_quality` object (idea_eval
-   groundedness and size of the existing `## Next` batch), or null when the batch is
-   empty, so the host sees how prior generations scored; schema stays v1 and the bare
-   `no_work` contract is unchanged; covered by a test.
+_Queue drained. The next `next` returns `no_work` with a `generate_ideas` directive;
+the loop adds grounded refinement/hardening tasks here or stops on convergence._
 
 ## Rules
 

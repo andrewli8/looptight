@@ -85,9 +85,27 @@ def _has_dirty_git_worktree(workdir: Path) -> bool:
     return result.returncode == 0 and bool(result.stdout.strip())
 
 
-def _idea_directive() -> dict[str, object]:
-    """Directive telling a host session to generate grounded tasks on an empty queue."""
-    return {"action": IDEA_DIRECTIVE_ACTION, "prompt": PLANNING_GOAL, "max_tasks": 6}
+def _idea_directive(workdir: Path) -> dict[str, object]:
+    """Directive telling a host session to generate grounded tasks on an empty queue.
+
+    Carries a feedback signal, ``current_quality``, scoring whatever grounded tasks
+    are still in ``## Next`` (or ``null`` when none), so the host can see how its prior
+    generation landed and aim higher.
+    """
+    from .idea_eval import score_status_next
+
+    batch = score_status_next(workdir)
+    current_quality = (
+        {"size": batch.size, "groundedness": round(batch.groundedness, 3)}
+        if batch.size
+        else None
+    )
+    return {
+        "action": IDEA_DIRECTIVE_ACTION,
+        "prompt": PLANNING_GOAL,
+        "max_tasks": 6,
+        "current_quality": current_quality,
+    }
 
 
 def next_task(
@@ -154,4 +172,6 @@ def next_task(
             task = ClaimStore(private_dir, owner_id(workdir)).select(tasks)
     if task:
         return NextResult(status="task", task=task)
-    return NextResult(status="no_work", directive=_idea_directive() if idea_generation else None)
+    return NextResult(
+        status="no_work", directive=_idea_directive(workdir) if idea_generation else None
+    )

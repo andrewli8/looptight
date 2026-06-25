@@ -176,3 +176,23 @@ def test_next_task_does_not_reap_a_fresh_live_lease(tmp_path):
 
     other = next_task(tmp_path, propose_fn=lambda w, limit=0: _leaked_candidate(), run_id="other")
     assert other.status == "no_work"  # fresh lease spared; the other run gets nothing
+
+
+def test_idea_directive_carries_quality_feedback(tmp_path):
+    from looptight.tasks import _idea_directive
+
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# a\n", encoding="utf-8")
+    (docs / "STATUS.md").write_text(
+        "## Next\n\n1. Harden a. Evidence: src/a.py:1; Acceptance: it passes.\n",
+        encoding="utf-8",
+    )
+    directive = _idea_directive(tmp_path)
+    assert directive["current_quality"]["size"] == 1
+    assert directive["current_quality"]["groundedness"] == 1.0
+
+    # An empty queue carries a null feedback signal, not a missing key.
+    (docs / "STATUS.md").write_text("## Next\n\n_drained_\n", encoding="utf-8")
+    assert _idea_directive(tmp_path)["current_quality"] is None
