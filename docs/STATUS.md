@@ -474,16 +474,13 @@ existing CLI session and makes no model or API calls of its own.
 - `landed_category_counts` has direct coverage proving that a two-token trailer
   (`idea-a landed`, no source) is skipped by the category counter while
   `landed_counts` still sees the idea — asserting the documented skip contract.
+- The UI `do_GET` 404 branch has direct coverage: a request to an unknown path
+  calls `send_error(404)` and does not call `send_response`, covered by
+  `test_ui_handler_404_for_unknown_path` in test_ui.py.
 
 ## Next
 
-1. The UI `do_GET` 404 branch (`self.send_error(404)` for unknown paths) has no
-   test coverage.
-   Evidence: src/looptight/ui.py:197;
-   tests/test_ui.py (no `send_error` or `404` reference).
-   Acceptance: A new test `test_ui_handler_404_for_unknown_path` in
-   `tests/test_ui.py` instantiates a Handler (patching `__init__`), calls
-   `do_GET` on a non-root path, and asserts `send_error` was called with `404`.
+_None pending. The loop generates evidence-backed tasks here when this drains._
 
 ## Rules
 

@@ -270,3 +270,15 @@ def test_statusline_summarizes_workers_or_idle():
     ]})
     assert line.startswith("looptight:")
     assert "2 running" in line and "1 merged" in line
+
+
+def test_ui_handler_404_for_unknown_path(tmp_path):
+    handler = object.__new__(ui._handler(tmp_path))
+    handler.path = "/unknown/path"
+    errors: list[int] = []
+    handler.send_error = MethodType(lambda self, code: errors.append(code), handler)
+    handler.send_response = MethodType(lambda self, code: (_ for _ in ()).throw(AssertionError("send_response must not be called on 404")), handler)
+
+    handler.do_GET()
+
+    assert errors == [404]
