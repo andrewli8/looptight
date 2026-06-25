@@ -34,6 +34,7 @@ def evidence_refs(text: str) -> list[str]:
 def ref_resolves(root: Path, ref: str) -> bool:
     """True when an evidence ref points at a real file inside the repository."""
     path_text = ref.rsplit(":", 1)[0] if ":" in ref else ref  # drop an optional :line
+    path_text = path_text.rstrip(".")  # tolerate a path that ends a sentence
     relative = Path(path_text)
     if not path_text or relative.is_absolute() or ".." in relative.parts:
         return False

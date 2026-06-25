@@ -127,3 +127,14 @@ def test_score_status_next_reads_the_generated_queue(tmp_path):
     assert score.size == 2
     assert score.grounded == 2  # both anchors resolve to real files
     assert score.bounded is True
+
+
+def test_grounding_tolerates_a_trailing_sentence_period(tmp_path):
+    # Evidence written as a sentence ("... Evidence: src/a.py.") must still resolve,
+    # while a fabricated path with a period stays rejected.
+    from looptight.grounding import is_grounded
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("x", encoding="utf-8")
+    assert is_grounded(tmp_path, "Do it. Evidence: src/a.py.") is True
+    assert is_grounded(tmp_path, "Do it. Evidence: src/ghost.py.") is False
