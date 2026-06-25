@@ -182,3 +182,25 @@ def test_goal_check_exits_nonzero_without_a_goal_or_done_check(tmp_path, monkeyp
 
     main(["goal", "build x"])  # a goal without a --done check
     assert main(["goal", "check"]) != 0
+
+
+def test_goal_human_output_paths(tmp_path, monkeypatch, capsys):
+    # Cover the goal-mode human (non-JSON) output, the least battle-tested surface.
+    from looptight.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    _repo(tmp_path)
+
+    assert main(["goal"]) == 0  # bare goal, none active
+    assert "no active goal" in capsys.readouterr().out.lower()
+
+    main(["goal", "build a thing"])
+    capsys.readouterr()
+    assert main(["goal"]) == 0  # bare goal shows the active vision
+    assert "build a thing" in capsys.readouterr().out
+
+    assert main(["goal", "next"]) == 0  # human next prints the build directive
+    assert "build a thing" in capsys.readouterr().out
+
+    assert main(["goal", "clear"]) == 0
+    assert "cleared" in capsys.readouterr().out.lower()
