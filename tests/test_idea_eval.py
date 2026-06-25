@@ -138,3 +138,16 @@ def test_grounding_tolerates_a_trailing_sentence_period(tmp_path):
     (tmp_path / "src" / "a.py").write_text("x", encoding="utf-8")
     assert is_grounded(tmp_path, "Do it. Evidence: src/a.py.") is True
     assert is_grounded(tmp_path, "Do it. Evidence: src/ghost.py.") is False
+
+
+def test_evidence_is_truthful_is_the_lenient_gate(tmp_path):
+    # The gate discovery uses: every named anchor must resolve, but an item naming no
+    # anchor is allowed (so hand-written lists work), unlike strict is_grounded.
+    from looptight.grounding import evidence_is_truthful, is_grounded
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("x", encoding="utf-8")
+    assert evidence_is_truthful(tmp_path, "no anchor here") is True  # vacuously true
+    assert is_grounded(tmp_path, "no anchor here") is False  # strict needs an anchor
+    assert evidence_is_truthful(tmp_path, "Evidence: src/a.py:1") is True
+    assert evidence_is_truthful(tmp_path, "Evidence: src/ghost.py:1") is False
