@@ -51,15 +51,22 @@ def write_state(root: Path, state: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".tmp")
     payload = {**state, "updated_at": _utc_timestamp()}
-    temporary.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
-    os.replace(temporary, path)
+    try:
+        temporary.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
+        os.replace(temporary, path)
+    except OSError:
+        # Never leave a stale temp file behind if the write or rename fails.
+        temporary.unlink(missing_ok=True)
+        raise
 
 
 def read_state(root: Path) -> dict[str, object]:
     path = _state_path(root)
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, ValueError):
+        # ValueError covers json.JSONDecodeError and a non-UTF-8 file's
+        # UnicodeDecodeError, so a corrupt state file degrades to empty_state().
         return empty_state()
     if not isinstance(payload, dict) or payload.get("schema_version") != STATE_SCHEMA_VERSION:
         return empty_state()

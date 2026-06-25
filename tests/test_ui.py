@@ -189,6 +189,30 @@ def test_legacy_state_without_timestamp_remains_readable(tmp_path):
     assert ui.read_state(tmp_path) == state
 
 
+def test_read_state_returns_empty_on_non_utf8_file(tmp_path):
+    # A corrupt (non-UTF-8) state file must degrade to empty_state(), never crash
+    # the read-only ui/statusline/status views with a UnicodeDecodeError.
+    path = ui._state_path(tmp_path)
+    path.parent.mkdir(parents=True)
+    path.write_bytes(b"\xff\xfe not utf-8")
+
+    assert ui.read_state(tmp_path) == ui.empty_state()
+
+
+def test_write_state_cleans_up_tmp_when_replace_fails(tmp_path, monkeypatch):
+    # If the atomic rename fails after the temp file is written, no stale .tmp
+    # may be left beside the state path; the error propagates.
+    tmp = ui._state_path(tmp_path).with_suffix(".tmp")
+
+    def boom(src, dst):
+        raise OSError("cross-device rename")
+
+    monkeypatch.setattr("looptight.ui.os.replace", boom)
+    with pytest.raises(OSError):
+        ui.write_state(tmp_path, {"schema_version": 1})
+    assert not tmp.exists()
+
+
 def test_ui_command_passes_port_to_server(tmp_path, monkeypatch):
     called = {}
     monkeypatch.chdir(tmp_path)

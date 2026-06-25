@@ -427,22 +427,14 @@ existing CLI session and makes no model or API calls of its own.
   `ValueError`, covering `UnicodeDecodeError`), covered by a test in test_goal.py.
 - `write_goal` removes its `.tmp` file if the write or atomic rename fails, so a
   failed save leaves no stale state behind, covered by a test in test_goal.py.
+- The read-only view's `ui.read_state`/`write_state` got the same state-IO
+  hardening as goal.py: a non-UTF-8 state file degrades to `empty_state()` (except
+  widened to `ValueError`) and a failed atomic save unlinks its `.tmp`; covered by
+  tests in test_ui.py.
 
 ## Next
 
-1. `read_state` must return `empty_state()` on a non-UTF-8 state file, not raise.
-   Evidence: src/looptight/ui.py:62; the except catches `OSError`/`JSONDecodeError`
-   but not its sibling `UnicodeDecodeError`, so a corrupt state file would crash the
-   read-only `ui`/`statusline`/`status` views (the same gap just fixed in
-   `read_goal`). Acceptance: a test in tests/test_ui.py writes invalid UTF-8 bytes to
-   the state path and asserts `read_state` returns `empty_state()`; the fix widens the
-   except to `ValueError`; covered by running `looptight verify`.
-2. `write_state` must not leave a stale `.tmp` file when the save fails. Evidence:
-   src/looptight/ui.py:52; `temporary.write_text(...)` then `os.replace(...)` leaves
-   the temp behind if either step raises (the same gap just fixed in `write_goal`).
-   Acceptance: a test in tests/test_ui.py patches `looptight.ui.os.replace` to raise
-   `OSError`, asserts the error propagates and no `.tmp` remains beside the state
-   path; the fix unlinks the temp on failure; covered by running `looptight verify`.
+_None pending. The loop generates evidence-backed tasks here when this drains._
 
 ## Rules
 
