@@ -425,15 +425,12 @@ existing CLI session and makes no model or API calls of its own.
   head+tail separator against the budget, covered by a test in test_verify.py.
 - `read_goal` returns `None` on a non-UTF-8 `goal.json` (the except widened to
   `ValueError`, covering `UnicodeDecodeError`), covered by a test in test_goal.py.
+- `write_goal` removes its `.tmp` file if the write or atomic rename fails, so a
+  failed save leaves no stale state behind, covered by a test in test_goal.py.
 
 ## Next
 
-1. `write_goal` must not leave a stale `.tmp` file when the write fails. Evidence:
-   src/looptight/goal.py:74; `temporary.write_text(...)` then `os.replace(...)`
-   leaves the temp file behind if the write raises. Acceptance: a test in
-   tests/test_goal.py patches `Path.write_text` to raise `OSError`, asserts the
-   error propagates and no `.tmp` remains beside the goal path; the fix removes the
-   temp file on failure; covered by running `looptight verify`.
+_None pending. The loop generates evidence-backed tasks here when this drains._
 
 ## Rules
 

@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import json
+import pathlib
 import subprocess
+
+import pytest
 
 from looptight.goal import Goal, clear_goal, goal_path, read_goal, write_goal
 
@@ -52,6 +55,23 @@ def test_read_goal_ignores_unknown_schema(tmp_path):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text('{"schema_version": 99, "vision": "x"}', encoding="utf-8")
     assert read_goal(repo) is None
+
+
+def test_write_goal_cleans_up_tmp_when_replace_fails(tmp_path, monkeypatch):
+    # If the atomic rename fails after the temp file is written, the temp must
+    # not be left behind: the error propagates and no stale .tmp remains.
+    repo = _repo(tmp_path)
+    goal = Goal(vision="x")
+    tmp = goal_path(repo).with_suffix(".tmp")
+
+    def boom(src, dst):
+        raise OSError("cross-device rename")
+
+    monkeypatch.setattr("looptight.goal.os.replace", boom)
+    with pytest.raises(OSError):
+        write_goal(repo, goal)
+    assert not tmp.exists()
+    assert read_goal(repo) is None  # the goal file was never created
 
 
 def test_read_goal_returns_none_on_non_utf8_file(tmp_path):
