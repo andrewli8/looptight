@@ -442,7 +442,15 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_None pending. The loop generates evidence-backed tasks here when this drains._
+1. Swarm worker worktrees leak when they contain untracked files. Evidence:
+   src/looptight/swarm.py:210; `_remove_worker_worktree` runs `git worktree remove`
+   without `--force`, which exits 128 on a worktree with untracked files (verified),
+   so a worker that left any untracked file orphans its worktree on disk. Every
+   removal site is disposable (nothing claimed, or the verified result already
+   merged; failed paths return before removal). Acceptance: a test in
+   tests/test_swarm.py adds a worktree, drops an untracked file in it, calls
+   `_remove_worker_worktree`, and asserts it returns 0 and the worktree is gone; the
+   fix adds `--force`; covered by running `looptight verify`.
 
 ## Rules
 
