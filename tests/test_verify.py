@@ -10,7 +10,9 @@ import pytest
 from looptight.types import VerifyResult
 from looptight.verify import (
     _MAX_OUTPUT_CHARS,
+    _as_text,
     _stop_process_tree,
+    _timeout_output,
     _truncate,
     parse_score,
     run_verify,
@@ -152,3 +154,27 @@ def test_truncate_respects_max_output_bound():
 def test_truncate_leaves_short_text_unchanged():
     short = "ok\n"
     assert _truncate(short) == short
+
+
+def test_as_text_decodes_bytes():
+    assert _as_text(b"hello") == "hello"
+
+
+def test_as_text_returns_empty_string_for_none():
+    assert _as_text(None) == ""
+
+
+def test_as_text_passes_str_through():
+    assert _as_text("already str") == "already str"
+
+
+def test_timeout_output_with_partial_output():
+    result = _timeout_output("partial output", "pytest -q", 5.0)
+    assert "partial output" in result
+    assert "timed out after 5s" in result
+    assert "pytest -q" in result
+
+
+def test_timeout_output_empty_partial_has_no_leading_separator():
+    result = _timeout_output("", "pytest -q", 10.0)
+    assert result.startswith("verify timed out")
