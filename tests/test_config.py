@@ -92,6 +92,17 @@ def test_load_config_rejects_non_string_verify(tmp_path):
     assert "verify" in str(exc.value)
 
 
+def test_load_config_rejects_negative_max_changed_files(tmp_path):
+    path = tmp_path / ".looptight.toml"
+    path.write_text("max_changed_files = -1\n", encoding="utf-8")
+
+    with pytest.raises(ConfigError) as exc:
+        load_config(path)
+
+    assert str(path) in str(exc.value)
+    assert "max_changed_files" in str(exc.value)
+
+
 @pytest.mark.parametrize("value", ['"TODO.md"', '["TODO.md", 42]'])
 def test_load_config_rejects_invalid_tasks(tmp_path, value):
     path = tmp_path / ".looptight.toml"
