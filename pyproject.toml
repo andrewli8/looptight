@@ -26,6 +26,8 @@ dependencies = []
 Homepage = "https://github.com/andrewli8/looptight"
 Repository = "https://github.com/andrewli8/looptight"
 Issues = "https://github.com/andrewli8/looptight/issues"
+Changelog = "https://github.com/andrewli8/looptight/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/andrewli8/looptight/tree/main/docs"
 
 [project.scripts]
 looptight = "looptight.cli:main"
