@@ -502,7 +502,32 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_None pending. The loop generates evidence-backed tasks here when this drains._
+1. Add direct unit tests for `_verifier_quality` e2e and integration branches.
+   Evidence: src/looptight/protocol_commands.py:559;
+   Acceptance: A new test `test_status_json_classifies_e2e_and_integration_verifier_quality`
+   in tests/test_cli.py is added and passes, asserting `"e2e"` for a `"playwright test"`
+   command and `"integration"` for a `"pytest integration"` command.
+
+2. Add direct unit tests for `_as_text` and `_timeout_output` in verify.py.
+   Evidence: src/looptight/verify.py:46;
+   Acceptance: Two new tests in tests/test_verify.py directly call `_as_text` and
+   `_timeout_output`, covering bytes→str conversion, None→"", and the
+   empty-partial (no separator) edge case; all pass under `looptight verify --json`.
+
+3. Test that `detect_agent` returns None when a preferred agent is not on PATH
+   while other known agents are available.
+   Evidence: src/looptight/detect.py:28;
+   Acceptance: A new test in tests/test_detect.py monkeypatches `which` to return
+   a path only for `"claude"` and asserts `detect_agent("codex")` returns `None`,
+   proving the preferred branch doesn't fall through to available agents.
+
+4. Test that `_goal_driver_recipe` includes the Claude-specific `/loop until:` recipe
+   when the detected agent is `"claude"`.
+   Evidence: src/looptight/protocol_commands.py:709;
+   Acceptance: A new test in tests/test_goal.py monkeypatches `detect_agent` to
+   return `"claude"` and verifies `"/loop until: looptight goal check"` appears in
+   the recipe output; a second case with `detect_agent` returning `None` confirms the
+   line is absent. Both pass under `looptight verify --json`.
 
 ## Rules
 
