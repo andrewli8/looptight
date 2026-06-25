@@ -468,11 +468,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Remove unused `import pathlib` from `tests/test_goal.py` (ruff F401).
-   Evidence: `tests/test_goal.py:6`
-   Acceptance: `ruff check tests/test_goal.py` exits 0 with no F401 finding.
-
-2. Add a test that `write_goal` raises `RuntimeError` when called outside a Git
+1. Add a test that `write_goal` raises `RuntimeError` when called outside a Git
    repository (goal_path returns None), covering the untested error branch.
    Evidence: `src/looptight/goal.py:75`
    Acceptance: A new `test_write_goal_raises_outside_git` in `tests/test_goal.py`
