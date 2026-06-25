@@ -431,17 +431,13 @@ existing CLI session and makes no model or API calls of its own.
   hardening as goal.py: a non-UTF-8 state file degrades to `empty_state()` (except
   widened to `ValueError`) and a failed atomic save unlinks its `.tmp`; covered by
   tests in test_ui.py.
+- The CHANGELOG's `[Unreleased]` section records the post-0.1.0 user-facing
+  changes and the 0.1.0 entry lists the `doctor` and `propose` commands; a doc
+  test asserts both commands appear and `[Unreleased]` is non-empty.
 
 ## Next
 
-1. CHANGELOG drifted from what shipped: `## [Unreleased]` is empty though
-   user-facing changes landed (scriptable `doctor`, `init` weak-verify warning,
-   `propose --source`/`--eval`, goal-aware `status`, the PyPI-rendered logo), and
-   the 0.1.0 feature list omits the `doctor` and `propose` commands the README
-   documents as top-level. Evidence: CHANGELOG.md:7; README.md:79. Acceptance:
-   populate `## [Unreleased]` with the shipped changes and add a doc test in
-   tests/test_docs.py asserting the changelog mentions both `doctor` and `propose`
-   and that `## [Unreleased]` is non-empty; covered by running `looptight verify`.
+_None pending. The loop generates evidence-backed tasks here when this drains._
 
 ## Rules
 

@@ -6,6 +6,31 @@ All notable changes to looptight are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `propose --source <type>` filters the task queue by signal type, and
+  `propose --eval` scores the generated `## Next` batch on groundedness and
+  diversity.
+- `init` warns when the detected verify command is a weak gate (lint-only or
+  none), so a loop is not gated by a test command that proves nothing.
+- `doctor` is scriptable: a readiness exit code and `--json` for CI gating.
+
+### Changed
+
+- `status` is goal-aware: it points at `goal next`, surfaces the active goal, and
+  reports the generated queue's groundedness as a self-improvement signal.
+- `next` and `propose` human output guide a new contributor through implement →
+  verify → commit, and toward `next`/`goal` when the queue is empty.
+
+### Fixed
+
+- `read_goal` and the read-only view's `read_state` return safe defaults on a
+  non-UTF-8 file instead of crashing; `write_goal` and `write_state` no longer
+  leave a stale `.tmp` behind when a save fails.
+- Truncated verifier output stays within the documented byte cap.
+- The README logo renders on PyPI as well as GitHub (a tight PNG served by an
+  absolute URL, replacing the relative SVG that PyPI could not resolve).
+
 ## [0.1.0]
 
 First release: a test-gated work loop that runs inside a coding agent's session.
@@ -13,6 +38,8 @@ First release: a test-gated work loop that runs inside a coding agent's session.
 - `next` and `verify`: the session-native loop, with no model or network calls.
 - Grounded task discovery from real repo signals (TODO/FIXME, skipped tests, lint,
   the `## Next` list, configured task files); polyglot across Python and JS/TS.
+- `propose`: the ranked task queue; and `doctor`: the detected agent, verify
+  command, and adapters.
 - `goal` mode: a vision-driven 0-to-1 build, one verify-gated increment at a time.
 - Unattended modes: `run`, `swarm`, and `daemon`, with a repo-private SQLite
   coordinator for sharing one queue across sessions.

@@ -82,6 +82,18 @@ def test_changelog_names_the_current_version():
     assert "Unreleased" in changelog, "CHANGELOG lacks an Unreleased section"
 
 
+def test_changelog_covers_documented_commands_and_unreleased_changes():
+    # The changelog must mention every top-level command the README documents, and
+    # the Unreleased section must not be an empty placeholder once changes ship.
+    changelog = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    for command in ("doctor", "propose"):
+        assert command in changelog, f"CHANGELOG does not mention the {command} command"
+
+    _, _, after_unreleased = changelog.partition("## [Unreleased]")
+    unreleased, _, _ = after_unreleased.partition("## [0.1.0]")
+    assert unreleased.strip(), "CHANGELOG [Unreleased] section is empty"
+
+
 def test_license_file_matches_declared_metadata():
     # A publishable package needs a LICENSE file that matches its declared license.
     license_text = (_ROOT / "LICENSE").read_text(encoding="utf-8")
