@@ -445,7 +445,15 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_None pending. The loop generates evidence-backed tasks here when this drains._
+1. `detect_verify` crashes on a non-UTF-8 `Makefile`. Evidence:
+   src/looptight/detect.py:81; the Makefile branch reads with `encoding="utf-8"`
+   but catches only `OSError`, so a non-UTF-8 Makefile raises `UnicodeDecodeError`
+   (a `ValueError`) and crashes `init`/`doctor` detection — while the package.json
+   branch two blocks up (detect.py:63) already catches `(ValueError, OSError)`.
+   Acceptance: a test in tests/test_detect.py writes a `Makefile` with invalid UTF-8
+   bytes and asserts `detect_verify` falls through (returns `None`) instead of
+   raising; the fix widens the except to `(OSError, ValueError)`; covered by running
+   `looptight verify`.
 
 ## Rules
 
