@@ -120,6 +120,23 @@ Human-curated sources (`status-next`, `task-file`) rank above automated signals
 (`lint`, `todo`), so deliberate intent gets claimed before incidental nits. A dirty
 Git worktree returns a machine-readable error before any task is claimed.
 
+### Writing your own tasks
+
+To queue work yourself, add numbered items to a `## Next` section in `docs/STATUS.md`.
+Each item needs two things, or looptight will not claim it: an `Evidence:` anchor that
+points at a real file (so the task is grounded, not invented), and an `Acceptance:`
+clause stating an observable outcome (so the verifier can tell when it is done).
+
+```markdown
+## Next
+
+1. Reject negative amounts in the transfer endpoint. Evidence: src/api/transfer.py:42;
+   Acceptance: a new test posts a negative amount and asserts a 400, and it passes.
+```
+
+An item whose `Evidence:` path does not resolve is dropped, so a fabricated reference
+cannot enter the queue. This is the same bar the loop applies to tasks it generates.
+
 When the queue empties, looptight does not stop by default. `next` returns `no_work`
 with a `generate_ideas` directive that asks the host session to add 1 to 6
 evidence-backed tasks to `docs/STATUS.md`, then continue. looptight makes no model

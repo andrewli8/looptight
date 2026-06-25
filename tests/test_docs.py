@@ -24,6 +24,12 @@ def test_usage_doc_documents_polyglot_discovery():
     assert "it.skip" in text, "usage.md does not mention JS/TS skip discovery"
 
 
+def test_usage_doc_teaches_the_task_authoring_format():
+    text = (_DOCS / "usage.md").read_text(encoding="utf-8")
+    assert "Writing your own tasks" in text, "usage.md does not teach task authoring"
+    assert "Evidence:" in text and "Acceptance:" in text, "usage.md lacks the task fields"
+
+
 def test_goal_doc_documents_the_goal_command():
     text = (_DOCS / "goal.md").read_text(encoding="utf-8")
     assert "looptight goal" in text, "goal.md does not document the goal command"
