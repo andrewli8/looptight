@@ -468,19 +468,13 @@ existing CLI session and makes no model or API calls of its own.
 - SPEC's Output contract documents the `goal next --json` fields (`schema_version`,
   `command`, `status`, `iteration`, additive `directive`/`reason`), guarded by a
   doc test in test_docs.py.
+- `run_done_check` has direct unit coverage: exit-0 returns `True`, nonzero
+  returns `False`, and an `OSError` from `subprocess.run` returns `False` without
+  propagating — all three paths covered by new tests in test_goal.py.
 
 ## Next
 
-1. `run_done_check` has no direct test coverage; the `OSError` branch in
-   particular is never exercised.
-   Evidence: src/looptight/goal.py:98;
-   tests/test_goal.py (no `run_done_check` reference).
-   Acceptance: A new test `test_run_done_check_oserror_returns_false` in
-   `tests/test_goal.py` mocks `subprocess.run` to raise `OSError` and asserts
-   `run_done_check(tmp_path, "true")` returns `False`; a companion test asserts it
-   returns `True` on exit 0 and `False` on exit 1, so the whole function is covered.
-
-2. `landed_category_counts` silently skips trailers whose value has fewer than 3
+1. `landed_category_counts` silently skips trailers whose value has fewer than 3
    tokens (no source tag), but no test asserts this contract.
    Evidence: src/looptight/experience.py:62;
    tests/test_experience.py (no `landed_category_counts` reference).

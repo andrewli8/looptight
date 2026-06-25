@@ -7,7 +7,7 @@ import subprocess
 
 import pytest
 
-from looptight.goal import Goal, clear_goal, goal_path, read_goal, write_goal
+from looptight.goal import Goal, clear_goal, goal_path, read_goal, run_done_check, write_goal
 
 
 def _repo(tmp_path):
@@ -240,3 +240,19 @@ def test_goal_human_output_paths(tmp_path, monkeypatch, capsys):
 
     assert main(["goal", "clear"]) == 0
     assert "cleared" in capsys.readouterr().out.lower()
+
+
+def test_run_done_check_returns_true_on_exit_0(tmp_path):
+    _repo(tmp_path)
+    assert run_done_check(tmp_path, "true") is True
+
+
+def test_run_done_check_returns_false_on_nonzero_exit(tmp_path):
+    _repo(tmp_path)
+    assert run_done_check(tmp_path, "false") is False
+
+
+def test_run_done_check_oserror_returns_false(tmp_path, monkeypatch):
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.goal.subprocess.run", lambda *a, **kw: (_ for _ in ()).throw(OSError("shell not found")))
+    assert run_done_check(tmp_path, "true") is False
