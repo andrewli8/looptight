@@ -412,8 +412,12 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_Queue drained. The next `next` returns `no_work` with a `generate_ideas` directive;
-the loop adds grounded refinement/hardening tasks here or stops on convergence._
+1. Ship a reusable composite GitHub Action so a workflow can run the verifier in one
+   step. Evidence: docs/integrations.md; Acceptance: an `action.yml` at the repo root
+   defines a composite action that installs looptight and runs `looptight verify`;
+   docs/integrations.md documents `uses: andrewli8/looptight@v1` (noting it needs the
+   PyPI release); a test asserts `action.yml` declares `using: composite` and runs
+   `looptight verify`.
 
 ## Rules
 
