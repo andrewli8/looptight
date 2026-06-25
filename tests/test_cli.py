@@ -497,6 +497,25 @@ def test_next_json_refuses_dirty_git_worktree_before_claim(tmp_path, monkeypatch
     assert not (tmp_path / ".git" / "looptight" / "claims").exists()
 
 
+def test_next_human_error_for_dirty_worktree_is_actionable(tmp_path, monkeypatch, capsys):
+    # The human path must explain a dirty worktree and suggest an action, not just
+    # echo the machine error code the --json path carries.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text(
+        "## Next\n\n1. Fix it. Acceptance: verification passes.\n",
+        encoding="utf-8",
+    )
+
+    assert main(["next"]) == 2
+    out = capsys.readouterr().out
+    assert "ERROR: dirty_worktree" not in out  # no bare machine code
+    lowered = out.lower()
+    assert "worktree" in lowered
+    assert "commit" in lowered or "stash" in lowered
+
+
 def test_next_json_claims_from_clean_git_worktree(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)

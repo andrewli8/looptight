@@ -434,18 +434,13 @@ existing CLI session and makes no model or API calls of its own.
 - The CHANGELOG's `[Unreleased]` section records the post-0.1.0 user-facing
   changes and the 0.1.0 entry lists the `doctor` and `propose` commands; a doc
   test asserts both commands appear and `[Unreleased]` is non-empty.
+- `next`'s human error output explains a dirty worktree and suggests commit/stash
+  instead of echoing the bare `ERROR: dirty_worktree` code, covered by a test in
+  test_cli.py.
 
 ## Next
 
-1. `next` human output prints a bare machine code on error. Evidence:
-   src/looptight/protocol_commands.py:180; `print(f"ERROR: {result.error}")` emits
-   `ERROR: dirty_worktree` with no guidance, while the `--json` path serves
-   machines. Acceptance: a test in tests/test_cli.py runs `main(["next"])` in a
-   dirty worktree and asserts the human output names the dirty worktree and
-   suggests commit/stash (not a bare `ERROR:` code), with exit code 2; the fix maps
-   `dirty_worktree` to an actionable message and keeps a styled fallback for other
-   errors; covered by running `looptight verify`.
-2. SPEC's output contract omits two always-present `next` task fields. Evidence:
+1. SPEC's output contract omits two always-present `next` task fields. Evidence:
    src/looptight/tasks.py:146; `idea_id` and `suggested_verify` (tasks.py:146,152)
    are in every task dict but docs/SPEC.md:227 lists only id/source/location/goal/
    acceptance under "at minimum", leaving them undiscoverable for integrators.

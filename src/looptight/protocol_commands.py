@@ -177,7 +177,13 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
     if args.json:
         print(json.dumps(result.as_dict(), sort_keys=True))
     elif result.status == "error":
-        print(f"ERROR: {result.error}")
+        if result.error == "dirty_worktree":
+            console.print(
+                "[red]dirty worktree:[/red] commit or stash your changes before "
+                "claiming a task, so the loop starts from a clean state."
+            )
+        else:
+            console.print(f"[red]error:[/red] {result.error}")
     elif result.status == "no_work":
         if result.directive is not None:
             print(
