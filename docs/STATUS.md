@@ -480,7 +480,29 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_None pending. The loop generates evidence-backed tasks here when this drains._
+1. `load_config` rejects a boolean `true`/`false` for `max_changed_files` with a
+   `ConfigError` naming the file and field, instead of silently accepting it as an
+   integer (Python's `bool` is a subclass of `int`, so `isinstance(True, int)` passes
+   and the existing `value < 0` guard also passes for `True`/`False`).
+   Evidence: `src/looptight/config.py:109`
+   Acceptance: a new test in `tests/test_config.py` asserting that a config file
+   containing `max_changed_files = true` raises `ConfigError` naming the field.
+
+2. `_non_negative_int` and `_positive_float` in `cli.py` have no direct unit tests;
+   the existing test at `tests/test_cli.py:1568` covers `_positive_int` and `_port`
+   but not these two sibling validators.
+   Evidence: `src/looptight/cli.py:54`
+   Acceptance: a new test in `tests/test_cli.py` asserting `_non_negative_int`
+   rejects `-1` with `ArgumentTypeError` and accepts `0`, and `_positive_float`
+   rejects `0` with `ArgumentTypeError` and accepts `1.5`.
+
+3. `Console.print` accepts multiple positional arguments joined by `sep`, and a
+   custom `end`, but `tests/test_console.py` has only one test covering a single
+   string with known style tags stripped.
+   Evidence: `src/looptight/console.py:20`
+   Acceptance: new tests in `tests/test_console.py` asserting
+   `Console.print("a", "b", sep=", ")` produces `"a, b\n"` and
+   `Console.print("x", end="")` produces `"x"` with no trailing newline.
 
 ## Rules
 
