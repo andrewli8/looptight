@@ -120,3 +120,9 @@ def test_security_policy_documents_reporting_and_model():
     assert "Reporting" in text or "report" in text.lower(), "SECURITY.md lacks a reporting path"
     assert "verify" in text, "SECURITY.md does not describe the verify subprocess model"
     assert "force-push" in text, "SECURITY.md does not state the no-force-push guarantee"
+
+
+def test_bug_report_template_collects_diagnostics():
+    text = (_ROOT / ".github" / "ISSUE_TEMPLATE" / "bug_report.md").read_text(encoding="utf-8")
+    assert "looptight --version" in text, "bug template does not ask for the version"
+    assert "looptight doctor --json" in text, "bug template does not ask for doctor output"
