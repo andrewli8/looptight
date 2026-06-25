@@ -491,7 +491,37 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_None pending. The loop generates evidence-backed tasks here when this drains._
+1. `run_hook` checks `config.hook` to decide if the repo has opted in, but
+   `load_config` never reads `hook` from TOML (it is "runtime-only" per the
+   comment at `src/looptight/config.py:85`), so `config.hook` is always
+   `False` and the hook is permanently dormant even after `install-hook`. Fix:
+   arm when `config.verify` is set (the verify command is the natural opt-in);
+   update `cmd_install_hook`'s guidance message; remove the stale
+   `hook = true` TOML reference. The test
+   `test_run_hook_ignores_legacy_hook_setting` documents current behavior and
+   should be replaced by a test that proves the fixed arming.
+   Evidence: src/looptight/hook.py:118; src/looptight/config.py:85
+   Acceptance: A new test `test_run_hook_blocks_when_verify_is_configured` in
+   tests/test_hook.py passes: a repo with `verify = "pytest -q"` in
+   `.looptight.toml` and no `hook` key blocks on failure (output is a block
+   JSON); a repo with no verify command stays dormant.
+
+2. `stop_hook_active` continuation path in `run_hook` (line 124) reads the
+   saved count when the event carries `stop_hook_active`, but no test drives a
+   second invocation to prove the cap is applied from the persisted count.
+   Evidence: src/looptight/hook.py:124
+   Acceptance: A new test `test_run_hook_carries_count_across_continuations`
+   in tests/test_hook.py passes: three sequential invocations with
+   `stop_hook_active=True` and `max_iterations=2` block on the first two and
+   allow on the third.
+
+3. `BatchScore.as_dict()` is called in `protocol_commands.py:133` and its
+   exact field set is not directly pinned; the existing CLI test checks only 3
+   of 6 fields.
+   Evidence: src/looptight/idea_eval.py:72
+   Acceptance: A new test `test_batch_score_as_dict_pins_all_fields` in
+   tests/test_idea_eval.py passes: constructs a known `BatchScore` and asserts
+   every key/value in `as_dict()` matches the documented JSON schema.
 
 ## Rules
 
