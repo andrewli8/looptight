@@ -1,8 +1,12 @@
-# looptight
+<p align="center">
+  <img src="assets/logo/wordmark.svg" alt="looptight" width="380">
+</p>
 
-[![CI](https://github.com/andrewli8/looptight/actions/workflows/ci.yml/badge.svg)](https://github.com/andrewli8/looptight/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/looptight)](https://pypi.org/project/looptight/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+<p align="center">
+  <a href="https://github.com/andrewli8/looptight/actions/workflows/ci.yml"><img src="https://github.com/andrewli8/looptight/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://pypi.org/project/looptight/"><img src="https://img.shields.io/pypi/v/looptight" alt="PyPI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT"></a>
+</p>
 
 looptight keeps a coding agent honest with your tests. Point it at Claude Code,
 Codex, or OpenCode and it runs one simple cycle: pick a real task, let the agent
