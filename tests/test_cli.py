@@ -205,6 +205,21 @@ def test_doctor_exit_code_and_json_reflect_readiness(tmp_path, monkeypatch, caps
     assert data["readiness"]["tier"] in {"ready", "partial"}
 
 
+def test_propose_empty_state_guides_new_dev_to_next_and_goal(tmp_path, monkeypatch, capsys):
+    # A clean tree should not dead-end: point the newcomer at idea generation and goal mode.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    assert main(["propose"]) == 0
+    out = capsys.readouterr().out
+    assert "No candidate tasks" in out
+    assert "looptight next" in out
+    assert "looptight goal" in out
+
+    # The machine path on an empty tree is still a bare list.
+    assert main(["propose", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out) == []
+
+
 def test_status_surfaces_generated_queue_quality(tmp_path, monkeypatch, capsys):
     # `status` reports the groundedness of the generated `## Next` batch as a
     # self-improvement signal, without disturbing its existing keys.
