@@ -207,7 +207,10 @@ def _git_clean(root: Path) -> bool:
 
 
 def _remove_worker_worktree(root: Path, worktree: Path) -> subprocess.CompletedProcess[str]:
-    removed = _git(root, "worktree", "remove", str(worktree))
+    # --force: the worktree is always disposable here (nothing claimed, or the
+    # verified result is already merged), and plain `remove` refuses a worktree
+    # that holds untracked files, which would otherwise leak it on disk.
+    removed = _git(root, "worktree", "remove", "--force", str(worktree))
     if removed.returncode == 0:
         try:
             worktree.parent.rmdir()

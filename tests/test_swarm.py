@@ -1011,3 +1011,19 @@ def test_continuous_swarm_stops_after_idle_planning_rounds(tmp_path, monkeypatch
     assert result.status == "error"
     assert "no merged progress" in (result.error or "")
     assert result.rounds <= 5  # bounded, did not loop forever
+
+
+def test_remove_worker_worktree_force_removes_dir_with_untracked_files(tmp_path):
+    # A disposable worker worktree with leftover untracked files must still be
+    # removed; plain `git worktree remove` refuses (exit 128) without --force.
+    root = tmp_path / "repo"
+    root.mkdir()
+    _repo(root)
+    worktree = tmp_path / "wt" / "w1"
+    worktree.parent.mkdir()
+    _git(root, "worktree", "add", "-q", "--detach", str(worktree))
+    (worktree / "untracked.txt").write_text("leftover", encoding="utf-8")
+
+    result = swarm._remove_worker_worktree(root, worktree)
+    assert result.returncode == 0
+    assert not worktree.exists()
