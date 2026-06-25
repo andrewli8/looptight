@@ -141,8 +141,9 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
             "[bold]looptight goal \"<vision>\"[/bold] to build toward a goal."
         )
     else:
+        noun = "task" if len(candidates) == 1 else "tasks"
         console.print(
-            f"[bold]{len(candidates)} candidate task(s)[/bold] "
+            f"[bold]{len(candidates)} candidate {noun}[/bold] "
             "(grouped by source priority; pick what to run):"
         )
         console.print()

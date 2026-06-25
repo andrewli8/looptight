@@ -52,7 +52,7 @@ $ looptight init
 wrote .looptight.toml (verify = "pytest -q")
 
 $ looptight propose
-2 candidate task(s) (grouped by source priority; pick what to run):
+2 candidate tasks (grouped by source priority; pick what to run):
 
 todo
   1. raise on divide by zero  src/calc/core.py:14

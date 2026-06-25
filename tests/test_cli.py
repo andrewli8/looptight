@@ -221,6 +221,27 @@ def test_propose_empty_state_guides_new_dev_to_next_and_goal(tmp_path, monkeypat
     assert json.loads(capsys.readouterr().out) == []
 
 
+def test_propose_header_pluralizes_on_count(tmp_path, monkeypatch, capsys):
+    # The candidate-count header must read naturally: "1 candidate task" (singular)
+    # and "2 candidate tasks" (plural), never the lazy "task(s)".
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    src = tmp_path / "src"
+    src.mkdir()
+
+    (src / "a.py").write_text("# TODO: fix one thing\n", encoding="utf-8")
+    assert main(["propose"]) == 0
+    one = capsys.readouterr().out
+    assert "1 candidate task " in one
+    assert "task(s)" not in one
+
+    (src / "b.py").write_text("# TODO: fix another thing\n", encoding="utf-8")
+    assert main(["propose"]) == 0
+    two = capsys.readouterr().out
+    assert "2 candidate tasks" in two
+    assert "task(s)" not in two
+
+
 def test_init_warns_when_verify_is_lint_only(tmp_path, monkeypatch, capsys):
     # A linter as the verify command passes even with broken logic; warn the new dev.
     from looptight import commands

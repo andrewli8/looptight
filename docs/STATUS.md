@@ -448,16 +448,13 @@ existing CLI session and makes no model or API calls of its own.
 - `init --integrate` reads all managed-block targets up front and raises a clear
   `ConfigError` on a non-UTF-8 `CLAUDE.md`/`AGENTS.md` (instead of a raw traceback
   or a partial write), covered by a test in test_integration.py.
+- `propose`'s candidate-count header pluralizes on count ("1 candidate task" vs
+  "2 candidate tasks") instead of the lazy "task(s)", covered by a test in
+  test_cli.py.
 
 ## Next
 
-1. `propose` prints a lazy `task(s)` plural. Evidence:
-   src/looptight/protocol_commands.py:145; the header reads
-   `{n} candidate task(s)`, so a single result shows "1 candidate task(s)".
-   Acceptance: a test in tests/test_cli.py asserts the header reads "1 candidate
-   task " (no "(s)") with one candidate and "2 candidate tasks" with two; the fix
-   pluralizes on count and the docs/usage.md:55 sample is updated to "2 candidate
-   tasks"; covered by running `looptight verify`.
+_None pending. The loop generates evidence-backed tasks here when this drains._
 
 ## Rules
 
