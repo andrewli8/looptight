@@ -74,6 +74,14 @@ def test_release_workflow_publishes_on_a_tag():
     assert "id-token: write" in text, "release workflow lacks OIDC trusted-publishing permission"
 
 
+def test_spec_output_contract_names_all_next_task_fields():
+    # idea_id and suggested_verify are in every next task dict (tasks.py), so the
+    # output contract must name them or integrators cannot discover the full shape.
+    spec = (_ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
+    for field in ("idea_id", "suggested_verify"):
+        assert field in spec, f"SPEC output contract does not document {field!r}"
+
+
 def test_changelog_names_the_current_version():
     changelog = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     pyproject = (_ROOT / "pyproject.toml").read_text(encoding="utf-8")

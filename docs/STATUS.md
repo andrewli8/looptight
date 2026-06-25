@@ -437,16 +437,12 @@ existing CLI session and makes no model or API calls of its own.
 - `next`'s human error output explains a dirty worktree and suggests commit/stash
   instead of echoing the bare `ERROR: dirty_worktree` code, covered by a test in
   test_cli.py.
+- SPEC's output contract documents the always-present `idea_id` and
+  `suggested_verify` task fields, guarded by a doc test in test_docs.py.
 
 ## Next
 
-1. SPEC's output contract omits two always-present `next` task fields. Evidence:
-   src/looptight/tasks.py:146; `idea_id` and `suggested_verify` (tasks.py:146,152)
-   are in every task dict but docs/SPEC.md:227 lists only id/source/location/goal/
-   acceptance under "at minimum", leaving them undiscoverable for integrators.
-   Acceptance: document both fields in SPEC.md's Output contract and add a doc test
-   in tests/test_docs.py asserting SPEC mentions `idea_id` and `suggested_verify`;
-   covered by running `looptight verify`.
+_None pending. The loop generates evidence-backed tasks here when this drains._
 
 ## Rules
 

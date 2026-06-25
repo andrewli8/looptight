@@ -225,8 +225,10 @@ resuming. This honors that authority rather than modeling it.
 
 Every primary command supports human-readable output and `--json`. JSON has a
 schema version and stable result codes. At minimum, `next` returns a task ID,
-source, location, goal, and acceptance evidence; `verify` returns status, exit
-code, elapsed time, and bounded output.
+source, location, goal, and acceptance evidence; it also carries `idea_id` (a
+stable dedup identity for the candidate) and `suggested_verify` (a per-task verify
+hint such as `ruff check` for a lint finding, or `null`). `verify` returns status,
+exit code, elapsed time, and bounded output.
 
 When idea generation is enabled (the default), a `no_work` result from `next` may
 also carry an optional `directive` object (`{"action": "generate_ideas", ...}`)
