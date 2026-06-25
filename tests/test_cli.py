@@ -1468,3 +1468,18 @@ def test_propose_source_filter_shows_only_that_source(tmp_path, monkeypatch, cap
     assert main(["propose", "--source", "todo", "--json"]) == 0
     filtered = json.loads(capsys.readouterr().out)
     assert filtered and all(c["source"] == "todo" for c in filtered)
+
+
+def test_status_human_output_shows_idea_quality_line(tmp_path, monkeypatch, capsys):
+    # The generated-queue quality also appears in human status, not only --json.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# a\n", encoding="utf-8")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text(
+        "## Next\n\n1. Harden a. Evidence: src/a.py:1; Acceptance: passes.\n", encoding="utf-8"
+    )
+    assert main(["status"]) == 0
+    out = capsys.readouterr().out.lower()
+    assert "idea quality" in out and "groundedness" in out
