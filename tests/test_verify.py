@@ -8,7 +8,13 @@ import time
 import pytest
 
 from looptight.types import VerifyResult
-from looptight.verify import _stop_process_tree, parse_score, run_verify
+from looptight.verify import (
+    _MAX_OUTPUT_CHARS,
+    _stop_process_tree,
+    _truncate,
+    parse_score,
+    run_verify,
+)
 
 
 def test_passing_command(tmp_path):
@@ -133,3 +139,16 @@ def test_timeout_stops_delayed_child_process_work(tmp_path, monkeypatch):
     assert result.status == "timeout"
     time.sleep(0.35)
     assert not marker.exists()
+
+
+def test_truncate_respects_max_output_bound():
+    # The head+tail separator must count against the budget: the truncated
+    # output stays within the documented cap, never overshooting it.
+    truncated = _truncate("x" * (5 * _MAX_OUTPUT_CHARS))
+    assert "[truncated]" in truncated
+    assert len(truncated) <= _MAX_OUTPUT_CHARS
+
+
+def test_truncate_leaves_short_text_unchanged():
+    short = "ok\n"
+    assert _truncate(short) == short

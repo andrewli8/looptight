@@ -421,22 +421,18 @@ existing CLI session and makes no model or API calls of its own.
   `ConfigError` naming the file and field, covered by a test in test_config.py.
 - `_parse_absolute_reset` treats `12:00am` as midnight (hour 0): from 11pm the
   next reset is one hour out, covered by a test in test_limits.py.
+- `_truncate` keeps verifier output within `_MAX_OUTPUT_CHARS` by counting the
+  head+tail separator against the budget, covered by a test in test_verify.py.
 
 ## Next
 
-1. Bound truncated verifier output to `_MAX_OUTPUT_CHARS`. Evidence:
-   src/looptight/verify.py:35; the separator makes `_truncate` return
-   `_MAX_OUTPUT_CHARS + 19` chars, breaking SPEC's "keep verifier evidence
-   bounded" contract. Acceptance: a test in tests/test_verify.py asserts
-   `len(_truncate("x" * 20000)) <= _MAX_OUTPUT_CHARS`, then the fix subtracts the
-   separator length from the per-side budget; covered by running `looptight verify`.
-2. `read_goal` must return `None` on a non-UTF-8 `goal.json`, not raise. Evidence:
+1. `read_goal` must return `None` on a non-UTF-8 `goal.json`, not raise. Evidence:
    src/looptight/goal.py:55; the except catches `OSError`/`JSONDecodeError` but
    not its sibling `UnicodeDecodeError`, so a non-UTF-8 file crashes a contract
    that promises `None` when "unreadable". Acceptance: a test in tests/test_goal.py
    writes invalid UTF-8 bytes to the goal file and asserts `read_goal` returns
    `None`; the fix widens the except to `ValueError`; covered by `looptight verify`.
-3. `write_goal` must not leave a stale `.tmp` file when the write fails. Evidence:
+2. `write_goal` must not leave a stale `.tmp` file when the write fails. Evidence:
    src/looptight/goal.py:74; `temporary.write_text(...)` then `os.replace(...)`
    leaves the temp file behind if the write raises. Acceptance: a test in
    tests/test_goal.py patches `Path.write_text` to raise `OSError`, asserts the

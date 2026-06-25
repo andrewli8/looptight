@@ -32,11 +32,15 @@ def parse_score(output: str | None) -> float | None:
     return float(matches[-1]) if matches else None
 
 
+_TRUNCATION_MARK = "\n...[truncated]...\n"
+
+
 def _truncate(text: str) -> str:
     if len(text) <= _MAX_OUTPUT_CHARS:
         return text
-    half = _MAX_OUTPUT_CHARS // 2
-    return f"{text[:half]}\n...[truncated]...\n{text[-half:]}"
+    # The separator counts against the budget so the result never exceeds the cap.
+    half = (_MAX_OUTPUT_CHARS - len(_TRUNCATION_MARK)) // 2
+    return f"{text[:half]}{_TRUNCATION_MARK}{text[-half:]}"
 
 
 def _as_text(value: str | bytes | None) -> str:
