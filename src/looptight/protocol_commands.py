@@ -186,7 +186,7 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
         acceptance = result.task.get("acceptance")
         if acceptance:
             print(f"acceptance: {acceptance}")
-        print("next: implement the task, then run `looptight verify --json`")
+        print("next: implement the task, run `looptight verify`, and commit only if it passes")
     return 2 if result.status == "error" else 0
 
 

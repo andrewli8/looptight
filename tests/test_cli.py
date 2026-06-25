@@ -183,6 +183,23 @@ def test_next_human_output_shows_acceptance_without_changing_json(
     assert set(data) == {"schema_version", "command", "status", "task"}
 
 
+def test_next_human_output_guides_through_verify_and_commit(tmp_path, monkeypatch, capsys):
+    # A new dev should see the whole loop from the task: implement, verify, commit on pass.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# TODO: fix the timeout\n")
+
+    assert main(["next"]) == 0
+    human = capsys.readouterr().out.lower()
+    assert "implement" in human
+    assert "looptight verify" in human
+    assert "commit" in human
+
+    # The machine path stays prose-free: the guidance never enters the JSON.
+    assert main(["next", "--json"]) == 0
+    assert "commit" not in capsys.readouterr().out.lower()
+
+
 def test_next_no_work_directs_idea_generation_by_default(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     assert main(["next"]) == 0
@@ -307,7 +324,7 @@ def test_next_human_explains_task_selection(tmp_path, monkeypatch, capsys):
     assert "why: status-next from docs/STATUS.md" in out
     assert "evidence: Evidence: src/thing.py:1" in out
     assert "acceptance: a test imports thing and passes." in out
-    assert "next: implement the task, then run `looptight verify --json`" in out
+    assert "next: implement the task, run `looptight verify`, and commit only if it passes" in out
 
 
 def test_next_and_swarm_parsers_accept_no_ideas():
