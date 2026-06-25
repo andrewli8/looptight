@@ -458,18 +458,13 @@ existing CLI session and makes no model or API calls of its own.
   timestamp reads route through a `_claimed_at` helper that returns `0.0` on an
   unparseable value) rather than crashing `next`/`status`, covered by a test in
   test_claims.py.
+- `settings.py` writes the user's `~/.claude/settings.json` atomically (temp +
+  `os.replace`, unlinking the temp on failure), so an interrupted write cannot
+  corrupt the user's Claude Code config, covered by a test in test_settings.py.
 
 ## Next
 
-1. `settings.py` writes the user's `~/.claude/settings.json` non-atomically.
-   Evidence: src/looptight/settings.py:41; `_write` does `path.write_text(...)`
-   directly, so an interrupted write (crash, full disk) can truncate/corrupt the
-   user's Claude Code config, while goal.py/ui.py already use the atomic
-   tmp+`os.replace` pattern. Acceptance: a test in tests/test_settings.py installs
-   into an existing valid settings file with `looptight.settings.os.replace` patched
-   to raise `OSError`, then asserts the original file content is unchanged and no
-   `.tmp` remains beside it; the fix writes a temp file and `os.replace`s it into
-   place, unlinking the temp on failure; covered by running `looptight verify`.
+_None pending. The loop generates evidence-backed tasks here when this drains._
 
 ## Rules
 

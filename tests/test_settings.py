@@ -135,3 +135,22 @@ def test_uninstall_refuses_when_hooks_is_not_an_object(tmp_path):
     path.write_text(json.dumps({"hooks": ["not", "an", "object"]}))
     with pytest.raises(ValueError, match="hooks"):
         uninstall(path)
+
+
+def test_write_is_atomic_and_preserves_original_on_failure(tmp_path, monkeypatch):
+    # Editing the user's settings.json must be atomic: if the rename fails, the
+    # original file is left intact and no stale .tmp is leaked.
+    path = tmp_path / "settings.json"
+    original = json.dumps({"model": "opus"}) + "\n"
+    path.write_text(original, encoding="utf-8")
+
+    def boom(src, dst):
+        raise OSError("rename failed")
+
+    monkeypatch.setattr("looptight.settings.os.replace", boom)
+
+    with pytest.raises(OSError):
+        install(path)
+
+    assert path.read_text(encoding="utf-8") == original  # original untouched
+    assert not (tmp_path / "settings.tmp").exists()  # no leaked temp
