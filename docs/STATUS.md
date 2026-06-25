@@ -424,7 +424,24 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_None pending. The loop generates evidence-backed tasks here when this drains._
+1. Bound truncated verifier output to `_MAX_OUTPUT_CHARS`. Evidence:
+   src/looptight/verify.py:35; the separator makes `_truncate` return
+   `_MAX_OUTPUT_CHARS + 19` chars, breaking SPEC's "keep verifier evidence
+   bounded" contract. Acceptance: a test in tests/test_verify.py asserts
+   `len(_truncate("x" * 20000)) <= _MAX_OUTPUT_CHARS`, then the fix subtracts the
+   separator length from the per-side budget; covered by running `looptight verify`.
+2. `read_goal` must return `None` on a non-UTF-8 `goal.json`, not raise. Evidence:
+   src/looptight/goal.py:55; the except catches `OSError`/`JSONDecodeError` but
+   not its sibling `UnicodeDecodeError`, so a non-UTF-8 file crashes a contract
+   that promises `None` when "unreadable". Acceptance: a test in tests/test_goal.py
+   writes invalid UTF-8 bytes to the goal file and asserts `read_goal` returns
+   `None`; the fix widens the except to `ValueError`; covered by `looptight verify`.
+3. `write_goal` must not leave a stale `.tmp` file when the write fails. Evidence:
+   src/looptight/goal.py:74; `temporary.write_text(...)` then `os.replace(...)`
+   leaves the temp file behind if the write raises. Acceptance: a test in
+   tests/test_goal.py patches `Path.write_text` to raise `OSError`, asserts the
+   error propagates and no `.tmp` remains beside the goal path; the fix removes the
+   temp file on failure; covered by running `looptight verify`.
 
 ## Rules
 
