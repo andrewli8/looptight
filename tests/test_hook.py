@@ -82,18 +82,22 @@ def test_run_hook_allows_when_passing(tmp_path):
     assert output is None
 
 
-def test_run_hook_carries_count_across_continuations(tmp_path):
-    # Three sequential hook invocations with stop_hook_active=True:
-    # the second reads the saved count and the third hits the cap.
-    write_config(Config(verify="pytest -q"), tmp_path)
+def test_run_hook_carries_count_across_continuations(tmp_path, monkeypatch):
+    # Three sequential hook invocations with max_iterations=2:
+    # first two block, the third reads the persisted count=2 and allows.
+    import looptight.hook as _hook
+    monkeypatch.setattr(_hook, "_config_for", lambda cwd: Config(verify="pytest -q", max_iterations=2))
     base = {"cwd": str(tmp_path), "session_id": "s2", "stop_hook_active": True}
 
-    # Fresh user turn (stop_hook_active falsey) → block #1.
+    # Fresh user turn (stop_hook_active falsey) → block #1, saves count=1.
     out1, _ = run_hook(json.dumps({**base, "stop_hook_active": False}), verify_fn=lambda c, w: _fail())
     assert json.loads(out1)["decision"] == "block"
-    # Continuation → block #2 (default cap is 6, so still under).
+    # First continuation: reads count=1, blocks, saves count=2.
     out2, _ = run_hook(json.dumps(base), verify_fn=lambda c, w: _fail())
     assert json.loads(out2)["decision"] == "block"
+    # Second continuation: reads count=2, cap reached (prior_blocks >= max_iterations), allows.
+    out3, _ = run_hook(json.dumps(base), verify_fn=lambda c, w: _fail())
+    assert out3 is None
 
 
 def test_run_hook_tolerates_malformed_event():

@@ -493,19 +493,13 @@ existing CLI session and makes no model or API calls of its own.
   `False` (never loaded from TOML) making the hook permanently dormant.
   `cmd_install_hook` guidance updated. 13 tests cover the new arming contract,
   continuation behavior, and dormant-without-verify path.
+- `test_run_hook_carries_count_across_continuations` proves the persisted count
+  is read on continuation events: three invocations with `max_iterations=2`
+  block the first two and allow on the third (cap reached).
 
 ## Next
 
-1. `stop_hook_active` continuation path in `run_hook` (line 124) reads the
-   saved count when the event carries `stop_hook_active`, but no test drives a
-   second invocation to prove the cap is applied from the persisted count.
-   Evidence: src/looptight/hook.py:124
-   Acceptance: A new test `test_run_hook_carries_count_across_continuations`
-   in tests/test_hook.py passes: three sequential invocations with
-   `stop_hook_active=True` and `max_iterations=2` block on the first two and
-   allow on the third.
-
-3. `BatchScore.as_dict()` is called in `protocol_commands.py:133` and its
+1. `BatchScore.as_dict()` is called in `protocol_commands.py:133` and its
    exact field set is not directly pinned; the existing CLI test checks only 3
    of 6 fields.
    Evidence: src/looptight/idea_eval.py:72
