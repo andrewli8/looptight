@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 88" width="360" height="88" role="img" aria-label="looptight">
+  <rect width="360" height="88" rx="16" fill="#0b130d"/>
+  <!-- loop + check glyph -->
+  <g transform="translate(20 12)">
+    <path d="M40 15.5 A18 18 0 1 1 32 14" fill="none" stroke="#c6ff3d" stroke-width="5" stroke-linecap="round"/>
+    <path d="M31 9 L33 14.4 L27.4 16" fill="#c6ff3d"/>
+    <path d="M23 33 l6.5 6.5 l12.5 -15" fill="none" stroke="#c6ff3d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <!-- wordmark -->
+  <text x="96" y="56" font-family="'SF Mono','JetBrains Mono',Menlo,Consolas,monospace" font-size="34" font-weight="600" fill="#dce7df" letter-spacing="-0.5">loop<tspan fill="#c6ff3d">tight</tspan></text>
+</svg>

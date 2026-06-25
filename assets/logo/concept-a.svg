@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="looptight">
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="#0b130d"/>
+  <!-- loop ring with a gap at the top -->
+  <path d="M40 15.5 A18 18 0 1 1 32 14" fill="none" stroke="#c6ff3d" stroke-width="5" stroke-linecap="round"/>
+  <!-- arrowhead closing the loop -->
+  <path d="M31 9 L33 14.4 L27.4 16" fill="#c6ff3d"/>
+  <!-- verify check in the center -->
+  <path d="M23 33 l6.5 6.5 l12.5 -15" fill="none" stroke="#c6ff3d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

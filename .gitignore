@@ -27,3 +27,4 @@ REVIEW-QUEUE.md
 .DS_Store
 .idea/
 .vscode/
+assets/logo/*.png
