@@ -220,6 +220,21 @@ def test_propose_empty_state_guides_new_dev_to_next_and_goal(tmp_path, monkeypat
     assert json.loads(capsys.readouterr().out) == []
 
 
+def test_doctor_human_output_shows_readiness_tier_matching_exit(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "true"\n', encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "x"],
+        cwd=tmp_path, check=True,
+    )
+    code = main(["doctor"])
+    out = capsys.readouterr().out
+    assert "readiness:" in out  # the tier is shown alongside the legacy setup line
+    assert f"exit {code}" in out  # and it matches the real exit code
+
+
 def test_status_surfaces_generated_queue_quality(tmp_path, monkeypatch, capsys):
     # `status` reports the groundedness of the generated `## Next` batch as a
     # self-improvement signal, without disturbing its existing keys.

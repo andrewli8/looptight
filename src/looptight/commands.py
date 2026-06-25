@@ -350,6 +350,9 @@ def cmd_doctor(args: argparse.Namespace, console: Console) -> int:
     console.print(f"  coordination: {_coordination_line(workdir)}")
     setup_ready = bool(verify and agent and git_ready and coordinator == "active")
     console.print(f"  setup: {'ready' if setup_ready else 'not ready'}")
+    # The readiness tier matches the exit code: `unsafe` exits non-zero, `partial`
+    # and `ready` exit zero (looping is possible even if setup is not fully complete).
+    console.print(f"  readiness: {readiness['tier']} (exit {1 if unsafe else 0})")
     console.print(
         f"  setup next: {_doctor_next_setup_command(verify, agent, git_ready, coordinator)}"
     )
