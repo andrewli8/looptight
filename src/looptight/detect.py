@@ -78,7 +78,9 @@ def detect_verify(root: Path | None = None) -> str | None:
                 if not line.lstrip().startswith("#")
             ):
                 return "make test"
-        except OSError:
+        except (OSError, ValueError):
+            # ValueError covers a non-UTF-8 Makefile's UnicodeDecodeError, matching
+            # the package.json branch above: an unreadable file falls through.
             pass
 
     return None

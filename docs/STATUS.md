@@ -442,18 +442,13 @@ existing CLI session and makes no model or API calls of its own.
 - `_remove_worker_worktree` uses `git worktree remove --force` so a disposable
   worker worktree holding untracked files is removed rather than leaked on disk,
   covered by a test in test_swarm.py.
+- `detect_verify`'s Makefile branch tolerates a non-UTF-8 file (except widened to
+  `(OSError, ValueError)`, matching the package.json branch) instead of crashing
+  `init`/`doctor`, covered by a test in test_detect.py.
 
 ## Next
 
-1. `detect_verify` crashes on a non-UTF-8 `Makefile`. Evidence:
-   src/looptight/detect.py:81; the Makefile branch reads with `encoding="utf-8"`
-   but catches only `OSError`, so a non-UTF-8 Makefile raises `UnicodeDecodeError`
-   (a `ValueError`) and crashes `init`/`doctor` detection — while the package.json
-   branch two blocks up (detect.py:63) already catches `(ValueError, OSError)`.
-   Acceptance: a test in tests/test_detect.py writes a `Makefile` with invalid UTF-8
-   bytes and asserts `detect_verify` falls through (returns `None`) instead of
-   raising; the fix widens the except to `(OSError, ValueError)`; covered by running
-   `looptight verify`.
+_None pending. The loop generates evidence-backed tasks here when this drains._
 
 ## Rules
 

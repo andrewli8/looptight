@@ -63,6 +63,13 @@ def test_detect_verify_makefile(tmp_path):
     assert detect.detect_verify(tmp_path) == "make test"
 
 
+def test_detect_verify_non_utf8_makefile_falls_through(tmp_path):
+    # A non-UTF-8 Makefile must not crash detection; it falls through to None,
+    # matching how the package.json branch tolerates an unreadable file.
+    (tmp_path / "Makefile").write_bytes(b"test:\n\t\xff\xfe not utf-8\n")
+    assert detect.detect_verify(tmp_path) is None
+
+
 def test_detect_verify_makefile_ignores_test_assignment(tmp_path):
     # `test:=...` / `test::=...` are Make variable assignments, not targets, so
     # they must not be mistaken for a `make test` rule.
