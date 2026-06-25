@@ -28,3 +28,4 @@ REVIEW-QUEUE.md
 .idea/
 .vscode/
 assets/logo/*.png
+!assets/logo/wordmark.png

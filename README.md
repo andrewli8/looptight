@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo/wordmark.svg" alt="looptight" width="380">
+  <img src="https://raw.githubusercontent.com/andrewli8/looptight/main/assets/logo/wordmark.png" alt="looptight" width="380">
 </p>
 
 <p align="center">
