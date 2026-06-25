@@ -409,6 +409,9 @@ existing CLI session and makes no model or API calls of its own.
   --integrate`, and `--continuous` prints an agent-tailored hands-off driver recipe.
   Designed in docs/superpowers/specs/2026-06-24-looptight-goal-design.md; covered by
   tests in test_goal.py and a README doc test.
+- A top-level `LICENSE` file ships the MIT license text with the copyright holder
+  from pyproject's `authors`; guarded by a doc-accuracy test that checks both
+  "MIT License" and the holder name.
 
 ## Next
 
