@@ -461,19 +461,14 @@ existing CLI session and makes no model or API calls of its own.
 - `settings.py` writes the user's `~/.claude/settings.json` atomically (temp +
   `os.replace`, unlinking the temp on failure), so an interrupted write cannot
   corrupt the user's Claude Code config, covered by a test in test_settings.py.
+- `_install_block` writes `CLAUDE.md`/`AGENTS.md` atomically via `_atomic_write`,
+  so an interrupted `init --integrate` cannot truncate a user's instructions file;
+  all user-file write paths (goal/ui/settings/integration) now share the pattern.
+  Covered by a test in test_integration.py.
 
 ## Next
 
-1. `_install_block` writes `CLAUDE.md`/`AGENTS.md` non-atomically. Evidence:
-   src/looptight/integration.py:88; `path.write_text(updated, ...)` overwrites in
-   place, so an interrupted write can truncate the file and lose a user's
-   uncommitted instruction edits — the last user-file write path not yet atomic
-   (goal.py/ui.py/settings.py already use tmp+`os.replace`). Acceptance: a test in
-   tests/test_integration.py patches `looptight.integration.os.replace` to raise
-   `OSError`, calls `install_session_instructions` on a repo with an existing
-   `AGENTS.md`, and asserts the error propagates, the original `AGENTS.md` content
-   is unchanged, and no `.tmp` remains; the fix routes the write through an atomic
-   temp+`os.replace` (unlinking the temp on failure); covered by `looptight verify`.
+_None pending. The loop generates evidence-backed tasks here when this drains._
 
 ## Rules
 

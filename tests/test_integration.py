@@ -61,3 +61,22 @@ def test_install_raises_clear_error_on_non_utf8_file_without_partial_write(tmp_p
     # AGENTS.md is processed first in the loop; validation must happen before any
     # write, so it is never created when CLAUDE.md cannot be read.
     assert not (tmp_path / "AGENTS.md").exists()
+
+
+def test_install_writes_managed_block_atomically(tmp_path, monkeypatch):
+    # An interrupted write must not corrupt a user's instructions file: if the
+    # rename fails, the original AGENTS.md is intact and no .tmp is left behind.
+    import looptight.integration as integration
+
+    original = "# My project notes\n"
+    (tmp_path / "AGENTS.md").write_text(original, encoding="utf-8")
+
+    def boom(src, dst):
+        raise OSError("rename failed")
+
+    monkeypatch.setattr(integration.os, "replace", boom)
+    with pytest.raises(OSError):
+        install_session_instructions(tmp_path)
+
+    assert (tmp_path / "AGENTS.md").read_text(encoding="utf-8") == original
+    assert not (tmp_path / "AGENTS.tmp").exists()
