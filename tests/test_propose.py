@@ -438,6 +438,19 @@ def test_from_skipped_tests_finds_js_ts_skips(tmp_path):
     assert all(c.source == "skipped-test" for c in cands)
 
 
+def test_from_skipped_tests_finds_jest_xtest_alias(tmp_path):
+    # `xtest(` is a documented Jest alias for `test.skip()`, like xit/xdescribe.
+    from looptight.discovery import from_skipped_tests
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "legacy.test.js").write_text(
+        'xtest("legacy case", () => {});\n', encoding="utf-8"
+    )
+    cands = from_skipped_tests(tmp_path)
+    locs = {c.location for c in cands}
+    assert "tests/legacy.test.js:1" in locs
+    assert any("legacy case" in c.title for c in cands)
+
+
 def test_from_skipped_tests_ignores_js_skip_in_string_or_comment(tmp_path):
     from looptight.discovery import from_skipped_tests
     (tmp_path / "tests").mkdir()

@@ -297,12 +297,12 @@ def _module_is_optin(lines: list[str]) -> bool:
 
 
 # JS/TS test skips: `it.skip(`, `describe.skip(`, `test.skip(`, `test.todo(`,
-# and the `xit(` / `xdescribe(` shorthands. JS has no env-gate opt-in convention
-# like pytest, so detection is a plain marker match on code (string literals
-# stripped) outside comment lines.
-_JS_SKIP_RE = re.compile(r"\b(?:x(?:it|describe)|(?:it|describe|test)\.(?:skip|todo))\s*\(")
+# and the `xit(` / `xdescribe(` / `xtest(` shorthands (Jest aliases for the
+# `.skip` forms). JS has no env-gate opt-in convention like pytest, so detection
+# is a plain marker match on code (string literals stripped) outside comment lines.
+_JS_SKIP_RE = re.compile(r"\b(?:x(?:it|describe|test)|(?:it|describe|test)\.(?:skip|todo))\s*\(")
 _JS_SKIP_NAME_RE = re.compile(
-    r"\b(?:x(?:it|describe)|(?:it|describe|test)\.(?:skip|todo))\s*\(\s*[\"'`]([^\"'`]+)[\"'`]"
+    r"\b(?:x(?:it|describe|test)|(?:it|describe|test)\.(?:skip|todo))\s*\(\s*[\"'`]([^\"'`]+)[\"'`]"
 )
 
 

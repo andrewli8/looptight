@@ -107,7 +107,7 @@ stay busy:
 |--------|---------------|
 | `status-next` | the bounded `## Next` list in `docs/STATUS.md` |
 | `task-file` | files you list under `tasks` in config |
-| `skipped-test` | `@pytest.mark.skip` / `xfail` / `pytest.skip()`, plus JS/TS `it.skip` / `describe.skip` / `xit` |
+| `skipped-test` | `@pytest.mark.skip` / `xfail` / `pytest.skip()`, plus JS/TS `it.skip` / `describe.skip` / `xit` / `xtest` |
 | `todo` | real `TODO` / `FIXME` / `HACK` / `XXX` comments, not strings |
 | `lint` | findings from your linter |
 
