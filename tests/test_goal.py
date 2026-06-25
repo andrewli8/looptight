@@ -169,3 +169,16 @@ def test_goal_continuous_prints_driver_recipe(tmp_path, monkeypatch, capsys):
     assert main(["goal", "build x", "--continuous"]) == 0
     out = capsys.readouterr().out
     assert "looptight goal check" in out  # the provider-neutral hands-off driver
+
+
+def test_goal_check_exits_nonzero_without_a_goal_or_done_check(tmp_path, monkeypatch):
+    # `/loop until: looptight goal check` relies on this contract: no goal, or a goal
+    # with no --done command, both exit non-zero so the wrapper keeps looping.
+    from looptight.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    _repo(tmp_path)
+    assert main(["goal", "check"]) != 0  # no active goal
+
+    main(["goal", "build x"])  # a goal without a --done check
+    assert main(["goal", "check"]) != 0
