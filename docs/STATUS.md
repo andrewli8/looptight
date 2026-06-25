@@ -451,7 +451,13 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_None pending. The loop generates evidence-backed tasks here when this drains._
+1. `propose` prints a lazy `task(s)` plural. Evidence:
+   src/looptight/protocol_commands.py:145; the header reads
+   `{n} candidate task(s)`, so a single result shows "1 candidate task(s)".
+   Acceptance: a test in tests/test_cli.py asserts the header reads "1 candidate
+   task " (no "(s)") with one candidate and "2 candidate tasks" with two; the fix
+   pluralizes on count and the docs/usage.md:55 sample is updated to "2 candidate
+   tasks"; covered by running `looptight verify`.
 
 ## Rules
 
