@@ -1,5 +1,9 @@
 # looptight
 
+[![CI](https://github.com/andrewli8/looptight/actions/workflows/ci.yml/badge.svg)](https://github.com/andrewli8/looptight/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/looptight)](https://pypi.org/project/looptight/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 looptight keeps a coding agent honest with your tests. Point it at Claude Code,
 Codex, or OpenCode and it runs one simple cycle: pick a real task, let the agent
 do it, run your tests, and commit only if they pass. Then it goes again.
