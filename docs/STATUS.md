@@ -485,16 +485,13 @@ existing CLI session and makes no model or API calls of its own.
 - `_non_negative_int` and `_positive_float` in `cli.py` now have direct unit tests
   (`test_non_negative_int_and_positive_float_validators` in test_cli.py): both reject
   invalid values with `ArgumentTypeError` at parse time and accept valid ones.
+- `Console.print`'s `sep` and `end` parameters now have direct coverage in
+  test_console.py: multiple objects joined by a custom sep, and output with no
+  trailing newline.
 
 ## Next
 
-3. `Console.print` accepts multiple positional arguments joined by `sep`, and a
-   custom `end`, but `tests/test_console.py` has only one test covering a single
-   string with known style tags stripped.
-   Evidence: `src/looptight/console.py:20`
-   Acceptance: new tests in `tests/test_console.py` asserting
-   `Console.print("a", "b", sep=", ")` produces `"a, b\n"` and
-   `Console.print("x", end="")` produces `"x"` with no trailing newline.
+_None pending. The loop generates evidence-backed tasks here when this drains._
 
 ## Rules
 
