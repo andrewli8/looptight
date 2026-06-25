@@ -299,10 +299,42 @@ def cmd_improve(args: argparse.Namespace, console: Console) -> int:
 
 
 def cmd_doctor(args: argparse.Namespace, console: Console) -> int:
+    import json as _json
+
+    from .protocol_commands import _readiness
+
     workdir = Path.cwd()
     config = load_config()
     agent = config.agent or detect_agent()
     verify = config.verify or detect_verify(workdir)
+
+    # Readiness drives a scriptable exit code: "unsafe" (no verify, or a dirty or
+    # non-Git worktree) is non-zero so CI can gate on it; otherwise zero.
+    try:
+        git = subprocess.run(
+            ["git", "status", "--porcelain"], cwd=workdir,
+            capture_output=True, text=True, check=False,
+        )
+    except OSError:
+        git = None
+    workspace = (
+        "not_git" if git is None or git.returncode != 0
+        else ("dirty" if git.stdout.strip() else "clean")
+    )
+    readiness = _readiness(
+        workdir=workdir, verify=verify, workspace=workspace,
+        config_tasks=config.tasks, agent=agent,
+        fallback_action="run `looptight next --json`",
+    )
+    unsafe = readiness["tier"] == "unsafe"
+
+    if getattr(args, "json", False):
+        print(_json.dumps(
+            {"command": "doctor", "schema_version": 1, "readiness": readiness,
+             "agent": agent, "verify": verify},
+            sort_keys=True,
+        ))
+        return 1 if unsafe else 0
 
     config_path = find_config(workdir)
     console.print("[bold]looptight doctor[/bold]")
@@ -338,7 +370,7 @@ def cmd_doctor(args: argparse.Namespace, console: Console) -> int:
         console.print(
             f"  [yellow]hint:[/yellow] no agent on PATH — install one of: {supported}."
         )
-    return 0
+    return 1 if unsafe else 0
 
 
 _COORDINATION_LABELS = {

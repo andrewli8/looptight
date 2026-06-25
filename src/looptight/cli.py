@@ -109,7 +109,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_verify.add_argument("--verify", help="override the verify command")
     p_verify.add_argument("--json", action="store_true", help="emit the versioned verdict as JSON")
 
-    sub.add_parser("doctor", help="show the detected agent, verify command, and adapter status")
+    p_doctor = sub.add_parser(
+        "doctor", help="show the detected agent, verify command, and adapter status"
+    )
+    p_doctor.add_argument(
+        "--json", action="store_true", help="emit readiness as JSON (exit non-zero when unsafe)"
+    )
 
     p_revert = sub.add_parser("revert", help="undo the agent's uncommitted edits (restore to HEAD)")
     p_revert.add_argument("--yes", action="store_true", help="skip the confirmation prompt")

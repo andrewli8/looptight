@@ -183,6 +183,28 @@ def test_next_human_output_shows_acceptance_without_changing_json(
     assert set(data) == {"schema_version", "command", "status", "task"}
 
 
+def test_doctor_exit_code_and_json_reflect_readiness(tmp_path, monkeypatch, capsys):
+    # `doctor` is scriptable: non-zero when the repo is unsafe to loop, zero when it
+    # is ready, and its --json names the readiness tier.
+    monkeypatch.chdir(tmp_path)
+    assert main(["doctor"]) != 0  # not a git repo and no verify command: unsafe
+    capsys.readouterr()
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "true"\n', encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "x"],
+        cwd=tmp_path, check=True,
+    )
+    assert main(["doctor"]) == 0  # verify set, clean git: safe to loop
+    capsys.readouterr()
+
+    assert main(["doctor", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["readiness"]["tier"] in {"ready", "partial"}
+
+
 def test_status_surfaces_generated_queue_quality(tmp_path, monkeypatch, capsys):
     # `status` reports the groundedness of the generated `## Next` batch as a
     # self-improvement signal, without disturbing its existing keys.
@@ -763,20 +785,20 @@ def test_status_human_shows_verify_command_without_changing_json(
 
 def test_doctor_runs(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    assert main(["doctor"]) == 0
+    assert main(["doctor"]) != 0  # empty, non-git dir is unsafe to loop
 
 
 def test_doctor_reports_config_path_when_present(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     (tmp_path / ".looptight.toml").write_text('verify = "pytest -q"\n')
-    assert main(["doctor"]) == 0
+    assert main(["doctor"]) != 0  # config present but not a git repo: unsafe
     out = capsys.readouterr().out
     assert ".looptight.toml" in out
 
 
 def test_doctor_reports_no_config(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
-    assert main(["doctor"]) == 0
+    assert main(["doctor"]) != 0  # no config and not a git repo: unsafe
     out = capsys.readouterr().out.lower()
     assert "default" in out  # "none (using defaults)"
 
@@ -785,7 +807,7 @@ def test_doctor_hints_when_prerequisites_missing(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     # No verify command can be detected (empty dir) and no agent on PATH.
     monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: None)
-    assert main(["doctor"]) == 0
+    assert main(["doctor"]) != 0  # not a git repo and no verify: unsafe to loop
     out = capsys.readouterr().out
     assert "looptight init" in out  # remediation for missing verify
     assert "install one of" in out  # remediation for missing agent
@@ -795,7 +817,7 @@ def test_doctor_omits_hints_when_prerequisites_present(tmp_path, monkeypatch, ca
     monkeypatch.chdir(tmp_path)
     (tmp_path / ".looptight.toml").write_text('verify = "pytest -q"\n')
     monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: "claude")
-    assert main(["doctor"]) == 0
+    assert main(["doctor"]) != 0  # verify + agent present, but not a git repo: unsafe
     out = capsys.readouterr().out
     assert "hint:" not in out  # both present → existing lines unchanged
 
@@ -806,7 +828,7 @@ def test_doctor_guides_setup_without_writing_or_starting_agents(
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: None)
 
-    assert main(["doctor"]) == 0
+    assert main(["doctor"]) != 0  # empty, non-git dir: unsafe to loop
 
     out = capsys.readouterr().out
     assert "setup: not ready" in out
@@ -1283,7 +1305,7 @@ def test_daemon_dispatches_to_run_daemon(tmp_path, monkeypatch, capsys):
 def test_doctor_reports_single_machine_coordination(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
-    assert main(["doctor"]) == 0
+    assert main(["doctor"]) != 0  # git repo but no verify command: unsafe to loop
     out = capsys.readouterr().out.lower()
     assert "coordination:" in out
     assert "cross-machine" in out

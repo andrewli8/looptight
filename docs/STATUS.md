@@ -412,10 +412,8 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Make `looptight doctor` scriptable so CI can gate on readiness. Evidence:
-   src/looptight/protocol_commands.py; Acceptance: `doctor` exits non-zero when the
-   repo is unsafe to loop (no verify command, dirty or non-Git worktree) and zero
-   when it is ready, and its `--json` includes the readiness tier; covered by a test.
+_Queue drained. The next `next` returns `no_work` with a `generate_ideas` directive;
+the loop adds grounded refinement/hardening tasks here or stops on convergence._
 
 ## Rules
 
