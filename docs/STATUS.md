@@ -477,16 +477,13 @@ existing CLI session and makes no model or API calls of its own.
 - The UI `do_GET` 404 branch has direct coverage: a request to an unknown path
   calls `send_error(404)` and does not call `send_response`, covered by
   `test_ui_handler_404_for_unknown_path` in test_ui.py.
+- `_optional_int` in `config.py` rejects a TOML boolean (`true`/`false`) for
+  `max_changed_files` with a `ConfigError` naming the file and field; the `bool`
+  subclass-of-`int` loophole is closed by an explicit `isinstance(value, bool)` guard
+  checked before the `isinstance(value, int)` check. Covered by a test in
+  test_config.py.
 
 ## Next
-
-1. `load_config` rejects a boolean `true`/`false` for `max_changed_files` with a
-   `ConfigError` naming the file and field, instead of silently accepting it as an
-   integer (Python's `bool` is a subclass of `int`, so `isinstance(True, int)` passes
-   and the existing `value < 0` guard also passes for `True`/`False`).
-   Evidence: `src/looptight/config.py:109`
-   Acceptance: a new test in `tests/test_config.py` asserting that a config file
-   containing `max_changed_files = true` raises `ConfigError` naming the field.
 
 2. `_non_negative_int` and `_positive_float` in `cli.py` have no direct unit tests;
    the existing test at `tests/test_cli.py:1568` covers `_positive_int` and `_port`

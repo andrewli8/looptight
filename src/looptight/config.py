@@ -106,7 +106,7 @@ def _optional_int(data: dict[str, object], field: str) -> int | None:
     value = data.get(field)
     if value is None:
         return None
-    if not isinstance(value, int) or value < 0:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
         raise ValueError(f"{field} must be a nonnegative integer")
     return value
 

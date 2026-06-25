@@ -103,6 +103,17 @@ def test_load_config_rejects_negative_max_changed_files(tmp_path):
     assert "max_changed_files" in str(exc.value)
 
 
+def test_load_config_rejects_bool_for_max_changed_files(tmp_path):
+    path = tmp_path / ".looptight.toml"
+    path.write_text("max_changed_files = true\n", encoding="utf-8")
+
+    with pytest.raises(ConfigError) as exc:
+        load_config(path)
+
+    assert str(path) in str(exc.value)
+    assert "max_changed_files" in str(exc.value)
+
+
 def test_load_config_rejects_empty_string_in_protected_paths(tmp_path):
     path = tmp_path / ".looptight.toml"
     path.write_text('protected_paths = [""]\n', encoding="utf-8")
