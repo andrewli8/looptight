@@ -502,14 +502,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Test that `detect_agent` returns None when a preferred agent is not on PATH
-   while other known agents are available.
-   Evidence: src/looptight/detect.py:28;
-   Acceptance: A new test in tests/test_detect.py monkeypatches `which` to return
-   a path only for `"claude"` and asserts `detect_agent("codex")` returns `None`,
-   proving the preferred branch doesn't fall through to available agents.
-
-2. Test that `_goal_driver_recipe` includes the Claude-specific `/loop until:` recipe
+1. Test that `_goal_driver_recipe` includes the Claude-specific `/loop until:` recipe
    when the detected agent is `"claude"`.
    Evidence: src/looptight/protocol_commands.py:709;
    Acceptance: A new test in tests/test_goal.py monkeypatches `detect_agent` to

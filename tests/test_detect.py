@@ -112,3 +112,10 @@ def test_detect_agent_honors_preferred(monkeypatch):
 def test_detect_agent_none_when_absent(monkeypatch):
     monkeypatch.setattr(shutil, "which", lambda name: None)
     assert detect.detect_agent() is None
+
+
+def test_detect_agent_preferred_not_on_path_returns_none_not_fallback(monkeypatch):
+    # When a preferred agent is given but not on PATH, the function must return
+    # None rather than falling through to pick a different available agent.
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/claude" if name == "claude" else None)
+    assert detect.detect_agent("codex") is None
