@@ -457,7 +457,15 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_None pending. The loop generates evidence-backed tasks here when this drains._
+1. A claim file with a non-numeric `claimed_at` crashes `next`/`status`. Evidence:
+   src/looptight/claims.py:84; `float(claim.get("claimed_at", 0))` (also lines 30,
+   105) is outside the `_read` guard, so a corrupt/hand-edited claim whose
+   `claimed_at` is a string raises an uncaught `ValueError` in `select`/`summary`
+   (verified). Acceptance: a test in tests/test_claims.py writes a claim JSON with
+   `"claimed_at": "oops"` and asserts `ClaimStore.summary` and `select` treat it as
+   expired (no live claim, file pruned) rather than raising; the fix routes all
+   three timestamp reads through a helper that returns `0.0` (expired) on an
+   unparseable value; covered by running `looptight verify`.
 
 ## Rules
 
