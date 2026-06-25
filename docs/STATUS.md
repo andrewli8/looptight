@@ -412,12 +412,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Use the scriptable `doctor` as a CI readiness gate in the integrations guide.
-   Evidence: docs/integrations.md; src/looptight/commands.py; Acceptance: the GitHub
-   Actions recipe in docs/integrations.md runs `looptight doctor` before `looptight
-   verify` and explains it exits non-zero when the repo is not ready to loop; a doc
-   test asserts `looptight doctor` appears in docs/integrations.md.
-2. Give idea generation a feedback signal so the loop can self-improve. Evidence:
+1. Give idea generation a feedback signal so the loop can self-improve. Evidence:
    src/looptight/tasks.py; src/looptight/idea_eval.py; Acceptance: the `no_work`
    `generate_ideas` directive carries an additive `current_quality` object (idea_eval
    groundedness and size of the existing `## Next` batch), or null when the batch is

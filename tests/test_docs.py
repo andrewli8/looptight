@@ -43,6 +43,7 @@ def test_integrations_doc_documents_ci_and_pre_commit():
     assert "looptight verify" in text, "integrations.md lacks the verify command"
     assert "GitHub Actions" in text, "integrations.md lacks the GitHub Actions recipe"
     assert "pre-commit" in text, "integrations.md lacks the pre-commit recipe"
+    assert "looptight doctor" in text, "integrations.md lacks the doctor readiness gate"
 
 
 _ROOT = Path(__file__).resolve().parent.parent

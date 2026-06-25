@@ -20,11 +20,15 @@ jobs:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
       - run: uv tool install looptight
+      - run: looptight doctor          # exits non-zero if the repo is not ready to loop
       - run: looptight verify --json
 ```
 
-The `--json` verdict tells `pass`, `fail`, `timeout`, and `error` apart, so a crashed
-runner never looks like failing code.
+`looptight doctor` is a cheap readiness pre-check: it exits non-zero when there is no
+verify command or the worktree is dirty or not a Git repo, so the job fails early with
+a clear reason instead of inside the verifier. The `--json` verdict from `verify` then
+tells `pass`, `fail`, `timeout`, and `error` apart, so a crashed runner never looks
+like failing code.
 
 ## Pre-commit
 
