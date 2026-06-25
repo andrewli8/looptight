@@ -437,7 +437,21 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_None pending. The loop generates evidence-backed tasks here when this drains._
+1. `next` human output prints a bare machine code on error. Evidence:
+   src/looptight/protocol_commands.py:180; `print(f"ERROR: {result.error}")` emits
+   `ERROR: dirty_worktree` with no guidance, while the `--json` path serves
+   machines. Acceptance: a test in tests/test_cli.py runs `main(["next"])` in a
+   dirty worktree and asserts the human output names the dirty worktree and
+   suggests commit/stash (not a bare `ERROR:` code), with exit code 2; the fix maps
+   `dirty_worktree` to an actionable message and keeps a styled fallback for other
+   errors; covered by running `looptight verify`.
+2. SPEC's output contract omits two always-present `next` task fields. Evidence:
+   src/looptight/tasks.py:146; `idea_id` and `suggested_verify` (tasks.py:146,152)
+   are in every task dict but docs/SPEC.md:227 lists only id/source/location/goal/
+   acceptance under "at minimum", leaving them undiscoverable for integrators.
+   Acceptance: document both fields in SPEC.md's Output contract and add a doc test
+   in tests/test_docs.py asserting SPEC mentions `idea_id` and `suggested_verify`;
+   covered by running `looptight verify`.
 
 ## Rules
 
