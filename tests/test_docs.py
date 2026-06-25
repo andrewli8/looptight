@@ -34,8 +34,15 @@ def test_goal_doc_documents_the_goal_command():
 
 def test_readme_links_to_the_moved_docs():
     text = _README.read_text(encoding="utf-8")
-    for link in ("docs/usage.md", "docs/goal.md", "docs/unattended.md"):
+    for link in ("docs/usage.md", "docs/goal.md", "docs/unattended.md", "docs/integrations.md"):
         assert link in text, f"README does not link to {link}"
+
+
+def test_integrations_doc_documents_ci_and_pre_commit():
+    text = (_DOCS / "integrations.md").read_text(encoding="utf-8")
+    assert "looptight verify" in text, "integrations.md lacks the verify command"
+    assert "GitHub Actions" in text, "integrations.md lacks the GitHub Actions recipe"
+    assert "pre-commit" in text, "integrations.md lacks the pre-commit recipe"
 
 
 _PYPROJECT = Path(__file__).resolve().parent.parent / "pyproject.toml"

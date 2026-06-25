@@ -412,12 +412,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Add an integrations guide for experienced devs. Evidence:
-   .github/workflows/ci.yml; README.md; Acceptance: docs/integrations.md documents
-   running `looptight verify` in GitHub Actions and as a pre-commit hook; README
-   "Learn more" links it; a doc test asserts the key commands are present; verify
-   passes.
-2. Make `looptight doctor` scriptable so CI can gate on readiness. Evidence:
+1. Make `looptight doctor` scriptable so CI can gate on readiness. Evidence:
    src/looptight/protocol_commands.py; Acceptance: `doctor` exits non-zero when the
    repo is unsafe to loop (no verify command, dirty or non-Git worktree) and zero
    when it is ready, and its `--json` includes the readiness tier; covered by a test.

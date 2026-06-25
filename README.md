@@ -124,6 +124,7 @@ account.
 - [Using looptight](docs/usage.md): setup, a worked example, where tasks come from.
 - [Building toward a goal](docs/goal.md): the vision-driven `goal` mode.
 - [Running unattended](docs/unattended.md): `run`, `swarm`, and the daemon.
+- [Integrations](docs/integrations.md): GitHub Actions and pre-commit recipes.
 - [Product specification](docs/SPEC.md): what looptight is and is not.
 - [Architecture](docs/architecture.md): modules, roles, and the coordinator.
 
