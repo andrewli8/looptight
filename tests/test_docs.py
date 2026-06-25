@@ -113,3 +113,10 @@ def test_readme_dependency_claim_matches_zero_runtime_deps():
     readme = _README.read_text(encoding="utf-8")
     assert "beyond `rich`" not in readme, "README still claims a stale `rich` runtime dependency"
     assert "no third-party runtime" in readme, "README should state there are no runtime deps"
+
+
+def test_security_policy_documents_reporting_and_model():
+    text = (_ROOT / "SECURITY.md").read_text(encoding="utf-8")
+    assert "Reporting" in text or "report" in text.lower(), "SECURITY.md lacks a reporting path"
+    assert "verify" in text, "SECURITY.md does not describe the verify subprocess model"
+    assert "force-push" in text, "SECURITY.md does not state the no-force-push guarantee"
