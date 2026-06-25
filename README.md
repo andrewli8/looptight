@@ -127,6 +127,7 @@ account.
 - [Integrations](docs/integrations.md): GitHub Actions and pre-commit recipes.
 - [Product specification](docs/SPEC.md): what looptight is and is not.
 - [Architecture](docs/architecture.md): modules, roles, and the coordinator.
+- [Changelog](CHANGELOG.md): what shipped in each release.
 
 ## Development
 

@@ -412,10 +412,8 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Add a CHANGELOG for the first release. Evidence: pyproject.toml; CONTRIBUTING.md;
-   Acceptance: a top-level `CHANGELOG.md` documents the `0.1.0` release and an
-   `Unreleased` section, following Keep a Changelog; the README "Learn more" links it;
-   a test asserts the changelog names the current `version` from pyproject.
+_Queue drained. The next `next` returns `no_work` with a `generate_ideas` directive;
+the loop adds grounded refinement/hardening tasks here or stops on convergence._
 
 ## Rules
 

@@ -61,6 +61,14 @@ def test_composite_action_is_shipped():
     assert "looptight verify" in text, "action.yml does not run looptight verify"
 
 
+def test_changelog_names_the_current_version():
+    changelog = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    pyproject = (_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    assert 'version = "0.1.0"' in pyproject, "pyproject version changed; update the changelog"
+    assert "0.1.0" in changelog, "CHANGELOG does not document the current version"
+    assert "Unreleased" in changelog, "CHANGELOG lacks an Unreleased section"
+
+
 def test_license_file_matches_declared_metadata():
     # A publishable package needs a LICENSE file that matches its declared license.
     license_text = (_ROOT / "LICENSE").read_text(encoding="utf-8")
