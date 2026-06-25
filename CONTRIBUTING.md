@@ -48,7 +48,8 @@ pytest
 GIT_CONFIG_GLOBAL=/dev/null PATH="/usr/bin:/bin:$(dirname "$(command -v pytest)")" pytest
 ```
 
-Keep PRs focused. A good PR is one idea, with tests.
+Keep PRs focused. A good PR is one idea, with tests. By participating you agree to the
+[Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Releasing
 
