@@ -61,6 +61,16 @@ def test_composite_action_is_shipped():
     assert "looptight verify" in text, "action.yml does not run looptight verify"
 
 
+def test_license_file_matches_declared_metadata():
+    # A publishable package needs a LICENSE file that matches its declared license.
+    license_text = (_ROOT / "LICENSE").read_text(encoding="utf-8")
+    pyproject = (_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    assert "MIT License" in license_text, "LICENSE is not the MIT license"
+    assert 'license = { text = "MIT" }' in pyproject, "pyproject no longer declares MIT"
+    assert "Andrew Li" in license_text, "LICENSE is missing the copyright holder"
+    assert 'name = "Andrew Li"' in pyproject, "pyproject author drifted from the LICENSE holder"
+
+
 _PYPROJECT = Path(__file__).resolve().parent.parent / "pyproject.toml"
 _SRC = Path(__file__).resolve().parent.parent / "src"
 

@@ -412,10 +412,8 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Add the MIT LICENSE file the package promises but is missing. Evidence:
-   pyproject.toml; README.md; Acceptance: a top-level `LICENSE` file contains the MIT
-   license text and the copyright holder from pyproject's authors; a test asserts the
-   file exists and contains "MIT License" and the holder.
+_Queue drained. The next `next` returns `no_work` with a `generate_ideas` directive;
+the loop adds grounded refinement/hardening tasks here or stops on convergence._
 
 ## Rules
 
