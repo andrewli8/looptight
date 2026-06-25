@@ -468,7 +468,31 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_None pending. The loop generates evidence-backed tasks here when this drains._
+1. Remove unused `import pathlib` from `tests/test_goal.py` (ruff F401).
+   Evidence: `tests/test_goal.py:6`
+   Acceptance: `ruff check tests/test_goal.py` exits 0 with no F401 finding.
+
+2. Add a test that `write_goal` raises `RuntimeError` when called outside a Git
+   repository (goal_path returns None), covering the untested error branch.
+   Evidence: `src/looptight/goal.py:75`
+   Acceptance: A new `test_write_goal_raises_outside_git` in `tests/test_goal.py`
+   asserts `pytest.raises(RuntimeError)` for a non-git `tmp_path`; no production
+   code change.
+
+3. Add direct unit tests for `grounding.ref_resolves` boundary cases: a
+   colon-only ref (`:5`), an empty string, a ref ending in a sentence period, and
+   a path with `..` traversal, each asserting the correct bool return without
+   production changes.
+   Evidence: `src/looptight/grounding.py:34`
+   Acceptance: New tests in `tests/test_idea_eval.py` calling `ref_resolves` directly
+   pass; existing tests are unchanged.
+
+4. Document the `goal next --json` output fields (`schema_version`, `command`,
+   `status`, `iteration`, `directive`, `reason`) in `docs/SPEC.md`'s Output
+   contract section, and guard it with a doc-accuracy test.
+   Evidence: `src/looptight/goal.py:117`
+   Acceptance: A new test in `tests/test_docs.py` asserts SPEC names each field;
+   `test_spec_output_contract_names_all_next_task_fields` is unchanged.
 
 ## Rules
 
