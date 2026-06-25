@@ -232,7 +232,13 @@ When idea generation is enabled (the default), a `no_work` result from `next` ma
 also carry an optional `directive` object (`{"action": "generate_ideas", ...}`)
 instructing the host session to add grounded `docs/STATUS.md` tasks and continue.
 The field is additive and absent under `--no-ideas` / `idea_generation = false`,
-so the bare `no_work` contract is unchanged.
+so the bare `no_work` contract is unchanged. The same directive carries an additive
+`current_quality` object (the groundedness and size of the residual `## Next` batch,
+or `null`), a feedback signal on the host's prior generation.
+
+`status` carries an additive `idea_quality` block (groundedness, area flexibility,
+and boundedness of the generated `## Next` batch) when that batch is non-empty, so the
+loop's generation quality is visible without changing the existing `status` keys.
 
 When a repository is coordinated by the SQLite coordinator (see
 `docs/architecture.md`), `status` carries an additive `coordinator` block of queued
