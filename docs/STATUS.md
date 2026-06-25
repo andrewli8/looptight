@@ -412,23 +412,21 @@ existing CLI session and makes no model or API calls of its own.
 - A top-level `LICENSE` file ships the MIT license text with the copyright holder
   from pyproject's `authors`; guarded by a doc-accuracy test that checks both
   "MIT License" and the holder name.
+- The CLI argparse type validators (`_positive_int`, `_port`) have direct unit
+  tests asserting they reject zero/negative and out-of-range ports with
+  `argparse.ArgumentTypeError`, so bad flags fail at parse time.
 
 ## Next
 
-1. Add direct unit tests for the CLI type-validator helpers. Evidence:
-   src/looptight/cli.py:61; tests/test_cli.py; Acceptance: a test imports
-   `_positive_int` and `_port` from `looptight.cli`, asserts `_positive_int("0")`
-   raises `argparse.ArgumentTypeError`, and asserts `_port("65536")` raises
-   `argparse.ArgumentTypeError`; covered by running `looptight verify`.
-2. Cover `_optional_int` negative-value rejection in `config.py`. Evidence:
+1. Cover `_optional_int` negative-value rejection in `config.py`. Evidence:
    src/looptight/config.py:105; tests/test_config.py; Acceptance: a test writes a
    `.looptight.toml` with `max_changed_files = -1`, calls `load_config`, and asserts
    a `ConfigError` is raised; covered by running `looptight verify`.
-3. Cover `_string_list` empty-string rejection in `config.py`. Evidence:
+2. Cover `_string_list` empty-string rejection in `config.py`. Evidence:
    src/looptight/config.py:114; tests/test_config.py; Acceptance: a test writes a
    `.looptight.toml` with `protected_paths = [""]`, calls `load_config`, and asserts
    a `ConfigError` is raised; covered by running `looptight verify`.
-4. Cover the `12:00am` midnight boundary in `_parse_absolute_reset`. Evidence:
+3. Cover the `12:00am` midnight boundary in `_parse_absolute_reset`. Evidence:
    src/looptight/limits.py:90; tests/test_limits.py; Acceptance: a test calls
    `classify_limit` with a reset string containing `"12:00am"` and a `now` of
    23:00, asserts the result is not `None` and `retry_after_s` is approximately

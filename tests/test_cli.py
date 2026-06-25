@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import subprocess
 
@@ -1522,3 +1523,20 @@ def test_status_is_goal_aware(tmp_path, monkeypatch, capsys):
     assert main(["status"]) == 0
     out = capsys.readouterr().out.lower()
     assert "goal: build a cli todo app" in out
+
+
+def test_positive_int_rejects_zero_and_port_rejects_out_of_range():
+    # The argparse type validators reject invalid values with ArgumentTypeError,
+    # so a bad --port or count fails at parse time rather than deep in a command.
+    from looptight.cli import _positive_int, _port
+
+    assert _positive_int("3") == 3
+    with pytest.raises(argparse.ArgumentTypeError):
+        _positive_int("0")
+    with pytest.raises(argparse.ArgumentTypeError):
+        _positive_int("-1")
+
+    assert _port("8765") == 8765
+    assert _port("0") == 0
+    with pytest.raises(argparse.ArgumentTypeError):
+        _port("65536")
