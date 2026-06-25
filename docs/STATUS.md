@@ -471,7 +471,31 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_None pending. The loop generates evidence-backed tasks here when this drains._
+1. `run_done_check` has no direct test coverage; the `OSError` branch in
+   particular is never exercised.
+   Evidence: src/looptight/goal.py:98;
+   tests/test_goal.py (no `run_done_check` reference).
+   Acceptance: A new test `test_run_done_check_oserror_returns_false` in
+   `tests/test_goal.py` mocks `subprocess.run` to raise `OSError` and asserts
+   `run_done_check(tmp_path, "true")` returns `False`; a companion test asserts it
+   returns `True` on exit 0 and `False` on exit 1, so the whole function is covered.
+
+2. `landed_category_counts` silently skips trailers whose value has fewer than 3
+   tokens (no source tag), but no test asserts this contract.
+   Evidence: src/looptight/experience.py:62;
+   tests/test_experience.py (no `landed_category_counts` reference).
+   Acceptance: A new test `test_landed_category_counts_skips_trailer_without_source`
+   in `tests/test_experience.py` commits a trailer `Looptight-Outcome: idea-a landed`
+   (only 2 tokens) and asserts `landed_category_counts()` returns `{}` while
+   `landed_counts()` still returns `{"idea-a": 1}`.
+
+3. The UI `do_GET` 404 branch (`self.send_error(404)` for unknown paths) has no
+   test coverage.
+   Evidence: src/looptight/ui.py:197;
+   tests/test_ui.py (no `send_error` or `404` reference).
+   Acceptance: A new test `test_ui_handler_404_for_unknown_path` in
+   `tests/test_ui.py` instantiates a Handler (patching `__init__`), calls
+   `do_GET` on a non-root path, and asserts `send_error` was called with `404`.
 
 ## Rules
 
