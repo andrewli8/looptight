@@ -1483,3 +1483,19 @@ def test_status_human_output_shows_idea_quality_line(tmp_path, monkeypatch, caps
     assert main(["status"]) == 0
     out = capsys.readouterr().out.lower()
     assert "idea quality" in out and "groundedness" in out
+
+
+def test_propose_source_filter_respects_limit_after_filtering(tmp_path, monkeypatch, capsys):
+    # `--source X --limit N` should show up to N of source X, not only the X items that
+    # survive the overall top-N ranking cut.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# TODO: one\n# TODO: two\n# TODO: three\n", encoding="utf-8")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text(  # curated item outranks todos
+        "## Next\n\n1. Curated. Evidence: src/a.py:1; Acceptance: passes.\n", encoding="utf-8"
+    )
+    assert main(["propose", "--source", "todo", "--limit", "1", "--json"]) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert len(out) == 1 and out[0]["source"] == "todo"

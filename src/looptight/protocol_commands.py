@@ -112,10 +112,15 @@ def _eval_line(score: object) -> str:
 def cmd_propose(args: argparse.Namespace, console: Console) -> int:
     from .propose import propose
 
-    candidates = propose(Path.cwd(), limit=args.limit)
     source = getattr(args, "source", None)
     if source:
-        candidates = [candidate for candidate in candidates if candidate.source == source]
+        # Filter before limiting, so `--source X --limit N` shows up to N of source X
+        # rather than only those that survive the overall top-N ranking cut.
+        candidates = [c for c in propose(Path.cwd(), limit=0) if c.source == source]
+        if args.limit and args.limit > 0:
+            candidates = candidates[: args.limit]
+    else:
+        candidates = propose(Path.cwd(), limit=args.limit)
     evaluation = None
     if getattr(args, "eval_batch", False):
         from .idea_eval import score_status_next
