@@ -54,6 +54,16 @@ def test_read_goal_ignores_unknown_schema(tmp_path):
     assert read_goal(repo) is None
 
 
+def test_read_goal_returns_none_on_non_utf8_file(tmp_path):
+    # An unreadable (non-UTF-8) goal file must yield None, not raise: the
+    # contract promises None when the state is unreadable.
+    repo = _repo(tmp_path)
+    path = goal_path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"\xff\xfe not utf-8")
+    assert read_goal(repo) is None
+
+
 def test_goal_next_without_a_goal_reports_no_goal(tmp_path):
     from looptight.goal import goal_next
 

@@ -53,7 +53,9 @@ def read_goal(workdir: Path) -> Goal | None:
         return None
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+    except (OSError, ValueError):
+        # ValueError covers both json.JSONDecodeError and a non-UTF-8 file's
+        # UnicodeDecodeError, so an unreadable goal yields None per the contract.
         return None
     if not isinstance(data, dict) or data.get("schema_version") != SCHEMA_VERSION:
         return None
