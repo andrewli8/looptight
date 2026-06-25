@@ -448,7 +448,17 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_None pending. The loop generates evidence-backed tasks here when this drains._
+1. `init --integrate` crashes with a raw traceback on a non-UTF-8
+   `CLAUDE.md`/`AGENTS.md`. Evidence: src/looptight/integration.py:62;
+   `_install_block` reads the managed-block file with `encoding="utf-8"` behind only
+   an `exists()` guard, so a non-UTF-8 file raises `UnicodeDecodeError` (the CLI
+   surfaces only `ConfigError`/`KeyboardInterrupt` cleanly, so this dumps a
+   traceback), and a per-file loop could write `AGENTS.md` before failing on
+   `CLAUDE.md` (partial application). Acceptance: a test in tests/test_integration.py
+   writes a non-UTF-8 `CLAUDE.md` and asserts `install_session_instructions` raises
+   `ConfigError` naming the file and that no `AGENTS.md` was written; the fix reads
+   all target files up front and raises a clear `ConfigError` before any write;
+   covered by running `looptight verify`.
 
 ## Rules
 
