@@ -454,18 +454,14 @@ existing CLI session and makes no model or API calls of its own.
 - JS skip discovery recognizes Jest's `xtest(` alias (added to `_JS_SKIP_RE` and
   `_JS_SKIP_NAME_RE`) alongside `xit`/`xdescribe`, covered by a test in
   test_propose.py.
+- A corrupt claim with a non-numeric `claimed_at` is treated as expired (all three
+  timestamp reads route through a `_claimed_at` helper that returns `0.0` on an
+  unparseable value) rather than crashing `next`/`status`, covered by a test in
+  test_claims.py.
 
 ## Next
 
-1. A claim file with a non-numeric `claimed_at` crashes `next`/`status`. Evidence:
-   src/looptight/claims.py:84; `float(claim.get("claimed_at", 0))` (also lines 30,
-   105) is outside the `_read` guard, so a corrupt/hand-edited claim whose
-   `claimed_at` is a string raises an uncaught `ValueError` in `select`/`summary`
-   (verified). Acceptance: a test in tests/test_claims.py writes a claim JSON with
-   `"claimed_at": "oops"` and asserts `ClaimStore.summary` and `select` treat it as
-   expired (no live claim, file pruned) rather than raising; the fix routes all
-   three timestamp reads through a helper that returns `0.0` (expired) on an
-   unparseable value; covered by running `looptight verify`.
+_None pending. The loop generates evidence-backed tasks here when this drains._
 
 ## Rules
 

@@ -40,6 +40,24 @@ def test_stale_claim_can_be_recovered(tmp_path):
     assert claim["owner"] == "new"
 
 
+def test_claim_with_non_numeric_timestamp_is_treated_as_expired(tmp_path):
+    # A corrupt claim whose claimed_at is not a number must not crash next/status:
+    # an unreadable timestamp is treated as expired (pruned), never raising.
+    (tmp_path / "t1.json").write_text(
+        json.dumps(
+            {"schema_version": 1, "task_id": "t1", "owner": "x", "claimed_at": "oops"}
+        ),
+        encoding="utf-8",
+    )
+    # now is well past the staleness window, so a 0.0 fallback reads as expired.
+    store = ClaimStore(tmp_path, "me", now=1_000_000_000.0)
+
+    assert store.summary() == (None, 0)  # not counted as live, no crash
+
+    task = _task("t1")
+    assert store.select([task]) == task  # the stale claim is reclaimed, not fatal
+
+
 def test_claim_disappears_when_task_is_no_longer_grounded(tmp_path):
     old = _task("old")
     new = _task("new")

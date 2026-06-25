@@ -11,6 +11,15 @@ from pathlib import Path
 
 _STALE_AFTER_S = 24 * 60 * 60
 
+
+def _claimed_at(claim: dict[str, object]) -> float:
+    """Claim timestamp as a float, or 0.0 (long-expired) when unparseable, so a
+    corrupt/hand-edited claim is pruned rather than crashing the reader."""
+    try:
+        return float(claim.get("claimed_at", 0))
+    except (TypeError, ValueError):
+        return 0.0
+
 #: Written under ``<git-common>/looptight`` once a repository is migrated to the
 #: SQLite coordinator; legacy file claims then fail closed.
 MARKER_NAME = "coordinator-format.json"
@@ -27,7 +36,7 @@ def has_live_claim(claims_root: Path, *, now: float | None = None) -> bool:
     timestamp = time.time() if now is None else now
     for path in claims_root.glob("*.json"):
         claim = ClaimStore._read(path)
-        if claim and timestamp - float(claim.get("claimed_at", 0)) <= _STALE_AFTER_S:
+        if claim and timestamp - _claimed_at(claim) <= _STALE_AFTER_S:
             return True
     return False
 
@@ -81,7 +90,7 @@ class ClaimStore:
         for path in self.root.glob("*.json"):
             claim = self._read(path)
             task_id = claim.get("task_id") if claim else None
-            expired = not claim or self.now - float(claim.get("claimed_at", 0)) > _STALE_AFTER_S
+            expired = not claim or self.now - _claimed_at(claim) > _STALE_AFTER_S
             if expired or not isinstance(task_id, str) or task_id not in active:
                 path.unlink(missing_ok=True)
                 continue
@@ -102,7 +111,7 @@ class ClaimStore:
             return owned, active
         for path in self.root.glob("*.json"):
             claim = self._read(path)
-            if not claim or self.now - float(claim.get("claimed_at", 0)) > _STALE_AFTER_S:
+            if not claim or self.now - _claimed_at(claim) > _STALE_AFTER_S:
                 continue
             active += 1
             if claim.get("owner") == self.owner:
