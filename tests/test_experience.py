@@ -3,6 +3,7 @@ from pathlib import Path
 
 from looptight.experience import (
     Model,
+    landed_category_counts,
     landed_counts,
     reweight_factor,
     summary_text,
@@ -127,3 +128,13 @@ def test_reweight_boosts_a_high_yield_category_from_built_model(tmp_path):
     _run(root, "commit", "--allow-empty", "-qm", "w\n\nLooptight-Outcome: idea-a landed lint")
     model = build_model(Path(root), "HEAD", None, cooldown_s=1000.0)
     assert reweight_factor("lint", model) > 1.0  # landed, no failures => boost
+
+
+def test_landed_category_counts_skips_trailer_without_source(tmp_path):
+    # A trailer value with only 2 tokens ("idea-a landed") has no source; it must
+    # be skipped by landed_category_counts while landed_counts still sees the idea.
+    root = _repo(tmp_path)
+    _run(root, "commit", "--allow-empty", "-qm",
+         "w\n\nLooptight-Outcome: idea-a landed")
+    assert landed_category_counts(Path(root), "HEAD") == {}
+    assert landed_counts(Path(root), "HEAD") == {"idea-a": 1}

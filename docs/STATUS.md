@@ -471,19 +471,13 @@ existing CLI session and makes no model or API calls of its own.
 - `run_done_check` has direct unit coverage: exit-0 returns `True`, nonzero
   returns `False`, and an `OSError` from `subprocess.run` returns `False` without
   propagating — all three paths covered by new tests in test_goal.py.
+- `landed_category_counts` has direct coverage proving that a two-token trailer
+  (`idea-a landed`, no source) is skipped by the category counter while
+  `landed_counts` still sees the idea — asserting the documented skip contract.
 
 ## Next
 
-1. `landed_category_counts` silently skips trailers whose value has fewer than 3
-   tokens (no source tag), but no test asserts this contract.
-   Evidence: src/looptight/experience.py:62;
-   tests/test_experience.py (no `landed_category_counts` reference).
-   Acceptance: A new test `test_landed_category_counts_skips_trailer_without_source`
-   in `tests/test_experience.py` commits a trailer `Looptight-Outcome: idea-a landed`
-   (only 2 tokens) and asserts `landed_category_counts()` returns `{}` while
-   `landed_counts()` still returns `{"idea-a": 1}`.
-
-3. The UI `do_GET` 404 branch (`self.send_error(404)` for unknown paths) has no
+1. The UI `do_GET` 404 branch (`self.send_error(404)` for unknown paths) has no
    test coverage.
    Evidence: src/looptight/ui.py:197;
    tests/test_ui.py (no `send_error` or `404` reference).
