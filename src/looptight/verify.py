@@ -7,13 +7,12 @@ so the same machinery supports score-gated loops, not just pass/fail.
 
 from __future__ import annotations
 
-import os
 import re
 import subprocess
 import time
 from pathlib import Path
 
-from .proctree import stop_process_tree
+from .proctree import new_process_group_kwargs, stop_process_tree
 from .types import VerifyResult
 
 _SCORE_RE = re.compile(r"^\s*SCORE:\s*([-+]?\d*\.?\d+)\s*$", re.MULTILINE)
@@ -65,11 +64,6 @@ def run_verify(
     """
     started = time.monotonic()
     try:
-        popen_options: dict[str, object] = {}
-        if os.name == "posix":
-            popen_options["start_new_session"] = True
-        elif os.name == "nt":
-            popen_options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
         proc = subprocess.Popen(
             command,
             shell=True,
@@ -78,7 +72,7 @@ def run_verify(
             stderr=subprocess.PIPE,
             text=True,
             errors="replace",  # verify output is untrusted bytes; never crash on bad UTF-8
-            **popen_options,
+            **new_process_group_kwargs(),
         )
         stdout, stderr = proc.communicate(timeout=timeout_s)
     except subprocess.TimeoutExpired:

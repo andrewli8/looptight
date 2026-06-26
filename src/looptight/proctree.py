@@ -14,6 +14,17 @@ import signal
 import subprocess
 
 
+def new_process_group_kwargs() -> dict[str, object]:
+    """``Popen`` kwargs that place the child in its own process group/session, so
+    :func:`stop_process_tree` can later tear down the whole tree. The spawn half
+    of the pair — keep them together so a child is never spawned ungrouped."""
+    if os.name == "posix":
+        return {"start_new_session": True}
+    if os.name == "nt":
+        return {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+    return {}
+
+
 def stop_process_tree(process: subprocess.Popen) -> None:
     """Terminate ``process`` and its descendants. Best-effort and never raises:
     the caller is already on an error/timeout path and must stay on its feet."""

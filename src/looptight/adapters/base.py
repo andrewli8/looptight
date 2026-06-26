@@ -18,14 +18,13 @@ registering it.
 
 from __future__ import annotations
 
-import os
 import subprocess
 import threading
 from abc import ABC, abstractmethod
 from pathlib import Path
 
 from ..limits import classify_limit, format_limit_error
-from ..proctree import stop_process_tree
+from ..proctree import new_process_group_kwargs, stop_process_tree
 from ..types import IterationResult
 
 _ACTIVE_PROCESSES: set[subprocess.Popen[str]] = set()
@@ -85,19 +84,14 @@ def run_command(
                 errors="replace",
                 check=False,
             )
-        options: dict[str, object] = {}
-        if os.name == "posix":
-            options["start_new_session"] = True
-        elif os.name == "nt":
-            options["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
         process = subprocess.Popen(
             cmd,
             cwd=str(workdir),
+            **new_process_group_kwargs(),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
             errors="replace",
-            **options,
         )
         with _ACTIVE_LOCK:
             _ACTIVE_PROCESSES.add(process)
