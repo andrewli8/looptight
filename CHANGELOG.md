@@ -35,6 +35,11 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- The grounding gate now applies to configured task-files, not only generated
+  `## Next`. Previously, setting `tasks = ["docs/STATUS.md"]` (looptight's own
+  config) made `next` claim a task whose `Evidence:` anchor did not resolve — a
+  bypass of the anti-fabrication guarantee. A task claiming non-resolving evidence
+  is now dropped regardless of source; unanchored tasks are still kept.
 - Readiness (`doctor`/`status`) no longer reports `task_sources: missing` when a
   repo has discoverable TODOs or skipped tests — looptight's primary task source.
   A repo with real discoverable work now reads `readiness: ready` instead of a

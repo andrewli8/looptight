@@ -509,10 +509,13 @@ _EXTRACTORS = (from_lint, from_skipped_tests, from_todos, from_status_next)
 def discover(root: Path, *, task_files: tuple[str, ...] = ()) -> list[Candidate]:
     """Read explicit task files, or fall back to the built-in signal extractors."""
     if task_files:
+        # Enforce truthful evidence on configured task-files too: a task claiming an
+        # Evidence anchor that does not resolve is ungrounded busywork regardless of
+        # source (this is the anti-fabrication gate). Unanchored items are kept.
         return [
             candidate
             for task_file in task_files
-            for candidate in from_task_file(root, task_file)
+            for candidate in from_task_file(root, task_file, enforce_truthful_evidence=True)
         ]
     found: list[Candidate] = []
     for extractor in _EXTRACTORS:

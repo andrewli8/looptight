@@ -589,3 +589,24 @@ def test_from_skipped_tests_is_layout_agnostic(tmp_path):
     )
     cands = from_skipped_tests(tmp_path)
     assert any("test/test_x.py" in c.location for c in cands), "singular test/ dir missed"
+
+
+def test_task_files_enforce_truthful_evidence(tmp_path):
+    # The anti-fabrication gate must apply to configured task-files too, not only
+    # generated ## Next. A task claiming non-resolving evidence is ungrounded
+    # busywork and is dropped; unanchored and resolving-evidence tasks are kept.
+    from looptight.discovery import discover
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "real.py").write_text("x = 1\n", encoding="utf-8")
+    (tmp_path / "tasks.md").write_text(
+        "## Next\n\n"
+        "1. Harden real. Evidence: src/real.py:1; Acceptance: passes.\n"
+        "2. Fix ghost. Evidence: src/ghost_nope.py:9; Acceptance: passes.\n"
+        "3. A note with no anchor. Acceptance: passes.\n",
+        encoding="utf-8",
+    )
+    titles = [c.title for c in discover(tmp_path, task_files=("tasks.md",))]
+    assert any("Harden real" in t for t in titles)  # resolving evidence kept
+    assert any("no anchor" in t for t in titles)  # unanchored item kept
+    assert not any("ghost" in t for t in titles)  # fabricated evidence dropped
