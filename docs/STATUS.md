@@ -391,6 +391,9 @@ existing CLI session and makes no model or API calls of its own.
   branches: `total == 0` ("No specific failures parsed"), `persisted == False`
   ("Showing the latest … none held"), and `iterations == 1` ("1 try") — each
   asserted by a distinct test in `tests/test_metacog.py`, no production change.
+- `grounding.ref_resolves()` trailing-period stripping (`rstrip(".")`) is covered
+  by `test_ref_resolves_strips_trailing_period` in `tests/test_idea_eval.py`:
+  a ref ending in `.` resolves when the file exists and fails when absent.
 
 - Experience reweighting is two-sided: the landed trailer records the task source
   (`<idea> landed <source>`), `build_model` populates `category_landed` from it via
@@ -537,14 +540,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `grounding.ref_resolves()` strips trailing periods (`rstrip(".")`) to tolerate
-   evidence refs that end a sentence, but no test exercises this path.
-   Evidence: `src/looptight/grounding.py:37`
-   Acceptance: `test_ref_resolves_strips_trailing_period` added to
-   `tests/test_idea_eval.py` proves `ref_resolves(root, "src/x.py.")` returns
-   `True` when `src/x.py` exists; `looptight verify --json` returns `pass`.
-
-2. `experience.summary_text()` truncates to the top-`k` ideas by count, but the
+1. `experience.summary_text()` truncates to the top-`k` ideas by count, but the
    existing test uses only 2 landed and 1 failed idea — fewer than the default
    `k=5` — so the truncation branch never fires.
    Evidence: `src/looptight/experience.py:115`

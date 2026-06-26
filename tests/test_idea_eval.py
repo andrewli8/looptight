@@ -153,6 +153,18 @@ def test_ref_resolves_boundary_cases(tmp_path):
     assert ref_resolves(tmp_path, "../sibling.py") is False    # path traversal
 
 
+def test_ref_resolves_strips_trailing_period(tmp_path):
+    # ref_resolves strips a trailing '.' so evidence refs that end a sentence
+    # (e.g. "Evidence: src/x.py.") resolve correctly.
+    from looptight.grounding import ref_resolves
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "x.py").write_text("x", encoding="utf-8")
+    assert ref_resolves(tmp_path, "src/x.py.") is True   # trailing period stripped
+    assert ref_resolves(tmp_path, "src/x.py") is True    # no period: still works
+    assert ref_resolves(tmp_path, "src/missing.py.") is False  # stripped but absent
+
+
 def test_evidence_is_truthful_is_the_lenient_gate(tmp_path):
     # The gate discovery uses: every named anchor must resolve, but an item naming no
     # anchor is allowed (so hand-written lists work), unlike strict is_grounded.
