@@ -140,6 +140,22 @@ def test_grounding_tolerates_a_trailing_sentence_period(tmp_path):
     assert is_grounded(tmp_path, "Do it. Evidence: src/ghost.py.") is False
 
 
+def test_grounding_tolerates_markdown_backticked_evidence(tmp_path):
+    # Evidence paths are idiomatically wrapped in markdown backticks
+    # (``Evidence: `src/a.py:10` ``) — that is how this repo's own STATUS.md and
+    # an LLM-generated task write them. The grounding gate must resolve the path
+    # inside the backticks, or it silently drops a real, grounded task and the
+    # loop stalls on a false no_work.
+    from looptight.grounding import evidence_is_truthful, is_grounded
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("x", encoding="utf-8")
+    assert is_grounded(tmp_path, "Do it. Evidence: `src/a.py:10` Acceptance: ok") is True
+    assert evidence_is_truthful(tmp_path, "Do it. Evidence: `src/a.py`") is True
+    # A backtick-wrapped fabricated path still fails.
+    assert is_grounded(tmp_path, "Do it. Evidence: `src/ghost.py`") is False
+
+
 def test_ref_resolves_boundary_cases(tmp_path):
     # Direct coverage of ref_resolves edge cases not reached through is_grounded.
     from looptight.grounding import ref_resolves

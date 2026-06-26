@@ -37,10 +37,12 @@ _POSITION_SUFFIX = re.compile(r"(:\d+)+$")
 
 def ref_resolves(root: Path, ref: str) -> bool:
     """True when an evidence ref points at a real file inside the repository."""
-    # Drop a trailing position suffix: `path`, `path:line`, and `path:line:col`
-    # (e.g. a lint location) all point at the same file.
-    path_text = _POSITION_SUFFIX.sub("", ref)
-    path_text = path_text.rstrip(".")  # tolerate a path that ends a sentence
+    # Tolerate idiomatic decoration first — a markdown code span
+    # (``Evidence: `path` ``, as this repo's own STATUS.md writes anchors) and a
+    # trailing sentence period — then drop a trailing position suffix so `path`,
+    # `path:line`, and `path:line:col` (e.g. a lint location) all resolve.
+    path_text = _POSITION_SUFFIX.sub("", ref.strip("`."))
+    path_text = path_text.rstrip("`.")  # any residual wrapper revealed by the strip
     relative = Path(path_text)
     if not path_text or relative.is_absolute() or ".." in relative.parts:
         return False

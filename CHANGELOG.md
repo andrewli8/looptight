@@ -35,6 +35,13 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- The grounding gate now resolves an `Evidence:` anchor wrapped in markdown
+  backticks (`` Evidence: `src/app.py:10` ``). Previously the backticks were
+  treated as part of the path, so the anchor did not resolve and a real,
+  grounded task was silently dropped — `next` returned `no_work` and the loop
+  stalled despite a valid task in `## Next`. Backticked anchors are idiomatic
+  (this project's own `docs/STATUS.md` writes them that way, as do LLM-generated
+  tasks), so this affected the common case.
 - `detect_verify` no longer claims `npm test` for the `npm init` placeholder
   script (`echo "Error: no test specified" && exit 1`). That command always
   fails, so a fresh JS repo would get a verify that can never pass — the loop
