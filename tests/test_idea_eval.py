@@ -48,6 +48,16 @@ def test_evidence_refs_parses_each_marker():
     assert evidence_refs(cand) == ["src/a.py:10", "tests/test_c.py:3"]
 
 
+def test_evidence_refs_tolerates_markdown_emphasis_around_marker():
+    # A bold/italic Evidence marker (``**Evidence:**``) must not capture the
+    # emphasis markers as the anchor — the path follows them. Previously this
+    # returned ['**'], which never resolves, so the real task was dropped.
+    bold = _candidate("t", "Do it. **Evidence:** `src/a.py:10` Acceptance: x")
+    assert evidence_refs(bold) == ["src/a.py:10"]
+    italic = _candidate("t", "Do it. *Evidence:* src/b.py Acceptance: x")
+    assert evidence_refs(italic) == ["src/b.py"]
+
+
 def test_evidence_refs_strips_markdown_backticks():
     # The anchor is the bare path; markdown code-span backticks (the idiomatic
     # way paths are written, including in this repo's STATUS.md) are not part of

@@ -24,10 +24,13 @@ __all__ = [
     "strip_anchor_decoration",
 ]
 
-# One path token per ``Evidence:`` marker. A path carries no spaces, so the token
-# ends at the first whitespace, ``;`` or ``,`` (which begin a following clause or
+# One path token per ``Evidence:`` marker. After the marker, skip whitespace and
+# any markdown emphasis a writer wraps the label in (``**Evidence:**``, ``*…*``,
+# a code span) before the path; otherwise the closing ``**`` is captured as the
+# anchor and the real path is missed. A path carries no spaces, so the token ends
+# at the first whitespace, ``;`` or ``,`` (which begin a following clause or
 # prose). Cite multiple files with multiple ``Evidence:`` markers, not a list.
-_EVIDENCE_RE = re.compile(r"\bEvidence:\s*([^\s;,]+)")
+_EVIDENCE_RE = re.compile(r"\bEvidence:[\s*`]*([^\s;,]+)")
 
 
 def strip_anchor_decoration(ref: str) -> str:
