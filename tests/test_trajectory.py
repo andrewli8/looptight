@@ -59,6 +59,31 @@ def test_record_is_a_noop_outside_git(tmp_path):
     assert trajectory._path(tmp_path) is None
 
 
+def test_clear_drops_trajectory(tmp_path):
+    repo = _repo(tmp_path)
+    # Seed two entries so the store is non-trivial.
+    trajectory.record(repo, "pytest -q", -2.0, set(), passed=False)
+    trajectory.record(repo, "pytest -q", -1.0, set(), passed=False)
+    trajectory.clear(repo)
+    # After clearing, the next failing record starts a fresh single-entry attempt.
+    fresh = trajectory.record(repo, "pytest -q", -3.0, set(), passed=False)
+    assert len(fresh) == 1
+
+
+def test_record_treats_non_numeric_updated_at_as_stale(tmp_path):
+    repo = _repo(tmp_path)
+    path = trajectory._path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Write a trajectory whose updated_at is not a number (defensive path at :72).
+    path.write_text(
+        '{"schema_version": 1, "command": "pytest -q", "updated_at": "not-a-number",'
+        ' "entries": [{"signal": -2.0, "failures": []}]}\n',
+        encoding="utf-8",
+    )
+    fresh = trajectory.record(repo, "pytest -q", -1.0, set(), passed=False)
+    assert len(fresh) == 1  # corrupt updated_at -> stale -> fresh attempt
+
+
 def test_record_write_is_atomic(tmp_path, monkeypatch):
     repo = _repo(tmp_path)
     trajectory.record(repo, "pytest -q", -2.0, set(), passed=False)  # seed a valid store
