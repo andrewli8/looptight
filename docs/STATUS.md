@@ -559,17 +559,12 @@ existing CLI session and makes no model or API calls of its own.
   in `tests/test_limits.py` calls `classify_limit` with `"resets at 12:00pm"` and a `now`
   30 min before noon, asserting 1800s wait — exercises the `hour != 12` guard that keeps
   noon at hour 12 without adding 12.
+- `_git()` OSError fallback in `experience.py:28-29` is covered:
+  `test_landed_counts_returns_empty_when_git_not_found` in `tests/test_experience.py`
+  monkeypatches `subprocess.run` to raise `OSError` and asserts `landed_counts` returns
+  `{}` — the documented contract when git is not on PATH.
 
 ## Next
-
-3. `_git()` OSError fallback path in `experience.py` is untested: `experience.py:28-29`
-   returns a synthetic `CompletedProcess(returncode=127)` when `subprocess.run` raises
-   `OSError` (e.g. git not on PATH), but no test exercises this path; `landed_counts`
-   silently returns `{}` on that error, which is the documented contract.
-   Evidence: `src/looptight/experience.py:28`
-   Acceptance: a new `test_landed_counts_returns_empty_when_git_not_found` in
-   `tests/test_experience.py` monkeypatches `subprocess.run` to raise `OSError` and
-   asserts `landed_counts(tmp_path, "HEAD") == {}`.
 
 4. `_comments()` exception-handling path in `discovery.py` is untested: `discovery.py:138`
    catches `(tokenize.TokenError, SyntaxError, OSError, UnicodeDecodeError)` and returns

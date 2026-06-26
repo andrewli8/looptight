@@ -1,5 +1,6 @@
 import subprocess
 from pathlib import Path
+from unittest.mock import patch
 
 from looptight.experience import (
     Model,
@@ -157,3 +158,10 @@ def test_landed_category_counts_skips_trailer_without_source(tmp_path):
 def test_reweight_factor_is_neutral_for_unknown_category():
     # A category with no landed/failed history (total == 0) yields the neutral 1.0.
     assert reweight_factor("unknown-source", Model()) == 1.0
+
+
+def test_landed_counts_returns_empty_when_git_not_found(tmp_path):
+    # When git is not on PATH, _git() catches OSError and returns returncode=127;
+    # landed_counts must silently return {} rather than propagating the error.
+    with patch("looptight.experience.subprocess.run", side_effect=OSError("git not found")):
+        assert landed_counts(tmp_path, "HEAD") == {}
