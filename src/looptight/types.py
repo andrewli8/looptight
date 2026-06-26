@@ -95,6 +95,7 @@ class Escalation:
     failures: tuple[str, ...]
     summary: str
     persisted: bool = True
+    total_failures: int = 0  # count before the display cap; >= len(failures)
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -104,6 +105,7 @@ class Escalation:
             "failures": list(self.failures),
             "summary": self.summary,
             "persisted": self.persisted,
+            "total_failures": self.total_failures,
         }
 
 

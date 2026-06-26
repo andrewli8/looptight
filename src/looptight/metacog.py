@@ -138,10 +138,10 @@ def persistent_failures(records: list[IterationRecord]) -> tuple[tuple[str, ...]
         return (), True
     common = set.intersection(*per_iteration)
     if common:
-        return tuple(sorted(common)[:MAX_PERSISTENT_FAILURES]), True
+        return tuple(sorted(common)), True
     final = per_iteration[-1]
     if final:
-        return tuple(sorted(final)[:MAX_PERSISTENT_FAILURES]), False
+        return tuple(sorted(final)), False
     return (), True
 
 
@@ -149,18 +149,18 @@ def _plural(count: int, noun: str) -> str:
     return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
 
 
-def _summarize(kind: str, failures: tuple[str, ...], persisted: bool, iterations: int) -> str:
+def _summarize(kind: str, total: int, persisted: bool, iterations: int) -> str:
     tries = "1 try" if iterations == 1 else f"{iterations} tries"
     shape = (
         f"No progress across {tries}."
         if kind == "escalated"
         else f"Improved, then stalled across {tries}."
     )
-    if not failures:
+    if total == 0:
         return f"{shape} No specific failures parsed; check the final output."
     if persisted:
-        return f"{shape} {_plural(len(failures), 'failure')} never cleared."
-    return f"{shape} Showing the latest {_plural(len(failures), 'failure')}; none held across every try."
+        return f"{shape} {_plural(total, 'failure')} never cleared."
+    return f"{shape} Showing the latest {_plural(total, 'failure')}; none held across every try."
 
 
 def build_escalation(
@@ -168,13 +168,14 @@ def build_escalation(
 ) -> Escalation:
     """Assemble the escalation report for an early stop."""
     kind = "escalated" if stop_reason is StopReason.ESCALATED else "no_progress"
-    failures, persisted = persistent_failures(records)
-    iterations = len(records)
+    all_failures, persisted = persistent_failures(records)
+    total = len(all_failures)
     return Escalation(
         kind=kind,
-        iterations=iterations,
+        iterations=len(records),
         trajectory=tuple(history),
-        failures=failures,
-        summary=_summarize(kind, failures, persisted, iterations),
+        failures=all_failures[:MAX_PERSISTENT_FAILURES],
+        summary=_summarize(kind, total, persisted, len(records)),
         persisted=persisted,
+        total_failures=total,
     )

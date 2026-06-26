@@ -27,6 +27,10 @@ def header(result: RunResult) -> str:
 
 def _tail(result: RunResult) -> str:
     """The final status fragment, surfacing the error text on an ERROR stop."""
+    # An escalation block carries the full "why" right below, so keep the tail
+    # concise here rather than repeating "no progress" twice.
+    if result.escalation is not None:
+        return "stopped early"
     text = _REASON_TEXT.get(result.stop_reason, result.stop_reason.value)
     if result.stop_reason is StopReason.ERROR and result.error:
         return f"{text}: {result.error}"
@@ -39,7 +43,11 @@ def _escalation_lines(result: RunResult) -> list[str]:
     escalation = result.escalation
     if escalation is None:
         return []
-    return [escalation.summary, *(f"  {failure}" for failure in escalation.failures)]
+    lines = [escalation.summary, *(f"  {failure}" for failure in escalation.failures)]
+    hidden = escalation.total_failures - len(escalation.failures)
+    if hidden > 0:
+        lines.append(f"  … and {hidden} more")
+    return lines
 
 
 def render(result: RunResult) -> str:

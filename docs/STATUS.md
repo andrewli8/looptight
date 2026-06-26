@@ -519,6 +519,10 @@ existing CLI session and makes no model or API calls of its own.
 - docs/unattended.md documents `--patience` and the escalation report, so value-aware
   stopping is discoverable (it stays off by default and a runtime-only control, not a
   config-file setting, by design); guarded by a doc test.
+- The early-stop summary reads lean: the tail is a concise "stopped early" when an
+  escalation block carries the why (no duplicate verdict), and a capped failure list
+  shows "… and N more" (via `total_failures`) instead of truncating silently; covered
+  by tests in test_summary.py.
 
 ## Next
 

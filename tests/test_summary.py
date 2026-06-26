@@ -89,3 +89,33 @@ def test_summary_shows_escalation_evidence_when_present():
     assert "tests/test_auth.py::test_login" in text
     # Absent escalation leaves the summary unchanged (no stray evidence block).
     assert "never cleared" not in summary.render(_result(StopReason.SUCCESS))
+
+
+def _escalated(failures, total):
+    from looptight.types import Escalation
+    esc = Escalation(
+        kind="escalated", iterations=3, trajectory=(-2.0, -2.0, -2.0),
+        failures=tuple(failures), summary="No progress across 3 tries. "
+        f"{total} failures never cleared.", persisted=True, total_failures=total,
+    )
+    return RunResult(
+        goal="x", agent="claude", mode="supply", stop_reason=StopReason.ESCALATED,
+        iterations=(IterationRecord(1, VerifyResult(passed=False, exit_code=1)),),
+        escalation=esc,
+    )
+
+
+def test_summary_tail_is_concise_when_escalation_present():
+    # The escalation block carries the "why"; the tail must not repeat it.
+    text = summary.render(_escalated(["FAILED a::x - boom"], 1))
+    assert "stopped early" in text
+    assert "worth a human look" not in text  # no duplicate verdict
+    assert "No progress across 3 tries" in text  # the why is still there
+
+
+def test_summary_indicates_truncated_failure_list():
+    shown = [f"FAILED a::t{i} - boom" for i in range(10)]
+    text = summary.render(_escalated(shown, total=13))
+    assert "… and 3 more" in text  # 13 total, 10 shown
+    # At or under the cap, no overflow line.
+    assert "more" not in summary.render(_escalated(["FAILED a::x - boom"], 1))
