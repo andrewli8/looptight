@@ -35,6 +35,12 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- A lint idea's identity is now stable when the finding shifts lines. `idea_id`
+  dropped only one trailing `:segment`, so a real `path:line:col` lint location
+  kept its line number — a finding that moved (e.g. an import added above it)
+  got a new identity, and the self-model and cooldown then failed to recognize a
+  re-proposed lint idea. The full `:line:col` position is now stripped, matching
+  the grounding check and `from_lint`'s own file-level dedup.
 - `looptight migrate` no longer doubles its error prefix when a live legacy
   claim blocks activation (was `cannot activate the coordinator: cannot activate
   the coordinator: live legacy claims exist…`). The exception carries the reason;

@@ -13,6 +13,16 @@ def test_lint_identity_ignores_line_and_message():
     assert idea_id(a) == idea_id(b)  # same file + rule => same idea
 
 
+def test_lint_identity_is_line_stable_for_real_path_line_col_locations():
+    # from_lint emits `path:line:col` locations. The identity must stay stable
+    # when a finding shifts lines (e.g. an import added above it), or the
+    # self-model and cooldown miss a re-proposed lint idea after any edit. The
+    # other lint tests use single-segment `path:line` and so never caught this.
+    a = _c("lint", "src/foo.py:1:8", "fix F401: os imported but unused")
+    b = _c("lint", "src/foo.py:5:8", "fix F401: os imported but unused")
+    assert idea_id(a) == idea_id(b)
+
+
 def test_lint_identity_differs_by_rule():
     a = _c("lint", "src/looptight/foo.py:10", "fix E501: line too long")
     b = _c("lint", "src/looptight/foo.py:10", "fix F401: unused import")

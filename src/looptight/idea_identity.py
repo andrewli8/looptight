@@ -18,6 +18,8 @@ __all__ = ["idea_id"]
 
 _LINT_RULE_RE = re.compile(r"\bfix\s+([A-Z]+[0-9]+)\b", re.IGNORECASE)
 _CURATED = {"status-next", "task-file"}
+# A trailing position: `:line` or `:line:col` (lint locations carry the column).
+_POSITION_SUFFIX = re.compile(r"(:\d+)+$")
 
 
 def _normalized(text: str) -> str:
@@ -27,7 +29,9 @@ def _normalized(text: str) -> str:
 def _path(location: str | None) -> str:
     if not location:
         return ""
-    return location.rsplit(":", 1)[0]  # drop a trailing :line if present
+    # Drop the whole trailing position so identity is line-move stable. A single
+    # rsplit kept the line for `path:line:col` (lint), breaking that stability.
+    return _POSITION_SUFFIX.sub("", location)
 
 
 def _identity_tuple(candidate: Candidate) -> tuple[str, ...]:
