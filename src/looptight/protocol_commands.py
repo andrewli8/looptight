@@ -571,6 +571,12 @@ def _task_source_health(workdir: Path, config_tasks: tuple[str, ...]) -> str:
         return "configured"
     if (workdir / "docs" / "STATUS.md").is_file():
         return "configured"
+    # Auto-discovered TODOs and skipped tests are looptight's primary task source,
+    # so a repo with discoverable work is healthy even without a configured file.
+    from .discovery import from_skipped_tests, from_todos
+
+    if from_todos(workdir) or from_skipped_tests(workdir):
+        return "configured"
     return "missing"
 
 

@@ -1684,3 +1684,17 @@ def test_verify_json_without_patience_has_no_stall_key(tmp_path, monkeypatch, ca
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     assert main(["verify", "--verify", "true", "--json"]) == 0
     assert "stall" not in json.loads(capsys.readouterr().out)
+
+
+def test_task_source_health_counts_discoverable_signals(tmp_path):
+    # Auto-discovered TODOs/skips are looptight's primary task source. A repo with
+    # discoverable work is a healthy task source, even without a configured tasks
+    # file or docs/STATUS.md — otherwise readiness wrongly says "add grounded tasks"
+    # to a repo that already has them.
+    from looptight.protocol_commands import _task_source_health
+
+    (tmp_path / "app").mkdir()
+    assert _task_source_health(tmp_path, ()) == "missing"  # nothing discoverable yet
+
+    (tmp_path / "app" / "core.py").write_text("# TODO: handle empty input\n", encoding="utf-8")
+    assert _task_source_health(tmp_path, ()) == "configured"  # a real discoverable TODO

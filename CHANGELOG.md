@@ -35,6 +35,10 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- Readiness (`doctor`/`status`) no longer reports `task_sources: missing` when a
+  repo has discoverable TODOs or skipped tests — looptight's primary task source.
+  A repo with real discoverable work now reads `readiness: ready` instead of a
+  confusing `partial` that told the user to "add grounded tasks" they already had.
 - Python TODO/FIXME and skipped-test discovery is now layout-agnostic: it scans
   the whole project (pruning vendored and cache dirs) instead of only `src/` and
   `tests/`, so a flat package (`mypackage/`) or top-level modules — the majority of
