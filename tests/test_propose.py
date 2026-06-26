@@ -47,6 +47,15 @@ def test_from_todos_ignores_todo_inside_string_literal(tmp_path):
     assert from_todos(tmp_path) == []
 
 
+def test_from_todos_skips_malformed_python_file(tmp_path):
+    # _comments() catches tokenize.TokenError/SyntaxError/OSError/UnicodeDecodeError
+    # and returns silently; a file with a lone \x00 byte triggers that path.
+    path = tmp_path / "src" / "pkg" / "bad.py"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"\x00")
+    assert from_todos(tmp_path) == []
+
+
 def test_from_skipped_tests_detects_markers(tmp_path):
     _write(
         tmp_path,

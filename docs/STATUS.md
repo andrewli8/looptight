@@ -563,16 +563,12 @@ existing CLI session and makes no model or API calls of its own.
   `test_landed_counts_returns_empty_when_git_not_found` in `tests/test_experience.py`
   monkeypatches `subprocess.run` to raise `OSError` and asserts `landed_counts` returns
   `{}` — the documented contract when git is not on PATH.
+- `_comments()` exception path in `discovery.py:138` is covered:
+  `test_from_todos_skips_malformed_python_file` in `tests/test_propose.py` writes a file
+  with a lone `\x00` byte, triggering `tokenize.TokenError`/`SyntaxError`, and asserts
+  `from_todos()` returns `[]` without raising.
 
 ## Next
-
-4. `_comments()` exception-handling path in `discovery.py` is untested: `discovery.py:138`
-   catches `(tokenize.TokenError, SyntaxError, OSError, UnicodeDecodeError)` and returns
-   silently, but no test passes a malformed or unreadable Python file to trigger this.
-   Evidence: `src/looptight/discovery.py:138`
-   Acceptance: a new `test_from_todos_skips_malformed_python_file` in
-   `tests/test_propose.py` writes a file with invalid Python tokens (e.g. a lone `\x00`
-   byte) and asserts `from_todos()` returns an empty list without raising.
 
 ## Rules
 
