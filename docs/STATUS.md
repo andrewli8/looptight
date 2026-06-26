@@ -499,16 +499,12 @@ existing CLI session and makes no model or API calls of its own.
 - `test_batch_score_as_dict_pins_all_fields` pins all 6 fields of
   `BatchScore.as_dict()` (size, grounded, groundedness, flexibility, distinct,
   bounded), guarding the JSON output contract used by `propose --eval --json`.
+- `test_goal_driver_recipe_includes_loop_hint_for_claude` and
+  `test_goal_driver_recipe_omits_loop_hint_when_agent_unknown` monkeypatch
+  `detect_agent` to verify the Claude-specific `/loop until: looptight goal check`
+  line is included when agent is `"claude"` and absent otherwise.
 
 ## Next
-
-1. Test that `_goal_driver_recipe` includes the Claude-specific `/loop until:` recipe
-   when the detected agent is `"claude"`.
-   Evidence: src/looptight/protocol_commands.py:709;
-   Acceptance: A new test in tests/test_goal.py monkeypatches `detect_agent` to
-   return `"claude"` and verifies `"/loop until: looptight goal check"` appears in
-   the recipe output; a second case with `detect_agent` returning `None` confirms the
-   line is absent. Both pass under `looptight verify --json`.
 
 ## Rules
 

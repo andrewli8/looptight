@@ -256,3 +256,19 @@ def test_run_done_check_oserror_returns_false(tmp_path, monkeypatch):
     _repo(tmp_path)
     monkeypatch.setattr("looptight.goal.subprocess.run", lambda *a, **kw: (_ for _ in ()).throw(OSError("shell not found")))
     assert run_done_check(tmp_path, "true") is False
+
+
+def test_goal_driver_recipe_includes_loop_hint_for_claude(tmp_path, monkeypatch):
+    from looptight.protocol_commands import _goal_driver_recipe
+
+    monkeypatch.setattr("looptight.protocol_commands.detect_agent", lambda: "claude")
+    recipe = _goal_driver_recipe(tmp_path)
+    assert "/loop until: looptight goal check" in recipe
+
+
+def test_goal_driver_recipe_omits_loop_hint_when_agent_unknown(tmp_path, monkeypatch):
+    from looptight.protocol_commands import _goal_driver_recipe
+
+    monkeypatch.setattr("looptight.protocol_commands.detect_agent", lambda: None)
+    recipe = _goal_driver_recipe(tmp_path)
+    assert "/loop until: looptight goal check" not in recipe
