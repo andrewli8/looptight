@@ -576,6 +576,12 @@ existing CLI session and makes no model or API calls of its own.
 - `GoalDecision.as_dict()` now has direct unit coverage via
   `test_goal_decision_as_dict_pins_all_statuses` in tests/test_goal.py, asserting
   required fields are always present and optional fields appear only when set.
+- The grounding gate tolerates line-range Evidence anchors: `_POSITION_SUFFIX` now
+  strips `path:start-end` (and `path:start-end:col`) as a position, so a task citing a
+  real file with an idiomatic line range resolves instead of being dropped as stale
+  evidence. Filenames ending in `-N` with no colon are preserved; `path:line`/`:col`
+  unchanged; swarm's stricter single-line planner check is untouched. Covered by
+  `test_ref_resolves_handles_line_range_suffix`. (Boundary-bug theme: idiomatic anchors.)
 - `revert` checks for tracked changes before prompting: on a clean tree, plain
   `looptight revert` (no `--yes`) reports "nothing to revert" instead of offering to
   discard changes that do not exist; the dirty-tree `--yes` confirmation gate is

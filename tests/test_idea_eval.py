@@ -266,3 +266,18 @@ def test_ref_resolves_handles_line_and_column_suffix(tmp_path):
     assert ref_resolves(tmp_path, "real.py") is True
     assert ref_resolves(tmp_path, "real.py:1") is True
     assert ref_resolves(tmp_path, "real.py:1:5") is True  # path:line:col
+
+
+def test_ref_resolves_handles_line_range_suffix(tmp_path):
+    # Evidence anchors idiomatically cite a line *range* (`path:120-145`). The gate
+    # is the loop's single point of failure, so a real file cited with a range must
+    # resolve, not be dropped as fabricated evidence.
+    from looptight.grounding import evidence_is_truthful, ref_resolves
+
+    (tmp_path / "real.py").write_text("x = 1\n", encoding="utf-8")
+    assert ref_resolves(tmp_path, "real.py:120-145") is True  # line range
+    assert ref_resolves(tmp_path, "real.py:5-10:2") is True  # range then col
+    assert ref_resolves(tmp_path, "real.py:1") is True  # plain line still resolves
+    assert ref_resolves(tmp_path, "missing.py:1-5") is False  # range, absent file
+    # The gate accepts a task citing a real file with an idiomatic line range.
+    assert evidence_is_truthful(tmp_path, "Do x. Evidence: real.py:40-60") is True

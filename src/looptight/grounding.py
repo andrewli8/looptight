@@ -51,13 +51,17 @@ def evidence_refs(text: str) -> list[str]:
     return [ref.strip("`") for ref in _EVIDENCE_RE.findall(text or "")]
 
 
-_POSITION_SUFFIX = re.compile(r"(:\d+)+$")
+# A trailing position: one or more ``:N`` groups, each an optional ``-N`` range.
+# Covers ``path:line``, ``path:line:col`` (a lint location), and the idiomatic
+# ``path:start-end`` line range, so none is mistaken for part of the file path.
+_POSITION_SUFFIX = re.compile(r"(:\d+(?:-\d+)?)+$")
 
 
 def ref_resolves(root: Path, ref: str) -> bool:
     """True when an evidence ref points at a real file inside the repository."""
     # Strip idiomatic decoration, then drop a trailing position suffix so `path`,
-    # `path:line`, and `path:line:col` (e.g. a lint location) all resolve.
+    # `path:line`, `path:line:col` (a lint location), and `path:start-end` (a line
+    # range) all resolve to the same file.
     path_text = _POSITION_SUFFIX.sub("", strip_anchor_decoration(ref))
     relative = Path(path_text)
     if not path_text or relative.is_absolute() or ".." in relative.parts:
