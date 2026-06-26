@@ -354,6 +354,9 @@ def _add_run_flags(parser: argparse.ArgumentParser) -> None:
         default=3600.0,
         help="cap on a single usage-limit wait before re-polling (default 3600)",
     )
+    parser.add_argument(
+        "--json", action="store_true", help="emit the versioned run result as JSON"
+    )
 
 
 def _add_improve_flags(parser: argparse.ArgumentParser) -> None:

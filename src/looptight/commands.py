@@ -141,12 +141,14 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
     if config.native and not adapter.supports_native_loop:
         console.print(f"[yellow]{agent_name} has no native loop; supplying the loop instead.[/yellow]")
 
-    verb = "driving native loop" if use_native else "supplying loop"
-    console.print(
-        f"[bold]looptight[/bold] · agent: [cyan]{agent_name}[/cyan] ({verb}) · "
-        f"verify: [cyan]{config.verify}[/cyan]"
-    )
-    console.print()
+    as_json = getattr(args, "json", False)
+    if not as_json:
+        verb = "driving native loop" if use_native else "supplying loop"
+        console.print(
+            f"[bold]looptight[/bold] · agent: [cyan]{agent_name}[/cyan] ({verb}) · "
+            f"verify: [cyan]{config.verify}[/cyan]"
+        )
+        console.print()
 
     def on_iteration(record) -> None:  # live counter (D2)
         style = "green" if record.verify.passed else "red"
@@ -161,17 +163,25 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
             config,
             workdir,
             native=use_native,
-            on_iteration=on_iteration,
+            on_iteration=None if as_json else on_iteration,
             resume_on_limit=args.resume_on_limit,
             limit_backoff_seconds=args.limit_backoff_seconds,
             limit_max_wait_seconds=args.limit_max_wait_seconds,
         )
     except NotImplementedError as exc:
+        if as_json:
+            import json
+            print(json.dumps({"command": "run", "schema_version": 1, "error": str(exc)}))
+            return 3
         console.print(f"[yellow]{exc}[/yellow]")
         return 3
 
-    console.print()
-    render_rich(result, console)
+    if as_json:
+        import json
+        print(json.dumps(result.as_dict(), sort_keys=True))
+    else:
+        console.print()
+        render_rich(result, console)
     return 0 if result.stop_reason is StopReason.SUCCESS else 1
 
 

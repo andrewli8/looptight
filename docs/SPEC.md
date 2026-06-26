@@ -231,7 +231,11 @@ hint such as `ruff check` for a lint finding, or `null`). `verify` returns statu
 exit code, elapsed time, and bounded output. `goal next` returns `schema_version`,
 `command`, `status` (`active` | `done` | `stop` | `no_goal`), and `iteration`;
 additively it carries a `directive` object (the build increment, when `active`) and
-a `reason` string (e.g. `max_iterations`, when `stop`).
+a `reason` string (e.g. `max_iterations`, when `stop`). `run --json` returns the
+versioned run result — `stop_reason`, `passed`, bounded per-iteration verdicts (no
+raw output), `diffstat` — and an additive `escalation` object when the controller
+stopped early: the failures that never cleared plus the progress trajectory, or
+`null` otherwise.
 
 When idea generation is enabled (the default), a `no_work` result from `next` may
 also carry an optional `directive` object (`{"action": "generate_ideas", ...}`)

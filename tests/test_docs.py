@@ -91,6 +91,15 @@ def test_spec_output_contract_documents_goal_next_fields():
         assert field in output_contract, f"SPEC output contract omits goal next {field!r}"
 
 
+def test_spec_output_contract_documents_run_json_and_escalation():
+    # run --json (RunResult.as_dict) is the lone command that lacked a JSON contract;
+    # the output contract must name it and the additive escalation object.
+    spec = (_ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
+    output_contract = spec.split("## Output contract", 1)[1].split("## ", 1)[0]
+    assert "run --json" in output_contract
+    assert "escalation" in output_contract
+
+
 def test_changelog_names_the_current_version():
     changelog = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     pyproject = (_ROOT / "pyproject.toml").read_text(encoding="utf-8")
