@@ -111,6 +111,24 @@ def test_from_todos_finds_marker_in_jsdoc_block_comment(tmp_path):
     assert "line todo" in titles
 
 
+def test_js_skip_detects_playwright_fixme(tmp_path):
+    # Playwright's test.fixme() marks a broken test to skip; it's a real skip in a
+    # top-tier framework. The chained form and the suite form are both surfaced;
+    # fixme-prefixed identifiers are not false hits.
+    _write(
+        tmp_path,
+        "tests/a.test.ts",
+        'test.fixme("pw broken", async () => {});\n'        # 1
+        'test.describe.fixme("pw suite", () => {});\n'      # 2: chained
+        'it.fixmeFoo("not a marker", () => {});\n'          # 3: NOT a marker
+        'test.skip("plain still works", () => {});\n'       # 4
+    )
+    locs = {c.location.rsplit(":", 1)[1] for c in from_skipped_tests(tmp_path)}
+    assert "1" in locs and "2" in locs   # test.fixme + chained describe.fixme
+    assert "4" in locs                    # plain skip unchanged
+    assert "3" not in locs                # it.fixmeFoo not a marker
+
+
 def test_js_skip_detects_chained_modifiers(tmp_path):
     # Chained-modifier skips (Jest/Vitest) are real skipped tests and must be found;
     # focused tests and skip-prefixed identifiers must not be false hits.

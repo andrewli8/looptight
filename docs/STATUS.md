@@ -721,17 +721,12 @@ existing CLI session and makes no model or API calls of its own.
   `test:` is still preferred when both exist, and `checkfmt:`/`check-lint:` do not
   match. Covered by tests.
 
-## Next
+- Playwright's `test.fixme()` is detected: `fixme` joins `skip`/`todo` in the JS marker
+  alternation, so `test.fixme(...)` and the chained `test.describe.fixme(...)` (a real
+  skip in a top-tier framework) are surfaced. `fixme`-prefixed identifiers are not false
+  hits; plain skip/todo/x-prefix detection is unchanged. Covered by a test.
 
-1. Playwright's `test.fixme()` skip marker is not detected. `_JS_SKIP_CALL` matches
-   `skip`/`todo` but not `fixme`, so Playwright's standard "skip this broken test"
-   marker (`test.fixme(...)`, `test.describe.fixme(...)`) — a real skip in a top-tier
-   JS/TS test framework — goes undetected. Add `fixme` to the marker alternation
-   without matching `fixmeFoo`/identifiers.
-   Evidence: `src/looptight/discovery.py:387`
-   Acceptance: a new test in `tests/test_propose.py` asserts `test.fixme(...)` and the
-   chained `test.describe.fixme(...)` are surfaced while `it.fixmeFoo(` is not; plain
-   skip/todo/x-prefix detection is unchanged, and `looptight verify` passes.
+## Next
 
 ## Rules
 
