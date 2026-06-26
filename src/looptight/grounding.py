@@ -21,8 +21,9 @@ from pathlib import Path
 
 __all__ = ["evidence_refs", "ref_resolves", "is_grounded", "evidence_is_truthful"]
 
-# One path token after each ``Evidence:`` marker. A path carries no spaces, so the
-# token ends at the first whitespace, ``;`` or ``,`` (which separate refs/clauses).
+# One path token per ``Evidence:`` marker. A path carries no spaces, so the token
+# ends at the first whitespace, ``;`` or ``,`` (which begin a following clause or
+# prose). Cite multiple files with multiple ``Evidence:`` markers, not a list.
 _EVIDENCE_RE = re.compile(r"\bEvidence:\s*([^\s;,]+)")
 
 
