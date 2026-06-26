@@ -134,8 +134,9 @@ def _all_js_files(root: Path) -> list[Path]:
 
 
 def _js_test_files(root: Path) -> list[Path]:
-    """JS/TS test files anywhere in the tree: `*.test.*`, `*.spec.*`, or under a
-    `__tests__/` directory. Prunes vendored/build dirs so a big repo stays cheap.
+    """JS/TS test files anywhere in the tree: `*.test.*`, `*.spec.*`, `*.cy.*`
+    (Cypress), or under a `__tests__/` directory. Prunes vendored/build dirs so a big
+    repo stays cheap.
     """
     out: list[Path] = []
     for dirpath, dirnames, filenames in os.walk(root):
@@ -145,7 +146,7 @@ def _js_test_files(root: Path) -> list[Path]:
             path = Path(dirpath) / name
             if path.suffix not in _JS_EXTS:
                 continue
-            if in_tests_dir or ".test." in name or ".spec." in name:
+            if in_tests_dir or ".test." in name or ".spec." in name or ".cy." in name:
                 out.append(path)
     return sorted(out)
 
@@ -153,7 +154,7 @@ def _js_test_files(root: Path) -> list[Path]:
 def _js_discovery_files(root: Path) -> list[Path]:
     """Deduplicated JS/TS files to scan: everything under `src/`, `tests/`, and `test/`
     (Mocha's default singular test directory), plus any colocated test file
-    (`*.test.*` / `*.spec.*` / `__tests__/`) elsewhere.
+    (`*.test.*` / `*.spec.*` / `*.cy.*` / `__tests__/`) elsewhere.
     """
     seen: set[Path] = set()
     files: list[Path] = []

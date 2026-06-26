@@ -374,6 +374,16 @@ def test_from_skipped_tests_ignores_py_marker_in_multiline_string(tmp_path):
     assert len(cands) == 1
 
 
+def test_js_skip_discovery_covers_cypress_cy_files(tmp_path):
+    # Cypress's .cy. test files (cypress/e2e or colocated) are a standard convention;
+    # skip markers in them must be discovered alongside .test./.spec. files.
+    _write(tmp_path, "cypress/e2e/login.cy.ts", 'it.skip("e2e broken", () => {});\n')
+    _write(tmp_path, "components/Button.cy.tsx", 'it.skip("colocated cy", () => {});\n')
+    locs = [c.location for c in from_skipped_tests(tmp_path)]
+    assert any(loc.endswith("login.cy.ts:1") for loc in locs)
+    assert any(loc.endswith("Button.cy.tsx:1") for loc in locs)
+
+
 def test_js_skip_discovery_covers_mocha_singular_test_dir(tmp_path):
     # Mocha's default test directory is test/ (singular) with plain-named files;
     # skip markers there must be discovered alongside tests/ and colocated files.

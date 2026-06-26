@@ -740,18 +740,12 @@ existing CLI session and makes no model or API calls of its own.
   plain-named `test/*.js` files (its default convention) are detected. The `tests/` and
   colocated `.test.`/`.spec.`/`__tests__/` patterns are unchanged. Covered by a test.
 
-## Next
+- Cypress `.cy.` test files are covered by colocated discovery: `_js_test_files` adds
+  `.cy.` alongside `.test.`/`.spec.`, so a Cypress project's `it.skip` markers in
+  `*.cy.ts`/`*.cy.tsx` files (in `cypress/` or colocated) are discovered. Existing
+  patterns are unchanged. Covered by a test.
 
-1. Cypress `.cy.` test files are missed by colocated test discovery. `_js_test_files`
-   recognizes `.test.` and `.spec.` suffixes but not `.cy.` — Cypress's standard test
-   file convention (`login.cy.ts`, `Button.cy.tsx`) — so a Cypress project's `it.skip`
-   markers outside `src`/`tests`/`test` are missed. Add `.cy.` to the colocated
-   suffix patterns, consistent with the Playwright support already added.
-   Evidence: `src/looptight/discovery.py:148`
-   Acceptance: a new test in `tests/test_propose.py` asserts an `it.skip` in
-   `cypress/e2e/login.cy.ts` and a colocated `components/Button.cy.tsx` are detected;
-   existing `.test.`/`.spec.`/`__tests__/` patterns are unchanged, and
-   `looptight verify` passes.
+## Next
 
 ## Rules
 
