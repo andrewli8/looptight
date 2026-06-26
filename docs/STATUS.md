@@ -540,9 +540,29 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-(none — the top-`k` truncation test landed in `tests/test_experience.py` as
-`test_summary_text_keeps_only_the_top_k_failed_ideas_by_count`, satisfying the
-queued task's acceptance.)
+1. `trajectory.clear()` has no test: the function removes the attempt file but no
+   test verifies it. A test seeding a trajectory, calling `clear()`, then recording
+   again should see a fresh single-entry list.
+   Evidence: `src/looptight/trajectory.py:58`
+   Acceptance: `tests/test_trajectory.py` has a new `test_clear_drops_trajectory`
+   that passes, with no production code change.
+
+2. `_verify_policy_error`'s `allowed_verify_commands` branch is untested: lines
+   284-285 reject a non-allowlisted verify command, but the only policy test covers
+   `protected_paths` — so an allowlist misconfiguration would go undetected.
+   Evidence: `src/looptight/protocol_commands.py:284`
+   Acceptance: a new test in `tests/test_cli.py` configures `allowed_verify_commands
+   = ["pytest -q"]`, runs `verify --json` with a command not in the list, and asserts
+   `status == "error"` with `"not allowed by policy"` in the output.
+
+3. `_is_fresh`'s non-numeric `updated_at` path in `trajectory.py:72` is a
+   defensive `except (TypeError, ValueError)` branch with no coverage: a corrupted
+   `updated_at` field should be treated as stale, not raise.
+   Evidence: `src/looptight/trajectory.py:72`
+   Acceptance: a new `test_record_treats_non_numeric_updated_at_as_stale` in
+   `tests/test_trajectory.py` writes a trajectory file with `"updated_at":
+   "not-a-number"` and asserts the next `record` call starts a fresh
+   single-entry list.
 
 ## Rules
 
