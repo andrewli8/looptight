@@ -609,6 +609,18 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `atomic_write_text` has no direct unit tests despite the module docstring claiming "defined and tested in a single place"; tests proving the happy path, parent-dir creation, and temp-file cleanup on failure are scattered across five other test files.
+   Evidence: `src/looptight/fsutil.py:15`
+   Acceptance: A new `tests/test_fsutil.py` with three direct tests (happy path writes correct content, parent dirs are created when absent, OSError removes the `.tmp` and re-raises) passes and `looptight verify --json` returns `pass`; no production code change.
+
+2. `from_lint`'s `except (OSError, subprocess.TimeoutExpired): return []` clause at discovery.py:481 is not directly tested — a refactor that accidentally removes it or narrows it would go undetected; callers rely on graceful degradation when ruff hangs or is inaccessible.
+   Evidence: `src/looptight/discovery.py:481`
+   Acceptance: Two new tests in `tests/test_propose.py` monkeypatch `subprocess.run` to raise `OSError` and `TimeoutExpired` respectively and assert `from_lint()` returns `[]` in both cases; `looptight verify --json` returns `pass`; no production code change.
+
+3. `_js_line_comment` (discovery.py:142) has only one direct unit test (the escaped-backslash case); the unclosed-block, inline-block, no-comment, and template-literal branches are not directly tested and a refactor could silently break them.
+   Evidence: `src/looptight/discovery.py:142`
+   Acceptance: Four new tests in `tests/test_propose.py` directly call `_js_line_comment` and assert `(None, False)` for a plain code line, `(body, True)` for an unclosed `/*`, `(body, False)` for a closed inline `/* … */`, and `(None, False)` for a comment token inside a backtick template literal; `looptight verify --json` returns `pass`; no production code change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
