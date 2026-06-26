@@ -80,7 +80,8 @@ looptight goal      # set or run a vision-driven build goal
 looptight doctor    # show the detected agent, verify command, and adapters
 ```
 
-Every command takes `--json` for scripting. `verify` exit codes: `0` pass, `1` a
+The machine-facing commands — `next`, `verify`, `status`, `doctor`, `propose`,
+`goal`, `migrate`, `run`, and `swarm` — take `--json` for scripting. `verify` exit codes: `0` pass, `1` a
 real failing verdict, `2` a config or validator-execution error. The JSON result
 tells `pass`, `fail`, `timeout`, and `error` apart, so a crashed test runner
 never looks like failing code.

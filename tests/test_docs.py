@@ -5,6 +5,16 @@ from __future__ import annotations
 from pathlib import Path
 
 _DAEMON_DOC = Path(__file__).resolve().parent.parent / "docs" / "daemon.md"
+_README = Path(__file__).resolve().parent.parent / "README.md"
+
+
+def test_readme_does_not_overclaim_json_support():
+    # `--json` is defined on nine subcommands; init/revert/improve/statusline/ui
+    # and the hook/install commands reject it, so the README must not claim every
+    # command takes it (a user trying `init --json` per the old text would error).
+    text = _README.read_text(encoding="utf-8")
+    assert "Every command takes `--json`" not in text
+    assert "take `--json`" in text  # it does name the machine-facing commands
 
 
 def test_daemon_doc_documents_on_fault_hook():

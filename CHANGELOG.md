@@ -43,6 +43,11 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- The README no longer claims "Every command takes `--json`". `--json` is
+  defined on nine subcommands (`next`, `verify`, `status`, `doctor`, `propose`,
+  `goal`, `migrate`, `run`, `swarm`); `init`, `revert`, and others reject it, so a
+  reader who tried `init --json` hit an argparse error. The README now names the
+  machine-facing commands.
 - `init` no longer claims it "detected" a value the user passed explicitly. With
   `--verify`/`--agent` it now says the value came from the flag, rather than
   "Detected: <cmd>" / "<agent> (auto-detected)"; plain `init` still reports
