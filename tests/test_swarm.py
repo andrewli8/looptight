@@ -608,6 +608,19 @@ def test_planned_tasks_grounded_tolerates_backticked_evidence(tmp_path):
     assert _planned_tasks_are_grounded(tmp_path, [fabricated]) is False
 
 
+def test_task_paths_resolves_backticked_evidence_to_bare_path(tmp_path):
+    # The change-scope set must include the file a backticked evidence anchor
+    # points at; otherwise a worker's edit to its own evidence file looks
+    # out-of-scope. `_summary_and_evidence` now emits backticked anchors.
+    from looptight.swarm import _task_paths
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("x", encoding="utf-8")
+    paths = _task_paths(tmp_path, {"location": "docs/STATUS.md:5", "evidence": "Evidence: `src/a.py:1`"})
+    assert "src/a.py" in paths
+    assert "`src/a.py:1`" not in paths  # the backticks are not kept as a path
+
+
 def test_planned_tasks_grounded_tolerates_bold_evidence_marker(tmp_path):
     # The planner check must share the gate's marker tolerance: a bold marker
     # (``**Evidence:** `path` ``) should still ground, not be rejected because a

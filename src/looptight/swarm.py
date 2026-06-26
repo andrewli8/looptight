@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import concurrent.futures
 import json
-import re
 import secrets
 import subprocess
 import time
@@ -229,12 +228,14 @@ def _remove_worker_worktree(root: Path, worktree: Path) -> subprocess.CompletedP
 def _task_paths(root: Path, task: dict[str, str | None]) -> set[str]:
     """Return grounded paths that may be changed while completing ``task``."""
     paths: set[str] = set()
-    references = [task.get("location")]
-    evidence = task.get("evidence") or ""
-    references.extend(re.findall(r"\bEvidence:\s+([^;\s]+)", evidence))
+    # The evidence field carries markdown-decorated anchors (`` `path:line` ``);
+    # find and normalize them through the shared parser so the bare file lands in
+    # the scope set, not a backtick-wrapped non-path.
+    references = [task.get("location"), *evidence_refs(task.get("evidence") or "")]
     for reference in references:
         if not reference:
             continue
+        reference = strip_anchor_decoration(reference)
         path_text, separator, line_text = reference.rpartition(":")
         if not separator or not line_text.isdigit():
             path_text = reference

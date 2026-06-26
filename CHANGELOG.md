@@ -40,6 +40,12 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- Swarm change-scoping (`_task_paths`) now resolves a markdown-backticked
+  evidence anchor to its bare file. It parsed the evidence field with its own
+  ad-hoc regex, so a `` `path:line` `` anchor (which the task summary now emits)
+  kept its backticks and the real file was dropped from the set of paths a worker
+  may change. It now routes through the shared `evidence_refs` /
+  `strip_anchor_decoration`, the last evidence parser to do so.
 - `goal check` no longer fails silently. It exited 1 with no output both when no
   goal was set and when a goal had no `--done` check, so a user could not tell
   whether the goal was incomplete or simply uncheckable (and a `/loop until:

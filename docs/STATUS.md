@@ -579,16 +579,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `_task_paths` parses the task's evidence field with its own ad-hoc regex and
-   `rpartition`, so a markdown-backticked anchor (which `_summary_and_evidence` now
-   produces) keeps its backticks and the real file is dropped from the change-scope
-   set. It is the last evidence parser not routed through the shared
-   `strip_anchor_decoration`.
-   Evidence: `src/looptight/swarm.py:234`
-   Acceptance: a new test in `tests/test_swarm.py` proves a backticked evidence
-   anchor resolves to its bare path in the `_task_paths` change-scope set;
-   `looptight verify` passes.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
