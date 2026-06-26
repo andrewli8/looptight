@@ -579,16 +579,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `next_task` skips a candidate missing title, detail, or acceptance before
-   building a task — the guard that upholds the core invariant that every
-   claimable task carries an observable acceptance criterion. That branch is
-   untested, so a regression letting acceptance-less candidates through would go
-   unnoticed.
-   Evidence: `src/looptight/tasks.py:136`
-   Acceptance: a new test in `tests/test_tasks.py` proves a candidate with empty
-   acceptance is not surfaced as a task (`next_task` returns `no_work`), and a
-   mutation removing the guard makes it fail; `looptight verify` passes.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
