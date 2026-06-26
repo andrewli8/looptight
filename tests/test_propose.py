@@ -111,6 +111,24 @@ def test_from_todos_finds_marker_in_jsdoc_block_comment(tmp_path):
     assert "line todo" in titles
 
 
+def test_js_skip_detects_jest_failing_vitest_fails(tmp_path):
+    # test.failing (Jest) and test.fails (Vitest) mark a known-broken test, the JS
+    # analog of pytest.xfail; surface them. Identifiers like failsafe/failingly aren't.
+    _write(
+        tmp_path,
+        "tests/a.test.ts",
+        'test.failing("jest known broken", () => {});\n'   # 1
+        'it.fails("vitest known broken", () => {});\n'      # 2
+        'it.failsafe("not a marker", () => {});\n'          # 3: NOT a marker
+        'it.failingly("not a marker", () => {});\n'         # 4: NOT a marker
+        'test.skip("plain still works", () => {});\n'       # 5
+    )
+    locs = {c.location.rsplit(":", 1)[1] for c in from_skipped_tests(tmp_path)}
+    assert "1" in locs and "2" in locs   # test.failing + it.fails
+    assert "5" in locs                    # plain skip unchanged
+    assert "3" not in locs and "4" not in locs  # failsafe/failingly not markers
+
+
 def test_js_skip_detects_playwright_fixme(tmp_path):
     # Playwright's test.fixme() marks a broken test to skip; it's a real skip in a
     # top-tier framework. The chained form and the suite form are both surfaced;

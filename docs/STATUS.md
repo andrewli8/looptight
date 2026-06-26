@@ -726,17 +726,12 @@ existing CLI session and makes no model or API calls of its own.
   skip in a top-tier framework) are surfaced. `fixme`-prefixed identifiers are not false
   hits; plain skip/todo/x-prefix detection is unchanged. Covered by a test.
 
-## Next
+- Jest `test.failing` and Vitest `test.fails` known-broken markers are detected: they
+  join the JS marker alternation as the analogs of `pytest.xfail`/Playwright `test.fixme`
+  (a test that runs and is expected to fail = known-broken to fix). `failsafe`/`failingly`
+  identifiers are not false hits; plain skip/todo/fixme is unchanged. Covered by a test.
 
-1. The JS known-broken markers `test.failing` (Jest) and `test.fails` (Vitest) are
-   not detected. They are the JS analogs of `pytest.xfail` and Playwright
-   `test.fixme` already surfaced — a test that runs and is expected to fail, i.e. a
-   known-broken test to fix. `_JS_SKIP_CALL` lacks `failing`/`fails`, so they slip
-   through in the two dominant JS frameworks.
-   Evidence: `src/looptight/discovery.py:407`
-   Acceptance: a new test in `tests/test_propose.py` asserts `test.failing(...)` and
-   `it.fails(...)` are surfaced while `it.failsafe(`/`it.failingly(` are not; plain
-   skip/todo/fixme detection is unchanged, and `looptight verify` passes.
+## Next
 
 ## Rules
 

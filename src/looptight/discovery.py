@@ -404,7 +404,7 @@ def _module_is_optin(lines: list[str]) -> bool:
 # Jest/Vitest forms (`test.concurrent.skip(`, `it.skip.each(`) are caught; the chain
 # segments keep `skip` a whole token so `it.skipFoo(`/`skipped` and `it.only` are not
 # false hits. The `x`-prefix forms (`xit`/`xdescribe`/`xtest`) stay separate.
-_JS_SKIP_CALL = r"(?:x(?:it|describe|test)|(?:it|describe|test)(?:\.\w+)*\.(?:skip|todo|fixme)(?:\.\w+)*)"
+_JS_SKIP_CALL = r"(?:x(?:it|describe|test)|(?:it|describe|test)(?:\.\w+)*\.(?:skip|todo|fixme|failing|fails)(?:\.\w+)*)"
 _JS_SKIP_RE = re.compile(rf"\b{_JS_SKIP_CALL}\s*\(")
 # Capture the test name to the matching closing quote of the *same* type as the
 # opener (backreference), so a nested quote of a different type — an apostrophe in a
