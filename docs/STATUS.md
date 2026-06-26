@@ -579,6 +579,15 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `goal status --json` includes `schema_version` only when a goal is active
+   (it comes from `goal.as_dict()`); the no-goal payload is just `{"command":
+   "goal", "active": false}`. An automation consumer reading `data["schema_version"]`
+   gets a KeyError when no goal is set — an inconsistent contract. The field
+   should always be present.
+   Evidence: `src/looptight/protocol_commands.py:731`
+   Acceptance: a new test asserts `goal status --json` carries `schema_version`
+   in both the active and the no-goal cases; `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
