@@ -576,6 +576,10 @@ existing CLI session and makes no model or API calls of its own.
 - `GoalDecision.as_dict()` now has direct unit coverage via
   `test_goal_decision_as_dict_pins_all_statuses` in tests/test_goal.py, asserting
   required fields are always present and optional fields appear only when set.
+- `revert` checks for tracked changes before prompting: on a clean tree, plain
+  `looptight revert` (no `--yes`) reports "nothing to revert" instead of offering to
+  discard changes that do not exist; the dirty-tree `--yes` confirmation gate is
+  unchanged. Covered by clean-no-prompt and dirty-still-prompts tests in test_cli.py.
 - `doctor`/`status` honestly report the SQLite coordinator as the active claim
   store. `next` leases through the coordinator DB in any git repo, so doctor prints
   `coordinator: active` and a coordination line naming the SQLite coordinator, and
@@ -604,18 +608,6 @@ existing CLI session and makes no model or API calls of its own.
   dropping the old-value argument from the reconcile update-ref call.
 
 ## Next
-
-1. `revert` on a clean tree should not prompt to discard nonexistent changes.
-   `cmd_revert` prints the "This discards uncommitted changes — Re-run with --yes"
-   confirmation before it ever checks whether the tree is dirty; the clean-tree
-   "nothing to revert" message only runs on the `--yes` path. So on a clean tree,
-   plain `looptight revert` misleadingly offers to discard changes that do not
-   exist. The clean-tree check should come first, for both paths.
-   Evidence: `src/looptight/commands.py:472`
-   Acceptance: a new test in `tests/test_cli.py` runs `revert` (no `--yes`) on a
-   committed clean tree and asserts the output says "nothing to revert" and does
-   not contain "Re-run with --yes"; the dirty-tree-without-`--yes` confirmation
-   prompt is unchanged, and `looptight verify` passes.
 
 ## Rules
 

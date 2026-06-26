@@ -1462,6 +1462,44 @@ def test_revert_on_clean_tree_reports_nothing_to_revert(tmp_path, monkeypatch, c
     assert "nothing to revert" in out
 
 
+def test_revert_clean_tree_without_yes_does_not_prompt(tmp_path, monkeypatch, capsys):
+    # On a clean tree, plain `revert` (no --yes) must report nothing to revert
+    # rather than offer to discard changes that do not exist.
+    import subprocess
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.email", "t@e.com"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.name", "T"], cwd=tmp_path, check=True)
+    (tmp_path / "app.py").write_text("x\n")
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-qm", "init"], cwd=tmp_path, check=True)
+
+    assert main(["revert"]) == 0
+    out = capsys.readouterr().out
+    assert "nothing to revert" in out.lower()
+    assert "Re-run with" not in out  # no destructive-confirmation prompt for a clean tree
+
+
+def test_revert_dirty_tree_without_yes_still_prompts(tmp_path, monkeypatch, capsys):
+    # The confirmation gate is preserved when there is real work to discard.
+    import subprocess
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.email", "t@e.com"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.name", "T"], cwd=tmp_path, check=True)
+    (tmp_path / "app.py").write_text("x\n")
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-qm", "init"], cwd=tmp_path, check=True)
+    (tmp_path / "app.py").write_text("changed\n")  # tracked change to discard
+
+    assert main(["revert"]) == 0
+    out = capsys.readouterr().out
+    assert "Re-run with" in out  # the confirmation gate still fires
+    assert (tmp_path / "app.py").read_text() == "changed\n"  # nothing discarded yet
+
+
 def test_status_json_keeps_v1_keys_and_adds_coordinator_counts(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)

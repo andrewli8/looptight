@@ -469,14 +469,10 @@ def cmd_revert(args: argparse.Namespace, console: Console) -> int:
     if not is_git_repo(workdir):
         console.print("[yellow]Not a git repo — nothing to revert.[/yellow]")
         return 1
-    if not args.yes:
-        console.print("This discards uncommitted changes (restores tracked files to HEAD).")
-        console.print("Re-run with [bold]--yes[/bold] to confirm.")
-        return 0
     import subprocess
 
-    # Only check out when there are tracked changes; otherwise the checkout is a
-    # no-op and claiming it "reverted" anything is misleading on a clean tree.
+    # Check for tracked changes BEFORE the confirmation prompt: a clean tree has
+    # nothing to discard, so neither the prompt nor a checkout is warranted.
     try:
         status = subprocess.run(
             ["git", "status", "--porcelain", "--untracked-files=no"],
@@ -487,6 +483,11 @@ def cmd_revert(args: argparse.Namespace, console: Console) -> int:
     has_tracked_changes = (
         status is None or status.returncode != 0 or bool((status.stdout or "").strip())
     )
+
+    if has_tracked_changes and not args.yes:
+        console.print("This discards uncommitted changes (restores tracked files to HEAD).")
+        console.print("Re-run with [bold]--yes[/bold] to confirm.")
+        return 0
 
     if has_tracked_changes:
         try:
