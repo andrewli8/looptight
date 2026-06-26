@@ -186,6 +186,26 @@ def test_goal_cli_check_exit_code_reflects_done(tmp_path, monkeypatch, capsys):
     assert main(["goal", "check"]) == 0  # done-check passes -> goal complete
 
 
+def test_goal_check_messages_misconfiguration_not_silent(tmp_path, monkeypatch, capsys):
+    from looptight.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    _repo(tmp_path)
+
+    # No goal set: exit 1 with a clear message, not a silent failure.
+    assert main(["goal", "check"]) == 1
+    assert "no active goal" in capsys.readouterr().out.lower()
+
+    # Goal set without --done: exit 1, but explain there is no completion check
+    # and how to add one (otherwise `/loop until: goal check` never terminates).
+    main(["goal", "build x"])
+    capsys.readouterr()
+    assert main(["goal", "check"]) == 1
+    out = capsys.readouterr().out
+    assert "done-check" in out.lower()
+    assert "--done" in out
+
+
 def test_install_goal_instructions_is_idempotent(tmp_path):
     from looptight.integration import GOAL_START, install_goal_instructions
 

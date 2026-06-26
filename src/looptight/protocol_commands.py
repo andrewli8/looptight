@@ -744,7 +744,14 @@ def cmd_goal(args: argparse.Namespace, console: Console) -> int:
 
     if arg == "check":
         goal = read_goal(workdir)
-        if goal is None or not goal.done_check:
+        if goal is None:
+            console.print('[yellow]no active goal[/yellow] — set one with `looptight goal "<vision>"`.')
+            return 1
+        if not goal.done_check:
+            console.print(
+                "[yellow]this goal has no done-check[/yellow]; `goal check` cannot tell when "
+                'it is complete. Set one with `looptight goal "<vision>" --done "<command>"`.'
+            )
             return 1
         return 0 if run_done_check(workdir, goal.done_check) else 1
 

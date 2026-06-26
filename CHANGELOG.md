@@ -40,6 +40,11 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- `goal check` no longer fails silently. It exited 1 with no output both when no
+  goal was set and when a goal had no `--done` check, so a user could not tell
+  whether the goal was incomplete or simply uncheckable (and a `/loop until:
+  looptight goal check` with no done-check would loop forever with no hint). It
+  now prints which case it is and how to fix it, still exiting 1.
 - `init --integrate` is now idempotent across both managed blocks. The session
   block stripped the blank line before the goal block, which the goal install
   then restored, so each block rewrote the file on every run — `init --integrate`
