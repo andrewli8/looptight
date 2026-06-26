@@ -506,6 +506,27 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Test that `install_goal_instructions` writes atomically: if the rename fails after
+   the temp file is written, the original file is intact and no `.tmp` is left behind.
+   Evidence: src/looptight/integration.py:111;
+   Acceptance: A new test in tests/test_integration.py monkeypatches `os.replace`,
+   calls `install_goal_instructions`, expects OSError, and asserts the original
+   AGENTS.md is unchanged and no `.tmp` remains. Passes under `looptight verify --json`.
+
+2. Test that `detect_verify` falls through when `package.json` contains a top-level
+   non-dict JSON value (e.g. `[]`), exercising the `isinstance(manifest, dict)` guard.
+   Evidence: src/looptight/detect.py:47;
+   Acceptance: A new test in tests/test_detect.py writes `package.json` whose content
+   is `[]` and asserts `detect_verify` returns `None`. Passes under
+   `looptight verify --json`.
+
+3. Test that a second call to `install_skill` replaces stale content with the current
+   `SKILL_MD`, verifying the idempotent-overwrite contract.
+   Evidence: src/looptight/skill.py:68;
+   Acceptance: A new test in tests/test_skill.py calls `install_skill` twice, writing
+   stale content between calls, and asserts the file equals `SKILL_MD` after the
+   second call. Passes under `looptight verify --json`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
