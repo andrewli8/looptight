@@ -503,17 +503,13 @@ existing CLI session and makes no model or API calls of its own.
   `test_goal_driver_recipe_omits_loop_hint_when_agent_unknown` monkeypatch
   `detect_agent` to verify the Claude-specific `/loop until: looptight goal check`
   line is included when agent is `"claude"` and absent otherwise.
+- `test_install_goal_instructions_writes_managed_block_atomically` verifies that
+  `install_goal_instructions` (which shares `_atomic_write` with its session sibling)
+  leaves the original AGENTS.md intact and no `.tmp` behind when `os.replace` fails.
 
 ## Next
 
-1. Test that `install_goal_instructions` writes atomically: if the rename fails after
-   the temp file is written, the original file is intact and no `.tmp` is left behind.
-   Evidence: src/looptight/integration.py:111;
-   Acceptance: A new test in tests/test_integration.py monkeypatches `os.replace`,
-   calls `install_goal_instructions`, expects OSError, and asserts the original
-   AGENTS.md is unchanged and no `.tmp` remains. Passes under `looptight verify --json`.
-
-2. Test that `detect_verify` falls through when `package.json` contains a top-level
+1. Test that `detect_verify` falls through when `package.json` contains a top-level
    non-dict JSON value (e.g. `[]`), exercising the `isinstance(manifest, dict)` guard.
    Evidence: src/looptight/detect.py:47;
    Acceptance: A new test in tests/test_detect.py writes `package.json` whose content

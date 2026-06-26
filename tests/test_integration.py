@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from looptight.config import ConfigError
-from looptight.integration import END, SESSION_LOOP, START, install_session_instructions
+from looptight.integration import END, SESSION_LOOP, START, install_goal_instructions, install_session_instructions
 
 
 def test_installs_same_small_loop_for_all_agents(tmp_path):
@@ -77,6 +77,25 @@ def test_install_writes_managed_block_atomically(tmp_path, monkeypatch):
     monkeypatch.setattr(integration.os, "replace", boom)
     with pytest.raises(OSError):
         install_session_instructions(tmp_path)
+
+    assert (tmp_path / "AGENTS.md").read_text(encoding="utf-8") == original
+    assert not (tmp_path / "AGENTS.tmp").exists()
+
+
+def test_install_goal_instructions_writes_managed_block_atomically(tmp_path, monkeypatch):
+    # install_goal_instructions shares _atomic_write with install_session_instructions:
+    # if the rename fails, the original AGENTS.md is intact and no .tmp is left behind.
+    import looptight.integration as integration
+
+    original = "# My project notes\n"
+    (tmp_path / "AGENTS.md").write_text(original, encoding="utf-8")
+
+    def boom(src, dst):
+        raise OSError("rename failed")
+
+    monkeypatch.setattr(integration.os, "replace", boom)
+    with pytest.raises(OSError):
+        install_goal_instructions(tmp_path)
 
     assert (tmp_path / "AGENTS.md").read_text(encoding="utf-8") == original
     assert not (tmp_path / "AGENTS.tmp").exists()
