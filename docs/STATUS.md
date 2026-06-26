@@ -596,6 +596,24 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Make `doctor`/`status` honestly report the SQLite coordinator as the active
+   claim store. `next_task` leases through the coordinator DB in every git repo
+   (`tasks.py` calls `Coordinator.open` unconditionally), yet doctor/status key
+   "coordinator: inactive / file claims / run migrate to enable coordination" on
+   the migrate marker, so a fresh repo is told it lacks coordination it already
+   has, and a plain git repo is reported `concurrency: unsafe`. Reframe: in a git
+   repo the coordinator is active; the marker only fences legacy file claims;
+   concurrency is unsafe only outside Git or while live legacy claims exist; the
+   migrate hint appears only when live legacy claims are present.
+   Evidence: `src/looptight/protocol_commands.py:566`
+   Acceptance: `_coordinator_activation` returns `active` in any git repo;
+   `_concurrency` is `unsafe` only for non-git or live legacy claims (a plain git
+   repo with no legacy claims is `safe`, remediation not the bare `run migrate`);
+   doctor prints `coordinator: active` and a coordination line naming the SQLite
+   coordinator, and offers the migrate hint only when live legacy claims exist;
+   tests in test_cli.py/test_coordinator.py are updated to the honest contract and
+   `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
