@@ -139,6 +139,22 @@ def _comments(path: Path):
         return
 
 
+def _multiline_string_lines(path: Path) -> set[int]:
+    """Line numbers that are continuation lines of a multi-line string literal, so a
+    skip marker written as example text inside a triple-quoted string is not a false
+    hit (the Python TODO path already gets this for free via ``tokenize``). Returns
+    an empty set on a malformed/unreadable file, leaving detection unchanged."""
+    inside: set[int] = set()
+    try:
+        with path.open("rb") as fh:
+            for tok in tokenize.tokenize(fh.readline):
+                if tok.type == tokenize.STRING and tok.start[0] != tok.end[0]:
+                    inside.update(range(tok.start[0] + 1, tok.end[0] + 1))
+    except (tokenize.TokenError, SyntaxError, OSError, UnicodeDecodeError):
+        return set()
+    return inside
+
+
 def _js_line_comment(line: str, in_template: bool = False) -> tuple[str | None, bool, bool]:
     """Scan one line for a `//` or `/* ... */` comment, quote-aware.
 
@@ -360,7 +376,10 @@ def from_skipped_tests(root: Path) -> list[Candidate]:
         lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
         if _module_is_optin(lines):
             continue
+        string_lines = _multiline_string_lines(path)
         for idx, line in enumerate(lines):
+            if idx + 1 in string_lines:  # a marker inside a multi-line string is example text
+                continue
             stripped = line.strip()
             if not _is_skip_line(stripped):
                 continue

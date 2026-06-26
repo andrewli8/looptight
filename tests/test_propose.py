@@ -56,6 +56,29 @@ def test_from_todos_skips_malformed_python_file(tmp_path):
     assert from_todos(tmp_path) == []
 
 
+def test_from_skipped_tests_ignores_py_marker_in_multiline_string(tmp_path):
+    # A pytest.skip(...) on a line inside a triple-quoted multi-line string is
+    # example text, not a real skip, and must not be surfaced; a real top-level
+    # pytest.skip(...) still is.
+    _write(
+        tmp_path,
+        "tests/test_a.py",
+        "def test_doc():\n"
+        '    doc = """\n'
+        '    pytest.skip("example inside a docstring, not real")\n'
+        '    """\n'
+        "    assert doc\n\n"
+        "def test_real():\n"
+        '    pytest.skip("genuinely disabled")\n'
+        "    assert True\n",
+    )
+    cands = from_skipped_tests(tmp_path)
+    locs = [c.location for c in cands]
+    assert any(loc.endswith(":8") for loc in locs)  # the real top-level skip
+    assert not any(loc.endswith(":3") for loc in locs)  # the one inside the string
+    assert len(cands) == 1
+
+
 def test_from_skipped_tests_ignores_js_marker_in_multiline_template_literal(tmp_path):
     # An it.skip(...) on a continuation line of a multi-line backtick template
     # literal (e.g. example code embedded in a string) is not a real skipped test

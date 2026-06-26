@@ -637,21 +637,14 @@ existing CLI session and makes no model or API calls of its own.
   lines that begin inside one, so an `it.skip(...)` written as example text in a
   multi-line backtick string is no longer a false-positive task. Single-line skip
   detection is unchanged. Sibling of the TODO template-literal fix; covered by a test.
+- Python skipped-test discovery ignores skip markers inside a multi-line string:
+  `from_skipped_tests` now suppresses candidate lines that fall inside a triple-quoted
+  string (computed via `tokenize` in `_multiline_string_lines`), so a `pytest.skip(...)`
+  written as example text in a docstring/multi-line string is no longer a false-positive
+  task. The Python TODO path already had this via tokenize; the skip path now matches.
+  Third sibling of the JS template-literal fixes; covered by a test.
 
 ## Next
-
-1. Python skipped-test discovery must ignore skip markers inside a multi-line
-   string literal. `from_skipped_tests`'s Python branch scans raw lines, so a
-   `pytest.skip(...)` written as example text on a continuation line of a
-   triple-quoted string is surfaced as a real skipped test — a false positive that
-   pollutes the queue. The Python TODO path already avoids this via `tokenize`; the
-   skip path should get the same token-awareness (the third sibling of the JS
-   template-literal false positives).
-   Evidence: `src/looptight/discovery.py:359`
-   Acceptance: a new test in `tests/test_propose.py` writes a test file with a
-   `pytest.skip(...)` on a line inside a triple-quoted multi-line string plus a real
-   top-level `pytest.skip(...)`, and asserts `from_skipped_tests` returns only the
-   real one; existing skip-detection tests are unchanged, and `looptight verify` passes.
 
 ## Rules
 
