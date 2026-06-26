@@ -770,15 +770,11 @@ existing CLI session and makes no model or API calls of its own.
   marker set. A `test_docs.py` assertion locks `.mts`/`.cy.`/`.gitignore` so the doc
   cannot silently drift from the code again.
 
-## Next
+- The CHANGELOG `[Unreleased]` records the two `protected_paths` security fail-open
+  fixes (glob patterns and renames) under a `### Security` subsection, so the safety-gate
+  hardening is visible to anyone reviewing the next release.
 
-1. The CHANGELOG `[Unreleased]` section omits this turn's two `protected_paths`
-   security fail-open fixes (glob patterns and renames). A changelog that does not
-   record security fixes is a real gap for maintainers and users reviewing a release.
-   Evidence: `CHANGELOG.md:7`
-   Acceptance: a `### Security` subsection under `[Unreleased]` records the
-   `protected_paths` glob and rename fail-open fixes; the existing CHANGELOG doc test
-   still passes, and `looptight verify` passes.
+## Next
 
 ## Rules
 

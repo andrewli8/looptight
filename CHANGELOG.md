@@ -156,6 +156,17 @@ All notable changes to looptight are recorded here. The format follows
 - The README logo renders on PyPI as well as GitHub (a tight PNG served by an
   absolute URL, replacing the relative SVG that PyPI could not resolve).
 
+### Security
+
+- `protected_paths` honors glob patterns (`config/*`, `*.env`). It matched only an
+  exact path or a directory prefix, so a `*` pattern silently failed open and left
+  the named files unprotected by the verify-gate policy.
+- `protected_paths` catches renames of a protected file. The policy read changed
+  paths from `git status --short` and kept a rename entry as the literal
+  `old -> new` string, matching neither path — so moving or renaming a protected
+  file slipped past the gate. Rename/copy entries now yield both paths (and git's
+  path quoting is stripped).
+
 ## [0.1.0]
 
 First release: a test-gated work loop that runs inside a coding agent's session.
