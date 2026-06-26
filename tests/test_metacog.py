@@ -250,3 +250,29 @@ def test_escalation_from_signals_builds_the_same_report():
     assert esc.trajectory == (-1.0, -1.0)
     assert any("a::x" in f for f in esc.failures)
     assert "1 failure" in esc.summary
+
+
+def test_summarize_no_failures_parsed_branch():
+    # total == 0: the "No specific failures parsed" branch is distinct from the
+    # "never cleared" and "Showing the latest" branches.
+    from looptight.metacog import _summarize
+    text = _summarize("escalated", total=0, persisted=True, iterations=2)
+    assert "No specific failures parsed" in text
+    assert "never cleared" not in text
+
+
+def test_summarize_non_persistent_failures_branch():
+    # persisted == False: "Showing the latest ... none held across every try."
+    from looptight.metacog import _summarize
+    text = _summarize("no_progress", total=3, persisted=False, iterations=2)
+    assert "Showing the latest" in text
+    assert "none held" in text
+    assert "never cleared" not in text
+
+
+def test_summarize_single_iteration_uses_singular_try():
+    # iterations == 1: "1 try" not "1 tries".
+    from looptight.metacog import _summarize
+    text = _summarize("escalated", total=1, persisted=True, iterations=1)
+    assert "1 try" in text
+    assert "tries" not in text
