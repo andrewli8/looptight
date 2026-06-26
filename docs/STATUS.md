@@ -679,6 +679,16 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `protected_paths` silently fails open for glob patterns. `_verify_policy_error`
+   matches a changed file by exact path or directory prefix, so a natural glob like
+   `config/*` or `*.env` never matches and the protected files are silently
+   unprotected (a fail-open on a safety gate). Glob patterns must be honored.
+   Evidence: `src/looptight/protocol_commands.py:308`
+   Acceptance: a new test in `tests/test_cli.py` configures `protected_paths` with
+   `config/*` and `*.env`, asserts a change to a matching file makes `verify` refuse
+   (exit 2, "protected path"), and a non-matching change still passes; exact-path and
+   directory-prefix protection are unchanged, and `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
