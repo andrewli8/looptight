@@ -579,6 +579,16 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. When `verify --patience` reports a stall (no progress across attempts), the
+   human `next:` line still says "continue fixing, then rerun" — identical to a
+   normal failure. The stall signal exists to say the current approach is not
+   progressing, so advising "continue fixing" undercuts it; the next step should
+   reflect the stall (try a different approach or get a human review).
+   Evidence: `src/looptight/protocol_commands.py:68`
+   Acceptance: a new test asserts the failing-verify `next:` line differs when a
+   stall is present (suggests a different approach / human review) from the plain
+   failure case; `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
