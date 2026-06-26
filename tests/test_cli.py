@@ -1217,6 +1217,52 @@ def test_verify_json_refuses_protected_path_changes(tmp_path, monkeypatch, capsy
     assert "secrets/token.txt" in payload["output"]
 
 
+def test_verify_json_refuses_protected_path_rename(tmp_path, monkeypatch, capsys):
+    # Renaming/moving a protected file must be refused too: a rename removes the file
+    # from its protected location, so it cannot be allowed to slip past the gate.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text(
+        'verify = "exit 0"\nprotected_paths = ["src/secret.py"]\n', encoding="utf-8"
+    )
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "secret.py").write_text("secret\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init"],
+        check=True,
+    )
+    subprocess.run(["git", "mv", "src/secret.py", "src/moved.py"], check=True)
+
+    assert main(["verify", "--json"]) == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "error"
+    assert "protected path" in payload["output"]
+
+
+def test_changed_file_list_splits_renames_and_unquotes(tmp_path, monkeypatch):
+    # The policy parser must yield both sides of a rename and strip git's quoting,
+    # so a protected path is matched regardless of how git formats the entry.
+    from looptight import protocol_commands
+
+    def fake_run(*args, **kwargs):
+        class R:
+            returncode = 0
+            stdout = (
+                "R  src/secret.py -> src/moved.py\n"
+                ' M "with space.py"\n'
+                "?? plain.py\n"
+            )
+        return R()
+
+    monkeypatch.setattr(protocol_commands.subprocess, "run", fake_run)
+    files = protocol_commands._changed_file_list(tmp_path)
+    assert "src/secret.py" in files  # old side of the rename
+    assert "src/moved.py" in files   # new side of the rename
+    assert "with space.py" in files  # quotes stripped
+    assert "plain.py" in files
+
+
 def test_verify_json_refuses_glob_protected_path_changes(tmp_path, monkeypatch, capsys):
     # A glob pattern in protected_paths must actually protect matching files, not
     # silently fail open (the `*` implies globbing).

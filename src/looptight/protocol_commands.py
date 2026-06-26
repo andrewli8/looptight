@@ -292,7 +292,24 @@ def _changed_file_list(workdir: Path) -> list[str] | None:
     )
     if result.returncode != 0:
         return None
-    return [line[3:] for line in result.stdout.splitlines() if len(line) > 3]
+    files: list[str] = []
+    for line in result.stdout.splitlines():
+        if len(line) <= 3:
+            continue
+        rest = line[3:]
+        # A rename/copy entry is `old -> new`; both paths must be checked so a
+        # rename of a protected file cannot slip past the policy. Git C-quotes paths
+        # with special characters in `--short` output, so strip surrounding quotes.
+        sides = rest.split(" -> ", 1) if " -> " in rest else [rest]
+        files.extend(_unquote_git_path(side) for side in sides)
+    return files
+
+
+def _unquote_git_path(path: str) -> str:
+    """Strip git's surrounding double-quotes from a path it quoted for special chars."""
+    if len(path) >= 2 and path.startswith('"') and path.endswith('"'):
+        return path[1:-1]
+    return path
 
 
 def _verify_policy_error(command: str, config, workdir: Path) -> str | None:

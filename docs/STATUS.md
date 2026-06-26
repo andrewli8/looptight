@@ -680,20 +680,12 @@ existing CLI session and makes no model or API calls of its own.
   file by exact path, directory prefix, OR `fnmatch` glob (`config/*`, `*.env`), so a
   `*` pattern actually protects its files instead of silently failing open on the
   safety gate. Exact and directory-prefix protection are unchanged. Covered by a test.
+- `protected_paths` catches renames of protected files: `_changed_file_list` now splits
+  a `git status` rename entry (`old -> new`) into both paths and strips git's quoting,
+  so moving/renaming a protected file is refused instead of slipping past the gate (a
+  plain delete was already caught; only the rename format evaded). Covered by a test.
 
 ## Next
-
-1. Renaming a protected file bypasses the `protected_paths` policy. `_changed_file_list`
-   returns `line[3:]` of `git status --short`, so a rename entry
-   (`R  src/secret.py -> src/moved.py`) becomes one literal string matching neither
-   the old nor new path — a security fail-open that lets an agent move/rename a
-   protected file undetected (a plain delete is caught; only the rename format evades).
-   Rename/copy entries must yield both paths, and surrounding git quoting stripped.
-   Evidence: `src/looptight/protocol_commands.py:295`
-   Acceptance: a new test in `tests/test_cli.py` `git mv`s a protected file and asserts
-   `verify` refuses (exit 2, "protected path"); `_changed_file_list` splits a
-   `old -> new` rename into both paths and unquotes a quoted path; non-rename parsing
-   is unchanged, and `looptight verify` passes.
 
 ## Rules
 
