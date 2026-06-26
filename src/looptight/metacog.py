@@ -98,6 +98,9 @@ _FAILURE_LINE_RE = re.compile(
     r"(FAILED|FAIL:|--- FAIL|AssertionError|Traceback|not ok|^\s*[✗✕×])",
     re.IGNORECASE,
 )
+# A run tally ("=== 2 failed, 18 passed in 0.4s ===") is a count, not a failure
+# identity — it is already captured by the trajectory, so it is not evidence.
+_TALLY_RE = re.compile(r"^[=\s]*\d+\s+(?:failed|passed|errors?|skipped)\b", re.IGNORECASE)
 # Volatile fragments neutralized so the same failure matches across runs.
 _HEX_ADDR_RE = re.compile(r"0x[0-9a-fA-F]+")
 _IN_SECONDS_RE = re.compile(r"\bin\s+\d+(?:\.\d+)?\s*m?s\b", re.IGNORECASE)
@@ -116,7 +119,7 @@ def _failure_lines(output: str) -> set[str]:
     """Normalized failure-shaped lines from one verify output."""
     lines = set()
     for raw in (output or "").splitlines():
-        if _FAILURE_LINE_RE.search(raw):
+        if _FAILURE_LINE_RE.search(raw) and not _TALLY_RE.match(raw.strip()):
             normalized = _normalize_failure(raw)
             if normalized:
                 lines.add(normalized)

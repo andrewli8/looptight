@@ -137,6 +137,12 @@ def test_failure_lines_extracts_and_normalizes_across_runners():
     assert any("TestRefund" in line for line in _failure_lines(go_out))
     # A passing/noise line is not a failure line.
     assert _failure_lines("5 passed in 0.1s\nok") == set()
+    # A count tally is not failure evidence (it inflates the count and adds noise).
+    summary_out = "=== 2 failed, 18 passed in 0.4s ===\nFAILED a::x - boom"
+    failures = _failure_lines(summary_out)
+    assert any("a::x" in line for line in failures)
+    assert not any("18 passed" in line for line in failures)
+    assert len(failures) == 1  # only the real failure, not the tally
 
 
 def test_normalize_merges_failures_differing_only_by_duration():

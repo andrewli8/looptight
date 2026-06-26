@@ -14,6 +14,12 @@ All notable changes to looptight are recorded here. The format follows
 - `init` warns when the detected verify command is a weak gate (lint-only or
   none), so a loop is not gated by a test command that proves nothing.
 - `doctor` is scriptable: a readiness exit code and `--json` for CI gating.
+- When value-aware stopping cuts a headless `run` short, the summary now explains
+  why: the failures that never cleared across the attempts plus the progress
+  trajectory, instead of a bare "stuck, worth a human look."
+- `run --json` emits the versioned run result (stop reason, per-iteration verdicts,
+  diffstat) including an `escalation` object, closing the gap where `run` was the
+  only command without `--json`.
 
 ### Changed
 
