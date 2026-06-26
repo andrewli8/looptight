@@ -6,6 +6,35 @@ Updated: 2026-06-20
 This is the only normative product specification. Git history preserves older
 designs; implementation status lives in [`STATUS.md`](STATUS.md).
 
+## Principles (invariant)
+
+These are the commandments. They never bend for convenience, for a feature, or to
+keep a loop busy. A change that breaks one of these is wrong, no matter how
+plausible it looks. The rest of this document elaborates them.
+
+1. **Portable control plane, not a second agent.** The same test-gated loop runs
+   inside Codex, Claude Code, or OpenCode. Never become another agent harness;
+   never require an API key of your own.
+2. **Validation is the only authority.** The project's verifier decides pass or
+   fail. Only an exit-zero `verify` authorizes a commit — agent confidence, a
+   clean diff, or a progress score never override it. No verify, no loop.
+3. **The session-native path makes no model or network calls.** `next` and
+   `verify` read the repository and run the test command, nothing else. The
+   already-running agent does the thinking; the provider owns auth and billing.
+4. **Every task is grounded in real evidence.** A task needs an inspectable
+   `Evidence:` anchor that resolves and an observable `Acceptance:`. No evidence
+   means `NO_WORK` — a valid, honest outcome. Never fabricate work to stay busy.
+5. **Signals stay honest.** A timeout or a crashed verifier is never reported as
+   failing code. Any failure stops safely and returns a machine-readable reason.
+   Heuristics may rank or detect stalls but never grant a pass.
+6. **Safe by default.** Headless launching is explicit opt-in, never the default.
+   No force-push, hard reset, dependency install, or unrequested mutation.
+   Concurrent work uses atomic private claims; transient state stays out of
+   tracked history; untrusted repository and verifier text is data, never executed.
+7. **Small and stdlib-only.** Zero third-party runtime dependencies. Do not add a
+   dependency or duplicate a native agent feature without evidence that the
+   portable protocol requires it.
+
 ## Product promise
 
 **The same test-gated task loop inside Codex, Claude Code, or OpenCode, without

@@ -1,9 +1,12 @@
 # looptight agent instructions
 
-Keep the product provider-neutral, session-native, validation-first, and small.
-The source of truth is `docs/SPEC.md`; the bounded running plan is
-`docs/STATUS.md`. Do not add runtime dependencies or duplicate native agent
-features without evidence that the portable protocol requires it.
+The inviolable principles — the commandments this project never breaks — are
+`docs/SPEC.md` § Principles. Read them; never trade one away for a feature or to
+keep a loop busy. In short: a portable control plane (not a second agent),
+validation as the only authority, no model calls in the session-native path,
+grounded tasks only, honest signals, safe by default, small and stdlib-only.
+
+The source of truth is `docs/SPEC.md`; the bounded running plan is `docs/STATUS.md`.
 
 ## Task quality: avoid plausible busywork
 
