@@ -570,6 +570,28 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `goal next` human output should print the iteration number so users can track
+   progress across a multi-step loop (currently only the directive prompt is shown).
+   Evidence: src/looptight/protocol_commands.py:740
+   Acceptance: `test_goal_next_human_output_includes_iteration_number` in
+   tests/test_goal.py asserts "iteration 1" appears in the human-mode output of
+   `looptight goal next` on the first call.
+
+2. The `stop` and `done` branches of `goal next` human output are not covered by
+   any test; only the `active` branch is exercised by `test_goal_human_output_paths`.
+   Evidence: src/looptight/protocol_commands.py:742; tests/test_goal.py:237
+   Acceptance: `test_goal_next_human_output_stop_and_done_branches` in
+   tests/test_goal.py asserts "goal stop" appears when `max_iterations` is reached
+   and "goal done" appears when the done-check passes.
+
+3. `GoalDecision.as_dict()` is exercised only indirectly via CLI JSON paths; no
+   test pins the schema across all four statuses.
+   Evidence: src/looptight/goal.py:107; tests/test_goal.py (no direct as_dict call)
+   Acceptance: `test_goal_decision_as_dict_pins_all_statuses` in tests/test_goal.py
+   calls `.as_dict()` for `active`, `done`, `stop`, and `no_goal`, asserting
+   `schema_version`, `command`, `status`, and `iteration` are always present, and
+   that `directive`/`reason` appear only for statuses that carry them.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
