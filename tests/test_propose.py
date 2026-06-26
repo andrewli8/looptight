@@ -382,6 +382,18 @@ def test_reweight_never_inverts_curated_over_automated():
     assert ordered[0] == "task-file"
 
 
+def test_max_boosted_automated_stays_below_lowest_curated_tier():
+    # The tightest case of the curated-over-automated invariant: status-next is
+    # the lowest-weight curated source and lint the highest automated. With lint
+    # maximally boosted it must still rank below status-next (a ~0.2 margin). A
+    # small bump to _REWEIGHT_HI or a weight would silently invert this; the
+    # other tests use task-file, which has far more margin, so they miss it.
+    cs = [_rc("status-next", "planned"), _rc("lint", "nit")]
+    model = Model(category_landed={"lint": 1000}, category_failed={"lint": 0})
+    ordered = [c.source for c in rank_with_model(cs, model)]
+    assert ordered == ["status-next", "lint"]
+
+
 def test_failed_curated_source_stays_above_automated():
     cs = [_rc("task-file", "human task"), _rc("status-next", "planned"), _rc("lint", "nit")]
     # task-file AND status-next each have a recorded failure; lint has none
