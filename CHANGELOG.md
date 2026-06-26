@@ -20,6 +20,11 @@ All notable changes to looptight are recorded here. The format follows
 - `run --json` emits the versioned run result (stop reason, per-iteration verdicts,
   diffstat) including an `escalation` object, closing the gap where `run` was the
   only command without `--json`.
+- `verify --patience N` brings value-aware stopping to the session-native path: it
+  persists the progress trajectory between calls (Git-private, per-worktree) and
+  adds an additive `stall` object to `verify --json` with the stall decision and,
+  when stuck, the escalation evidence. Off by default; the default verifier
+  contract is unchanged.
 
 ### Changed
 

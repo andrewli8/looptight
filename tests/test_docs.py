@@ -100,6 +100,15 @@ def test_spec_output_contract_documents_run_json_and_escalation():
     assert "escalation" in output_contract
 
 
+def test_spec_output_contract_documents_verify_patience_stall():
+    # The session-native value-aware stopping signal must be documented: verify
+    # --patience and the additive stall object, with the default contract unchanged.
+    spec = (_ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
+    output_contract = spec.split("## Output contract", 1)[1].split("## ", 1)[0]
+    assert "verify --patience" in output_contract
+    assert "stall" in output_contract
+
+
 def test_unattended_doc_documents_patience_and_escalation():
     # The value-aware stopping control is off by default; the unattended guide must
     # document --patience and what the escalation report surfaces, or the feature

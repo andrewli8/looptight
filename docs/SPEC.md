@@ -237,6 +237,14 @@ raw output), `diffstat` — and an additive `escalation` object when the control
 stopped early: the failures that never cleared plus the progress trajectory, or
 `null` otherwise.
 
+`verify --patience N` opts the session-native path into value-aware stopping: it
+persists the progress trajectory between calls in Git-private, per-worktree state
+and adds an additive `stall` object to `verify --json` — `decision`
+(`continue` | `stop_no_progress` | `escalate`) and, when stalled, the same
+`escalation` evidence. A passing verify, a changed verify command, or a stale gap
+resets the attempt. Without `--patience` (the default) `verify` writes no state and
+the JSON has no `stall` key, so the default verifier contract is unchanged.
+
 When idea generation is enabled (the default), a `no_work` result from `next` may
 also carry an optional `directive` object (`{"action": "generate_ideas", ...}`)
 instructing the host session to add grounded `docs/STATUS.md` tasks and continue.

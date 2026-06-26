@@ -44,6 +44,7 @@ def cmd_verify(args: argparse.Namespace, console: Console) -> int:
             console.print(f"[red]policy error:[/red] {policy_error}")
         return 2
     result = run_verify(command, workdir)
+    stall = _stall_signal(workdir, command, result, getattr(args, "patience", 0) or 0)
     if args.json:
         _print_verify_json(
             status=result.status,
@@ -52,18 +53,56 @@ def cmd_verify(args: argparse.Namespace, console: Console) -> int:
             duration_ms=round(result.duration_s * 1000, 3),
             output=result.output,
             error=result.error,
+            stall=stall,
         )
         return _verify_exit_code(result.status)
     style = "green" if result.passed else "red"
     console.print(f"verify: [{style}]{result.short()}[/{style}] (exit {result.exit_code})")
     console.print(f"verifier result: {result.status}")
     console.print(f"changed files: {_changed_files(workdir)}")
+    if stall and stall.get("escalation"):
+        console.print(f"[yellow]stalled:[/yellow] {stall['escalation']['summary']}")
     console.print(
         "next: review the diff, update status, then commit"
         if result.passed
         else "next: continue fixing, then rerun `looptight verify --json`"
     )
     return _verify_exit_code(result.status)
+
+
+def _stall_signal(workdir: Path, command: str, result, patience: int) -> dict | None:
+    """Session-native value-aware stopping: persist the verify trajectory and,
+    when ``--patience`` is set, return the stall verdict (and escalation evidence
+    when stalled). ``None`` when the feature is off, so the default contract holds.
+    """
+    if patience <= 0:
+        return None
+    from . import trajectory
+    from .metacog import (
+        Decision,
+        _failure_lines,
+        assess,
+        escalation_from_signals,
+        progress_signal,
+    )
+    from .types import StopReason
+
+    entries = trajectory.record(
+        workdir, command, progress_signal(result), _failure_lines(result.output),
+        passed=result.passed,
+    )
+    if result.passed or not entries:
+        return None
+    history = [entry["signal"] for entry in entries]
+    decision = assess(history, patience)
+    stall: dict = {"decision": decision.value, "escalation": None}
+    if decision in (Decision.STOP_NO_PROGRESS, Decision.ESCALATE):
+        stop_reason = (
+            StopReason.ESCALATED if decision is Decision.ESCALATE else StopReason.NO_PROGRESS
+        )
+        failure_sets = [set(entry["failures"]) for entry in entries]
+        stall["escalation"] = escalation_from_signals(history, failure_sets, stop_reason).as_dict()
+    return stall
 
 
 def _verify_exit_code(status: str) -> int:
@@ -79,23 +118,26 @@ def _print_verify_json(
     score: float | None = None,
     duration_ms: float = 0.0,
     error: str | None = None,
+    stall: dict | None = None,
 ) -> None:
-    """Emit the v1 verifier contract without terminal styling or wrapping."""
-    print(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "command": "verify",
-                "status": status,
-                "exit_code": exit_code,
-                "score": score,
-                "duration_ms": duration_ms,
-                "output": output,
-                "error": error,
-            },
-            sort_keys=True,
-        )
-    )
+    """Emit the v1 verifier contract without terminal styling or wrapping.
+
+    The ``stall`` object is additive and present only under ``--patience`` (the
+    session-native value-aware stopping signal), so the default contract is
+    unchanged."""
+    payload = {
+        "schema_version": 1,
+        "command": "verify",
+        "status": status,
+        "exit_code": exit_code,
+        "score": score,
+        "duration_ms": duration_ms,
+        "output": output,
+        "error": error,
+    }
+    if stall is not None:
+        payload["stall"] = stall
+    print(json.dumps(payload, sort_keys=True))
 
 
 def _eval_line(score: object) -> str:

@@ -108,6 +108,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_verify = sub.add_parser("verify", help="run the verify command once and report")
     p_verify.add_argument("--verify", help="override the verify command")
     p_verify.add_argument("--json", action="store_true", help="emit the versioned verdict as JSON")
+    p_verify.add_argument(
+        "--patience",
+        type=_non_negative_int,
+        default=0,
+        help="track progress across calls; surface a stall verdict after N "
+        "no-progress iterations (0 = off)",
+    )
 
     p_doctor = sub.add_parser(
         "doctor", help="show the detected agent, verify command, and adapter status"

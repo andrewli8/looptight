@@ -1649,3 +1649,37 @@ def test_run_json_guard_failure_emits_json_not_markup(tmp_path, monkeypatch, cap
     assert data["schema_version"] == 1
     assert isinstance(data["error"], str) and data["error"]
     assert "[red]" not in out
+
+
+def test_verify_patience_surfaces_session_native_stall(tmp_path, monkeypatch, capsys):
+    # verify --patience persists the trajectory across calls and escalates a stuck
+    # sequence; a passing verify resets it. A stuck verify command is one that fails
+    # with the same output every time.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    stuck = 'python -c "import sys; sys.stderr.write(chr(10).join([\'FAILED t::x - boom\',\'1 failed\'])); sys.exit(1)"'
+
+    def run(extra):
+        assert main(["verify", "--verify", stuck, "--patience", "2", "--json"]) == 1
+        return json.loads(capsys.readouterr().out)
+
+    first = run(None)
+    assert first["stall"]["decision"] == "continue"  # not enough history yet
+    run(None)
+    third = run(None)
+    assert third["stall"]["decision"] == "escalate"  # never improved across 3 tries
+    assert third["stall"]["escalation"]["kind"] == "escalated"
+    assert any("t::x" in f for f in third["stall"]["escalation"]["failures"])
+
+    # A passing verify clears the attempt: no stall on the next failing run's first call.
+    assert main(["verify", "--verify", "true", "--patience", "2", "--json"]) == 0
+    cleared = json.loads(capsys.readouterr().out)
+    assert "stall" not in cleared or cleared["stall"] is None  # pass -> no stall
+
+
+def test_verify_json_without_patience_has_no_stall_key(tmp_path, monkeypatch, capsys):
+    # The default verify --json contract is unchanged: no stall key.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    assert main(["verify", "--verify", "true", "--json"]) == 0
+    assert "stall" not in json.loads(capsys.readouterr().out)
