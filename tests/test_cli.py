@@ -1636,3 +1636,16 @@ def test_run_json_emits_versioned_result_with_escalation_key(tmp_path, monkeypat
     assert data["stop_reason"] == "success"
     assert data["escalation"] is None
     assert "output" not in data["iterations"][0]  # per-iteration stays bounded
+
+
+def test_run_json_guard_failure_emits_json_not_markup(tmp_path, monkeypatch, capsys):
+    # A config-guard failure under --json must still honor the JSON contract: a
+    # single JSON error object, not Rich markup, on stdout.
+    monkeypatch.chdir(tmp_path)
+    assert main(["run", "fix it", "--json"]) == 2  # no --headless -> guard fails
+    out = capsys.readouterr().out
+    data = json.loads(out)  # parses as one JSON object, not "[red]...[/red]"
+    assert data["command"] == "run"
+    assert data["schema_version"] == 1
+    assert isinstance(data["error"], str) and data["error"]
+    assert "[red]" not in out

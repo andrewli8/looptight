@@ -513,6 +513,9 @@ existing CLI session and makes no model or API calls of its own.
 - A second call to `install_skill` overwrites stale content with the current `SKILL_MD`
   (idempotent-overwrite contract) — covered by
   `test_install_skill_overwrites_stale_content` in test_skill.py.
+- `run --json` honors its contract on a config-guard failure: the no-headless,
+  primary-worktree, no-agent, and no-verify guards emit a JSON error object (not Rich
+  markup) when `--json` is set, covered by a test in test_cli.py.
 
 ## Next
 
@@ -548,16 +551,7 @@ existing CLI session and makes no model or API calls of its own.
    source", Model())` and asserts the return value is 1.0. Passes under
    `looptight verify --json`.
 
-5. `run --json` breaks its own contract on a config-guard failure: the no-headless,
-   dirty-worktree, no-agent, and no-verify guards `console.print` Rich markup and
-   return 2 before the `--json` branch, so a misconfigured `run --json` emits human
-   markup to stdout instead of a JSON object. Evidence: src/looptight/commands.py:107;
-   Acceptance: a test in tests/test_cli.py runs `main(["run", "--json"])` without
-   `--headless` and asserts stdout parses as one JSON object carrying `command`,
-   `schema_version`, and `error` (not Rich markup), exit code 2; the fix emits a JSON
-   error object from those guards when `--json` is set. Passes under `looptight verify`.
-
-6. Value-aware stopping (and so the new escalation report) is dormant and
+5. Value-aware stopping (and so the new escalation report) is dormant and
    undiscoverable: `patience` defaults to 0, is not a `.looptight.toml` setting (only
    the `--patience` flag), and no doc mentions it. Evidence: src/looptight/config.py:49;
    Acceptance: `patience` becomes a parsed config setting (default 0, via the existing

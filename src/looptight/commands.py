@@ -102,12 +102,25 @@ def cmd_init(args: argparse.Namespace, console: Console) -> int:
 
 
 def cmd_run(args: argparse.Namespace, console: Console) -> int:
-    if not args.headless:
-        console.print(
-            "[red]run launches an agent child process.[/red] Pass --headless explicitly, "
-            "or use `looptight init --integrate` for the current-session loop."
-        )
+    as_json = getattr(args, "json", False)
+
+    def _guard_fail(human: str, machine: str) -> int:
+        # A guard failure must honor whichever contract the caller asked for: a
+        # JSON error object under --json, Rich markup otherwise.
+        if as_json:
+            import json
+
+            print(json.dumps({"command": "run", "schema_version": 1, "error": machine}))
+        else:
+            console.print(human)
         return 2
+
+    if not args.headless:
+        return _guard_fail(
+            "[red]run launches an agent child process.[/red] Pass --headless explicitly, "
+            "or use `looptight init --integrate` for the current-session loop.",
+            "run launches an agent child process; pass --headless explicitly",
+        )
     workdir = Path.cwd()
     config = load_config().merged(
         agent=args.agent,
@@ -118,30 +131,34 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
         native=True if args.native else None,
     )
     if is_git_primary_worktree(workdir) and not config.direct_main:
-        console.print(
+        return _guard_fail(
             "[red]run --headless refuses a Git primary worktree by default.[/red] "
-            "Use an isolated worktree, or set `direct_main = true` explicitly."
+            "Use an isolated worktree, or set `direct_main = true` explicitly.",
+            "run --headless refuses a Git primary worktree; use an isolated worktree "
+            "or set direct_main = true",
         )
-        return 2
 
     agent_name = config.agent or detect_agent()
     if not agent_name:
-        console.print("[red]No coding agent found on PATH.[/red] Install claude, codex, or opencode.")
-        return 2
+        return _guard_fail(
+            "[red]No coding agent found on PATH.[/red] Install claude, codex, or opencode.",
+            "no coding agent found on PATH; install claude, codex, or opencode",
+        )
     adapter = get_adapter(agent_name)
 
     if not config.verify:
         config = config.merged(verify=detect_verify(workdir))
     if not config.verify:
-        console.print("[red]No verify command.[/red] No verify, no loop — set one:")
-        console.print('  looptight init   or   looptight run --headless "..." --verify "pytest -q"')
-        return 2
+        return _guard_fail(
+            "[red]No verify command.[/red] No verify, no loop — set one:\n"
+            '  looptight init   or   looptight run --headless "..." --verify "pytest -q"',
+            "no verify command; run looptight init or pass --verify",
+        )
 
     use_native = config.native and adapter.supports_native_loop
     if config.native and not adapter.supports_native_loop:
         console.print(f"[yellow]{agent_name} has no native loop; supplying the loop instead.[/yellow]")
 
-    as_json = getattr(args, "json", False)
     if not as_json:
         verb = "driving native loop" if use_native else "supplying loop"
         console.print(
