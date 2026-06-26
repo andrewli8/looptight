@@ -307,6 +307,26 @@ def test_goal_next_human_output_includes_iteration_number(tmp_path, monkeypatch,
     assert "iteration 1" in out.lower()
 
 
+def test_goal_next_human_output_stop_and_done_branches(tmp_path, monkeypatch, capsys):
+    from looptight.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    _repo(tmp_path)
+
+    # stop branch: max_iterations reached
+    main(["goal", "build x", "--max-iterations", "1"])
+    main(["goal", "next"])  # advances to iteration 1
+    capsys.readouterr()
+    assert main(["goal", "next"]) == 0  # now at cap -> stop
+    assert "goal stop" in capsys.readouterr().out.lower()
+
+    # done branch: done-check passes on the very first call
+    main(["goal", "build y", "--done", "true"])
+    capsys.readouterr()
+    assert main(["goal", "next"]) == 0
+    assert "goal done" in capsys.readouterr().out.lower()
+
+
 def test_clear_goal_returns_false_outside_git(tmp_path):
     # No git repo -> goal_path is None -> clear_goal returns False without raising.
     assert clear_goal(tmp_path) is False
