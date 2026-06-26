@@ -79,6 +79,32 @@ _PRUNE_DIRS = {
 }
 
 
+def _not_ignored(root: Path, paths: list[Path]) -> list[Path]:
+    """``paths`` with the ones Git ignores removed, so a project's gitignored
+    generated/artifact output (`generated/`, `coverage/`, `.next/`, ...) is not
+    scanned for markers. Tracked and untracked-but-unignored files (new work in
+    progress) are kept. Outside Git or on any git error, every path passes through —
+    discovery never depends on Git succeeding."""
+    if not paths:
+        return paths
+    try:
+        rels = [p.relative_to(root).as_posix() for p in paths]
+    except ValueError:
+        return paths
+    try:
+        proc = subprocess.run(
+            ["git", "check-ignore", "--stdin"],
+            input="\n".join(rels), cwd=str(root),
+            capture_output=True, text=True, timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return paths
+    if proc.returncode not in (0, 1):  # 0 = some ignored, 1 = none; else not a repo/error
+        return paths
+    ignored = set(proc.stdout.splitlines())
+    return [p for p, rel in zip(paths, rels) if rel not in ignored]
+
+
 def _all_py_files(root: Path) -> list[Path]:
     """Every Python file in the project, pruning vendored/build/cache dirs so a big
     repo stays cheap. Layout-agnostic: src-layout (`src/pkg/`), flat packages
@@ -87,7 +113,7 @@ def _all_py_files(root: Path) -> list[Path]:
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if d not in _PRUNE_DIRS]
         out += [Path(dirpath) / name for name in filenames if name.endswith(".py")]
-    return sorted(out)
+    return _not_ignored(root, sorted(out))
 
 
 def _all_js_files(root: Path) -> list[Path]:
@@ -98,7 +124,7 @@ def _all_js_files(root: Path) -> list[Path]:
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if d not in _PRUNE_DIRS]
         out += [Path(dirpath) / name for name in filenames if Path(name).suffix in _JS_EXTS]
-    return sorted(out)
+    return _not_ignored(root, sorted(out))
 
 
 def _js_test_files(root: Path) -> list[Path]:
@@ -133,7 +159,7 @@ def _js_discovery_files(root: Path) -> list[Path]:
         if path not in seen:
             seen.add(path)
             files.append(path)
-    return files
+    return _not_ignored(root, files)
 
 
 def _rel(root: Path, path: Path) -> str:

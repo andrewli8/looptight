@@ -665,21 +665,14 @@ existing CLI session and makes no model or API calls of its own.
   `skipUnless(os.environ...)` is suppressed while an `@unittest.skip` or a real-condition
   skip is surfaced. A unittest-based project now gets skip discovery; pytest unchanged.
   Covered by a test.
+- Discovery respects `.gitignore`: a `_not_ignored` helper filters the file walk
+  through `git check-ignore` (batched, timeout-guarded), so TODOs/skips in gitignored
+  generated/artifact dirs (`generated/`, `coverage/`, `.next/`, ...) no longer pollute
+  the queue with non-fixable tasks. Tracked and untracked-but-unignored files (new
+  work) are still scanned; outside Git or on any git error every path passes through,
+  so discovery never depends on git succeeding. Covered by a test.
 
 ## Next
-
-1. Discovery surfaces markers from gitignored files. The file walk
-   (`_all_py_files`, `_all_js_files`, `_js_discovery_files`) prunes only a hardcoded
-   `_PRUNE_DIRS`, ignoring `.gitignore`, so TODOs/skips in gitignored generated and
-   artifact dirs (`generated/`, `coverage/`, `.next/`, `out/`, ...) pollute the queue
-   with non-fixable tasks. A code scanner should respect `.gitignore`; untracked but
-   un-ignored files (new work in progress) should still be scanned.
-   Evidence: `src/looptight/discovery.py:78`
-   Acceptance: a new `_not_ignored` helper filters paths through `git check-ignore`
-   (batched, timeout-guarded; outside Git or on git error it returns all paths), is
-   applied in the three walk entry points, and a new test in `tests/test_propose.py`
-   asserts a `TODO` in a gitignored `generated/` dir is not surfaced while a tracked
-   `src/` TODO and an untracked non-ignored TODO both are; `looptight verify` passes.
 
 ## Rules
 

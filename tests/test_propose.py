@@ -85,6 +85,29 @@ def test_from_todos_finds_js_markers_outside_src_layout(tmp_path):
     assert "vendored, must be pruned" not in titles
 
 
+def test_discovery_respects_gitignore(tmp_path):
+    # Markers in gitignored generated/artifact dirs must not pollute the queue, but
+    # tracked and untracked-non-ignored files (new work) are still scanned.
+    import subprocess
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    _write(tmp_path, "src/a.py", "# TODO: tracked source todo\nx = 1\n")
+    _write(tmp_path, "generated/gen.py", "# TODO: generated, gitignored\n")
+    _write(tmp_path, ".gitignore", "generated/\n")
+    subprocess.run(["git", "add", "src/a.py", ".gitignore"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init"],
+        cwd=tmp_path, check=True,
+    )
+    # An untracked, non-ignored new file with real work must still be found.
+    _write(tmp_path, "src/new.py", "# TODO: untracked new work\n")
+
+    titles = [c.title for c in from_todos(tmp_path)]
+    assert "tracked source todo" in titles
+    assert "untracked new work" in titles
+    assert "generated, gitignored" not in titles
+
+
 def test_from_todos_ignores_non_python(tmp_path):
     _write(tmp_path, "notes.txt", "TODO: not code\n")
     assert from_todos(tmp_path) == []
