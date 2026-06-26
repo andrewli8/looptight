@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 from .config import ConfigError
+from .fsutil import atomic_write_text
 
 START = "<!-- looptight:session-loop:start -->"
 END = "<!-- looptight:session-loop:end -->"
@@ -87,21 +87,9 @@ def _install_block(root: Path, block: str, start: str, end: str) -> list[Path]:
         else:
             updated = current.rstrip() + ("\n\n" if current.strip() else "") + block
         if updated != current:
-            _atomic_write(path, updated)
+            atomic_write_text(path, updated)
             changed.append(path)
     return changed
-
-
-def _atomic_write(path: Path, text: str) -> None:
-    # Write a temp file and rename it into place so an interrupted write never
-    # truncates a user's instructions file (matching goal.py / ui.py / settings.py).
-    temporary = path.with_suffix(".tmp")
-    try:
-        temporary.write_text(text, encoding="utf-8")
-        os.replace(temporary, path)
-    except OSError:
-        temporary.unlink(missing_ok=True)
-        raise
 
 
 def install_session_instructions(root: Path) -> list[Path]:

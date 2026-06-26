@@ -10,8 +10,9 @@ overwritten.
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
+
+from .fsutil import atomic_write_text
 
 HOOK_COMMAND = "looptight hook"
 HOOK_TIMEOUT_S = 120
@@ -38,17 +39,8 @@ def _load(path: Path) -> dict:
 
 
 def _write(path: Path, data: dict) -> None:
-    # Atomic write: a partial/interrupted write must never corrupt the user's
-    # settings.json. Write a temp file and rename it into place, removing the temp
-    # if either step fails (matching goal.py / ui.py).
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(".tmp")
-    try:
-        temporary.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-        os.replace(temporary, path)
-    except OSError:
-        temporary.unlink(missing_ok=True)
-        raise
+    # Atomic so a partial/interrupted write never corrupts the user's settings.json.
+    atomic_write_text(path, json.dumps(data, indent=2) + "\n")
 
 
 def _hook_entry() -> dict:

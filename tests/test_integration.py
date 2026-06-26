@@ -70,7 +70,6 @@ def test_install_raises_clear_error_on_non_utf8_file_without_partial_write(tmp_p
 def test_install_writes_managed_block_atomically(tmp_path, monkeypatch):
     # An interrupted write must not corrupt a user's instructions file: if the
     # rename fails, the original AGENTS.md is intact and no .tmp is left behind.
-    import looptight.integration as integration
 
     original = "# My project notes\n"
     (tmp_path / "AGENTS.md").write_text(original, encoding="utf-8")
@@ -78,7 +77,7 @@ def test_install_writes_managed_block_atomically(tmp_path, monkeypatch):
     def boom(src, dst):
         raise OSError("rename failed")
 
-    monkeypatch.setattr(integration.os, "replace", boom)
+    monkeypatch.setattr("looptight.fsutil.os.replace", boom)
     with pytest.raises(OSError):
         install_session_instructions(tmp_path)
 
@@ -89,7 +88,6 @@ def test_install_writes_managed_block_atomically(tmp_path, monkeypatch):
 def test_install_goal_instructions_writes_managed_block_atomically(tmp_path, monkeypatch):
     # install_goal_instructions shares _atomic_write with install_session_instructions:
     # if the rename fails, the original AGENTS.md is intact and no .tmp is left behind.
-    import looptight.integration as integration
 
     original = "# My project notes\n"
     (tmp_path / "AGENTS.md").write_text(original, encoding="utf-8")
@@ -97,7 +95,7 @@ def test_install_goal_instructions_writes_managed_block_atomically(tmp_path, mon
     def boom(src, dst):
         raise OSError("rename failed")
 
-    monkeypatch.setattr(integration.os, "replace", boom)
+    monkeypatch.setattr("looptight.fsutil.os.replace", boom)
     with pytest.raises(OSError):
         install_goal_instructions(tmp_path)
 

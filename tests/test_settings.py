@@ -147,7 +147,7 @@ def test_write_is_atomic_and_preserves_original_on_failure(tmp_path, monkeypatch
     def boom(src, dst):
         raise OSError("rename failed")
 
-    monkeypatch.setattr("looptight.settings.os.replace", boom)
+    monkeypatch.setattr("looptight.fsutil.os.replace", boom)
 
     with pytest.raises(OSError):
         install(path)

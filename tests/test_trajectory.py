@@ -67,7 +67,7 @@ def test_record_write_is_atomic(tmp_path, monkeypatch):
     def boom(src, dst):
         raise OSError("rename failed")
 
-    monkeypatch.setattr("looptight.trajectory.os.replace", boom)
+    monkeypatch.setattr("looptight.fsutil.os.replace", boom)
     with pytest.raises(OSError):
         trajectory.record(repo, "pytest -q", -1.0, set(), passed=False)
     assert not tmp.exists()  # no stale temp left behind

@@ -14,10 +14,11 @@ reads and atomic writes, matching goal.py / ui.py.
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 import time
 from pathlib import Path
+
+from .fsutil import atomic_write_text
 
 _FILE = "verify-trajectory.json"
 _STALE_AFTER_S = 30 * 60  # an older trajectory is a different attempt; reset
@@ -51,14 +52,7 @@ def _read(path: Path) -> dict | None:
 
 
 def _write(path: Path, data: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(".tmp")
-    try:
-        temporary.write_text(json.dumps(data, sort_keys=True) + "\n", encoding="utf-8")
-        os.replace(temporary, path)
-    except OSError:
-        temporary.unlink(missing_ok=True)
-        raise
+    atomic_write_text(path, json.dumps(data, sort_keys=True) + "\n")
 
 
 def clear(root: Path) -> None:

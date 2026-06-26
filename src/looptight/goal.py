@@ -8,13 +8,13 @@ shared across worktrees and never enters project history. No model calls.
 from __future__ import annotations
 
 import json
-import os
 import subprocess
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Callable
 
 from .coordinator import coordinator_path
+from .fsutil import atomic_write_text
 from .prompts import goal_build
 
 SCHEMA_VERSION = 1
@@ -73,17 +73,7 @@ def write_goal(workdir: Path, goal: Goal) -> None:
     path = goal_path(workdir)
     if path is None:
         raise RuntimeError("cannot store a goal outside a Git repository")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(".tmp")
-    try:
-        temporary.write_text(
-            json.dumps(goal.as_dict(), sort_keys=True) + "\n", encoding="utf-8"
-        )
-        os.replace(temporary, path)
-    except OSError:
-        # Never leave a stale temp file behind if the write or rename fails.
-        temporary.unlink(missing_ok=True)
-        raise
+    atomic_write_text(path, json.dumps(goal.as_dict(), sort_keys=True) + "\n")
 
 
 def clear_goal(workdir: Path) -> bool:

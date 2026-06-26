@@ -66,7 +66,7 @@ def test_write_goal_cleans_up_tmp_when_replace_fails(tmp_path, monkeypatch):
     def boom(src, dst):
         raise OSError("cross-device rename")
 
-    monkeypatch.setattr("looptight.goal.os.replace", boom)
+    monkeypatch.setattr("looptight.fsutil.os.replace", boom)
     with pytest.raises(OSError):
         write_goal(repo, goal)
     assert not tmp.exists()

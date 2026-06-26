@@ -5,11 +5,12 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
-import os
 import subprocess
 from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+from .fsutil import atomic_write_text
 
 STATE_SCHEMA_VERSION = 1
 STATE_FILE = "swarm-state.json"
@@ -48,16 +49,8 @@ def empty_state() -> dict[str, object]:
 def write_state(root: Path, state: dict[str, object]) -> None:
     """Atomically publish state outside the tracked worktree."""
     path = _state_path(root)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(".tmp")
     payload = {**state, "updated_at": _utc_timestamp()}
-    try:
-        temporary.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
-        os.replace(temporary, path)
-    except OSError:
-        # Never leave a stale temp file behind if the write or rename fails.
-        temporary.unlink(missing_ok=True)
-        raise
+    atomic_write_text(path, json.dumps(payload, sort_keys=True) + "\n")
 
 
 def read_state(root: Path) -> dict[str, object]:

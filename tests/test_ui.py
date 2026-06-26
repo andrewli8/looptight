@@ -207,7 +207,7 @@ def test_write_state_cleans_up_tmp_when_replace_fails(tmp_path, monkeypatch):
     def boom(src, dst):
         raise OSError("cross-device rename")
 
-    monkeypatch.setattr("looptight.ui.os.replace", boom)
+    monkeypatch.setattr("looptight.fsutil.os.replace", boom)
     with pytest.raises(OSError):
         ui.write_state(tmp_path, {"schema_version": 1})
     assert not tmp.exists()
