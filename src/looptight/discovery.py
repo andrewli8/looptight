@@ -305,7 +305,16 @@ def _is_skip_line(stripped: str) -> bool:
         "@unittest.skip", "self.skipTest(",
     )):
         return True
-    return bool(re.match(r"\w+\s*=\s*pytest\.mark\.(?:skip|skipif|xfail)\b", stripped))
+    if re.match(r"\w+\s*=\s*pytest\.mark\.(?:skip|skipif|xfail)\b", stripped):
+        return True
+    # A single-line parametrize case disabled inline: `pytest.param(.., marks=
+    # pytest.mark.skip(..))`. Strip strings and a trailing comment first so a marker
+    # merely mentioned in a comment or string is not a false hit. Gated by a cheap
+    # substring test so the regex runs only on plausible lines.
+    if "marks" in stripped and "pytest.mark." in stripped:
+        code = _code_only(stripped).split("#", 1)[0]
+        return bool(re.search(r"\bmarks\s*=.*\bpytest\.mark\.(?:skip|skipif|xfail)\b", code))
+    return False
 
 
 # An env-var gate (`skipif(not os.environ.get(...))`) marks an opt-in eval —

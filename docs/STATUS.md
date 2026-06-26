@@ -697,21 +697,13 @@ existing CLI session and makes no model or API calls of its own.
   unconditional `pytest.xfail` is surfaced as rot while a guarded one is spared.
   Covered by a test.
 
-## Next
+- Single-line parametrize-case skips are detected: `_is_skip_line` now recognizes
+  `pytest.param(.., marks=pytest.mark.skip/skipif/xfail(..))` written inline (the
+  standalone `marks=` line was already caught). It strips strings and a trailing
+  comment first, so a `marks=...skip` mention in a comment or string is not a false
+  hit, and the env-gate classifier still suppresses an `os.environ` skipif. Covered by a test.
 
-1. A single-line parametrize case disabled via `marks=` is not detected. A
-   standalone `marks = pytest.mark.skip(...)` line is caught by the existing
-   `\w+=pytest.mark.skip` rule, but the common single-line form
-   `pytest.param(2, marks=pytest.mark.skip(reason=...))` puts `marks=` mid-line, so
-   `_is_skip_line` (anchored at line start) misses it — a real disabled test case in
-   a supported pattern. Detection must strip strings and comments to avoid matching a
-   `marks=pytest.mark.skip` mention in a comment/string.
-   Evidence: `src/looptight/discovery.py:294`
-   Acceptance: a new test in `tests/test_propose.py` asserts a single-line
-   `pytest.param(..., marks=pytest.mark.skip(...))` is surfaced, an env-gated
-   `marks=pytest.mark.skipif(os.environ...)` is suppressed, and a `marks=...skip`
-   mention inside a `#` comment is not a false hit; existing detection is unchanged,
-   and `looptight verify` passes.
+## Next
 
 ## Rules
 

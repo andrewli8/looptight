@@ -173,6 +173,28 @@ def test_skipif_with_unbalanced_paren_in_reason_is_still_surfaced(tmp_path):
     assert not any(loc.endswith(":11") for loc in locs)  # env-gated skip still suppressed
 
 
+def test_from_skipped_tests_detects_single_line_param_skip(tmp_path):
+    # A parametrize case disabled inline via marks= is a real skipped case; an
+    # env-gated marks=skipif is intentional; a marks=...skip in a comment is not code.
+    _write(
+        tmp_path,
+        "tests/test_a.py",
+        "import os\nimport pytest\n\n\n"
+        '@pytest.mark.parametrize("x", [\n'
+        "    1,\n"
+        '    pytest.param(2, marks=pytest.mark.skip(reason="broken case")),\n'  # 7: rot
+        '    pytest.param(3, marks=pytest.mark.skipif(not os.environ.get("E2E"), reason="opt-in")),\n'  # 8: env-gate
+        "])\n"
+        "def test_param(x):\n"
+        "    # historically used marks=pytest.mark.skip here\n"  # 11: comment, not a hit
+        "    assert x\n",
+    )
+    locs = [c.location for c in from_skipped_tests(tmp_path)]
+    assert any(loc.endswith(":7") for loc in locs)        # inline param skip surfaced
+    assert not any(loc.endswith(":8") for loc in locs)    # env-gated param skipif suppressed
+    assert not any(loc.endswith(":11") for loc in locs)   # comment mention not a hit
+
+
 def test_from_skipped_tests_detects_imperative_xfail(tmp_path):
     # Imperative pytest.xfail(...) is a runtime known-broken marker, like pytest.skip(),
     # and must be detected; a guarded one (capability gate) is not rot.
