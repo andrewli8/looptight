@@ -614,12 +614,12 @@ existing CLI session and makes no model or API calls of its own.
   (discovery.py:481) now has direct regression coverage: two tests in `test_propose.py`
   inject `OSError` and `TimeoutExpired` into `subprocess.run` and assert `from_lint`
   returns `[]`; no production code change.
+- `_js_line_comment` (discovery.py:142) now has direct unit coverage for four
+  previously-untested branches: no-comment `(None, False)`, unclosed block
+  `(body, True)`, closed inline block `(body, False)`, and backtick template-literal
+  `(None, False)` — four new tests in `test_propose.py`; no production code change.
 
 ## Next
-
-3. `_js_line_comment` (discovery.py:142) has only one direct unit test (the escaped-backslash case); the unclosed-block, inline-block, no-comment, and template-literal branches are not directly tested and a refactor could silently break them.
-   Evidence: `src/looptight/discovery.py:142`
-   Acceptance: Four new tests in `tests/test_propose.py` directly call `_js_line_comment` and assert `(None, False)` for a plain code line, `(body, True)` for an unclosed `/*`, `(body, False)` for a closed inline `/* … */`, and `(None, False)` for a comment token inside a backtick template literal; `looptight verify --json` returns `pass`; no production code change.
 
 ## Rules
 

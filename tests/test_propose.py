@@ -659,6 +659,39 @@ def test_js_line_comment_detects_comment_after_escaped_backslash():
     assert block_open is False
 
 
+def test_js_line_comment_no_comment_returns_none():
+    # A plain code line with no comment token must return (None, False).
+    from looptight.discovery import _js_line_comment
+    body, block_open = _js_line_comment("const x = 1;")
+    assert body is None
+    assert block_open is False
+
+
+def test_js_line_comment_unclosed_block_comment_sets_block_open():
+    # A /* that is never closed on this line must return block_open=True so the
+    # caller continues reading the next lines as comment continuation.
+    from looptight.discovery import _js_line_comment
+    body, block_open = _js_line_comment("/* TODO: unfinished")
+    assert body is not None and "TODO: unfinished" in body
+    assert block_open is True
+
+
+def test_js_line_comment_inline_block_comment_stays_closed():
+    # A /* ... */ fully closed on one line must not set block_open.
+    from looptight.discovery import _js_line_comment
+    body, block_open = _js_line_comment("doThing(); /* TODO: inline */ more();")
+    assert body is not None and "TODO: inline" in body
+    assert block_open is False
+
+
+def test_js_line_comment_ignores_slash_inside_backtick_template_literal():
+    # A // inside a backtick template literal is not a real comment.
+    from looptight.discovery import _js_line_comment
+    body, block_open = _js_line_comment("`url: http://example.com`")
+    assert body is None
+    assert block_open is False
+
+
 def test_from_todos_is_layout_agnostic(tmp_path):
     # Discovery must find TODOs in flat packages (pkg/x.py) and top-level modules
     # (app.py), not only src/ and tests/ — the majority of Python projects.
