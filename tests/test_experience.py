@@ -138,3 +138,8 @@ def test_landed_category_counts_skips_trailer_without_source(tmp_path):
          "w\n\nLooptight-Outcome: idea-a landed")
     assert landed_category_counts(Path(root), "HEAD") == {}
     assert landed_counts(Path(root), "HEAD") == {"idea-a": 1}
+
+
+def test_reweight_factor_is_neutral_for_unknown_category():
+    # A category with no landed/failed history (total == 0) yields the neutral 1.0.
+    assert reweight_factor("unknown-source", Model()) == 1.0

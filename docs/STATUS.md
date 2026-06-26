@@ -522,37 +522,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `limit_wait` in limits.py has no direct unit test; the cap, backoff, and
-   zero-retry-after branches are exercised only via integration paths.
-   Evidence: src/looptight/limits.py:153;
-   Acceptance: A new test in tests/test_limits.py asserts `limit_wait(300, 1, 1, 100)`
-   returns 100 (cap clamps provider reset), `limit_wait(None, 2, 10, 1000)` returns 20
-   (exponential backoff at attempt 2), and `limit_wait(0, 1, 5, 100)` returns 5
-   (zero retry_after treated as missing, falls through to backoff). Passes under
-   `looptight verify --json`.
-
-2. `_js_line_comment` in discovery.py skips one char after a backslash inside a
-   string literal, but no test verifies that `\\"` (escaped backslash ending the
-   string) correctly closes the string and lets a following `//` comment be detected.
-   Evidence: src/looptight/discovery.py:147;
-   Acceptance: A new test in tests/test_propose.py imports `_js_line_comment` and
-   asserts that the call with `'let x = "\\\\" // TODO: fix'` returns a body
-   containing "TODO: fix". Passes under `looptight verify --json`.
-
-3. `clear_goal` returns False when `goal_path` returns None (non-git directory), but
-   this branch is untested; only the path-not-None-file-gone branch is covered.
-   Evidence: src/looptight/goal.py:89;
-   Acceptance: A new test in tests/test_goal.py calls `clear_goal(tmp_path)` on a
-   plain (non-git) directory and asserts it returns False without raising. Passes
-   under `looptight verify --json`.
-
-4. `reweight_factor` is called with the candidate's `source` as the category key, but
-   no test verifies that a source absent from both `category_landed` and
-   `category_failed` (i.e. total == 0) returns exactly 1.0 (the neutral factor).
-   Evidence: src/looptight/experience.py:98;
-   Acceptance: A new test in tests/test_experience.py calls `reweight_factor("unknown-
-   source", Model())` and asserts the return value is 1.0. Passes under
-   `looptight verify --json`.
+_None pending. The loop generates evidence-backed tasks here when this drains._
 
 ## Rules
 

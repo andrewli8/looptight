@@ -137,3 +137,10 @@ def test_is_limit_error_rejects_other_failures():
     assert not is_limit_error(None)
     assert not is_limit_error("codex exited 1")
     assert not is_limit_error("provider timed out after 30s")
+
+
+def test_limit_wait_caps_named_reset_and_backs_off_otherwise():
+    from looptight.limits import limit_wait
+    assert limit_wait(300, 1, 1, 100) == 100   # cap clamps a long provider reset
+    assert limit_wait(None, 2, 10, 1000) == 20  # exponential backoff: base * 2^(attempt-1)
+    assert limit_wait(0, 1, 5, 100) == 5        # zero retry_after -> falls through to backoff

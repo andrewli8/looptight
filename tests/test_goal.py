@@ -272,3 +272,8 @@ def test_goal_driver_recipe_omits_loop_hint_when_agent_unknown(tmp_path, monkeyp
     monkeypatch.setattr("looptight.protocol_commands.detect_agent", lambda: None)
     recipe = _goal_driver_recipe(tmp_path)
     assert "/loop until: looptight goal check" not in recipe
+
+
+def test_clear_goal_returns_false_outside_git(tmp_path):
+    # No git repo -> goal_path is None -> clear_goal returns False without raising.
+    assert clear_goal(tmp_path) is False

@@ -520,3 +520,11 @@ def test_from_skipped_tests_ignores_skip_marker_in_trailing_comment(tmp_path):
     assert "tests/a.test.ts:3" in locs  # the real skip on a code line
     assert "tests/a.test.ts:1" not in locs  # marker inside a trailing // comment
     assert "tests/a.test.ts:2" not in locs  # marker inside a trailing /* */ comment
+
+
+def test_js_line_comment_detects_comment_after_escaped_backslash():
+    # An escaped backslash (\\) ends the string, so a following // comment is real.
+    from looptight.discovery import _js_line_comment
+    body, block_open = _js_line_comment('let x = "\\\\" // TODO: fix')
+    assert body is not None and "TODO: fix" in body
+    assert block_open is False
