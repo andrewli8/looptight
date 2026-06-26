@@ -548,7 +548,21 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-(none)
+1. `_verify_policy_error`'s `max_changed_files` branch is untested: lines 287-290
+   block a verify when the changed-file count exceeds the policy limit, but no test
+   exercises this path — an over-limit check could silently fail to block.
+   Evidence: `src/looptight/protocol_commands.py:287`
+   Acceptance: a new test in `tests/test_cli.py` configures `max_changed_files = 0`,
+   creates one changed file, runs `verify --json`, and asserts `status == "error"`
+   with `"max_changed_files"` in the output.
+
+2. `summary.header()` `mode == "delegate"` branch is untested: when `result.mode ==
+   "delegate"`, the verb is `"driving native loop"`, but every test in test_summary.py
+   uses `mode="supply"`, leaving the delegate label unverified.
+   Evidence: `src/looptight/summary.py:24`
+   Acceptance: a new `test_summary_header_delegate_mode` in `tests/test_summary.py`
+   builds a `RunResult` with `mode="delegate"` and asserts `"driving native loop"` in
+   `summary.header(result)`.
 
 ## Rules
 
