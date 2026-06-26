@@ -579,17 +579,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `from_lint` has no test coverage at all, including its dedup contract (one task
-   per file+rule) and its skip of non-matching ruff lines. A regression removing
-   the `if key in seen` dedup would surface duplicate lint tasks; nothing guards
-   it. Add a test that runs real `ruff` (a dev dependency) on a repo with two
-   same-rule violations in one file and a third in another.
-   Evidence: `src/looptight/discovery.py:492`
-   Acceptance: a new `tests/test_propose.py` test proves `from_lint` returns one
-   candidate per (file, rule) — collapsing two same-file same-rule findings to one
-   while keeping a different file's — and a mutation removing the dedup makes it
-   fail; `looptight verify` passes.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

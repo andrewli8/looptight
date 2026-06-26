@@ -267,6 +267,21 @@ def test_from_lint_finds_ruff_violations(tmp_path):
     assert any("F841" in c.title for c in cands)
 
 
+def test_from_lint_dedups_to_one_task_per_file_and_rule(tmp_path):
+    if shutil.which("ruff") is None:
+        import pytest
+        pytest.skip("ruff not available")
+    # Two F401 (unused import) in one file collapse to a single task; a third in
+    # another file stays its own. One task per (file, rule). A regression removing
+    # the dedup would surface duplicate lint tasks.
+    _write(tmp_path, "a.py", "import os\nimport sys\n")  # two unused imports -> two F401
+    _write(tmp_path, "b.py", "import json\n")            # one unused import
+    f401 = [c for c in from_lint(tmp_path) if "F401" in c.title]
+    files = {c.location.split(":")[0] for c in f401}
+    assert files == {"a.py", "b.py"}  # one entry per file
+    assert sum(c.location.startswith("a.py") for c in f401) == 1  # a.py's two collapsed
+
+
 def test_from_lint_empty_when_no_violations(tmp_path):
     _write(tmp_path, "src/pkg/ok.py", "def f():\n    return 1\n")
     cands = from_lint(tmp_path)
