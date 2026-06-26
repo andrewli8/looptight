@@ -374,6 +374,14 @@ def test_from_skipped_tests_ignores_py_marker_in_multiline_string(tmp_path):
     assert len(cands) == 1
 
 
+def test_js_skip_discovery_covers_jasmine_spec_dir(tmp_path):
+    # Jasmine's default test directory is spec/ with *Spec.js files (no .spec. dot);
+    # skip markers there must be discovered, parallel to Mocha's test/.
+    _write(tmp_path, "spec/loginSpec.js", 'it.skip("login broken", () => {});\n')
+    locs = [c.location for c in from_skipped_tests(tmp_path)]
+    assert any(loc.endswith("spec/loginSpec.js:1") for loc in locs)
+
+
 def test_js_skip_discovery_covers_cypress_cy_files(tmp_path):
     # Cypress's .cy. test files (cypress/e2e or colocated) are a standard convention;
     # skip markers in them must be discovered alongside .test./.spec. files.

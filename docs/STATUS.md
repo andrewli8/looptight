@@ -754,16 +754,11 @@ existing CLI session and makes no model or API calls of its own.
   `deno test`, alongside the cargo/go rules, so a Deno project is configured instead of
   defaulting wrong. Covered by tests.
 
-## Next
+- JS skip discovery scans Jasmine's `spec/` directory: `_js_discovery_files` adds
+  `spec` alongside `src`/`tests`/`test`, so a Jasmine project's `it.skip` markers in
+  plain-named `spec/*Spec.js` files are detected. Covered by a test.
 
-1. JS skip discovery misses Jasmine's `spec/` directory. `_js_discovery_files` scans
-   `src`/`tests`/`test` but not `spec/` — Jasmine's default test directory, whose
-   files are `*Spec.js` (no `.spec.` dot, so the file pattern misses them too) — so a
-   Jasmine project's `it.skip` markers in `spec/*.js` are missed. Add `spec` to the
-   scanned subdirs, the parallel of the Mocha `test/` fix.
-   Evidence: `src/looptight/discovery.py:159`
-   Acceptance: a test in `tests/test_propose.py` asserts an `it.skip` in a plain-named
-   `spec/loginSpec.js` is detected; existing dirs are unchanged, and `looptight verify` passes.
+## Next
 
 ## Rules
 
