@@ -779,16 +779,11 @@ existing CLI session and makes no model or API calls of its own.
   `status` report it active for a plain repo), and `migrate` fences the legacy file-claim
   mechanism rather than turning the coordinator on. The migrate facts are preserved.
 
-## Next
+- `docs/SPEC.md` no longer overclaims `--json`: the output contract names the nine
+  machine-facing commands that take `--json` and notes that setup commands (`init`,
+  `revert`) reject it, matching the README fix. A `test_docs.py` assertion locks it.
 
-1. `docs/SPEC.md` overclaims `--json` support. Its output contract says "Every
-   primary command supports human-readable output and `--json`", but only the nine
-   machine-facing commands take `--json` (`init --json` errors) — the same code-vs-doc
-   overclaim already fixed in the README. Name the machine-facing commands instead.
-   Evidence: `docs/SPEC.md:255`
-   Acceptance: SPEC's output contract names the machine-facing `--json` commands
-   rather than "every primary command"; a `tests/test_docs.py` assertion locks the
-   corrected framing, and `looptight verify` passes.
+## Next
 
 ## Rules
 

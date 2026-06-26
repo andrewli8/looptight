@@ -105,6 +105,15 @@ def test_spec_output_contract_names_all_next_task_fields():
         assert field in spec, f"SPEC output contract does not document {field!r}"
 
 
+def test_spec_does_not_overclaim_json_support():
+    # Only the nine machine-facing commands take --json (init/revert/etc error), so
+    # the SPEC must not claim "every primary command" supports it — the same
+    # code-vs-doc overclaim already corrected in the README.
+    spec = (_ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
+    assert "Every primary command supports" not in spec, "SPEC overclaims --json support"
+    assert "machine-facing" in spec, "SPEC does not name the machine-facing --json commands"
+
+
 def test_spec_output_contract_documents_goal_next_fields():
     # goal next --json emits these fields (goal.py GoalDecision.as_dict); the output
     # contract must name them so integrators know the goal-loop shape.
