@@ -579,6 +579,16 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. README claims "Every command takes `--json` for scripting", but `--json` is
+   defined on only nine subcommands (verify, doctor, goal, propose, next, status,
+   migrate, swarm, run); `init`, `revert`, `improve`, `statusline`, `ui`, and the
+   hook/install commands reject it. A user who tries `init --json` per the README
+   gets an argparse error. State which commands take `--json`.
+   Evidence: `README.md:83`
+   Acceptance: a new test in `tests/test_docs.py` asserts the README does not say
+   "Every command takes `--json`" and names the machine-facing commands; `looptight
+   verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
