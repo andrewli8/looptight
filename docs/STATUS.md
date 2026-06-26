@@ -687,6 +687,19 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. JS skip detection misses chained-modifier skips. `_JS_SKIP_RE` only matches
+   `it/describe/test.skip(` directly, so `test.concurrent.skip(...)`,
+   `it.concurrent.skip(...)`, and `it.skip.each(...)` — real Jest/Vitest skip forms —
+   go undetected (a false negative in the already-supported language, the same class
+   as the template-literal/JSDoc fixes). The pattern should allow `skip`/`todo`
+   anywhere in the `.`-chain, without matching `it.only`, `it.skipFoo`, or `skipped`.
+   Evidence: `src/looptight/discovery.py:345`
+   Acceptance: new tests in `tests/test_propose.py` assert `test.concurrent.skip`,
+   `it.concurrent.skip`, and `it.skip.each` are surfaced while `it.only`,
+   `it.skipFoo(`, and a name containing `skipped` are not; the test name still
+   extracts for chained forms; existing plain/`x`-prefix detection is unchanged, and
+   `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
