@@ -40,6 +40,10 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- `migrate` reports "coordinator already active" on a no-op re-run instead of
+  repeating the first-run "coordinator active", matching `install-hook`'s
+  "installed"/"already installed" distinction so a user knows the re-run did
+  nothing.
 - `revert --yes` no longer claims it "reverted" on a clean tree. It ran
   `git checkout HEAD -- .` unconditionally and always reported success, so on an
   already-clean tree a user was told their changes were undone when nothing

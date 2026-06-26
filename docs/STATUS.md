@@ -579,16 +579,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `migrate` prints "coordinator active" on every run, including a re-run where the
-   coordinator was already active and nothing changed (a no-op). `install-hook`
-   distinguishes "installed" from "already installed"; migrate should likewise say
-   "coordinator already active" when it was a no-op, so a user knows their re-run
-   did nothing rather than thinking it just activated.
-   Evidence: `src/looptight/protocol_commands.py:320`
-   Acceptance: a new test asserts a second `migrate` on an already-active repo
-   prints "already active" (not the plain first-run message); `looptight verify`
-   passes.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

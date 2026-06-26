@@ -1437,6 +1437,8 @@ def test_migrate_activates_coordinator_and_is_idempotent(tmp_path, monkeypatch, 
     assert (tmp_path / ".git" / "looptight" / "coordinator-format.json").is_file()
 
     assert main(["migrate"]) == 0  # idempotent
+    # A no-op re-run says "already active", not the first-run "coordinator active".
+    assert "already active" in capsys.readouterr().out.lower()
 
 
 def test_migrate_refuses_live_legacy_claims(tmp_path, monkeypatch, capsys):

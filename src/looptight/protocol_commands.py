@@ -307,6 +307,7 @@ def cmd_migrate(args: argparse.Namespace, console: Console) -> int:
     if coordinator is None:
         console.print("[red]migrate requires a Git repository.[/red]")
         return 2
+    already_active = (coordinator.path.parent / MARKER_NAME).is_file()
     try:
         coordinator.activate_from_legacy()
     except MigrationBlocked as exc:
@@ -317,7 +318,8 @@ def cmd_migrate(args: argparse.Namespace, console: Console) -> int:
     if args.json:
         print(json.dumps({"schema_version": 1, "command": "migrate", "status": "active"}, sort_keys=True))
     else:
-        console.print("coordinator active")
+        # Distinguish a no-op re-run from a fresh activation, like install-hook.
+        console.print("coordinator already active" if already_active else "coordinator active")
     return 0
 
 
