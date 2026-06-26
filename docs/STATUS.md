@@ -548,6 +548,25 @@ existing CLI session and makes no model or API calls of its own.
    source", Model())` and asserts the return value is 1.0. Passes under
    `looptight verify --json`.
 
+5. `run --json` breaks its own contract on a config-guard failure: the no-headless,
+   dirty-worktree, no-agent, and no-verify guards `console.print` Rich markup and
+   return 2 before the `--json` branch, so a misconfigured `run --json` emits human
+   markup to stdout instead of a JSON object. Evidence: src/looptight/commands.py:107;
+   Acceptance: a test in tests/test_cli.py runs `main(["run", "--json"])` without
+   `--headless` and asserts stdout parses as one JSON object carrying `command`,
+   `schema_version`, and `error` (not Rich markup), exit code 2; the fix emits a JSON
+   error object from those guards when `--json` is set. Passes under `looptight verify`.
+
+6. Value-aware stopping (and so the new escalation report) is dormant and
+   undiscoverable: `patience` defaults to 0, is not a `.looptight.toml` setting (only
+   the `--patience` flag), and no doc mentions it. Evidence: src/looptight/config.py:49;
+   Acceptance: `patience` becomes a parsed config setting (default 0, via the existing
+   int helper, emitted by `render_config`) so a project can enable the controller
+   without the flag, the supported-settings test is updated to include it, and
+   docs/unattended.md documents `--patience`/the config key and what the escalation
+   report surfaces; covered by a config round-trip test and a doc test. Default stays 0.
+   Passes under `looptight verify`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
