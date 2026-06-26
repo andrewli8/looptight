@@ -653,21 +653,13 @@ existing CLI session and makes no model or API calls of its own.
   so `it.skip("name with 'apostrophe' inside")` yields the full name instead of
   truncating at the inner quote -- apostrophes in test descriptions are ubiquitous. An
   empty name still falls back to a generic label. Covered by a test.
+- JS/TS TODO discovery finds markers in JSDoc-style block comments: `_js_comments`
+  now strips the conventional leading ` * ` from block-comment continuation lines, so a
+  ` * TODO: ...` inside a multi-line `/* ... */` or `/** ... */` block is matched instead
+  of hidden behind the asterisk. Single-line `/* TODO */` and `// TODO` are unchanged.
+  A real false-negative for idiomatic JS/TS; covered by a test.
 
 ## Next
-
-1. JS/TS TODO discovery misses markers in JSDoc-style block comments. `_js_comments`
-   yields block-comment continuation lines verbatim, so a line like ` * TODO: x`
-   keeps its leading ` * ` and `_TODO_RE` (anchored at the body start) does not match
-   — a TODO inside a multi-line `/* ... */` or `/** ... */` block is silently
-   dropped. JSDoc/block comments are ubiquitous in JS/TS, so this is a real
-   false-negative for idiomatic code.
-   Evidence: `src/looptight/discovery.py:175`
-   Acceptance: a new test in `tests/test_propose.py` asserts a `TODO` written as
-   ` * TODO: ...` on a continuation line of a multi-line block comment is found by
-   `from_todos` (single-line `/* TODO */` and `// TODO` behavior unchanged); the
-   leading block-comment ` * ` is stripped before marker matching, and
-   `looptight verify` passes.
 
 ## Rules
 
