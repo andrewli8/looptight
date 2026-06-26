@@ -576,6 +576,11 @@ existing CLI session and makes no model or API calls of its own.
 - `GoalDecision.as_dict()` now has direct unit coverage via
   `test_goal_decision_as_dict_pins_all_statuses` in tests/test_goal.py, asserting
   required fields are always present and optional fields appear only when set.
+- `goal` honors `--json` for every action: the set (`goal "<vision>" --json`) and
+  clear (`goal clear --json`) actions now emit a versioned JSON object (set: `active`
+  true plus the goal fields; clear: `active` false and a `cleared` boolean) instead of
+  a bare human line, matching `goal status`/`goal next`. Human output is unchanged.
+  Covered by set/clear JSON-contract tests in test_goal.py.
 - The integration ref advance is proven to be a real compare-and-swap: when a racing
   integrator advances the target ref between our commit and our `update-ref`, the
   CAS (old-value `observed`) fails closed, the integration is marked `conflict` with
@@ -590,18 +595,6 @@ existing CLI session and makes no model or API calls of its own.
   dropping the old-value argument from the reconcile update-ref call.
 
 ## Next
-
-1. `goal` honors `--json` for the set and clear actions. `goal "<vision>" --json`
-   prints the bare human line `goal set: <vision>` and `goal clear --json` prints
-   `cleared the active goal`, while `goal status`/`goal next` emit JSON — so a host
-   parsing this documented machine-facing command chokes on two of its four actions.
-   Both should emit a versioned JSON object under `--json`.
-   Evidence: `src/looptight/protocol_commands.py:787`
-   Acceptance: new tests in `tests/test_goal.py` assert `goal "<vision>" --json`
-   prints a JSON object with `schema_version`, `command` `goal`, `active` true and
-   the goal fields, and `goal clear --json` prints a JSON object with `active` false
-   and a `cleared` boolean; human (non-`--json`) output is unchanged, and
-   `looptight verify` passes.
 
 ## Rules
 

@@ -747,7 +747,14 @@ def cmd_goal(args: argparse.Namespace, console: Console) -> int:
         return 0
 
     if arg == "clear":
-        console.print("cleared the active goal" if clear_goal(workdir) else "no active goal")
+        cleared = clear_goal(workdir)
+        if args.json:
+            print(json.dumps(
+                {"schema_version": 1, "command": "goal", "active": False, "cleared": cleared},
+                sort_keys=True,
+            ))
+        else:
+            console.print("cleared the active goal" if cleared else "no active goal")
         return 0
 
     if arg == "next":
@@ -784,6 +791,11 @@ def cmd_goal(args: argparse.Namespace, console: Console) -> int:
         max_iterations=args.max_iterations,
     )
     write_goal(workdir, goal)
+    if args.json:
+        payload = {"schema_version": 1, "command": "goal", "active": True}
+        payload.update(goal.as_dict())
+        print(json.dumps(payload, sort_keys=True))
+        return 0
     console.print(f"goal set: {arg}")
     if args.continuous:
         console.print(_goal_driver_recipe(workdir))

@@ -162,6 +162,44 @@ def test_goal_cli_set_status_clear(tmp_path, monkeypatch, capsys):
     assert cleared["schema_version"] == 1
 
 
+def test_goal_cli_set_emits_json_when_requested(tmp_path, monkeypatch, capsys):
+    # `goal` is a documented machine-facing command; the set action must emit a
+    # versioned JSON object under --json, not the bare "goal set: ..." human line.
+    from looptight.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    _repo(tmp_path)
+    assert main(["goal", "a CLI todo app", "--max-iterations", "5", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["command"] == "goal"
+    assert data["schema_version"] == 1
+    assert data["active"] is True
+    assert data["vision"] == "a CLI todo app"
+    assert data["max_iterations"] == 5
+
+
+def test_goal_cli_clear_emits_json_when_requested(tmp_path, monkeypatch, capsys):
+    # The clear action must also honor --json with a parseable object.
+    from looptight.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    _repo(tmp_path)
+    main(["goal", "build x"])
+    capsys.readouterr()
+
+    assert main(["goal", "clear", "--json"]) == 0
+    cleared = json.loads(capsys.readouterr().out)
+    assert cleared["command"] == "goal"
+    assert cleared["schema_version"] == 1
+    assert cleared["active"] is False
+    assert cleared["cleared"] is True
+
+    # Clearing again reports no goal was present, still as JSON.
+    assert main(["goal", "clear", "--json"]) == 0
+    again = json.loads(capsys.readouterr().out)
+    assert again["cleared"] is False
+
+
 def test_goal_cli_next_emits_directive(tmp_path, monkeypatch, capsys):
     from looptight.cli import main
 
