@@ -65,3 +65,27 @@ def test_console_summary_matches_plain_result():
     summary.render_rich(_result(StopReason.SUCCESS), Console(file=output))
     assert "iteration 1 → verify: FAIL" in output.getvalue()
     assert "✓ done · 2 iteration(s)" in output.getvalue()
+
+
+def test_summary_shows_escalation_evidence_when_present():
+    from looptight.types import Escalation
+
+    esc = Escalation(
+        kind="escalated",
+        iterations=3,
+        trajectory=(-2.0, -2.0, -2.0),
+        failures=("FAILED tests/test_auth.py::test_login - AssertionError: expected 200",),
+        summary="No progress across 3 tries. 1 failure never cleared.",
+        persisted=True,
+    )
+    result = RunResult(
+        goal="fix", agent="claude", mode="supply",
+        stop_reason=StopReason.ESCALATED,
+        iterations=(IterationRecord(1, VerifyResult(passed=False, exit_code=1)),),
+        escalation=esc,
+    )
+    text = summary.render(result)
+    assert "No progress across 3 tries. 1 failure never cleared." in text
+    assert "tests/test_auth.py::test_login" in text
+    # Absent escalation leaves the summary unchanged (no stray evidence block).
+    assert "never cleared" not in summary.render(_result(StopReason.SUCCESS))

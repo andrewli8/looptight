@@ -188,3 +188,38 @@ def test_build_escalation_distinguishes_kind_and_carries_evidence():
 
     esc2 = build_escalation(records, [-3.0, -1.0], StopReason.NO_PROGRESS)
     assert esc2.kind == "no_progress"
+
+
+def test_loop_attaches_escalation_on_early_stops(workdir):
+    stuck = _run(workdir, ["2 failed", "2 failed", "2 failed"], patience=2)
+    assert stuck.stop_reason is StopReason.ESCALATED
+    assert stuck.escalation is not None
+    assert stuck.escalation.kind == "escalated"
+    assert any("failed" in f.lower() or "fail" in f.lower() for f in stuck.escalation.failures) \
+        or stuck.escalation.failures == ()
+
+    improving = _run(workdir, ["5 failed", "3 failed", "3 failed", "3 failed"], patience=2)
+    assert improving.stop_reason is StopReason.NO_PROGRESS
+    assert improving.escalation is not None
+    assert improving.escalation.kind == "no_progress"
+
+
+def test_loop_leaves_escalation_none_on_success_and_cap(workdir):
+    state = {"n": 0}
+
+    def passes_on_second(command, cwd):
+        state["n"] += 1
+        if state["n"] >= 2:
+            return VerifyResult(passed=True, exit_code=0)
+        return VerifyResult(passed=False, exit_code=1, output="1 failed")
+
+    ok = run_loop(
+        "fix it", FakeAdapter(), _cfg(patience=2), workdir,
+        verify_fn=passes_on_second, checkpointer=Checkpointer(workdir, enabled=False),
+    )
+    assert ok.stop_reason is StopReason.SUCCESS
+    assert ok.escalation is None
+
+    capped = _run(workdir, ["2 failed"], patience=0, max_iterations=3)
+    assert capped.stop_reason is StopReason.ITERATION_CAP
+    assert capped.escalation is None

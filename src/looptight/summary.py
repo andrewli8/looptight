@@ -33,6 +33,15 @@ def _tail(result: RunResult) -> str:
     return text
 
 
+def _escalation_lines(result: RunResult) -> list[str]:
+    """The evidence block for an early stop: one summary line, then the failures
+    that never cleared, indented. Empty when there is no escalation."""
+    escalation = result.escalation
+    if escalation is None:
+        return []
+    return [escalation.summary, *(f"  {failure}" for failure in escalation.failures)]
+
+
 def render(result: RunResult) -> str:
     """Full plain-text summary."""
     lines = [header(result), ""]
@@ -43,6 +52,9 @@ def render(result: RunResult) -> str:
     tail = _tail(result)
     lines.append("")
     lines.append(f"{mark} {tail} · {result.iteration_count} iteration(s)")
+    evidence = _escalation_lines(result)
+    if evidence:
+        lines += ["", *evidence]
     if result.diffstat:
         lines += ["", "changes:", result.diffstat]
     return "\n".join(lines)
@@ -66,6 +78,11 @@ def render_rich(result: RunResult, console) -> None:
         f"{mark} {tail} · {result.iteration_count} iteration(s)",
         style="bold green" if passed else "bold red",
     )
+    evidence = _escalation_lines(result)
+    if evidence:
+        console.print()
+        for line in evidence:
+            console.print(line, style="yellow")
     if result.diffstat:
         console.print()
         console.print("changes:", style="dim")

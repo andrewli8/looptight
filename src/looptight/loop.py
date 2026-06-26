@@ -26,7 +26,7 @@ from .limits import (
     limit_wait,
     retry_after_from_error,
 )
-from .metacog import Decision, assess, progress_signal
+from .metacog import Decision, assess, build_escalation, progress_signal
 from .types import IterationRecord, RunResult, StopReason, VerifyResult
 from .verify import run_verify
 
@@ -124,6 +124,7 @@ def _supply_loop(
     stop = StopReason.ITERATION_CAP
     error: str | None = None
     returncode: int | None = None
+    escalation = None
 
     for number in range(1, config.max_iterations + 1):
         snapshot = checkpointer.snapshot()
@@ -156,11 +157,13 @@ def _supply_loop(
         # rest of the cap (no-op when config.patience is 0).
         progress.append(progress_signal(verify))
         decision = assess(progress, config.patience)
-        if decision is Decision.ESCALATE:
-            stop = StopReason.ESCALATED
-            break
-        if decision is Decision.STOP_NO_PROGRESS:
-            stop = StopReason.NO_PROGRESS
+        if decision in (Decision.ESCALATE, Decision.STOP_NO_PROGRESS):
+            stop = (
+                StopReason.ESCALATED
+                if decision is Decision.ESCALATE
+                else StopReason.NO_PROGRESS
+            )
+            escalation = build_escalation(records, progress, stop)
             break
 
         context = _continuation_context(verify)
@@ -174,6 +177,7 @@ def _supply_loop(
         diffstat=checkpointer.diffstat(),
         error=error,
         returncode=returncode,
+        escalation=escalation,
     )
     return result
 
