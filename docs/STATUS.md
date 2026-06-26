@@ -545,18 +545,14 @@ existing CLI session and makes no model or API calls of its own.
   `test_verify_json_refuses_command_not_in_allowlist` in `tests/test_cli.py` configures
   an allowlist and verifies that a command outside it returns `status="error"` with
   `"not allowed by policy"` in the output.
+- `_verify_policy_error`'s `max_changed_files` branch now has direct coverage:
+  `test_verify_json_refuses_when_changed_file_count_exceeds_policy` in `tests/test_cli.py`
+  configures `max_changed_files = 0`, creates one file, and asserts `status="error"` with
+  `"max_changed_files"` in the output — all three policy branches are now directly tested.
 
 ## Next
 
-1. `_verify_policy_error`'s `max_changed_files` branch is untested: lines 287-290
-   block a verify when the changed-file count exceeds the policy limit, but no test
-   exercises this path — an over-limit check could silently fail to block.
-   Evidence: `src/looptight/protocol_commands.py:287`
-   Acceptance: a new test in `tests/test_cli.py` configures `max_changed_files = 0`,
-   creates one changed file, runs `verify --json`, and asserts `status == "error"`
-   with `"max_changed_files"` in the output.
-
-2. `summary.header()` `mode == "delegate"` branch is untested: when `result.mode ==
+1. `summary.header()` `mode == "delegate"` branch is untested: when `result.mode ==
    "delegate"`, the verb is `"driving native loop"`, but every test in test_summary.py
    uses `mode="supply"`, leaving the delegate label unverified.
    Evidence: `src/looptight/summary.py:24`

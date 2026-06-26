@@ -1147,6 +1147,36 @@ def test_verify_json_refuses_command_not_in_allowlist(tmp_path, monkeypatch, cap
     assert "exit 0" in payload["output"]
 
 
+def test_verify_json_refuses_when_changed_file_count_exceeds_policy(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text(
+        'verify = "exit 0"\nmax_changed_files = 0\n',
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "add", ".looptight.toml"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=looptight@example.invalid",
+            "-c",
+            "user.name=looptight",
+            "commit",
+            "-qm",
+            "init",
+        ],
+        check=True,
+    )
+    (tmp_path / "new_file.py").write_text("# new\n", encoding="utf-8")
+
+    assert main(["verify", "--json"]) == 2
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "error"
+    assert "max_changed_files" in payload["output"]
+
+
 @pytest.mark.parametrize(
     ("status", "expected"),
     [("pass", 0), ("fail", 1), ("timeout", 2), ("error", 2)],
