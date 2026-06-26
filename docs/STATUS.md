@@ -717,6 +717,17 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `detect_verify` misses a Makefile `check:` target. It recognizes `make test` but
+   not the `check:` target — the GNU/autotools convention for running the test suite
+   and a common modern "run all checks" target — so a project whose Makefile has
+   `check:` (and no `test:`) gets "no test command detected" and falls back to the
+   wrong default. `make check` should be detected as a fallback after `make test`.
+   Evidence: `src/looptight/detect.py:74`
+   Acceptance: a new test in `tests/test_detect.py` asserts a Makefile with only a
+   `check:` target detects `make check`, a `test:` target still detects `make test`
+   (preferred when both exist), and `checkfmt:`/`check-lint:` do not match; existing
+   detection is unchanged, and `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
