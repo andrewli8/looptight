@@ -133,7 +133,9 @@ def _planned_tasks_are_grounded(root: Path, candidates: list[Candidate]) -> bool
             return False
         # Strip a markdown code span / trailing period the planner may wrap the
         # path in (``Evidence: `src/a.py:1` ``), matching the grounding gate.
-        reference = match.group(1).strip("`.")
+        # Only surrounding backticks and a trailing period: a leading dot
+        # (`./path`, `.dotfile`) is meaningful and must survive.
+        reference = match.group(1).strip("`").rstrip(".").rstrip("`")
         path_text, separator, line_text = reference.rpartition(":")
         if not separator or not line_text.isdigit():
             path_text, line_text = reference, ""

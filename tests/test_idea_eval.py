@@ -165,6 +165,21 @@ def test_grounding_tolerates_markdown_backticked_evidence(tmp_path):
     assert is_grounded(tmp_path, "Do it. Evidence: `src/ghost.py`") is False
 
 
+def test_ref_resolves_keeps_meaningful_leading_dots(tmp_path):
+    # Stripping a markdown code span must not eat a meaningful leading dot: a
+    # `./path` relative prefix and a `.dotfile` are valid anchors. (Regression:
+    # an over-broad strip of leading periods rejected both.)
+    from looptight.grounding import ref_resolves
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("x", encoding="utf-8")
+    (tmp_path / ".looptight.toml").write_text("v", encoding="utf-8")
+    assert ref_resolves(tmp_path, "./src/a.py") is True
+    assert ref_resolves(tmp_path, "./src/a.py:10") is True
+    assert ref_resolves(tmp_path, ".looptight.toml") is True
+    assert ref_resolves(tmp_path, "`.looptight.toml`") is True  # backticked dotfile
+
+
 def test_ref_resolves_boundary_cases(tmp_path):
     # Direct coverage of ref_resolves edge cases not reached through is_grounded.
     from looptight.grounding import ref_resolves
