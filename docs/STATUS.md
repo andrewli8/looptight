@@ -610,12 +610,12 @@ existing CLI session and makes no model or API calls of its own.
   path, nested parent-dir creation, and `OSError` cleanup (`.tmp` removed before
   re-raise). The module's docstring claim — "defined and tested in a single place" —
   now holds; no production code change.
+- `from_lint`'s `except (OSError, subprocess.TimeoutExpired): return []` clause
+  (discovery.py:481) now has direct regression coverage: two tests in `test_propose.py`
+  inject `OSError` and `TimeoutExpired` into `subprocess.run` and assert `from_lint`
+  returns `[]`; no production code change.
 
 ## Next
-
-1. `from_lint`'s `except (OSError, subprocess.TimeoutExpired): return []` clause at discovery.py:481 is not directly tested — a refactor that accidentally removes it or narrows it would go undetected; callers rely on graceful degradation when ruff hangs or is inaccessible.
-   Evidence: `src/looptight/discovery.py:481`
-   Acceptance: Two new tests in `tests/test_propose.py` monkeypatch `subprocess.run` to raise `OSError` and `TimeoutExpired` respectively and assert `from_lint()` returns `[]` in both cases; `looptight verify --json` returns `pass`; no production code change.
 
 3. `_js_line_comment` (discovery.py:142) has only one direct unit test (the escaped-backslash case); the unclosed-block, inline-block, no-comment, and template-literal branches are not directly tested and a refactor could silently break them.
    Evidence: `src/looptight/discovery.py:142`

@@ -355,6 +355,30 @@ def test_from_lint_disables_ruff_cache(tmp_path, monkeypatch):
     ]
 
 
+def test_from_lint_returns_empty_on_oserror(tmp_path, monkeypatch):
+    # If ruff cannot be launched (e.g. exec permission error), from_lint must
+    # degrade gracefully rather than propagating the OSError to the caller.
+    monkeypatch.setattr("looptight.discovery.shutil.which", lambda cmd: "/bin/ruff")
+    monkeypatch.setattr(
+        "looptight.discovery.subprocess.run",
+        lambda *a, **kw: (_ for _ in ()).throw(OSError("exec failed")),
+    )
+    assert from_lint(tmp_path) == []
+
+
+def test_from_lint_returns_empty_on_timeout(tmp_path, monkeypatch):
+    import subprocess as _subprocess
+    # A hung ruff process (TimeoutExpired) must not propagate to the caller.
+    monkeypatch.setattr("looptight.discovery.shutil.which", lambda cmd: "/bin/ruff")
+    monkeypatch.setattr(
+        "looptight.discovery.subprocess.run",
+        lambda *a, **kw: (_ for _ in ()).throw(
+            _subprocess.TimeoutExpired(cmd="/bin/ruff", timeout=60)
+        ),
+    )
+    assert from_lint(tmp_path) == []
+
+
 # --- dedup + rank ----------------------------------------------------------
 
 def test_rank_orders_by_source_priority():
