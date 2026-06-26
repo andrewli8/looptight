@@ -733,6 +733,16 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. TypeScript module files `.mts`/`.cts` are not scanned. `_JS_EXTS` includes the
+   JavaScript module extensions `.mjs`/`.cjs` but not their TypeScript counterparts
+   `.mts`/`.cts` (standard since TypeScript 4.7), so a modern TS project using them
+   has all its TODO/skip markers silently missed — a clean oversight when the `.mjs`/
+   `.cjs` pair was added.
+   Evidence: `src/looptight/discovery.py:66`
+   Acceptance: a test in `tests/test_propose.py` asserts a `// TODO` in `src/a.mts`
+   and a `// TODO` in `src/b.cts` are surfaced, and an `it.skip` in `tests/c.test.mts`
+   is detected; existing extension coverage is unchanged, and `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
