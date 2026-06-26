@@ -766,6 +766,19 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `docs/usage.md` under-describes the discovery scope after it was broadened. It
+   lists JS/TS extensions as `.js`/`.ts`/`.tsx` and scanning of `src/`/`tests/` plus
+   `*.test.*`/`*.spec.*`/`__tests__/`, and a partial skip-marker set — but discovery
+   now also covers `.mjs`/`.cjs`/`.mts`/`.cts`, the `test/`/`spec/` dirs, `*.cy.*`
+   files, `.gitignore`, and a much wider marker set. A code-vs-doc gap that misleads
+   users about what is supported.
+   Evidence: `docs/usage.md:143`
+   Acceptance: usage.md's discovery section is updated to accurately (and concisely)
+   describe the current scope (JS/TS family extensions, the `test/`/`spec/` dirs,
+   `*.cy.*` colocated files, `.gitignore` respect, and the pytest/unittest + JS
+   framework markers); a doc-accuracy assertion in `tests/test_docs.py` locks a couple
+   of the new facts, and `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
