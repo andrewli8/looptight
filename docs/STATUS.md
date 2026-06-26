@@ -582,6 +582,13 @@ existing CLI session and makes no model or API calls of its own.
   evidence. Filenames ending in `-N` with no colon are preserved; `path:line`/`:col`
   unchanged; swarm's stricter single-line planner check is untouched. Covered by
   `test_ref_resolves_handles_line_range_suffix`. (Boundary-bug theme: idiomatic anchors.)
+- JS/TS TODO discovery ignores markers inside a multi-line backtick template
+  literal: `_js_comments` now threads an `in_template` state across lines (as it
+  already does `in_block` for `/* */`), and `_js_line_comment` accepts/returns that
+  state, so a `// TODO` on a continuation line of a multi-line template string is no
+  longer surfaced as a false-positive task. Single-line and block-comment behavior is
+  unchanged. Covered by a from_todos multi-line-template test (mutation-verified) and
+  updated `_js_line_comment` unit tests.
 - `revert` checks for tracked changes before prompting: on a clean tree, plain
   `looptight revert` (no `--yes`) reports "nothing to revert" instead of offering to
   discard changes that do not exist; the dirty-tree `--yes` confirmation gate is
@@ -626,20 +633,6 @@ existing CLI session and makes no model or API calls of its own.
   `(None, False)` — four new tests in `test_propose.py`; no production code change.
 
 ## Next
-
-1. JS/TS TODO discovery must ignore markers inside a multi-line template literal.
-   `_js_comments` threads `in_block` for `/* */` across lines but not an open
-   backtick template literal, and `_js_line_comment` resets its quote state per
-   line, so a `// TODO` on a continuation line of a multi-line backtick string is
-   wrongly surfaced as a real comment/task (a false positive that pollutes the
-   queue with non-work). The scanner must track an open backtick template across
-   lines, the way it already tracks block comments.
-   Evidence: `src/looptight/discovery.py:175`
-   Acceptance: a new test in `tests/test_propose.py` writes a `.js` file with a
-   `// TODO` line inside a multi-line backtick template literal plus a real
-   `// TODO` after it, and asserts `from_todos` returns only the real one (not the
-   in-template line); existing single-line `_js_line_comment` behavior and block
-   comment tracking are preserved, and `looptight verify` passes.
 
 ## Rules
 

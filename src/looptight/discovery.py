@@ -139,16 +139,19 @@ def _comments(path: Path):
         return
 
 
-def _js_line_comment(line: str) -> tuple[str | None, bool]:
+def _js_line_comment(line: str, in_template: bool = False) -> tuple[str | None, bool, bool]:
     """Scan one line for a `//` or `/* ... */` comment, quote-aware.
 
-    Returns ``(body, block_open)``: ``body`` is the comment text found on this line
-    (or None), and ``block_open`` is True when a `/*` opened without a closing `*/`,
-    so the caller treats following lines as comment continuation until `*/`. A `//`
-    or `/*` inside a string or template literal is ignored, so a marker written
-    inside a JS string is not a false hit (as the Python path uses ``tokenize``).
+    Returns ``(body, block_open, template_open)``: ``body`` is the comment text on
+    this line (or None); ``block_open`` is True when a `/*` opened without a closing
+    `*/`; ``template_open`` is True when the line ends inside an unclosed backtick
+    template literal (a multi-line JS string). ``in_template`` True means the line
+    *begins* inside such a literal. The caller threads both flags so a `//`/`/*`
+    inside a string, including a multi-line template literal, is never a false hit
+    (as the Python path uses ``tokenize``).
     """
-    i, n, quote = 0, len(line), None
+    i, n = 0, len(line)
+    quote = "`" if in_template else None
     while i < n:
         char = line[i]
         if quote is not None:
@@ -162,14 +165,16 @@ def _js_line_comment(line: str) -> tuple[str | None, bool]:
         if char in "\"'`":
             quote = char
         elif char == "/" and i + 1 < n and line[i + 1] == "/":
-            return line[i + 2 :], False
+            return line[i + 2 :], False, False
         elif char == "/" and i + 1 < n and line[i + 1] == "*":
             end = line.find("*/", i + 2)
             if end == -1:
-                return line[i + 2 :], True
-            return line[i + 2 : end], False
+                return line[i + 2 :], True, False
+            return line[i + 2 : end], False, False
         i += 1
-    return None, False
+    # Only a backtick template literal spans lines; a dangling '/" is a JS syntax
+    # error, so we do not propagate it as an open string.
+    return None, False, quote == "`"
 
 
 def _js_comments(path: Path):
@@ -180,6 +185,7 @@ def _js_comments(path: Path):
     except OSError:
         return
     in_block = False
+    in_template = False
     for lineno, line in enumerate(lines, 1):
         if in_block:
             end = line.find("*/")
@@ -189,7 +195,7 @@ def _js_comments(path: Path):
                 yield lineno, line[:end]
                 in_block = False
             continue
-        body, in_block = _js_line_comment(line)
+        body, in_block, in_template = _js_line_comment(line, in_template)
         if body is not None:
             yield lineno, body
 

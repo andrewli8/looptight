@@ -654,7 +654,7 @@ def test_from_skipped_tests_ignores_skip_marker_in_trailing_comment(tmp_path):
 def test_js_line_comment_detects_comment_after_escaped_backslash():
     # An escaped backslash (\\) ends the string, so a following // comment is real.
     from looptight.discovery import _js_line_comment
-    body, block_open = _js_line_comment('let x = "\\\\" // TODO: fix')
+    body, block_open, _t = _js_line_comment('let x = "\\\\" // TODO: fix')
     assert body is not None and "TODO: fix" in body
     assert block_open is False
 
@@ -662,7 +662,7 @@ def test_js_line_comment_detects_comment_after_escaped_backslash():
 def test_js_line_comment_no_comment_returns_none():
     # A plain code line with no comment token must return (None, False).
     from looptight.discovery import _js_line_comment
-    body, block_open = _js_line_comment("const x = 1;")
+    body, block_open, _t = _js_line_comment("const x = 1;")
     assert body is None
     assert block_open is False
 
@@ -671,7 +671,7 @@ def test_js_line_comment_unclosed_block_comment_sets_block_open():
     # A /* that is never closed on this line must return block_open=True so the
     # caller continues reading the next lines as comment continuation.
     from looptight.discovery import _js_line_comment
-    body, block_open = _js_line_comment("/* TODO: unfinished")
+    body, block_open, _t = _js_line_comment("/* TODO: unfinished")
     assert body is not None and "TODO: unfinished" in body
     assert block_open is True
 
@@ -679,7 +679,7 @@ def test_js_line_comment_unclosed_block_comment_sets_block_open():
 def test_js_line_comment_inline_block_comment_stays_closed():
     # A /* ... */ fully closed on one line must not set block_open.
     from looptight.discovery import _js_line_comment
-    body, block_open = _js_line_comment("doThing(); /* TODO: inline */ more();")
+    body, block_open, _t = _js_line_comment("doThing(); /* TODO: inline */ more();")
     assert body is not None and "TODO: inline" in body
     assert block_open is False
 
@@ -687,9 +687,48 @@ def test_js_line_comment_inline_block_comment_stays_closed():
 def test_js_line_comment_ignores_slash_inside_backtick_template_literal():
     # A // inside a backtick template literal is not a real comment.
     from looptight.discovery import _js_line_comment
-    body, block_open = _js_line_comment("`url: http://example.com`")
+    body, block_open, _template = _js_line_comment("`url: http://example.com`")
     assert body is None
     assert block_open is False
+
+
+def test_from_todos_ignores_marker_inside_multiline_template_literal(tmp_path):
+    # A // TODO on a continuation line of a multi-line backtick template literal is
+    # string content, not a comment, and must not be surfaced as a task; a real
+    # // TODO after the template closes must still be found.
+    from looptight.discovery import from_todos
+
+    _write(
+        tmp_path,
+        "src/a.js",
+        "const t = `\n"
+        "// TODO: inside template literal, not real\n"
+        "`;\n"
+        "// TODO: real comment after template\n",
+    )
+    todos = from_todos(tmp_path)
+    titles = [c.title for c in todos]
+    assert "real comment after template" in titles
+    assert "inside template literal, not real" not in titles
+    assert len(todos) == 1
+
+
+def test_js_line_comment_reports_open_template_literal(tmp_path):
+    # An unclosed backtick at end of line means the next line begins inside the
+    # template literal; the scanner reports this so the caller can track it.
+    from looptight.discovery import _js_line_comment
+    body, block_open, template_open = _js_line_comment("const t = `opening")
+    assert body is None
+    assert block_open is False
+    assert template_open is True
+    # Starting a line already inside a template, a // is string content.
+    body2, _b, still_open = _js_line_comment("// not a comment", in_template=True)
+    assert body2 is None
+    assert still_open is True
+    # The closing backtick ends the template; a real // after it is a comment.
+    body3, _b3, closed = _js_line_comment("`; // real", in_template=True)
+    assert body3 is not None and "real" in body3
+    assert closed is False
 
 
 def test_from_todos_is_layout_agnostic(tmp_path):
