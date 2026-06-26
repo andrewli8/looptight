@@ -758,19 +758,13 @@ existing CLI session and makes no model or API calls of its own.
   `spec` alongside `src`/`tests`/`test`, so a Jasmine project's `it.skip` markers in
   plain-named `spec/*Spec.js` files are detected. Covered by a test.
 
-## Next
+- The task parser accepts `1)` paren-style ordered-list items: `from_task_file`
+  matches `\d+[.)]` in both the item-detection and next-item-boundary regexes, so a
+  `## Next`/task-file written with `1)` markers (valid markdown) is parsed instead of
+  silently dropped into a false `no_work`. `1.` parsing and `-` bullet exclusion are
+  unchanged. Covered by a test.
 
-1. The task parser drops `1)` paren-style ordered-list items. `from_task_file`
-   matches numbered items with `\\d+\\.` (dot only), but markdown ordered lists
-   also use `1)` (paren), so a `## Next`/task-file written with `1)` markers is
-   silently dropped and the loop sees a false `no_work` — the boundary-bug class
-   (the input parser must tolerate idiomatic markdown). Accept `\\d+[.)]` in both the
-   item-detection and next-item-boundary regexes.
-   Evidence: `src/looptight/discovery.py:536`
-   Acceptance: a new test in `tests/test_propose.py` asserts a `## Next` with a `1)`
-   paren-style task (with Evidence/Acceptance) is parsed like a `1.` task and that a
-   following `2)` item bounds the first; `1.` parsing and `-` bullet exclusion are
-   unchanged, and `looptight verify` passes.
+## Next
 
 ## Rules
 

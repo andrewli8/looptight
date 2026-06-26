@@ -533,7 +533,8 @@ def from_task_file(
         if not in_next:
             idx += 1
             continue
-        item = re.match(r"\d+\.\s+(?P<text>.+)", stripped)
+        # Accept both `1.` and `1)` ordered-list markers (idiomatic markdown).
+        item = re.match(r"\d+[.)]\s+(?P<text>.+)", stripped)
         if not item:
             idx += 1
             continue
@@ -547,7 +548,7 @@ def from_task_file(
             nxt_stripped = nxt.strip()
             if not nxt_stripped or nxt[:1] not in (" ", "\t"):
                 break
-            if nxt_stripped.startswith("## ") or re.match(r"\d+\.\s+", nxt_stripped):
+            if nxt_stripped.startswith("## ") or re.match(r"\d+[.)]\s+", nxt_stripped):
                 break
             parts.append(nxt_stripped)
             idx += 1

@@ -580,6 +580,20 @@ def test_from_status_next_parses_numbered_list(tmp_path):
     assert titles == ["First thing to do", "Second thing"]
 
 
+def test_from_status_next_parses_paren_style_ordered_list(tmp_path):
+    # Markdown ordered lists also use `1)` (paren); such tasks must not be silently
+    # dropped, and a following `2)` item must bound the first.
+    _write(
+        tmp_path,
+        "docs/STATUS.md",
+        "# Status\n\n## Next\n\n"
+        "1) Paren task. Acceptance: first passes.\n\n"
+        "2) Second paren task. Acceptance: second passes.\n",
+    )
+    titles = [c.title for c in from_status_next(tmp_path)]
+    assert titles == ["Paren task", "Second paren task"]
+
+
 def test_from_status_next_absent_file_is_empty(tmp_path):
     assert from_status_next(tmp_path) == []
 
