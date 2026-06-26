@@ -591,6 +591,18 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `goal` honors `--json` for the set and clear actions. `goal "<vision>" --json`
+   prints the bare human line `goal set: <vision>` and `goal clear --json` prints
+   `cleared the active goal`, while `goal status`/`goal next` emit JSON — so a host
+   parsing this documented machine-facing command chokes on two of its four actions.
+   Both should emit a versioned JSON object under `--json`.
+   Evidence: `src/looptight/protocol_commands.py:787`
+   Acceptance: new tests in `tests/test_goal.py` assert `goal "<vision>" --json`
+   prints a JSON object with `schema_version`, `command` `goal`, `active` true and
+   the goal fields, and `goal clear --json` prints a JSON object with `active` false
+   and a `cleared` boolean; human (non-`--json`) output is unchanged, and
+   `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
