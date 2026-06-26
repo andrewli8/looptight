@@ -555,6 +555,39 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `render_rich()` diffstat branch is untested: `summary.py:94-97` shows `render_rich`
+   prints `changes:`/diffstat lines when `result.diffstat` is set, but no test calls
+   `render_rich` with a non-empty diffstat, leaving those 4 lines unexercised.
+   Evidence: `src/looptight/summary.py:94`
+   Acceptance: a new `test_console_summary_includes_diffstat` in `tests/test_summary.py`
+   calls `render_rich` with a `RunResult(diffstat="src/a.py | 3 +++", ...)` and asserts
+   `"changes:"` and `"src/a.py"` appear in the captured output.
+
+2. `_parse_absolute_reset` noon (`12pm`) case is untested: `limits.py:99` guards
+   `if meridiem == "pm" and hour != 12`, so `12:00pm` (noon, hour stays 12) never
+   enters the `+= 12` branch and is never exercised by any existing test.
+   Evidence: `src/looptight/limits.py:99`
+   Acceptance: a new `test_absolute_reset_handles_noon_12pm` in `tests/test_limits.py`
+   calls `classify_limit` with a `"resets at 12:00pm"` message and a `now` just before
+   noon and asserts the returned wait is under 3600 seconds.
+
+3. `_git()` OSError fallback path in `experience.py` is untested: `experience.py:28-29`
+   returns a synthetic `CompletedProcess(returncode=127)` when `subprocess.run` raises
+   `OSError` (e.g. git not on PATH), but no test exercises this path; `landed_counts`
+   silently returns `{}` on that error, which is the documented contract.
+   Evidence: `src/looptight/experience.py:28`
+   Acceptance: a new `test_landed_counts_returns_empty_when_git_not_found` in
+   `tests/test_experience.py` monkeypatches `subprocess.run` to raise `OSError` and
+   asserts `landed_counts(tmp_path, "HEAD") == {}`.
+
+4. `_comments()` exception-handling path in `discovery.py` is untested: `discovery.py:138`
+   catches `(tokenize.TokenError, SyntaxError, OSError, UnicodeDecodeError)` and returns
+   silently, but no test passes a malformed or unreadable Python file to trigger this.
+   Evidence: `src/looptight/discovery.py:138`
+   Acceptance: a new `test_from_todos_skips_malformed_python_file` in
+   `tests/test_propose.py` writes a file with invalid Python tokens (e.g. a lone `\x00`
+   byte) and asserts `from_todos()` returns an empty list without raising.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
