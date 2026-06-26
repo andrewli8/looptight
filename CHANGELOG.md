@@ -43,6 +43,10 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- `init` no longer claims it "detected" a value the user passed explicitly. With
+  `--verify`/`--agent` it now says the value came from the flag, rather than
+  "Detected: <cmd>" / "<agent> (auto-detected)"; plain `init` still reports
+  detection.
 - `goal status --json` always carries `schema_version`. It was present only when
   a goal was active (it came from `goal.as_dict()`); the no-goal payload omitted
   it, so an automation consumer reading `schema_version` hit a KeyError when no

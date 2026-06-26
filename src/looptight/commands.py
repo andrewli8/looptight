@@ -72,7 +72,10 @@ def cmd_init(args: argparse.Namespace, console: Console) -> int:
         console.print("[bold]The one thing to know: `verify`.[/bold]")
         console.print("`verify` is the command that decides pass/fail. No verify, no loop.")
         if verify:
-            console.print(f"Detected: [cyan]{verify}[/cyan]. Edit {path.name} if that's wrong.")
+            if args.verify:
+                console.print(f"Using [cyan]{verify}[/cyan] from --verify. Edit {path.name} if that's wrong.")
+            else:
+                console.print(f"Detected: [cyan]{verify}[/cyan]. Edit {path.name} if that's wrong.")
             from .protocol_commands import _verifier_quality
 
             quality = _verifier_quality(verify)
@@ -85,7 +88,8 @@ def cmd_init(args: argparse.Namespace, console: Console) -> int:
                 "project's test command."
             )
         if agent:
-            console.print(f"Agent: [cyan]{agent}[/cyan] (auto-detected).")
+            source = "from --agent" if args.agent else "auto-detected"
+            console.print(f"Agent: [cyan]{agent}[/cyan] ({source}).")
         else:
             console.print("[yellow]No coding agent found on PATH (claude / codex / opencode).[/yellow]")
 

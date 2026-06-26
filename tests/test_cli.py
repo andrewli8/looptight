@@ -48,6 +48,17 @@ def test_init_message_is_consistent_when_verify_undetected(tmp_path, monkeypatch
     assert "set `verify` in the config" not in out  # no longer claims it is unset
 
 
+def test_init_credits_explicit_flags_not_detection(tmp_path, monkeypatch, capsys):
+    # When the user passes --verify/--agent, init must not claim it "detected" a
+    # value the user typed; it should say the value came from the flag.
+    monkeypatch.chdir(tmp_path)
+
+    assert main(["init", "--verify", "make test", "--agent", "codex"]) == 0
+    out = capsys.readouterr().out
+    assert "from --verify" in out and "Detected:" not in out
+    assert "from --agent" in out and "auto-detected" not in out
+
+
 def test_init_does_not_clobber_existing_config(tmp_path, monkeypatch, capsys):
     # Re-running init must not silently destroy a user's customized config.
     monkeypatch.chdir(tmp_path)
