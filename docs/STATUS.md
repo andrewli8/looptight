@@ -585,6 +585,20 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Guard the crash-recovery analog of the integration ref CAS. After a crash that
+   committed the merge but never advanced the ref, `_reconcile_one` re-advances via
+   `update-ref <ref> <committed> <observed>` — the same compare-and-swap — so a
+   concurrent advance during recovery fails closed (`conflict`, "target advanced
+   during reconcile") rather than clobbering the other integrator's commit. That
+   reconcile conflict branch is untested.
+   Evidence: `src/looptight/integration_queue.py:326`
+   Acceptance: a new test in `tests/test_integration_queue.py` crashes at the
+   `after_commit` boundary, advances the target ref before calling `reconcile`, and
+   asserts the reconcile outcome status is `conflict` with a "target advanced"
+   error, the integration is not marked complete, and the ref still points at the
+   racing commit; the test fails if the old-value argument is dropped from the
+   reconcile update-ref call, and `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
