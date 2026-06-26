@@ -540,13 +540,9 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `experience.summary_text()` truncates to the top-`k` ideas by count, but the
-   existing test uses only 2 landed and 1 failed idea — fewer than the default
-   `k=5` — so the truncation branch never fires.
-   Evidence: `src/looptight/experience.py:115`
-   Acceptance: A new test in `tests/test_experience.py` with 7 failed ideas of
-   varying counts proves only the top-5 appear and the lowest-count idea is absent
-   from the output; `looptight verify --json` returns `pass`.
+(none — the top-`k` truncation test landed in `tests/test_experience.py` as
+`test_summary_text_keeps_only_the_top_k_failed_ideas_by_count`, satisfying the
+queued task's acceptance.)
 
 ## Rules
 
