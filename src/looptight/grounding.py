@@ -28,8 +28,12 @@ _EVIDENCE_RE = re.compile(r"\bEvidence:\s*([^\s;,]+)")
 
 
 def evidence_refs(text: str) -> list[str]:
-    """Every ``Evidence:`` anchor named in a task's text (``path`` or ``path:line``)."""
-    return _EVIDENCE_RE.findall(text or "")
+    """Every ``Evidence:`` anchor named in a task's text (``path`` or ``path:line``).
+
+    Surrounding markdown code-span backticks are stripped so the anchor is the
+    bare path for every consumer (the resolver and the diversity metric alike).
+    """
+    return [ref.strip("`") for ref in _EVIDENCE_RE.findall(text or "")]
 
 
 _POSITION_SUFFIX = re.compile(r"(:\d+)+$")

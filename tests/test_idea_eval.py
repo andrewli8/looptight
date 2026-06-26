@@ -48,6 +48,15 @@ def test_evidence_refs_parses_each_marker():
     assert evidence_refs(cand) == ["src/a.py:10", "tests/test_c.py:3"]
 
 
+def test_evidence_refs_strips_markdown_backticks():
+    # The anchor is the bare path; markdown code-span backticks (the idiomatic
+    # way paths are written, including in this repo's STATUS.md) are not part of
+    # it, so every consumer — the resolver and the diversity metric — sees a
+    # clean path.
+    cand = _candidate("t", "Do it. Evidence: `src/a.py:10` Acceptance: x")
+    assert evidence_refs(cand) == ["src/a.py:10"]
+
+
 def test_is_grounded_true_only_when_every_anchor_resolves(tmp_path):
     _repo_with_files(tmp_path)
     real = _candidate("Harden a", "Harden a. Evidence: src/a.py:10; Acceptance: x")
