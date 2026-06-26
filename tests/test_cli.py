@@ -1786,6 +1786,26 @@ def test_verify_patience_surfaces_session_native_stall(tmp_path, monkeypatch, ca
     assert "stall" not in cleared or cleared["stall"] is None  # pass -> no stall
 
 
+def test_verify_human_next_step_reflects_a_stall(tmp_path, monkeypatch, capsys):
+    # On a stall, the human `next:` line must not be the generic "continue fixing":
+    # the stall says the current approach is not progressing, so it should point at
+    # a different approach / human review.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    stuck = 'python -c "import sys; sys.stderr.write(chr(10).join([\'FAILED t::x - boom\',\'1 failed\'])); sys.exit(1)"'
+
+    def run():
+        assert main(["verify", "--verify", stuck, "--patience", "2"]) == 1
+        return capsys.readouterr().out
+
+    run()
+    run()
+    out = run()  # third attempt: stalled
+    assert "stalled:" in out
+    assert "continue fixing, then rerun" not in out  # not the generic advice
+    assert "different approach" in out or "human" in out.lower()
+
+
 def test_verify_json_without_patience_has_no_stall_key(tmp_path, monkeypatch, capsys):
     # The default verify --json contract is unchanged: no stall key.
     monkeypatch.chdir(tmp_path)

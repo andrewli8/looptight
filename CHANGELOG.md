@@ -40,6 +40,10 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- On a `verify --patience` stall, the human `next:` step no longer advises
+  "continue fixing." A stall means the current approach is not progressing, so it
+  now points at a different approach or human review, matching the stall signal's
+  purpose instead of undercutting it.
 - `next` no longer prompts idea generation when the queue is merely busy. It
   attached the `generate_ideas` directive on every `no_work`, even when real
   candidates existed but were all leased by other live runs — so a second session

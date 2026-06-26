@@ -62,11 +62,15 @@ def cmd_verify(args: argparse.Namespace, console: Console) -> int:
     console.print(f"changed files: {_changed_files(workdir)}")
     if stall and stall.get("escalation"):
         console.print(f"[yellow]stalled:[/yellow] {stall['escalation']['summary']}")
-    console.print(
-        "next: review the diff, update status, then commit"
-        if result.passed
-        else "next: continue fixing, then rerun `looptight verify --json`"
-    )
+    if result.passed:
+        next_step = "next: review the diff, update status, then commit"
+    elif stall and stall.get("escalation"):
+        # The stall says the current approach is not progressing; do not advise
+        # "continue fixing" — point at a different approach or human review.
+        next_step = "next: no progress across these attempts — try a different approach or get a human review"
+    else:
+        next_step = "next: continue fixing, then rerun `looptight verify --json`"
+    console.print(next_step)
     return _verify_exit_code(result.status)
 
 
