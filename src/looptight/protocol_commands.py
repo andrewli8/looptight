@@ -226,7 +226,8 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
         if result.error == "dirty_worktree":
             console.print(
                 "[red]dirty worktree:[/red] commit or stash your changes before "
-                "claiming a task, so the loop starts from a clean state."
+                "claiming a task. If it is only build artifacts (e.g. __pycache__ "
+                "left by your test command), add them to .gitignore."
             )
         else:
             console.print(f"[red]error:[/red] {result.error}")
