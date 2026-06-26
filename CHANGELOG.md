@@ -35,6 +35,9 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- `.looptight.toml` with a leading UTF-8 BOM (common from Windows editors) now
+  loads instead of failing with a cryptic `Invalid statement (at line 1, column
+  1)`. The file is decoded BOM-tolerantly; plain UTF-8 is unaffected.
 - TODO discovery no longer surfaces marker-prefixed compound words in prose
   (`# fixme-style naming`, `# todo-list helper`) as false-positive tasks. A marker
   must be followed by `:`, whitespace, or end of line.

@@ -70,7 +70,9 @@ def load_config(path: Path | None = None) -> Config:
     if resolved is None or not resolved.is_file():
         return Config()
     try:
-        data = tomllib.loads(resolved.read_text(encoding="utf-8"))
+        # ``utf-8-sig`` strips a leading BOM (common from Windows editors) that
+        # tomllib would otherwise reject; it is a no-op for plain UTF-8.
+        data = tomllib.loads(resolved.read_text(encoding="utf-8-sig"))
     except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError) as exc:
         raise ConfigError(f"{resolved} is not valid TOML: {exc}") from exc
     try:

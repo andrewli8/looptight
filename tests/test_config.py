@@ -62,6 +62,14 @@ def test_write_then_load_preserves_verify_command_with_toml_special_characters(t
     assert load_config(path).verify == verify
 
 
+def test_load_config_tolerates_utf8_bom(tmp_path):
+    # Windows editors commonly prepend a UTF-8 BOM. tomllib rejects it, so the
+    # raw bytes must be decoded BOM-tolerantly or the file fails to parse.
+    path = tmp_path / ".looptight.toml"
+    path.write_bytes(b"\xef\xbb\xbf" + b'verify = "pytest -q"\nagent = "codex"\n')
+    assert load_config(path).verify == "pytest -q"
+
+
 def test_load_config_raises_clear_error_on_malformed_toml(tmp_path):
     path = tmp_path / ".looptight.toml"
     path.write_text('verify = "pytest"\nnot valid = = toml\n', encoding="utf-8")
