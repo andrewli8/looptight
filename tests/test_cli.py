@@ -768,7 +768,7 @@ def test_status_readiness_reports_partial_repo_with_remediation(
 
     data = json.loads(capsys.readouterr().out)
     assert data["readiness"]["tier"] == "partial"
-    assert data["readiness"]["checks"]["coordinator"] == "inactive"  # reported, not gating
+    assert data["readiness"]["checks"]["coordinator"] == "active"  # DB is the store in any git repo
     assert data["readiness"]["checks"]["task_sources"] == "missing"
     assert data["readiness"]["checks"]["agent"] == "missing"
     # The coordinator no longer gates readiness, so remediation points at the real
@@ -913,17 +913,37 @@ def test_status_json_reports_degraded_concurrency_for_active_work(
     assert data["concurrency"]["next_remediation"] == "wait for active coordinator work to drain"
 
 
-def test_status_human_reports_unsafe_concurrency_with_migrate_hint(
-    tmp_path, monkeypatch, capsys
-):
+def test_status_concurrency_is_safe_in_plain_git_repo(tmp_path, monkeypatch, capsys):
+    # The SQLite coordinator is the claim store in any git repo, so a plain repo
+    # with no live legacy claims is concurrency-safe even before `migrate` runs.
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
 
     assert main(["status"]) == 0
 
     out = capsys.readouterr().out
+    assert "concurrency: safe" in out
+    assert "run `looptight migrate`" not in out  # nothing to fence, no migrate prompt
+
+
+def test_status_concurrency_unsafe_only_with_live_legacy_claims(
+    tmp_path, monkeypatch, capsys
+):
+    # The only concurrency threat is live legacy file claims racing the coordinator;
+    # those make status unsafe with a fence-via-migrate remediation.
+    from looptight.claims import ClaimStore, claim_dir
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    cdir = claim_dir(tmp_path)
+    assert cdir is not None
+    ClaimStore(cdir, "legacy-owner").select([{"id": "t1"}])  # writes a live legacy claim
+
+    assert main(["status"]) == 0
+
+    out = capsys.readouterr().out
     assert "concurrency: unsafe" in out
-    assert "concurrency next: run `looptight migrate`" in out
+    assert "looptight migrate" in out  # fence the live legacy claims
 
 
 def test_status_human_shows_verify_command_without_changing_json(
@@ -1042,11 +1062,10 @@ def test_doctor_guides_ready_repository_to_next_command(tmp_path, monkeypatch, c
     assert after == before
 
 
-def test_doctor_solo_setup_is_ready_without_coordinator(tmp_path, monkeypatch, capsys):
-    # The coordinator only enables cross-session sharing; a solo loop works on
-    # file claims. So verify + git + agent + a task source reads `setup: ready`
-    # even with the coordinator inactive, and migrate is an optional hint, not a
-    # blocking `setup next`.
+def test_doctor_solo_setup_is_ready_with_active_coordinator(tmp_path, monkeypatch, capsys):
+    # `next` leases through the coordinator DB in any git repo, so doctor reports
+    # the coordinator active. With no live legacy claims there is nothing to fence,
+    # so migrate is not suggested and is never a blocking `setup next`.
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
     (tmp_path / ".looptight.toml").write_text('verify = "exit 0"\n', encoding="utf-8")
@@ -1061,11 +1080,10 @@ def test_doctor_solo_setup_is_ready_without_coordinator(tmp_path, monkeypatch, c
 
     assert main(["doctor"]) == 0
     out = capsys.readouterr().out
-    assert "coordinator: inactive" in out  # still reported, just not gating
+    assert "coordinator: active" in out  # the coordinator DB is the claim store
     assert "setup: ready" in out
     assert "setup next: run `looptight next --json`" in out
-    assert "looptight migrate" in out  # offered as an optional enhancement
-    assert "setup next: run `looptight migrate`" not in out
+    assert "looptight migrate" not in out  # no live legacy claims, nothing to fence
 
 
 def test_malformed_config_exits_cleanly_not_traceback(tmp_path, monkeypatch):

@@ -576,6 +576,15 @@ existing CLI session and makes no model or API calls of its own.
 - `GoalDecision.as_dict()` now has direct unit coverage via
   `test_goal_decision_as_dict_pins_all_statuses` in tests/test_goal.py, asserting
   required fields are always present and optional fields appear only when set.
+- `doctor`/`status` honestly report the SQLite coordinator as the active claim
+  store. `next` leases through the coordinator DB in any git repo, so doctor prints
+  `coordinator: active` and a coordination line naming the SQLite coordinator, and
+  `status` readiness/concurrency report the coordinator active. Concurrency is
+  `unsafe` only outside Git or while live legacy file claims race the coordinator;
+  a plain git repo with no legacy claims is `safe`. `migrate` is reframed as fencing
+  live legacy file claims and is only hinted when such claims exist, never as a
+  prerequisite for coordination (which already works). Covered by updated tests in
+  test_cli.py and a plain-repo/legacy-claim concurrency pair. (User chose Fix B.)
 - `goal` honors `--json` for every action: the set (`goal "<vision>" --json`) and
   clear (`goal clear --json`) actions now emit a versioned JSON object (set: `active`
   true plus the goal fields; clear: `active` false and a `cleared` boolean) instead of
@@ -595,24 +604,6 @@ existing CLI session and makes no model or API calls of its own.
   dropping the old-value argument from the reconcile update-ref call.
 
 ## Next
-
-1. Make `doctor`/`status` honestly report the SQLite coordinator as the active
-   claim store. `next_task` leases through the coordinator DB in every git repo
-   (`tasks.py` calls `Coordinator.open` unconditionally), yet doctor/status key
-   "coordinator: inactive / file claims / run migrate to enable coordination" on
-   the migrate marker, so a fresh repo is told it lacks coordination it already
-   has, and a plain git repo is reported `concurrency: unsafe`. Reframe: in a git
-   repo the coordinator is active; the marker only fences legacy file claims;
-   concurrency is unsafe only outside Git or while live legacy claims exist; the
-   migrate hint appears only when live legacy claims are present.
-   Evidence: `src/looptight/protocol_commands.py:566`
-   Acceptance: `_coordinator_activation` returns `active` in any git repo;
-   `_concurrency` is `unsafe` only for non-git or live legacy claims (a plain git
-   repo with no legacy claims is `safe`, remediation not the bare `run migrate`);
-   doctor prints `coordinator: active` and a coordination line naming the SQLite
-   coordinator, and offers the migrate hint only when live legacy claims exist;
-   tests in test_cli.py/test_coordinator.py are updated to the honest contract and
-   `looptight verify` passes.
 
 ## Rules
 

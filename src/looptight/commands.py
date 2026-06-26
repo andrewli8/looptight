@@ -11,7 +11,7 @@ from pathlib import Path
 
 from .adapters import available_adapter_names, get_adapter
 from .checkpoint import is_git_primary_worktree, is_git_repo
-from .claims import MARKER_NAME
+from .claims import claim_dir, has_live_claim
 from .config import CONFIG_NAME, DEFAULT_VERIFY, Config, find_config, load_config, write_config
 from .console import Console
 from .coordinator import coordination_scope
@@ -388,8 +388,8 @@ def cmd_doctor(args: argparse.Namespace, console: Console) -> int:
     console.print(f"  git checkpoints: {'on' if git_ready else '[yellow]off (not a git repo)[/yellow]'}")
     console.print(f"  coordinator: {coordinator}")
     console.print(f"  coordination: {_coordination_line(workdir)}")
-    # The coordinator only enables cross-session sharing; a solo loop works on file
-    # claims, so it is not a setup requirement (surfaced separately, above).
+    # Setup readiness is about verify + agent + git; the coordinator is already the
+    # claim store in any git repo, so it is never a setup requirement.
     setup_ready = bool(verify and agent and git_ready)
     console.print(f"  setup: {'ready' if setup_ready else 'not ready'}")
     # The readiness tier matches the exit code: `unsafe` exits non-zero, `partial`
@@ -398,8 +398,11 @@ def cmd_doctor(args: argparse.Namespace, console: Console) -> int:
     console.print(
         f"  setup next: {_doctor_next_setup_command(verify, agent, git_ready)}"
     )
-    if setup_ready and coordinator != "active":
-        console.print("  hint: `looptight migrate` enables cross-session coordination")
+    # The coordinator is already the claim store; `migrate` only fences legacy file
+    # claims, so it is only worth suggesting when live legacy claims actually exist.
+    claims = claim_dir(workdir) if git_ready else None
+    if claims is not None and has_live_claim(claims):
+        console.print("  hint: `looptight migrate` fences live legacy file claims into the coordinator")
     console.print("  adapters:")
     for name in available_adapter_names():
         adapter = get_adapter(name)
@@ -420,10 +423,13 @@ def cmd_doctor(args: argparse.Namespace, console: Console) -> int:
     return 1 if unsafe else 0
 
 
+# Both git states use the SQLite coordinator as the claim store; the marker only
+# records whether legacy file claims have been fenced, so neither human label
+# should imply file claims are the coordination mechanism.
 _COORDINATION_LABELS = {
     "coordinator": "local-only (SQLite coordinator)",
-    "file-claims": "local-only (file claims)",
-    "none": "not activated",
+    "file-claims": "local-only (SQLite coordinator)",
+    "none": "not a git repo",
 }
 
 
@@ -437,21 +443,10 @@ def _coordination_line(workdir: Path) -> str:
 
 
 def _doctor_coordinator_state(workdir: Path, git_ready: bool) -> str:
-    if not git_ready:
-        return "not a git repo"
-    result = subprocess.run(
-        ["git", "rev-parse", "--git-common-dir"],
-        cwd=workdir,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        return "unknown"
-    common = Path(result.stdout.strip())
-    if not common.is_absolute():
-        common = workdir / common
-    return "active" if (common / "looptight" / MARKER_NAME).is_file() else "inactive"
+    # `next` leases through the coordinator DB in any git repo, so the coordinator
+    # is the active claim store whenever git checkpoints are on. The migrate marker
+    # only fences legacy file claims and is surfaced separately.
+    return "active" if git_ready else "not a git repo"
 
 
 def _doctor_next_setup_command(

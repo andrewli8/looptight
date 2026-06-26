@@ -548,8 +548,8 @@ def _readiness(
     if checks["verify"] == "missing" or checks["git"] != "clean":
         tier = "unsafe"
     elif (
-        # The coordinator (cross-session sharing) is optional, not a readiness
-        # gate: a solo loop is ready on file claims. It stays a reported check.
+        # Migration state is not a readiness gate: the coordinator is already the
+        # claim store. The coordinator check stays reported, not gating.
         checks["task_sources"] != "configured"
         or checks["agent"] != "available"
     ):
@@ -564,12 +564,14 @@ def _readiness(
 
 
 def _coordinator_activation(workdir: Path, workspace: str) -> str:
+    # The SQLite coordinator is the claim store in any git repo: `next` leases
+    # through it whether or not `migrate` has run. So "active" reflects the store
+    # being in use, not the migrate marker (which only fences legacy file claims).
     if workspace == "not_git":
         return "not_git"
-    common = _git_common_dir(workdir)
-    if common is None:
+    if _git_common_dir(workdir) is None:
         return "unknown"
-    return "active" if (common / "looptight" / MARKER_NAME).is_file() else "inactive"
+    return "active"
 
 
 def _git_common_dir(workdir: Path) -> Path | None:
@@ -672,7 +674,10 @@ def _concurrency(
         "pending_publications": pending_publications,
         "scope": "local-filesystem",
     }
-    if workspace == "not_git" or coordinator != "active" or legacy_claims:
+    # Unsafe only when there is no process-safe store (outside Git) or live legacy
+    # file claims race the coordinator. A plain git repo, where the coordinator is
+    # the store, is safe even before `migrate` fences the (absent) legacy claims.
+    if workspace == "not_git" or legacy_claims:
         status = "unsafe"
     elif active_claims or queued_integrations or pending_publications:
         status = "degraded"
@@ -683,7 +688,7 @@ def _concurrency(
         "scope": "local-filesystem",
         "checks": checks,
         "next_remediation": _concurrency_remediation(
-            workspace, coordinator, legacy_claims, status
+            workspace, legacy_claims, status
         ),
     }
 
@@ -696,14 +701,12 @@ def _count(counts: dict[str, object] | None, key: str) -> int:
 
 
 def _concurrency_remediation(
-    workspace: str, coordinator: str, legacy_claims: bool, status: str
+    workspace: str, legacy_claims: bool, status: str
 ) -> str:
     if workspace == "not_git":
         return "run inside a Git repository"
     if legacy_claims:
         return "wait for legacy claims to expire or clear them, then run `looptight migrate`"
-    if coordinator != "active":
-        return "run `looptight migrate`"
     if status == "degraded":
         return "wait for active coordinator work to drain"
     return "none"
