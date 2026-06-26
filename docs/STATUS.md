@@ -605,6 +605,18 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `revert` on a clean tree should not prompt to discard nonexistent changes.
+   `cmd_revert` prints the "This discards uncommitted changes — Re-run with --yes"
+   confirmation before it ever checks whether the tree is dirty; the clean-tree
+   "nothing to revert" message only runs on the `--yes` path. So on a clean tree,
+   plain `looptight revert` misleadingly offers to discard changes that do not
+   exist. The clean-tree check should come first, for both paths.
+   Evidence: `src/looptight/commands.py:472`
+   Acceptance: a new test in `tests/test_cli.py` runs `revert` (no `--yes`) on a
+   committed clean tree and asserts the output says "nothing to revert" and does
+   not contain "Re-run with --yes"; the dirty-tree-without-`--yes` confirmation
+   prompt is unchanged, and `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
