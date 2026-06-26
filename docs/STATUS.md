@@ -651,6 +651,20 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The JS skipped-test name extraction truncates names containing a nested quote.
+   `_JS_SKIP_NAME_RE` captures `[^"'`]+`, which stops at the first inner quote of any
+   type, so `it.skip("name with 'apostrophe' inside")` yields the title "name with".
+   Apostrophes in test descriptions ("user's", "doesn't", "can't") are extremely
+   common, so this routinely produces unhelpful candidate titles (the location is
+   still correct). The capture should run to the matching closing quote of the same
+   type as the opener.
+   Evidence: `src/looptight/discovery.py:318`
+   Acceptance: a new test in `tests/test_propose.py` asserts the candidate title for
+   `it.skip("name with 'apostrophe' inside")` contains the full name, that a
+   single-quoted name with a nested double quote is also kept whole, and that an
+   empty name still falls back to "skipped test"; existing skip detection is
+   unchanged, and `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
