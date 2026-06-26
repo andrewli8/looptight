@@ -35,6 +35,11 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- `detect_verify` no longer claims `npm test` for the `npm init` placeholder
+  script (`echo "Error: no test specified" && exit 1`). That command always
+  fails, so a fresh JS repo would get a verify that can never pass — the loop
+  would stall before a single test was written. The placeholder now falls
+  through to `None`, so `init` reports no gate (and warns) instead.
 - A lint idea's identity is now stable when the finding shifts lines. `idea_id`
   dropped only one trailing `:segment`, so a real `path:line:col` lint location
   kept its line number — a finding that moved (e.g. an import added above it)

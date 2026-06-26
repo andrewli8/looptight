@@ -27,6 +27,16 @@ def test_detect_verify_npm_without_test_script_falls_through(tmp_path):
     assert detect.detect_verify(tmp_path) is None
 
 
+def test_detect_verify_npm_placeholder_test_script_falls_through(tmp_path):
+    # `npm init` writes a placeholder test that always exits 1. Claiming `npm
+    # test` for it would make every verify fail and stall the loop before the
+    # user has written a single test, so it must not count as a real gate.
+    (tmp_path / "package.json").write_text(
+        '{"scripts": {"test": "echo \\"Error: no test specified\\" && exit 1"}}'
+    )
+    assert detect.detect_verify(tmp_path) is None
+
+
 def test_detect_verify_npm_malformed_json_falls_through(tmp_path):
     (tmp_path / "package.json").write_text("{ not valid json }")
     assert detect.detect_verify(tmp_path) is None

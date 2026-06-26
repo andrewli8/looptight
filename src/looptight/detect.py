@@ -58,7 +58,11 @@ def detect_verify(root: Path | None = None) -> str | None:
             scripts = manifest.get("scripts", {}) if isinstance(manifest, dict) else {}
             if not isinstance(scripts, dict):
                 scripts = {}
-            if "test" in scripts:
+            test_script = scripts.get("test")
+            # `npm init` writes a placeholder (`echo "Error: no test specified" &&
+            # exit 1`) that always fails. Claiming `npm test` for it would stall the
+            # loop on a verify that can never pass, so treat it as no test at all.
+            if isinstance(test_script, str) and "no test specified" not in test_script.lower():
                 return "npm test"
         except (ValueError, OSError):
             pass
