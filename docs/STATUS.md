@@ -555,16 +555,12 @@ existing CLI session and makes no model or API calls of its own.
 - `render_rich()` diffstat branch is now covered: `test_console_summary_includes_diffstat`
   in `tests/test_summary.py` calls `render_rich` with a `RunResult(diffstat=...)` and
   asserts `"changes:"` and `"src/a.py"` appear in the captured output.
+- `_parse_absolute_reset` noon (`12pm`) case is covered: `test_absolute_reset_handles_noon_12pm`
+  in `tests/test_limits.py` calls `classify_limit` with `"resets at 12:00pm"` and a `now`
+  30 min before noon, asserting 1800s wait — exercises the `hour != 12` guard that keeps
+  noon at hour 12 without adding 12.
 
 ## Next
-
-1. `_parse_absolute_reset` noon (`12pm`) case is untested: `limits.py:99` guards
-   `if meridiem == "pm" and hour != 12`, so `12:00pm` (noon, hour stays 12) never
-   enters the `+= 12` branch and is never exercised by any existing test.
-   Evidence: `src/looptight/limits.py:99`
-   Acceptance: a new `test_absolute_reset_handles_noon_12pm` in `tests/test_limits.py`
-   calls `classify_limit` with a `"resets at 12:00pm"` message and a `now` just before
-   noon and asserts the returned wait is under 3600 seconds.
 
 3. `_git()` OSError fallback path in `experience.py` is untested: `experience.py:28-29`
    returns a synthetic `CompletedProcess(returncode=127)` when `subprocess.run` raises

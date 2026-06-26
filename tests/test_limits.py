@@ -119,6 +119,14 @@ def test_absolute_reset_handles_midnight_12am():
     assert signal.retry_after_s == pytest.approx(3600.0)
 
 
+def test_absolute_reset_handles_noon_12pm():
+    # "12:00pm" is noon (hour 12 stays 12; the hour != 12 guard skips the += 12).
+    now = datetime(2026, 6, 21, 11, 30, 0)  # 11:30am — 30 min before noon
+    signal = classify_limit("usage limit reached; resets at 12:00pm", now=now)
+    assert signal is not None
+    assert signal.retry_after_s == pytest.approx(1800.0)
+
+
 def test_format_and_parse_round_trip():
     error = format_limit_error(LimitSignal(retry_after_s=120.0))
     assert error.startswith(RATE_LIMIT_ERROR)
