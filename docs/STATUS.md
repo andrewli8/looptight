@@ -693,6 +693,18 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Imperative `pytest.xfail(...)` is not detected. `_is_skip_line` recognizes
+   imperative `pytest.skip(` and the decorator `@pytest.mark.xfail`, but not the
+   imperative `pytest.xfail(...)` call, so a runtime xfail slips through while its
+   skip analog and decorator form are caught — an inconsistency that misses a real
+   known-broken test. It should be treated like `pytest.skip(` (subject to the
+   conditional-guard check).
+   Evidence: `src/looptight/discovery.py:302`
+   Acceptance: a new test in `tests/test_propose.py` asserts an unconditional
+   `pytest.xfail(...)` is surfaced as rot and a guarded one (inside an `if`) is not,
+   matching `pytest.skip` handling; existing skip detection is unchanged, and
+   `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
