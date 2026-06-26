@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from looptight.cli import main
-from looptight.skill import install_skill, skill_path
+from looptight.skill import SKILL_MD, install_skill, skill_path
 
 
 def test_install_skill_writes_skill_md(tmp_path):
@@ -16,6 +16,13 @@ def test_install_skill_writes_skill_md(tmp_path):
     assert "description:" in text
     assert "looptight verify" in text  # documents the core loop
     assert "looptight goal" in text  # documents goal mode
+
+
+def test_install_skill_overwrites_stale_content(tmp_path):
+    path = install_skill(home=tmp_path)
+    path.write_text("stale content", encoding="utf-8")
+    install_skill(home=tmp_path)
+    assert path.read_text(encoding="utf-8") == SKILL_MD
 
 
 def test_install_skill_cli_uses_the_home_skills_dir(tmp_path, monkeypatch, capsys):

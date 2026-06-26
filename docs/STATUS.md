@@ -510,15 +510,11 @@ existing CLI session and makes no model or API calls of its own.
 - `detect_verify` falls through when `package.json` has a non-dict top-level value
   (e.g. `[]`), exercising the `isinstance(manifest, dict)` guard — covered by
   `test_detect_verify_npm_non_dict_manifest_falls_through` in test_detect.py.
+- A second call to `install_skill` overwrites stale content with the current `SKILL_MD`
+  (idempotent-overwrite contract) — covered by
+  `test_install_skill_overwrites_stale_content` in test_skill.py.
 
 ## Next
-
-3. Test that a second call to `install_skill` replaces stale content with the current
-   `SKILL_MD`, verifying the idempotent-overwrite contract.
-   Evidence: src/looptight/skill.py:68;
-   Acceptance: A new test in tests/test_skill.py calls `install_skill` twice, writing
-   stale content between calls, and asserts the file equals `SKILL_MD` after the
-   second call. Passes under `looptight verify --json`.
 
 ## Rules
 
