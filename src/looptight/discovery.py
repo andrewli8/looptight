@@ -63,7 +63,7 @@ class Candidate:
 # JavaScript/TypeScript family extensions scanned for TODO markers. Discovery is
 # Python-first, but most real repos are polyglot; surfacing JS/TS markers keeps
 # the lightweight signal capture useful beyond Python.
-_JS_EXTS = (".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs")
+_JS_EXTS = (".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".mts", ".cts")
 
 
 def _files_with_exts(root: Path, subdir: str, exts: tuple[str, ...]) -> list[Path]:

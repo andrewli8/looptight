@@ -731,17 +731,11 @@ existing CLI session and makes no model or API calls of its own.
   (a test that runs and is expected to fail = known-broken to fix). `failsafe`/`failingly`
   identifiers are not false hits; plain skip/todo/fixme is unchanged. Covered by a test.
 
-## Next
+- Discovery covers TypeScript module extensions `.mts`/`.cts`: they join `_JS_EXTS`
+  alongside the JS `.mjs`/`.cjs` pair (standard since TS 4.7), so TODO/skip markers in
+  TypeScript ESM/CJS module files are no longer silently missed. Covered by a test.
 
-1. TypeScript module files `.mts`/`.cts` are not scanned. `_JS_EXTS` includes the
-   JavaScript module extensions `.mjs`/`.cjs` but not their TypeScript counterparts
-   `.mts`/`.cts` (standard since TypeScript 4.7), so a modern TS project using them
-   has all its TODO/skip markers silently missed — a clean oversight when the `.mjs`/
-   `.cjs` pair was added.
-   Evidence: `src/looptight/discovery.py:66`
-   Acceptance: a test in `tests/test_propose.py` asserts a `// TODO` in `src/a.mts`
-   and a `// TODO` in `src/b.cts` are surfaced, and an `it.skip` in `tests/c.test.mts`
-   is detected; existing extension coverage is unchanged, and `looptight verify` passes.
+## Next
 
 ## Rules
 

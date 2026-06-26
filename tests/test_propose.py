@@ -187,6 +187,19 @@ def test_js_skip_name_keeps_nested_quotes_whole(tmp_path):
     assert any(t.endswith("skipped test") for t in titles)  # empty name fallback
 
 
+def test_discovery_covers_typescript_module_extensions(tmp_path):
+    # .mts/.cts are standard TypeScript module extensions (TS 4.7+), the TS
+    # counterparts of .mjs/.cjs; markers in them must be discovered.
+    _write(tmp_path, "src/a.mts", "// TODO: mts module todo\n")
+    _write(tmp_path, "src/b.cts", "// TODO: cts module todo\n")
+    _write(tmp_path, "tests/c.test.mts", 'it.skip("mts test skip", () => {});\n')
+    todo_titles = [c.title for c in from_todos(tmp_path)]
+    assert "mts module todo" in todo_titles
+    assert "cts module todo" in todo_titles
+    skips = from_skipped_tests(tmp_path)
+    assert any(c.location.endswith("c.test.mts:1") for c in skips)
+
+
 def test_from_todos_finds_js_markers_outside_src_layout(tmp_path):
     # The common React/Next/Vue layout puts source under app/components/lib, not
     # src/. JS TODO discovery must be layout-agnostic (like the Python path), or a
