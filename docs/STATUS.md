@@ -582,22 +582,14 @@ existing CLI session and makes no model or API calls of its own.
   no result published, and the racing commit is left intact rather than clobbered.
   Covered by `test_update_ref_cas_conflict_when_target_advances`; the test fails if
   the old-value argument is dropped from the update-ref call.
+- Crash recovery uses the same compare-and-swap: if the target ref is advanced by
+  another integrator while a crashed integration is being reconciled, `_reconcile_one`
+  fails closed (`conflict`, "target advanced during reconcile") and leaves the racing
+  commit intact instead of clobbering it. Covered by
+  `test_reconcile_ref_advance_is_a_cas_against_a_racing_advance`; mutation-verified by
+  dropping the old-value argument from the reconcile update-ref call.
 
 ## Next
-
-1. Guard the crash-recovery analog of the integration ref CAS. After a crash that
-   committed the merge but never advanced the ref, `_reconcile_one` re-advances via
-   `update-ref <ref> <committed> <observed>` — the same compare-and-swap — so a
-   concurrent advance during recovery fails closed (`conflict`, "target advanced
-   during reconcile") rather than clobbering the other integrator's commit. That
-   reconcile conflict branch is untested.
-   Evidence: `src/looptight/integration_queue.py:326`
-   Acceptance: a new test in `tests/test_integration_queue.py` crashes at the
-   `after_commit` boundary, advances the target ref before calling `reconcile`, and
-   asserts the reconcile outcome status is `conflict` with a "target advanced"
-   error, the integration is not marked complete, and the ref still points at the
-   racing commit; the test fails if the old-value argument is dropped from the
-   reconcile update-ref call, and `looptight verify` passes.
 
 ## Rules
 

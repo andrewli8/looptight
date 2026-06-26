@@ -366,3 +366,31 @@ def test_update_ref_cas_conflict_when_target_advances(tmp_path, monkeypatch):
     # The CAS refused to overwrite the racing commit: main still points at it.
     main_after = _git(repo, "rev-parse", "refs/heads/main").stdout.strip()
     assert main_after == racing[0]
+
+
+def test_reconcile_ref_advance_is_a_cas_against_a_racing_advance(tmp_path):
+    # Crash recovery re-advances the ref with the same compare-and-swap. If another
+    # integrator advanced the target ref while we were down, reconcile must fail
+    # closed (conflict) instead of clobbering the racing commit.
+    repo, candidate = _repo_with_candidate(tmp_path)
+    db = Coordinator.open(repo)
+    run = db.start_run("worker")
+    lease = db.claim([{"id": "t1"}], run.id, ttl_s=60)
+    integration_id = db.enqueue_integration(lease, "refs/heads/main", candidate)
+
+    # Crash after the merge is committed in the worktree but before the ref advances.
+    with pytest.raises(InjectedCrash):
+        Integrator(db, crash_after="after_commit").run_next(repo, "exit 0")
+
+    # A racing integrator advances the target ref while we are down.
+    _git(repo, "commit", "--allow-empty", "-qm", "racing advance")
+    racing = _git(repo, "rev-parse", "refs/heads/main").stdout.strip()
+
+    outcomes = Integrator(db).reconcile(repo, "exit 0")
+
+    assert len(outcomes) == 1
+    assert outcomes[0].status == "conflict"
+    assert "target advanced" in (outcomes[0].error or "")
+    assert db.integration(integration_id).state != "complete"
+    # The racing commit was not overwritten.
+    assert _git(repo, "rev-parse", "refs/heads/main").stdout.strip() == racing
