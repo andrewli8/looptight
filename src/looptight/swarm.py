@@ -131,7 +131,9 @@ def _planned_tasks_are_grounded(root: Path, candidates: list[Candidate]) -> bool
         match = re.search(r"\bEvidence:\s+([^;\s]+)", candidate.detail)
         if not match:
             return False
-        reference = match.group(1)
+        # Strip a markdown code span / trailing period the planner may wrap the
+        # path in (``Evidence: `src/a.py:1` ``), matching the grounding gate.
+        reference = match.group(1).strip("`.")
         path_text, separator, line_text = reference.rpartition(":")
         if not separator or not line_text.isdigit():
             path_text, line_text = reference, ""

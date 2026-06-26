@@ -41,7 +41,8 @@ All notable changes to looptight are recorded here. The format follows
   grounded task was silently dropped — `next` returned `no_work` and the loop
   stalled despite a valid task in `## Next`. Backticked anchors are idiomatic
   (this project's own `docs/STATUS.md` writes them that way, as do LLM-generated
-  tasks), so this affected the common case.
+  tasks), so this affected the common case. The swarm planner's own grounding
+  check had the same defect and is fixed alongside it.
 - `detect_verify` no longer claims `npm test` for the `npm init` placeholder
   script (`echo "Error: no test specified" && exit 1`). That command always
   fails, so a fresh JS repo would get a verify that can never pass — the loop

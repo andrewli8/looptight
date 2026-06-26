@@ -583,6 +583,31 @@ def test_planner_merges_only_grounded_status_tasks(tmp_path, monkeypatch):
     ).stdout
 
 
+def test_planned_tasks_grounded_tolerates_backticked_evidence(tmp_path):
+    # The planner's grounding check must accept a markdown-backticked evidence
+    # anchor (``Evidence: `src/a.py:1` ``), the idiomatic form an LLM planner
+    # emits. Otherwise every backticked task is rejected as ungrounded — the
+    # same defect the discovery grounding gate had.
+    from looptight.discovery import Candidate
+    from looptight.swarm import _planned_tasks_are_grounded
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("x", encoding="utf-8")
+    grounded = Candidate(
+        title="t", source="status-next", location="docs/STATUS.md:5",
+        suggested_verify=None, score=0.0,
+        detail="Fix it. Evidence: `src/a.py:1` Acceptance: ok", acceptance="ok",
+    )
+    assert _planned_tasks_are_grounded(tmp_path, [grounded]) is True
+    # A backticked but fabricated path is still rejected.
+    fabricated = Candidate(
+        title="t", source="status-next", location="docs/STATUS.md:6",
+        suggested_verify=None, score=0.0,
+        detail="Do it. Evidence: `src/ghost.py:1` Acceptance: ok", acceptance="ok",
+    )
+    assert _planned_tasks_are_grounded(tmp_path, [fabricated]) is False
+
+
 def test_planner_rejects_self_referential_evidence_and_retains_worktree(
     tmp_path, monkeypatch
 ):
