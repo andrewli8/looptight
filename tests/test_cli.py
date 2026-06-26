@@ -716,10 +716,14 @@ def test_status_readiness_reports_partial_repo_with_remediation(
 
     data = json.loads(capsys.readouterr().out)
     assert data["readiness"]["tier"] == "partial"
-    assert data["readiness"]["checks"]["coordinator"] == "inactive"
+    assert data["readiness"]["checks"]["coordinator"] == "inactive"  # reported, not gating
     assert data["readiness"]["checks"]["task_sources"] == "missing"
     assert data["readiness"]["checks"]["agent"] == "missing"
-    assert data["readiness"]["next_remediation"] == "run `looptight migrate`"
+    # The coordinator no longer gates readiness, so remediation points at the real
+    # gaps (task sources, then agent), not at `migrate`.
+    assert data["readiness"]["next_remediation"] == (
+        "add grounded tasks or configure `tasks` in .looptight.toml"
+    )
 
 
 def test_status_human_prints_readiness_tier(tmp_path, monkeypatch, capsys):
@@ -746,7 +750,7 @@ def test_status_human_prints_readiness_tier(tmp_path, monkeypatch, capsys):
 
     out = capsys.readouterr().out
     assert "readiness: partial" in out
-    assert "readiness next: run `looptight migrate`" in out
+    assert "readiness next: add grounded tasks or configure `tasks` in .looptight.toml" in out
 
 
 def test_status_json_classifies_common_verifier_quality(
@@ -984,6 +988,32 @@ def test_doctor_guides_ready_repository_to_next_command(tmp_path, monkeypatch, c
     assert "coordinator: active" in out
     assert "setup next: run `looptight next --json`" in out
     assert after == before
+
+
+def test_doctor_solo_setup_is_ready_without_coordinator(tmp_path, monkeypatch, capsys):
+    # The coordinator only enables cross-session sharing; a solo loop works on
+    # file claims. So verify + git + agent + a task source reads `setup: ready`
+    # even with the coordinator inactive, and migrate is an optional hint, not a
+    # blocking `setup next`.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "exit 0"\n', encoding="utf-8")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text("# Status\n\n## Next\n", encoding="utf-8")
+    subprocess.run(["git", "add", "."], check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init"],
+        check=True,
+    )
+    monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: "codex")
+
+    assert main(["doctor"]) == 0
+    out = capsys.readouterr().out
+    assert "coordinator: inactive" in out  # still reported, just not gating
+    assert "setup: ready" in out
+    assert "setup next: run `looptight next --json`" in out
+    assert "looptight migrate" in out  # offered as an optional enhancement
+    assert "setup next: run `looptight migrate`" not in out
 
 
 def test_malformed_config_exits_cleanly_not_traceback(tmp_path, monkeypatch):

@@ -34,11 +34,12 @@ direct_main = false         # require a worktree for unattended runs
 Then, in your agent session, ask it to improve the repo. It will run `next`,
 implement the task it gets back, run `verify`, and commit on a pass.
 
-### Activate the coordinator (`migrate`)
+### Activate the coordinator (`migrate`) — optional
 
-`looptight doctor` will say `setup next: run looptight migrate`. That one-time
-step activates the repo's coordinator, a private SQLite claim store that lets many
-sessions and worktrees share one task queue safely:
+A solo loop is ready without this: `looptight doctor` reports `setup: ready` and
+only hints at `migrate`. Run it when you want many sessions or worktrees to share
+one task queue safely — it activates the repo's coordinator, a private SQLite
+claim store:
 
 ```bash
 looptight migrate

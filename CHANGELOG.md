@@ -28,6 +28,11 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Changed
 
+- The coordinator is no longer a readiness requirement. A solo loop runs on file
+  claims, so `doctor` now reports `setup: ready` and `readiness: ready` for a
+  repo with verify + git + agent + a task source even when the coordinator is
+  inactive; `migrate` is offered as an optional hint (cross-session sharing)
+  rather than a blocking `setup next`. The coordinator is still a reported check.
 - `status` is goal-aware: it points at `goal next`, surfaces the active goal, and
   reports the generated queue's groundedness as a self-improvement signal.
 - `next` and `propose` human output guide a new contributor through implement →

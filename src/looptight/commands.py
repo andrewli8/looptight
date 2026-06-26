@@ -380,14 +380,18 @@ def cmd_doctor(args: argparse.Namespace, console: Console) -> int:
     console.print(f"  git checkpoints: {'on' if git_ready else '[yellow]off (not a git repo)[/yellow]'}")
     console.print(f"  coordinator: {coordinator}")
     console.print(f"  coordination: {_coordination_line(workdir)}")
-    setup_ready = bool(verify and agent and git_ready and coordinator == "active")
+    # The coordinator only enables cross-session sharing; a solo loop works on file
+    # claims, so it is not a setup requirement (surfaced separately, above).
+    setup_ready = bool(verify and agent and git_ready)
     console.print(f"  setup: {'ready' if setup_ready else 'not ready'}")
     # The readiness tier matches the exit code: `unsafe` exits non-zero, `partial`
     # and `ready` exit zero (looping is possible even if setup is not fully complete).
     console.print(f"  readiness: {readiness['tier']} (exit {1 if unsafe else 0})")
     console.print(
-        f"  setup next: {_doctor_next_setup_command(verify, agent, git_ready, coordinator)}"
+        f"  setup next: {_doctor_next_setup_command(verify, agent, git_ready)}"
     )
+    if setup_ready and coordinator != "active":
+        console.print("  hint: `looptight migrate` enables cross-session coordination")
     console.print("  adapters:")
     for name in available_adapter_names():
         adapter = get_adapter(name)
@@ -443,17 +447,17 @@ def _doctor_coordinator_state(workdir: Path, git_ready: bool) -> str:
 
 
 def _doctor_next_setup_command(
-    verify: str | None, agent: str | None, git_ready: bool, coordinator: str
+    verify: str | None, agent: str | None, git_ready: bool
 ) -> str:
     if not verify:
         return "run `looptight init --integrate`"
     if not git_ready:
         return "run inside a Git repository"
-    if coordinator != "active":
-        return "run `looptight migrate`"
     if not agent:
         supported = ", ".join(KNOWN_AGENTS)
         return f"install a supported agent CLI ({supported})"
+    # The coordinator is optional (cross-session only), surfaced as a hint, so it
+    # is not part of the required setup path.
     return "run `looptight next --json`"
 
 

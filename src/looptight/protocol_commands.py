@@ -532,8 +532,9 @@ def _readiness(
     if checks["verify"] == "missing" or checks["git"] != "clean":
         tier = "unsafe"
     elif (
-        checks["coordinator"] != "active"
-        or checks["task_sources"] != "configured"
+        # The coordinator (cross-session sharing) is optional, not a readiness
+        # gate: a solo loop is ready on file claims. It stays a reported check.
+        checks["task_sources"] != "configured"
         or checks["agent"] != "available"
     ):
         tier = "partial"
@@ -592,8 +593,6 @@ def _readiness_remediation(checks: dict[str, str], fallback_action: str) -> str:
         return "run inside a Git repository"
     if checks["git"] == "dirty":
         return "review changes and run `looptight verify --json`"
-    if checks["coordinator"] == "inactive":
-        return "run `looptight migrate`"
     if checks["task_sources"] == "missing":
         return "add grounded tasks or configure `tasks` in .looptight.toml"
     if checks["agent"] == "missing":
