@@ -35,6 +35,10 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- `looptight migrate` no longer doubles its error prefix when a live legacy
+  claim blocks activation (was `cannot activate the coordinator: cannot activate
+  the coordinator: live legacy claims exist…`). The exception carries the reason;
+  the command supplies the framing.
 - The session-loop instructions (in installed `CLAUDE.md`/`AGENTS.md` and the
   Claude Code skill) now say to add generated `## Next` tasks as a *numbered*
   list. The discovery parser only reads numbered items, so an agent's natural

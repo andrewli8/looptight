@@ -213,8 +213,13 @@ def test_activation_refuses_live_legacy_claims(tmp_path):
         json.dumps({"schema_version": 1, "task_id": "task-a", "owner": "o", "claimed_at": time.time()}),
         encoding="utf-8",
     )
-    with pytest.raises(MigrationBlocked, match="legacy"):
+    with pytest.raises(MigrationBlocked, match="legacy") as exc:
         Coordinator.open(repo, activate=True)
+    # The exception carries the reason; the command supplies the "cannot activate
+    # the coordinator:" framing. If the exception repeats it, cmd_migrate doubles
+    # the prefix in the user-facing message.
+    assert "live legacy claims exist" in str(exc.value)
+    assert "cannot activate the coordinator" not in str(exc.value)
 
 
 def test_activation_writes_marker_and_legacy_fails_closed(tmp_path):

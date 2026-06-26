@@ -322,8 +322,7 @@ class Coordinator:
             return
         if has_live_claim(base / "claims"):
             raise MigrationBlocked(
-                "cannot activate the coordinator: live legacy claims exist; "
-                "finish or let them expire first"
+                "live legacy claims exist; finish or let them expire first"
             )
         marker.write_text(
             json.dumps({"schema_version": SCHEMA_VERSION}, sort_keys=True), encoding="utf-8"
