@@ -98,6 +98,16 @@ $ looptight next --json
 `NO_WORK` ends the loop. Two real fixes landed, each one gated by your tests, and
 nothing was invented to keep the session busy.
 
+### Knowing when to stop (`verify --patience`)
+
+When an agent keeps trying the same fix without making progress, it burns tokens
+for nothing. Pass `--patience N` to `verify` and it tracks progress across calls:
+after `N` iterations with no improvement, `verify --json` adds a `stall` object
+whose `decision` is `stop_no_progress` (it improved, then plateaued) or `escalate`
+(it never moved the needle), with the failures that never cleared. A `/loop`
+wrapper or the host agent can watch that field and stop instead of grinding. A
+passing verify resets the count. Without `--patience` the verifier is unchanged.
+
 ## How work is found
 
 Tasks come from concrete repository signals, never from a model inventing audits to
