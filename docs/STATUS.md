@@ -752,6 +752,14 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `detect_verify` does not recognize a Deno project. The `_VERIFY_RULES` table has
+   Cargo and Go markers but not Deno's `deno.json`/`deno.jsonc`, so a Deno project
+   (a top-tier runtime) gets "no test command detected" and the wrong default. Add
+   `deno.json`/`deno.jsonc` -> `deno test`, analogous to the cargo/go rules.
+   Evidence: `src/looptight/detect.py:38`
+   Acceptance: tests in `tests/test_detect.py` assert `deno.json` and `deno.jsonc`
+   detect `deno test`; existing rules are unchanged, and `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
