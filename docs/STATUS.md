@@ -685,20 +685,13 @@ existing CLI session and makes no model or API calls of its own.
   so moving/renaming a protected file is refused instead of slipping past the gate (a
   plain delete was already caught; only the rename format evaded). Covered by a test.
 
-## Next
+- JS skip detection covers chained-modifier forms: `_JS_SKIP_RE` allows `skip`/`todo`
+  anywhere in the `.`-chain after it/describe/test, so `test.concurrent.skip(...)`,
+  `it.concurrent.skip(...)`, and `it.skip.each(...)` (Jest/Vitest) are surfaced. `skip`
+  stays a whole chain token, so `it.skipFoo(`, `skipped`, and `it.only` are not false
+  hits; plain and `x`-prefix forms are unchanged. Covered by a test.
 
-1. JS skip detection misses chained-modifier skips. `_JS_SKIP_RE` only matches
-   `it/describe/test.skip(` directly, so `test.concurrent.skip(...)`,
-   `it.concurrent.skip(...)`, and `it.skip.each(...)` — real Jest/Vitest skip forms —
-   go undetected (a false negative in the already-supported language, the same class
-   as the template-literal/JSDoc fixes). The pattern should allow `skip`/`todo`
-   anywhere in the `.`-chain, without matching `it.only`, `it.skipFoo`, or `skipped`.
-   Evidence: `src/looptight/discovery.py:345`
-   Acceptance: new tests in `tests/test_propose.py` assert `test.concurrent.skip`,
-   `it.concurrent.skip`, and `it.skip.each` are surfaced while `it.only`,
-   `it.skipFoo(`, and a name containing `skipped` are not; the test name still
-   extracts for chained forms; existing plain/`x`-prefix detection is unchanged, and
-   `looptight verify` passes.
+## Next
 
 ## Rules
 

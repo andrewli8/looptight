@@ -384,12 +384,17 @@ def _module_is_optin(lines: list[str]) -> bool:
 # and the `xit(` / `xdescribe(` / `xtest(` shorthands (Jest aliases for the
 # `.skip` forms). JS has no env-gate opt-in convention like pytest, so detection
 # is a plain marker match on code (string literals stripped) outside comment lines.
-_JS_SKIP_RE = re.compile(r"\b(?:x(?:it|describe|test)|(?:it|describe|test)\.(?:skip|todo))\s*\(")
+# `skip`/`todo` may sit anywhere in the `.`-chain after it/describe/test, so chained
+# Jest/Vitest forms (`test.concurrent.skip(`, `it.skip.each(`) are caught; the chain
+# segments keep `skip` a whole token so `it.skipFoo(`/`skipped` and `it.only` are not
+# false hits. The `x`-prefix forms (`xit`/`xdescribe`/`xtest`) stay separate.
+_JS_SKIP_CALL = r"(?:x(?:it|describe|test)|(?:it|describe|test)(?:\.\w+)*\.(?:skip|todo)(?:\.\w+)*)"
+_JS_SKIP_RE = re.compile(rf"\b{_JS_SKIP_CALL}\s*\(")
 # Capture the test name to the matching closing quote of the *same* type as the
 # opener (backreference), so a nested quote of a different type — an apostrophe in a
 # double-quoted name, ubiquitous in test descriptions — is kept whole, not truncated.
 _JS_SKIP_NAME_RE = re.compile(
-    r"\b(?:x(?:it|describe|test)|(?:it|describe|test)\.(?:skip|todo))\s*\(\s*"
+    rf"\b{_JS_SKIP_CALL}\s*\(\s*"
     r"(?P<q>[\"'`])(?P<name>(?:\\.|(?!(?P=q)).)*)(?P=q)"
 )
 

@@ -55,6 +55,29 @@ def test_from_todos_finds_marker_in_jsdoc_block_comment(tmp_path):
     assert "line todo" in titles
 
 
+def test_js_skip_detects_chained_modifiers(tmp_path):
+    # Chained-modifier skips (Jest/Vitest) are real skipped tests and must be found;
+    # focused tests and skip-prefixed identifiers must not be false hits.
+    _write(
+        tmp_path,
+        "tests/a.test.js",
+        'test.concurrent.skip("concurrent skip", () => {});\n'  # 1: chained before skip
+        'it.concurrent.skip("it concurrent", () => {});\n'      # 2
+        'describe.skip.each([1])("each skip", () => {});\n'     # 3: chained after skip
+        'it.only("focused not a skip", () => {});\n'            # 4: NOT a skip
+        'it.skipFoo("not a skip marker", () => {});\n'          # 5: NOT a skip
+        'it.skip("plain skip", () => {});\n'                    # 6: plain still works
+    )
+    cands = from_skipped_tests(tmp_path)
+    locs = {c.location.rsplit(":", 1)[1] for c in cands}
+    titles = [c.title for c in cands]
+    assert "1" in locs and "2" in locs and "3" in locs  # chained forms surfaced
+    assert "6" in locs                                   # plain still works
+    assert "4" not in locs                               # it.only excluded
+    assert "5" not in locs                               # it.skipFoo not a marker
+    assert any("concurrent skip" in t for t in titles)   # name extracts for chained form
+
+
 def test_js_skip_name_keeps_nested_quotes_whole(tmp_path):
     # A skipped-test name with a nested quote of a different type (apostrophes are
     # everywhere in test descriptions) must be captured whole, not truncated at the
