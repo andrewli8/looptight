@@ -774,20 +774,12 @@ existing CLI session and makes no model or API calls of its own.
   fixes (glob patterns and renames) under a `### Security` subsection, so the safety-gate
   hardening is visible to anyone reviewing the next release.
 
-## Next
+- `docs/architecture.md` states the coordinator model consistently with the Fix-B
+  reporting: the coordinator DB is the claim store in any git repository (so `doctor`/
+  `status` report it active for a plain repo), and `migrate` fences the legacy file-claim
+  mechanism rather than turning the coordinator on. The migrate facts are preserved.
 
-1. `docs/architecture.md` frames the coordinator as "Activation is explicit:
-   looptight migrate", which predates the Fix-B reporting change and now reads as if
-   the coordinator is inactive until `migrate` runs — but `doctor`/`status` report
-   `coordinator: active` in any git repo because `next` always leases through the DB.
-   Clarify that the coordinator DB is the claim store in any git repository and that
-   `migrate` fences the legacy file-claim mechanism rather than turning the
-   coordinator on (completing Fix B's doc consistency).
-   Evidence: `docs/architecture.md:109`
-   Acceptance: the coordinator section states the DB is the claim store in any git
-   repo and reframes `migrate` as fencing legacy file claims; the existing migrate
-   facts (refuses on live claims, writes the marker, legacy claims fail closed) are
-   preserved, and `looptight verify` passes.
+## Next
 
 ## Rules
 

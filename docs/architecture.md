@@ -106,12 +106,16 @@ left mid-flight by a crash to exactly one reachable result. Publication is
 separate and equally idempotent: it fetches first and finalizes without a second
 push when the remote already has the result, pushing only the exact result SHA.
 
-Coordination is **local to one machine and filesystem**. Activation is explicit:
-`looptight migrate` (`Coordinator.open(activate=True)` then `activate_from_legacy`)
-refuses while any legacy file claim is still live, then writes a
-`coordinator-format.json` marker, after which legacy file claims fail closed. It
-is idempotent and errors outside Git. Existing `next` / `status` / `swarm` JSON
-keys are unchanged; coordinator counts are projected **additively** as a
+Coordination is **local to one machine and filesystem**. The coordinator database
+is the claim store in **any** Git repository — `next` leases through it whether or
+not `migrate` has run, which is why `doctor`/`status` report the coordinator as
+active for a plain repo. `migrate` does not turn the coordinator on; it **fences
+the legacy file-claim mechanism**: `looptight migrate`
+(`Coordinator.open(activate=True)` then `activate_from_legacy`) refuses while any
+legacy file claim is still live, then writes a `coordinator-format.json` marker,
+after which legacy file claims fail closed. It is idempotent and errors outside
+Git. Existing `next` / `status` / `swarm` JSON keys are unchanged; coordinator
+counts are projected **additively** as a
 `coordinator` block on `status`. The integration lock has a bounded timeout, and
 failed or conflicting work is retained for recovery.
 
