@@ -1665,6 +1665,7 @@ def test_verify_patience_surfaces_session_native_stall(tmp_path, monkeypatch, ca
 
     first = run(None)
     assert first["stall"]["decision"] == "continue"  # not enough history yet
+    assert "escalation" not in first["stall"]  # additive: present only when stalled
     run(None)
     third = run(None)
     assert third["stall"]["decision"] == "escalate"  # never improved across 3 tries

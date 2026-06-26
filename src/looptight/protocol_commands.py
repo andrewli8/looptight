@@ -95,12 +95,15 @@ def _stall_signal(workdir: Path, command: str, result, patience: int) -> dict | 
         return None
     history = [entry["signal"] for entry in entries]
     decision = assess(history, patience)
-    stall: dict = {"decision": decision.value, "escalation": None}
+    stall: dict = {"decision": decision.value}
     if decision in (Decision.STOP_NO_PROGRESS, Decision.ESCALATE):
         stop_reason = (
             StopReason.ESCALATED if decision is Decision.ESCALATE else StopReason.NO_PROGRESS
         )
         failure_sets = [set(entry["failures"]) for entry in entries]
+        # The escalation evidence is additive: present only when actually stalled,
+        # matching the SPEC ("when stalled") and the omit-when-absent shape of the
+        # outer stall key itself.
         stall["escalation"] = escalation_from_signals(history, failure_sets, stop_reason).as_dict()
     return stall
 
