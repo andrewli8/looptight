@@ -476,17 +476,33 @@ def cmd_revert(args: argparse.Namespace, console: Console) -> int:
         return 0
     import subprocess
 
+    # Only check out when there are tracked changes; otherwise the checkout is a
+    # no-op and claiming it "reverted" anything is misleading on a clean tree.
     try:
-        result = subprocess.run(
-            ["git", "checkout", "HEAD", "--", "."], cwd=str(workdir), check=False
+        status = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=no"],
+            cwd=str(workdir), capture_output=True, text=True, check=False,
         )
-    except OSError as exc:
-        console.print(f"[red]error:[/red] could not run git checkout: {exc}")
-        return 1
-    if result.returncode != 0:
-        console.print("[red]error:[/red] git checkout failed; restore not confirmed. Inspect the working tree.")
-        return 1
-    console.print("[green]reverted[/green] tracked files to HEAD.")
+    except OSError:
+        status = None
+    has_tracked_changes = (
+        status is None or status.returncode != 0 or bool((status.stdout or "").strip())
+    )
+
+    if has_tracked_changes:
+        try:
+            result = subprocess.run(
+                ["git", "checkout", "HEAD", "--", "."], cwd=str(workdir), check=False
+            )
+        except OSError as exc:
+            console.print(f"[red]error:[/red] could not run git checkout: {exc}")
+            return 1
+        if result.returncode != 0:
+            console.print("[red]error:[/red] git checkout failed; restore not confirmed. Inspect the working tree.")
+            return 1
+        console.print("[green]reverted[/green] tracked files to HEAD.")
+    else:
+        console.print("working tree already clean — nothing to revert.")
     # revert is tracked-only by design; tell the user about any untracked files
     # the agent created so the leftover state isn't a surprise. This is purely
     # informational — never let it crash a revert that already succeeded.

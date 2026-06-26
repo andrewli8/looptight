@@ -579,16 +579,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `revert --yes` runs `git checkout HEAD -- .` unconditionally and always prints
-   "reverted tracked files to HEAD", even on a clean tree where nothing was
-   reverted. A user running it on an already-clean tree is told it undid changes
-   when it did nothing. It should check for tracked changes first and report
-   "nothing to revert" when the tree is already clean.
-   Evidence: `src/looptight/commands.py:489`
-   Acceptance: a new test asserts `revert --yes` on a clean tree prints a
-   nothing-to-revert message (not "reverted") and exits 0, while a dirty tree
-   still reverts and says "reverted"; `looptight verify` passes.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

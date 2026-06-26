@@ -1323,6 +1323,8 @@ def test_revert_survives_oserror_when_listing_untracked(tmp_path, monkeypatch, c
     def fake_run(cmd, *a, **k):
         if cmd[:2] == ["git", "ls-files"]:
             raise OSError("git vanished")
+        if cmd[:2] == ["git", "status"]:
+            return subprocess.CompletedProcess(cmd, 0, stdout=" M app.py\n")  # dirty
         return subprocess.CompletedProcess(cmd, 0)  # checkout succeeds
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -1380,12 +1382,32 @@ def test_revert_notes_untracked_files_left_in_place(tmp_path, monkeypatch, capsy
     (tmp_path / "app.py").write_text("orig\n")
     subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
     subprocess.run(["git", "commit", "-qm", "init"], cwd=tmp_path, check=True)
+    (tmp_path / "app.py").write_text("changed\n")  # tracked change to revert
     (tmp_path / "agent_made_this.py").write_text("new\n")  # untracked
 
     assert main(["revert", "--yes"]) == 0
     out = capsys.readouterr().out.lower()
     assert "reverted" in out
     assert "untracked" in out
+
+
+def test_revert_on_clean_tree_reports_nothing_to_revert(tmp_path, monkeypatch, capsys):
+    # On a clean tree, revert must not claim it "reverted" anything — there is
+    # nothing to revert and the checkout would be a no-op.
+    import subprocess
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.email", "t@e.com"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.name", "T"], cwd=tmp_path, check=True)
+    (tmp_path / "app.py").write_text("x\n")
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-qm", "init"], cwd=tmp_path, check=True)
+
+    assert main(["revert", "--yes"]) == 0
+    out = capsys.readouterr().out.lower()
+    assert "reverted" not in out
+    assert "nothing to revert" in out
 
 
 def test_status_json_keeps_v1_keys_and_adds_coordinator_counts(tmp_path, monkeypatch, capsys):

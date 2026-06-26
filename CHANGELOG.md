@@ -40,6 +40,11 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- `revert --yes` no longer claims it "reverted" on a clean tree. It ran
+  `git checkout HEAD -- .` unconditionally and always reported success, so on an
+  already-clean tree a user was told their changes were undone when nothing
+  happened. It now checks for tracked changes first and reports "nothing to
+  revert" when the tree is clean, still noting any untracked files.
 - On a `verify --patience` stall, the human `next:` step no longer advises
   "continue fixing." A stall means the current approach is not progressing, so it
   now points at a different approach or human review, matching the stall signal's
