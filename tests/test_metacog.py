@@ -116,3 +116,75 @@ def test_unparseable_output_falls_back_to_cap(workdir):
     result = _run(workdir, ["kaboom"], patience=2, max_iterations=4)
     assert result.stop_reason is StopReason.ITERATION_CAP
     assert result.iteration_count == 4
+
+
+# --- escalation evidence ---------------------------------------------------
+
+def _rec(number: int, output: str) -> "IterationRecord":
+    from looptight.types import IterationRecord
+    return IterationRecord(number=number, verify=VerifyResult(passed=False, exit_code=1, output=output))
+
+
+def test_failure_lines_extracts_and_normalizes_across_runners():
+    from looptight.metacog import _failure_lines
+
+    pytest_out = "FAILED tests/test_auth.py::test_login - AssertionError: expected 200\n5 passed"
+    jest_out = "  ✕ renders the header (12 ms)\n  ✓ ok"
+    go_out = "--- FAIL: TestRefund (0.01s)\nok other"
+
+    assert any("test_login" in line for line in _failure_lines(pytest_out))
+    assert any("renders the header" in line for line in _failure_lines(jest_out))
+    assert any("TestRefund" in line for line in _failure_lines(go_out))
+    # A passing/noise line is not a failure line.
+    assert _failure_lines("5 passed in 0.1s\nok") == set()
+
+
+def test_normalize_merges_failures_differing_only_by_duration():
+    from looptight.metacog import _failure_lines
+
+    a = _failure_lines("--- FAIL: TestRefund (0.01s)")
+    b = _failure_lines("--- FAIL: TestRefund (1.42s)")
+    assert a == b  # the volatile duration is normalized away
+
+
+def test_persistent_failures_keeps_only_what_never_cleared():
+    from looptight.metacog import persistent_failures
+
+    records = [
+        _rec(1, "FAILED a::x - boom\nFAILED a::y - bad"),
+        _rec(2, "FAILED a::x - boom"),  # y cleared this round
+    ]
+    failures, persisted = persistent_failures(records)
+    assert persisted is True
+    assert any("a::x" in f for f in failures)
+    assert not any("a::y" in f for f in failures)  # cleared, so not persistent
+
+
+def test_persistent_failures_falls_back_to_final_when_no_overlap():
+    from looptight.metacog import persistent_failures
+
+    records = [_rec(1, "FAILED a::x - boom"), _rec(2, "FAILED b::z - nope")]
+    failures, persisted = persistent_failures(records)
+    assert persisted is False  # nothing held across both rounds
+    assert any("b::z" in f for f in failures)  # the most recent failures
+
+
+def test_persistent_failures_empty_when_nothing_parses():
+    from looptight.metacog import persistent_failures
+
+    assert persistent_failures([_rec(1, "kaboom"), _rec(2, "kaboom")]) == ((), True)
+
+
+def test_build_escalation_distinguishes_kind_and_carries_evidence():
+    from looptight.metacog import build_escalation
+
+    records = [_rec(1, "FAILED a::x - boom"), _rec(2, "FAILED a::x - boom")]
+    esc = build_escalation(records, [-1.0, -1.0], StopReason.ESCALATED)
+    assert esc.kind == "escalated"
+    assert esc.iterations == 2
+    assert esc.trajectory == (-1.0, -1.0)
+    assert any("a::x" in f for f in esc.failures)
+    assert "1 failure" in esc.summary  # one failure never cleared
+
+    esc2 = build_escalation(records, [-3.0, -1.0], StopReason.NO_PROGRESS)
+    assert esc2.kind == "no_progress"

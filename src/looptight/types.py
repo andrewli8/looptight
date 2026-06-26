@@ -82,6 +82,32 @@ class IterationRecord:
 
 
 @dataclass(frozen=True)
+class Escalation:
+    """Why the controller stopped a run early, with the evidence behind it.
+
+    Attached to a ``RunResult`` only on an early stop (escalated / no_progress).
+    ``persisted`` is False when ``failures`` is a final-iteration fallback rather
+    than a true "present in every iteration" set."""
+
+    kind: str  # "escalated" | "no_progress"
+    iterations: int
+    trajectory: tuple[float | None, ...]
+    failures: tuple[str, ...]
+    summary: str
+    persisted: bool = True
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "kind": self.kind,
+            "iterations": self.iterations,
+            "trajectory": list(self.trajectory),
+            "failures": list(self.failures),
+            "summary": self.summary,
+            "persisted": self.persisted,
+        }
+
+
+@dataclass(frozen=True)
 class RunResult:
     """The outcome of a full run, delegated or supplied. Backend-neutral (B4)."""
 
@@ -93,10 +119,38 @@ class RunResult:
     diffstat: str = ""
     error: str | None = None
     returncode: int | None = None  # provider process exit code from a failed iteration
+    escalation: Escalation | None = None
 
     @property
     def passed(self) -> bool:
         return self.stop_reason is StopReason.SUCCESS
+
+    def as_dict(self) -> dict[str, object]:
+        """Bounded, versioned view for ``run --json``. Per-iteration output is
+        omitted (unbounded); the escalation distills the persistent failures."""
+        return {
+            "command": "run",
+            "schema_version": 1,
+            "goal": self.goal,
+            "agent": self.agent,
+            "mode": self.mode,
+            "stop_reason": self.stop_reason.value,
+            "passed": self.passed,
+            "iterations": [
+                {
+                    "number": record.number,
+                    "passed": record.verify.passed,
+                    "status": record.verify.status,
+                    "exit_code": record.verify.exit_code,
+                    "score": record.verify.score,
+                }
+                for record in self.iterations
+            ],
+            "diffstat": self.diffstat,
+            "error": self.error,
+            "returncode": self.returncode,
+            "escalation": self.escalation.as_dict() if self.escalation else None,
+        }
 
     @property
     def iteration_count(self) -> int:
