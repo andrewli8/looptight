@@ -28,7 +28,9 @@ from .grounding import evidence_is_truthful
 # false hit).
 # Anchored at the start of the comment body, so a marker word merely *mentioned*
 # mid-sentence in a comment is not a hit — only conventional "# TODO: ..." lines.
-_TODO_RE = re.compile(r"^(TODO|FIXME|HACK|XXX)\b[:\s]*(?P<text>.*)", re.IGNORECASE)
+# The marker must be followed by ':', whitespace, or end of line, so a
+# marker-prefixed compound word in prose ("# fixme-style naming") is not a hit.
+_TODO_RE = re.compile(r"^(TODO|FIXME|HACK|XXX)(?=[:\s]|$)[:\s]*(?P<text>.*)", re.IGNORECASE)
 
 
 @dataclass(frozen=True)

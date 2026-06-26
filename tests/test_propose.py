@@ -610,3 +610,21 @@ def test_task_files_enforce_truthful_evidence(tmp_path):
     assert any("Harden real" in t for t in titles)  # resolving evidence kept
     assert any("no anchor" in t for t in titles)  # unanchored item kept
     assert not any("ghost" in t for t in titles)  # fabricated evidence dropped
+
+
+def test_from_todos_ignores_marker_prefixed_compound_words(tmp_path):
+    # A marker must be followed by ':', whitespace, or end of line. Prose that
+    # merely starts with a marker-prefixed compound word (fixme-style, todo-list,
+    # hack-ish) is not a task and must not be surfaced.
+    _write(
+        tmp_path, "src/p.py",
+        "a = 1  # fixme-style naming, not a marker\n"
+        "b = 2  # todo-list rendering helper\n"
+        "c = 3  # FIXME: a real one\n"
+        "d = 4  # TODO fix this\n",
+    )
+    titles = [c.title for c in from_todos(tmp_path)]
+    assert any("a real one" in t for t in titles)  # genuine marker kept
+    assert any("fix this" in t for t in titles)  # marker + space kept
+    assert not any("style naming" in t for t in titles)  # compound-word prose dropped
+    assert not any("rendering helper" in t for t in titles)

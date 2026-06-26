@@ -35,6 +35,9 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- TODO discovery no longer surfaces marker-prefixed compound words in prose
+  (`# fixme-style naming`, `# todo-list helper`) as false-positive tasks. A marker
+  must be followed by `:`, whitespace, or end of line.
 - The grounding gate now applies to configured task-files, not only generated
   `## Next`. Previously, setting `tasks = ["docs/STATUS.md"]` (looptight's own
   config) made `next` claim a task whose `Evidence:` anchor did not resolve — a
