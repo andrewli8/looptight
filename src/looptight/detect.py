@@ -17,6 +17,9 @@ KNOWN_AGENTS: tuple[str, ...] = ("claude", "codex", "opencode")
 # assignment (`test:=` / `test::=` / `test ::=`). The lookahead rejects an "="
 # right after the colon(s) so a variable named `test` isn't read as a target.
 _MAKE_TEST_TARGET = re.compile(r"test\s*:(?!:?=)")
+# A Make `check` rule (GNU/autotools convention for running tests, and a common
+# "run all checks" target), matched the same way and used as a fallback after `test`.
+_MAKE_CHECK_TARGET = re.compile(r"check\s*:(?!:?=)")
 
 
 def detect_agent(preferred: str | None = None) -> str | None:
@@ -74,14 +77,17 @@ def detect_verify(root: Path | None = None) -> str | None:
     makefile = base / "Makefile"
     if makefile.is_file():
         try:
-            if any(
-                _MAKE_TEST_TARGET.match(line)
+            # A comment (optionally indented) is never a target, so skip it before
+            # matching rather than relying on the anchor alone.
+            target_lines = [
+                line
                 for line in makefile.read_text(encoding="utf-8").splitlines()
-                # A comment (optionally indented) is never a target, so skip it
-                # before matching rather than relying on the anchor alone.
                 if not line.lstrip().startswith("#")
-            ):
+            ]
+            if any(_MAKE_TEST_TARGET.match(line) for line in target_lines):
                 return "make test"
+            if any(_MAKE_CHECK_TARGET.match(line) for line in target_lines):
+                return "make check"
         except (OSError, ValueError):
             # ValueError covers a non-UTF-8 Makefile's UnicodeDecodeError, matching
             # the package.json branch above: an unreadable file falls through.

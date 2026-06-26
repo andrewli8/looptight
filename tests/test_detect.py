@@ -17,6 +17,23 @@ def test_detect_verify_go(tmp_path):
     assert detect.detect_verify(tmp_path) == "go test ./..."
 
 
+def test_detect_verify_makefile_check_target(tmp_path):
+    # `make check` (GNU/autotools, and a common "run all checks" target) is detected
+    # as a fallback after `make test`; near-miss target names do not match.
+    (tmp_path / "Makefile").write_text("check:\n\tpytest\n")
+    assert detect.detect_verify(tmp_path) == "make check"
+
+
+def test_detect_verify_makefile_prefers_test_over_check(tmp_path):
+    (tmp_path / "Makefile").write_text("check: test\n\ntest:\n\tpytest\n")
+    assert detect.detect_verify(tmp_path) == "make test"
+
+
+def test_detect_verify_makefile_check_near_misses_dont_match(tmp_path):
+    (tmp_path / "Makefile").write_text("checkfmt:\n\truff format\ncheck-lint:\n\truff check\n")
+    assert detect.detect_verify(tmp_path) is None
+
+
 def test_detect_verify_npm_only_with_test_script(tmp_path):
     (tmp_path / "package.json").write_text('{"scripts": {"test": "vitest"}}')
     assert detect.detect_verify(tmp_path) == "npm test"
