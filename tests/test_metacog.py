@@ -229,3 +229,25 @@ def test_loop_leaves_escalation_none_on_success_and_cap(workdir):
     capped = _run(workdir, ["2 failed"], patience=0, max_iterations=3)
     assert capped.stop_reason is StopReason.ITERATION_CAP
     assert capped.escalation is None
+
+
+def test_persistent_from_sets_matches_record_based(workdir=None):
+    from looptight.metacog import persistent_from_sets, persistent_failures
+    sets = [{"FAILED a::x - boom", "FAILED a::y - bad"}, {"FAILED a::x - boom"}]
+    lines, persisted = persistent_from_sets(sets)
+    assert persisted is True and any("a::x" in line for line in lines)
+    assert not any("a::y" in line for line in lines)
+    # The record-based wrapper produces the same result for equivalent output.
+    recs = [_rec(1, "FAILED a::x - boom\nFAILED a::y - bad"), _rec(2, "FAILED a::x - boom")]
+    assert persistent_failures(recs) == (lines, persisted)
+
+
+def test_escalation_from_signals_builds_the_same_report():
+    from looptight.metacog import escalation_from_signals
+    sets = [{"FAILED a::x - boom"}, {"FAILED a::x - boom"}]
+    esc = escalation_from_signals([-1.0, -1.0], sets, StopReason.ESCALATED)
+    assert esc.kind == "escalated"
+    assert esc.iterations == 2
+    assert esc.trajectory == (-1.0, -1.0)
+    assert any("a::x" in f for f in esc.failures)
+    assert "1 failure" in esc.summary

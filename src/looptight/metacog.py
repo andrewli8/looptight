@@ -126,23 +126,29 @@ def _failure_lines(output: str) -> set[str]:
     return lines
 
 
-def persistent_failures(records: list[IterationRecord]) -> tuple[tuple[str, ...], bool]:
-    """The failures behind an early stop, as ``(lines, persisted)``.
+def persistent_from_sets(failure_sets: list[set[str]]) -> tuple[tuple[str, ...], bool]:
+    """The failures behind an early stop, as ``(lines, persisted)``, from
+    pre-extracted per-iteration failure sets (so both the in-memory run loop and
+    the cross-process session-native path share one intersection).
 
     ``persisted`` is True when the lines appeared in *every* iteration (a real
     "never cleared"). When no failure held across all iterations, fall back to the
     final iteration's failures with ``persisted=False``. Empty when nothing parses.
     """
-    per_iteration = [_failure_lines(record.verify.output) for record in records]
-    if not per_iteration:
+    if not failure_sets:
         return (), True
-    common = set.intersection(*per_iteration)
+    common = set.intersection(*failure_sets)
     if common:
         return tuple(sorted(common)), True
-    final = per_iteration[-1]
+    final = failure_sets[-1]
     if final:
         return tuple(sorted(final)), False
     return (), True
+
+
+def persistent_failures(records: list[IterationRecord]) -> tuple[tuple[str, ...], bool]:
+    """The failures behind an early stop, from in-memory iteration records."""
+    return persistent_from_sets([_failure_lines(record.verify.output) for record in records])
 
 
 def _plural(count: int, noun: str) -> str:
@@ -163,19 +169,30 @@ def _summarize(kind: str, total: int, persisted: bool, iterations: int) -> str:
     return f"{shape} Showing the latest {_plural(total, 'failure')}; none held across every try."
 
 
+def escalation_from_signals(
+    history: list[float | None], failure_sets: list[set[str]], stop_reason: StopReason
+) -> Escalation:
+    """Assemble the escalation report from a trajectory and per-iteration failure
+    sets — the form available across separate processes (session-native path)."""
+    kind = "escalated" if stop_reason is StopReason.ESCALATED else "no_progress"
+    all_failures, persisted = persistent_from_sets(failure_sets)
+    total = len(all_failures)
+    iterations = len(failure_sets)
+    return Escalation(
+        kind=kind,
+        iterations=iterations,
+        trajectory=tuple(history),
+        failures=all_failures[:MAX_PERSISTENT_FAILURES],
+        summary=_summarize(kind, total, persisted, iterations),
+        persisted=persisted,
+        total_failures=total,
+    )
+
+
 def build_escalation(
     records: list[IterationRecord], history: list[float | None], stop_reason: StopReason
 ) -> Escalation:
-    """Assemble the escalation report for an early stop."""
-    kind = "escalated" if stop_reason is StopReason.ESCALATED else "no_progress"
-    all_failures, persisted = persistent_failures(records)
-    total = len(all_failures)
-    return Escalation(
-        kind=kind,
-        iterations=len(records),
-        trajectory=tuple(history),
-        failures=all_failures[:MAX_PERSISTENT_FAILURES],
-        summary=_summarize(kind, total, persisted, len(records)),
-        persisted=persisted,
-        total_failures=total,
+    """Assemble the escalation report from in-memory iteration records (run loop)."""
+    return escalation_from_signals(
+        history, [_failure_lines(record.verify.output) for record in records], stop_reason
     )
