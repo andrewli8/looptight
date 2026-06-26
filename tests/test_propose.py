@@ -35,6 +35,26 @@ def test_from_todos_finds_markers_with_location(tmp_path):
     assert all(c.location and ":" in c.location for c in cands)
 
 
+def test_from_todos_finds_marker_in_jsdoc_block_comment(tmp_path):
+    # A TODO on a continuation line of a multi-line block comment keeps its JSDoc
+    # ` * ` prefix; that prefix must be stripped before marker matching, or the
+    # (ubiquitous) JSDoc-style TODO is silently missed. Single-line forms unchanged.
+    _write(
+        tmp_path,
+        "src/a.js",
+        "/**\n"
+        " * TODO: jsdoc block todo\n"
+        " */\n"
+        "const x = 1;\n"
+        "/* TODO: inline block todo */\n"
+        "// TODO: line todo\n",
+    )
+    titles = [c.title for c in from_todos(tmp_path)]
+    assert "jsdoc block todo" in titles
+    assert "inline block todo" in titles
+    assert "line todo" in titles
+
+
 def test_js_skip_name_keeps_nested_quotes_whole(tmp_path):
     # A skipped-test name with a nested quote of a different type (apostrophes are
     # everywhere in test descriptions) must be captured whole, not truncated at the

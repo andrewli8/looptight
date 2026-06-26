@@ -32,6 +32,10 @@ from .grounding import evidence_is_truthful
 # marker-prefixed compound word in prose ("# fixme-style naming") is not a hit.
 _TODO_RE = re.compile(r"^(TODO|FIXME|HACK|XXX)(?=[:\s]|$)[:\s]*(?P<text>.*)", re.IGNORECASE)
 
+# The conventional leading ` * ` on a JSDoc/block-comment continuation line, stripped
+# so a marker written as ` * TODO: ...` is matched rather than hidden behind the `*`.
+_BLOCK_PREFIX_RE = re.compile(r"^\s*\*\s?")
+
 
 @dataclass(frozen=True)
 class Candidate:
@@ -216,11 +220,11 @@ def _js_comments(path: Path):
     for lineno, line in enumerate(lines, 1):
         if in_block:
             end = line.find("*/")
-            if end == -1:
-                yield lineno, line  # whole continuation line is comment body
-            else:
-                yield lineno, line[:end]
-                in_block = False
+            body = line if end == -1 else line[:end]
+            # Strip the conventional JSDoc continuation marker (` * `) so a marker
+            # written as ` * TODO: ...` is not hidden behind the leading asterisk.
+            yield lineno, _BLOCK_PREFIX_RE.sub("", body, count=1)
+            in_block = end == -1  # still open until the closing */
             continue
         body, in_block, in_template = _js_line_comment(line, in_template)
         if body is not None:
