@@ -100,6 +100,15 @@ def test_spec_output_contract_documents_run_json_and_escalation():
     assert "escalation" in output_contract
 
 
+def test_unattended_doc_documents_patience_and_escalation():
+    # The value-aware stopping control is off by default; the unattended guide must
+    # document --patience and what the escalation report surfaces, or the feature
+    # is undiscoverable.
+    text = (_DOCS / "unattended.md").read_text(encoding="utf-8")
+    assert "--patience" in text
+    assert "escalation" in text
+
+
 def test_changelog_names_the_current_version():
     changelog = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     pyproject = (_ROOT / "pyproject.toml").read_text(encoding="utf-8")

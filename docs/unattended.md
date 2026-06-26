@@ -11,6 +11,21 @@ without you sitting there, and a coordinator lets many sessions share one repo.
 looptight run --headless "fix the failing tests"
 ```
 
+### Stopping early when stuck (`--patience`)
+
+By default `run` keeps going to its iteration cap. Pass `--patience N` to stop
+early when the verifier stops making progress for `N` iterations in a row:
+
+```bash
+looptight run --headless "fix the failing tests" --patience 3
+```
+
+This is off by default (`--patience 0`). When it triggers, the run summary
+explains why instead of just giving up: the failures that never cleared across the
+attempts, plus the progress trajectory. It tells apart "made progress, then
+stalled" (cut losses) from "never moved the needle" (worth a human look). The same
+report is in `looptight run --json` as an additive `escalation` object.
+
 ## A swarm
 
 A deterministic manager claims one task per worker, gives each its own worktree and
