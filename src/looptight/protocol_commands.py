@@ -728,7 +728,11 @@ def cmd_goal(args: argparse.Namespace, console: Console) -> int:
     if arg == "status" or arg is None:
         goal = read_goal(workdir)
         if args.json:
-            payload: dict[str, object] = {"command": "goal", "active": goal is not None}
+            # schema_version is part of the contract in both states; goal.as_dict()
+            # also sets it (same value), so a present goal does not change it.
+            payload: dict[str, object] = {
+                "schema_version": 1, "command": "goal", "active": goal is not None,
+            }
             if goal is not None:
                 payload.update(goal.as_dict())
             print(json.dumps(payload, sort_keys=True))

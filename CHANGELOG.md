@@ -43,6 +43,10 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- `goal status --json` always carries `schema_version`. It was present only when
+  a goal was active (it came from `goal.as_dict()`); the no-goal payload omitted
+  it, so an automation consumer reading `schema_version` hit a KeyError when no
+  goal was set. The field is now in both states.
 - `install-skill` reports "already up to date" when the installed `SKILL.md` is
   byte-identical, instead of always printing "installed". This matches the no-op
   re-run wording now used by `install-hook`, `migrate`, and `init --integrate`.

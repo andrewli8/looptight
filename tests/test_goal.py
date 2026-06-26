@@ -151,11 +151,15 @@ def test_goal_cli_set_status_clear(tmp_path, monkeypatch, capsys):
     assert data["active"] is True
     assert data["vision"] == "a CLI todo app"
     assert data["max_iterations"] == 5
+    assert data["schema_version"] == 1
 
     assert main(["goal", "clear"]) == 0
     capsys.readouterr()
     assert main(["goal", "status", "--json"]) == 0
-    assert json.loads(capsys.readouterr().out)["active"] is False
+    cleared = json.loads(capsys.readouterr().out)
+    assert cleared["active"] is False
+    # schema_version is part of the contract in both states, not only when active.
+    assert cleared["schema_version"] == 1
 
 
 def test_goal_cli_next_emits_directive(tmp_path, monkeypatch, capsys):
