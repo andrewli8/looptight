@@ -30,6 +30,18 @@ def test_summary_and_evidence_splits_inline_evidence():
     assert evidence == "Evidence: src/p.py:3"
 
 
+def test_summary_and_evidence_strips_markdown_emphasis_around_marker():
+    # A bold marker (**Evidence:**) leaves '**' straddling the split: the opening
+    # in the summary, the closing in the evidence. Neither should leak.
+    candidate = _candidate(
+        "Add a docstring. **Evidence:** `src/p.py:3`",
+        "Add a docstring. **Evidence:** `src/p.py:3`; Acceptance: it passes.",
+    )
+    summary, evidence = _summary_and_evidence(candidate)
+    assert summary == "Add a docstring"
+    assert evidence == "Evidence: `src/p.py:3`"
+
+
 def test_summary_and_evidence_preserves_multiple_refs():
     candidate = _candidate(
         "Do the thing. Evidence: src/a.py:1; Evidence: tests/test_a.py:2",

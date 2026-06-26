@@ -58,7 +58,12 @@ def _summary_and_evidence(candidate: Candidate) -> tuple[str, str]:
     """
     head, marker, refs = candidate.title.partition("Evidence:")
     if marker:
-        return head.strip().rstrip(".;"), (marker + refs).strip()
+        # A bold/italic marker (``**Evidence:**``) leaves emphasis chars straddling
+        # the split — the opening in head, the closing in refs. Strip them so
+        # neither the summary nor the evidence field carries a stray ``*``.
+        summary = head.strip().rstrip("*").strip().rstrip(".;")
+        evidence = (marker + " " + refs.strip().lstrip("*").strip()).strip()
+        return summary, evidence
     return candidate.title.strip(), candidate.detail.strip()
 
 
