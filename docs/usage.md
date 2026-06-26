@@ -137,10 +137,13 @@ stay busy:
 | `todo` | real `TODO` / `FIXME` / `HACK` / `XXX` comments, not strings |
 | `lint` | findings from your linter |
 
-TODO and skipped-test discovery is polyglot: it scans Python and JS/TS (`.js`,
-`.ts`, `.tsx`, and the rest of that family), including colocated `*.test.*` /
-`*.spec.*` files and `__tests__/` directories, while ignoring markers inside strings
-or comments and pruning vendored directories like `node_modules`.
+TODO and skipped-test discovery is polyglot and layout-agnostic. For Python it
+scans the whole project, so a `src/` layout, a flat package (`mypackage/`), or
+top-level modules (`app.py`) all work. For JS/TS (`.js`, `.ts`, `.tsx`, and the
+rest of that family) it scans `src/`/`tests/` plus colocated `*.test.*` /
+`*.spec.*` files and `__tests__/` directories. Either way it ignores markers inside
+strings or comments and prunes vendored and cache directories (`node_modules`,
+`.venv`, `build`, `__pycache__`, and the rest).
 
 Human-curated sources (`status-next`, `task-file`) rank above automated signals
 (`lint`, `todo`), so deliberate intent gets claimed before incidental nits. A dirty

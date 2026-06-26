@@ -528,3 +528,30 @@ def test_js_line_comment_detects_comment_after_escaped_backslash():
     body, block_open = _js_line_comment('let x = "\\\\" // TODO: fix')
     assert body is not None and "TODO: fix" in body
     assert block_open is False
+
+
+def test_from_todos_is_layout_agnostic(tmp_path):
+    # Discovery must find TODOs in flat packages (pkg/x.py) and top-level modules
+    # (app.py), not only src/ and tests/ — the majority of Python projects.
+    _write(tmp_path, "myapp/core.py", "x = 1  # TODO: handle the empty case\n")
+    _write(tmp_path, "app.py", "y = 2  # FIXME: top-level module bug\n")
+    locs = {c.location for c in from_todos(tmp_path)}
+    assert any("myapp/core.py" in loc for loc in locs), "flat package TODO missed"
+    assert any("app.py" in loc for loc in locs), "top-level module TODO missed"
+
+
+def test_from_todos_prunes_vendored_and_build_dirs(tmp_path):
+    # A TODO inside a virtualenv or build output must never be surfaced as work.
+    _write(tmp_path, ".venv/lib/site.py", "# TODO: not my code\n")
+    _write(tmp_path, "build/gen.py", "# TODO: generated\n")
+    assert from_todos(tmp_path) == []
+
+
+def test_from_skipped_tests_is_layout_agnostic(tmp_path):
+    # Skipped tests in a singular `test/` dir (not `tests/`) must be found too.
+    _write(
+        tmp_path, "test/test_x.py",
+        "import pytest\n@pytest.mark.skip(reason='flaky')\ndef test_a():\n    pass\n",
+    )
+    cands = from_skipped_tests(tmp_path)
+    assert any("test/test_x.py" in c.location for c in cands), "singular test/ dir missed"

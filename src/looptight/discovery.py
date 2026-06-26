@@ -48,13 +48,6 @@ class Candidate:
         return f"[{self.source}] {self.title}{where}"
 
 
-def _py_files(root: Path, subdir: str) -> list[Path]:
-    base = root / subdir
-    if not base.is_dir():
-        return []
-    return sorted(p for p in base.rglob("*.py") if p.is_file())
-
-
 # JavaScript/TypeScript family extensions scanned for TODO markers. Discovery is
 # Python-first, but most real repos are polyglot; surfacing JS/TS markers keeps
 # the lightweight signal capture useful beyond Python.
@@ -74,7 +67,21 @@ def _files_with_exts(root: Path, subdir: str, exts: tuple[str, ...]) -> list[Pat
     )
 
 
-_PRUNE_DIRS = {"node_modules", ".git", ".venv", "venv", "dist", "build"}
+_PRUNE_DIRS = {
+    "node_modules", ".git", ".venv", "venv", "dist", "build", "__pycache__",
+    ".tox", ".eggs", ".mypy_cache", ".pytest_cache", ".ruff_cache", "site-packages",
+}
+
+
+def _all_py_files(root: Path) -> list[Path]:
+    """Every Python file in the project, pruning vendored/build/cache dirs so a big
+    repo stays cheap. Layout-agnostic: src-layout (`src/pkg/`), flat packages
+    (`pkg/`), and top-level modules (`app.py`) are all covered."""
+    out: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in _PRUNE_DIRS]
+        out += [Path(dirpath) / name for name in filenames if name.endswith(".py")]
+    return sorted(out)
 
 
 def _js_test_files(root: Path) -> list[Path]:
@@ -206,12 +213,11 @@ def _todo_candidate(root: Path, path: Path, lineno: int, body: str, detail: str)
 def from_todos(root: Path) -> list[Candidate]:
     """TODO/FIXME/HACK/XXX in real comments (not string literals) across Python and JS/TS."""
     out: list[Candidate] = []
-    for sub in ("src", "tests"):
-        for path in _py_files(root, sub):
-            for lineno, comment in _comments(path):
-                candidate = _todo_candidate(root, path, lineno, comment.lstrip("#"), comment)
-                if candidate is not None:
-                    out.append(candidate)
+    for path in _all_py_files(root):
+        for lineno, comment in _comments(path):
+            candidate = _todo_candidate(root, path, lineno, comment.lstrip("#"), comment)
+            if candidate is not None:
+                out.append(candidate)
     for path in _js_discovery_files(root):
         for lineno, body in _js_comments(path):
             candidate = _todo_candidate(root, path, lineno, body, body)
@@ -342,7 +348,7 @@ def from_skipped_tests(root: Path) -> list[Candidate]:
     are deliberate infrastructure, so surfacing them every run is just noise.
     """
     out: list[Candidate] = []
-    for path in _py_files(root, "tests"):
+    for path in _all_py_files(root):
         lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
         if _module_is_optin(lines):
             continue

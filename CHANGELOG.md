@@ -35,6 +35,11 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- Python TODO/FIXME and skipped-test discovery is now layout-agnostic: it scans
+  the whole project (pruning vendored and cache dirs) instead of only `src/` and
+  `tests/`, so a flat package (`mypackage/`) or top-level modules — the majority of
+  Python layouts — no longer report `NO_WORK` when real markers exist.
+
 - `read_goal` and the read-only view's `read_state` return safe defaults on a
   non-UTF-8 file instead of crashing; `write_goal` and `write_state` no longer
   leave a stale `.tmp` behind when a save fails.
