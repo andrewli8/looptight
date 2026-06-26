@@ -328,3 +328,41 @@ def test_record_failure_error_does_not_break_integration(tmp_path, monkeypatch):
     outcome = integrator.run_next(repo, "exit 1")  # failing verify
 
     assert outcome.status == "failed"  # finalized cleanly despite record_failure raising
+
+
+def test_update_ref_cas_conflict_when_target_advances(tmp_path, monkeypatch):
+    # The ref advance is a compare-and-swap: update-ref carries `observed` as the
+    # old value, so if a racing integrator moved the target ref after we observed
+    # it, the CAS must fail closed (conflict/superseded) and NOT clobber the other
+    # integrator's commit.
+    repo, candidate = _repo_with_candidate(tmp_path)
+    db = Coordinator.open(repo)
+    run = db.start_run("worker")
+    lease = db.claim([{"id": "t1"}], run.id, ttl_s=60)
+    integration_id = db.enqueue_integration(lease, "refs/heads/main", candidate)
+
+    integrator = Integrator(db)
+    original = integrator._maybe_crash
+    racing = []
+
+    def advance_then_crash(boundary):
+        if boundary == "after_commit":
+            # A racing integrator advances the target ref between our commit and our
+            # compare-and-swap update-ref, invalidating the observed old value.
+            _git(repo, "commit", "--allow-empty", "-qm", "racing advance")
+            racing.append(_git(repo, "rev-parse", "refs/heads/main").stdout.strip())
+        return original(boundary)
+
+    monkeypatch.setattr(integrator, "_maybe_crash", advance_then_crash)
+
+    outcome = integrator.run_next(repo, "exit 0")
+
+    assert outcome.status == "conflict"
+    assert outcome.result_sha is None  # nothing published on a lost CAS
+    # The error reflects the failed compare-and-swap (git's "expected" old value),
+    # or the fallback superseded message when git is quiet.
+    assert "expected" in (outcome.error or "") or "superseded" in (outcome.error or "")
+    assert db.integration(integration_id).state == "conflict"
+    # The CAS refused to overwrite the racing commit: main still points at it.
+    main_after = _git(repo, "rev-parse", "refs/heads/main").stdout.strip()
+    assert main_after == racing[0]

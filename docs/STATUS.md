@@ -576,20 +576,14 @@ existing CLI session and makes no model or API calls of its own.
 - `GoalDecision.as_dict()` now has direct unit coverage via
   `test_goal_decision_as_dict_pins_all_statuses` in tests/test_goal.py, asserting
   required fields are always present and optional fields appear only when set.
+- The integration ref advance is proven to be a real compare-and-swap: when a racing
+  integrator advances the target ref between our commit and our `update-ref`, the
+  CAS (old-value `observed`) fails closed, the integration is marked `conflict` with
+  no result published, and the racing commit is left intact rather than clobbered.
+  Covered by `test_update_ref_cas_conflict_when_target_advances`; the test fails if
+  the old-value argument is dropped from the update-ref call.
 
 ## Next
-
-1. Guard the compare-and-swap that stops a racing integrator from clobbering the
-   target ref. `_apply` advances the ref via `update-ref <ref> <result> <observed>`,
-   whose `observed` old-value makes a concurrent advance fail closed (mark the
-   integration `conflict`/superseded and reset) instead of overwriting the other
-   integrator's commit. That conflict branch is untested.
-   Evidence: `src/looptight/integration_queue.py:302`
-   Acceptance: a new test in `tests/test_integration_queue.py` advances the target
-   ref at the `after_commit` boundary so the update-ref CAS fails, then asserts the
-   outcome status is `conflict` with a superseded error and the target ref still
-   points at the racing commit rather than the integration result; the test fails if
-   the old-value argument is dropped from the update-ref call, and `looptight verify` passes.
 
 ## Rules
 
