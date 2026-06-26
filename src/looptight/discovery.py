@@ -294,13 +294,14 @@ def from_todos(root: Path) -> list[Candidate]:
 def _is_skip_line(stripped: str) -> bool:
     """True for real skip/xfail code, not a marker string inside a literal.
 
-    Covers pytest (`@pytest.mark.skip/xfail`, `pytest.skip(...)`, `pytestmark = ...`)
-    and stdlib unittest (`@unittest.skip/skipIf/skipUnless`, `self.skipTest(...)`).
-    The shared env-gate and conditional-guard classifiers below decide which of the
-    conditional forms are intentional infrastructure versus rot.
+    Covers pytest (`@pytest.mark.skip/xfail`, imperative `pytest.skip(...)`/
+    `pytest.xfail(...)`, `pytestmark = ...`) and stdlib unittest
+    (`@unittest.skip/skipIf/skipUnless`, `self.skipTest(...)`). The shared env-gate
+    and conditional-guard classifiers below decide which of the conditional forms are
+    intentional infrastructure versus rot.
     """
     if stripped.startswith((
-        "@pytest.mark.skip", "@pytest.mark.xfail", "pytest.skip(",
+        "@pytest.mark.skip", "@pytest.mark.xfail", "pytest.skip(", "pytest.xfail(",
         "@unittest.skip", "self.skipTest(",
     )):
         return True
@@ -449,7 +450,7 @@ def from_skipped_tests(root: Path) -> list[Candidate]:
                 continue
             if _OPTIN_RE.search(_code_only(_statement_text(lines, idx))):
                 continue
-            if stripped.startswith(("pytest.skip(", "self.skipTest(")) and _inside_conditional(lines, idx):
+            if stripped.startswith(("pytest.skip(", "pytest.xfail(", "self.skipTest(")) and _inside_conditional(lines, idx):
                 continue
             out.append(
                 Candidate(

@@ -173,6 +173,26 @@ def test_skipif_with_unbalanced_paren_in_reason_is_still_surfaced(tmp_path):
     assert not any(loc.endswith(":11") for loc in locs)  # env-gated skip still suppressed
 
 
+def test_from_skipped_tests_detects_imperative_xfail(tmp_path):
+    # Imperative pytest.xfail(...) is a runtime known-broken marker, like pytest.skip(),
+    # and must be detected; a guarded one (capability gate) is not rot.
+    _write(
+        tmp_path,
+        "tests/test_a.py",
+        "import pytest\n\n\n"
+        "def test_broken():\n"
+        '    pytest.xfail("known broken")\n'        # 5: unconditional rot
+        "\n"
+        "def test_guarded():\n"
+        "    import sys\n"
+        "    if sys.platform == 'win32':\n"
+        '        pytest.xfail("win only")\n',        # 10: capability guard, not rot
+    )
+    locs = [c.location for c in from_skipped_tests(tmp_path)]
+    assert any(loc.endswith(":5") for loc in locs)       # unconditional xfail -> rot
+    assert not any(loc.endswith(":10") for loc in locs)  # guarded xfail -> not rot
+
+
 def test_from_skipped_tests_detects_unittest_skips(tmp_path):
     # unittest is stdlib and widely used; its skips must be detected like pytest's.
     _write(
