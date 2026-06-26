@@ -40,6 +40,9 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- `install-skill` reports "already up to date" when the installed `SKILL.md` is
+  byte-identical, instead of always printing "installed". This matches the no-op
+  re-run wording now used by `install-hook`, `migrate`, and `init --integrate`.
 - `migrate` reports "coordinator already active" on a no-op re-run instead of
   repeating the first-run "coordinator active", matching `install-hook`'s
   "installed"/"already installed" distinction so a user knows the re-run did

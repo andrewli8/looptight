@@ -569,10 +569,20 @@ def cmd_hook(args: argparse.Namespace, console: Console) -> int:
 
 
 def cmd_install_skill(args: argparse.Namespace, console: Console) -> int:
-    from .skill import install_skill
+    from .skill import SKILL_MD, install_skill, skill_path
 
-    path = install_skill()
-    console.print(f"[green]installed[/green] the looptight skill at {path}")
+    path = skill_path()
+    already_current = False
+    if path.is_file():
+        try:
+            already_current = path.read_text(encoding="utf-8") == SKILL_MD
+        except OSError:
+            already_current = False
+    install_skill()  # always (re)write so an upgraded package refreshes the file
+    if already_current:
+        console.print(f"the looptight skill is already up to date at {path}")
+    else:
+        console.print(f"[green]installed[/green] the looptight skill at {path}")
     console.print("Claude Code will now discover looptight in any session.")
     return 0
 

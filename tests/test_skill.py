@@ -33,6 +33,16 @@ def test_install_skill_cli_uses_the_home_skills_dir(tmp_path, monkeypatch, capsy
     assert "installed" in capsys.readouterr().out
 
 
+def test_install_skill_cli_reports_already_up_to_date_on_no_op_rerun(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    assert main(["install-skill"]) == 0
+    capsys.readouterr()  # discard first-run output
+    assert main(["install-skill"]) == 0  # second run: content unchanged
+    out = capsys.readouterr().out.lower()
+    assert "up to date" in out
+    assert "installed the looptight skill" not in out
+
+
 def test_init_hints_at_install_skill_under_claude_code(tmp_path, monkeypatch, capsys):
     # init stays project-scoped (it does not write the global skill), but it points
     # the user to install-skill when Claude Code is the detected agent.

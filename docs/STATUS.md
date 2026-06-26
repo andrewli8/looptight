@@ -579,15 +579,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `install-skill` always prints "installed the looptight skill" even on a re-run
-   that rewrites byte-identical content. `install-hook`, `migrate`, and
-   `init --integrate` all distinguish a fresh install from a no-op; install-skill
-   should too, reporting "already up to date" when the SKILL.md is unchanged.
-   Evidence: `src/looptight/commands.py:575`
-   Acceptance: a new test asserts a second `install-skill` with unchanged content
-   reports "up to date" (not the first-run "installed") and exits 0; `looptight
-   verify` passes.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
