@@ -737,6 +737,7 @@ def cmd_goal(args: argparse.Namespace, console: Console) -> int:
         elif decision.status == "no_goal":
             console.print("no active goal; set one with `looptight goal \"<vision>\"`")
         elif decision.status == "active":
+            console.print(f"Iteration {decision.iteration}:")
             console.print(decision.directive["prompt"])
         else:
             console.print(f"goal {decision.status}" + (f" ({decision.reason})" if decision.reason else ""))
