@@ -231,7 +231,17 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
     result = next_task(Path.cwd(), idea_generation=idea_generation)
     if args.json:
         print(json.dumps(result.as_dict(), sort_keys=True))
-    elif result.status == "error":
+        return 2 if result.status == "error" else 0
+    # Human output is goal-aware like `status`: `next` runs evidence discovery, so
+    # if a build goal is active the user likely wants `goal next` instead.
+    from .goal import read_goal
+
+    if read_goal(Path.cwd()) is not None:
+        console.print(
+            "note: a build goal is active — `looptight goal next` drives it; "
+            "`next` runs evidence-based discovery instead."
+        )
+    if result.status == "error":
         if result.error == "dirty_worktree":
             console.print(
                 "[red]dirty worktree:[/red] commit or stash your changes before "

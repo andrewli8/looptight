@@ -579,16 +579,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `status` is goal-aware (it points at `goal next` when a build goal is active),
-   but plain `next` ignores an active goal entirely — it runs evidence discovery
-   and prints the task with no hint, so a user who set a goal then ran `next` out
-   of habit gets an unrelated task and no nudge toward `goal next`. The human
-   `next` output should note when a build goal is active.
-   Evidence: `src/looptight/protocol_commands.py:254`
-   Acceptance: a new test asserts the human `next` output includes a note about
-   the active goal (mentioning `goal next`) when a goal is set, and omits it when
-   none is; `--json` is unchanged; `looptight verify` passes.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

@@ -467,6 +467,29 @@ def test_next_human_explains_task_selection(tmp_path, monkeypatch, capsys):
     assert "next: implement the task, run `looptight verify`, and commit only if it passes" in out
 
 
+def test_next_human_output_notes_an_active_build_goal(tmp_path, monkeypatch, capsys):
+    # `status` points at `goal next` when a goal is active; `next` (evidence
+    # discovery) should likewise note the active goal so a user who set one is not
+    # left wondering why `next` ignored it. The note prints regardless of outcome.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.email", "t@t"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.name", "t"], cwd=tmp_path, check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "true"\n')
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "f.py").write_text("x = 1  # TODO: fix\n")
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-qm", "i"], cwd=tmp_path, check=True)
+
+    assert main(["next"]) == 0
+    assert "goal next" not in capsys.readouterr().out  # no goal -> no note
+
+    main(["goal", "build a thing"])
+    capsys.readouterr()
+    assert main(["next"]) == 0
+    assert "goal next" in capsys.readouterr().out  # active goal -> note present
+
+
 def test_next_and_swarm_parsers_accept_no_ideas():
     assert build_parser().parse_args(["next", "--no-ideas"]).no_ideas is True
     assert build_parser().parse_args(["swarm", "--headless", "--no-ideas"]).no_ideas is True

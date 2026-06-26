@@ -28,6 +28,9 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Changed
 
+- The human `next` output is now goal-aware: when a build goal is active it notes
+  that `looptight goal next` drives the goal and `next` runs evidence discovery,
+  matching `status`'s goal-awareness. `next --json` is unchanged.
 - The coordinator is no longer a readiness requirement. A solo loop runs on file
   claims, so `doctor` now reports `setup: ready` and `readiness: ready` for a
   repo with verify + git + agent + a task source even when the coordinator is
