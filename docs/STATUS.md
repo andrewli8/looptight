@@ -627,6 +627,20 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. JS/TS TODO discovery must ignore markers inside a multi-line template literal.
+   `_js_comments` threads `in_block` for `/* */` across lines but not an open
+   backtick template literal, and `_js_line_comment` resets its quote state per
+   line, so a `// TODO` on a continuation line of a multi-line backtick string is
+   wrongly surfaced as a real comment/task (a false positive that pollutes the
+   queue with non-work). The scanner must track an open backtick template across
+   lines, the way it already tracks block comments.
+   Evidence: `src/looptight/discovery.py:175`
+   Acceptance: a new test in `tests/test_propose.py` writes a `.js` file with a
+   `// TODO` line inside a multi-line backtick template literal plus a real
+   `// TODO` after it, and asserts `from_todos` returns only the real one (not the
+   in-template line); existing single-line `_js_line_comment` behavior and block
+   comment tracking are preserved, and `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
