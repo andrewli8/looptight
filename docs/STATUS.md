@@ -745,18 +745,12 @@ existing CLI session and makes no model or API calls of its own.
   `*.cy.ts`/`*.cy.tsx` files (in `cypress/` or colocated) are discovered. Existing
   patterns are unchanged. Covered by a test.
 
-## Next
+- `detect_verify` recognizes a `justfile`: a `justfile`/`Justfile`/`.justfile` with a
+  `test:`/`check:` recipe detects `just test`/`just check` (the `make` recipe scan is
+  now a shared `_recipe_runner` helper), so a `just`-only project is configured instead
+  of falling back to the wrong default. Makefile detection is unchanged. Covered by tests.
 
-1. `detect_verify` does not recognize a `justfile`. `just` is a growing Makefile
-   alternative whose recipes use the same `name:` syntax, so a project whose only
-   task runner is a justfile with a `test:`/`check:` recipe gets "no test command
-   detected" and the wrong default. Detect `just test`/`just check` from a
-   `justfile`/`Justfile`/`.justfile`, analogous to the Makefile detection.
-   Evidence: `src/looptight/detect.py:77`
-   Acceptance: new tests in `tests/test_detect.py` assert a `justfile` with a `test:`
-   recipe detects `just test`, a `Justfile` with only `check:` detects `just check`
-   (`test` preferred when both exist), and a justfile with neither returns None;
-   Makefile detection is unchanged, and `looptight verify` passes.
+## Next
 
 ## Rules
 

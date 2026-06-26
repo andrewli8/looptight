@@ -76,21 +76,40 @@ def detect_verify(root: Path | None = None) -> str | None:
 
     makefile = base / "Makefile"
     if makefile.is_file():
-        try:
-            # A comment (optionally indented) is never a target, so skip it before
-            # matching rather than relying on the anchor alone.
-            target_lines = [
-                line
-                for line in makefile.read_text(encoding="utf-8").splitlines()
-                if not line.lstrip().startswith("#")
-            ]
-            if any(_MAKE_TEST_TARGET.match(line) for line in target_lines):
-                return "make test"
-            if any(_MAKE_CHECK_TARGET.match(line) for line in target_lines):
-                return "make check"
-        except (OSError, ValueError):
-            # ValueError covers a non-UTF-8 Makefile's UnicodeDecodeError, matching
-            # the package.json branch above: an unreadable file falls through.
-            pass
+        runner = _recipe_runner(makefile, "make")
+        if runner:
+            return runner
 
+    # `just` is a Makefile alternative whose recipes use the same `name:` syntax.
+    for just_name in ("justfile", "Justfile", ".justfile"):
+        just = base / just_name
+        if just.is_file():
+            runner = _recipe_runner(just, "just")
+            if runner:
+                return runner
+            break
+
+    return None
+
+
+def _recipe_runner(path: Path, tool: str) -> str | None:
+    """``<tool> test`` or ``<tool> check`` if ``path`` (a Makefile/justfile) defines a
+    `test:`/`check:` recipe (`test` preferred), else None. An unreadable file yields
+    None, matching the other detection branches."""
+    try:
+        # A comment (optionally indented) is never a target/recipe, so skip it before
+        # matching rather than relying on the anchor alone.
+        lines = [
+            line
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if not line.lstrip().startswith("#")
+        ]
+    except (OSError, ValueError):
+        # ValueError covers a non-UTF-8 file's UnicodeDecodeError, matching the
+        # package.json branch above: an unreadable file falls through.
+        return None
+    if any(_MAKE_TEST_TARGET.match(line) for line in lines):
+        return f"{tool} test"
+    if any(_MAKE_CHECK_TARGET.match(line) for line in lines):
+        return f"{tool} check"
     return None

@@ -34,6 +34,26 @@ def test_detect_verify_makefile_check_near_misses_dont_match(tmp_path):
     assert detect.detect_verify(tmp_path) is None
 
 
+def test_detect_verify_justfile_test_recipe(tmp_path):
+    (tmp_path / "justfile").write_text("test:\n    pytest\n")
+    assert detect.detect_verify(tmp_path) == "just test"
+
+
+def test_detect_verify_justfile_check_recipe_capitalized(tmp_path):
+    (tmp_path / "Justfile").write_text("check:\n    pytest\n")
+    assert detect.detect_verify(tmp_path) == "just check"
+
+
+def test_detect_verify_justfile_prefers_test_over_check(tmp_path):
+    (tmp_path / "justfile").write_text("check: test\n\ntest:\n    pytest\n")
+    assert detect.detect_verify(tmp_path) == "just test"
+
+
+def test_detect_verify_justfile_no_test_recipe(tmp_path):
+    (tmp_path / "justfile").write_text("build:\n    echo hi\n")
+    assert detect.detect_verify(tmp_path) is None
+
+
 def test_detect_verify_npm_only_with_test_script(tmp_path):
     (tmp_path / "package.json").write_text('{"scripts": {"test": "vitest"}}')
     assert detect.detect_verify(tmp_path) == "npm test"
