@@ -606,14 +606,14 @@ existing CLI session and makes no model or API calls of its own.
   commit intact instead of clobbering it. Covered by
   `test_reconcile_ref_advance_is_a_cas_against_a_racing_advance`; mutation-verified by
   dropping the old-value argument from the reconcile update-ref call.
+- `atomic_write_text` now has direct unit coverage in `tests/test_fsutil.py`: happy
+  path, nested parent-dir creation, and `OSError` cleanup (`.tmp` removed before
+  re-raise). The module's docstring claim — "defined and tested in a single place" —
+  now holds; no production code change.
 
 ## Next
 
-1. `atomic_write_text` has no direct unit tests despite the module docstring claiming "defined and tested in a single place"; tests proving the happy path, parent-dir creation, and temp-file cleanup on failure are scattered across five other test files.
-   Evidence: `src/looptight/fsutil.py:15`
-   Acceptance: A new `tests/test_fsutil.py` with three direct tests (happy path writes correct content, parent dirs are created when absent, OSError removes the `.tmp` and re-raises) passes and `looptight verify --json` returns `pass`; no production code change.
-
-2. `from_lint`'s `except (OSError, subprocess.TimeoutExpired): return []` clause at discovery.py:481 is not directly tested — a refactor that accidentally removes it or narrows it would go undetected; callers rely on graceful degradation when ruff hangs or is inaccessible.
+1. `from_lint`'s `except (OSError, subprocess.TimeoutExpired): return []` clause at discovery.py:481 is not directly tested — a refactor that accidentally removes it or narrows it would go undetected; callers rely on graceful degradation when ruff hangs or is inaccessible.
    Evidence: `src/looptight/discovery.py:481`
    Acceptance: Two new tests in `tests/test_propose.py` monkeypatch `subprocess.run` to raise `OSError` and `TimeoutExpired` respectively and assert `from_lint()` returns `[]` in both cases; `looptight verify --json` returns `pass`; no production code change.
 
