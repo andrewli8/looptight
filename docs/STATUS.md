@@ -783,17 +783,12 @@ existing CLI session and makes no model or API calls of its own.
   machine-facing commands that take `--json` and notes that setup commands (`init`,
   `revert`) reject it, matching the README fix. A `test_docs.py` assertion locks it.
 
-## Next
+- The previously assertion-less proctree tolerance test now asserts its contract
+  explicitly: `stop_process_tree` returns `None` on an already-reaped process (reached
+  only if no exception was raised) and the process stays reaped — so a silent no-op
+  regression would now fail it. It was the only assertion-less test in the suite.
 
-1. `tests/test_proctree.py::test_stop_process_tree_tolerates_an_already_finished_process`
-   has no explicit assertion — it relies on the call not raising, so it would still
-   pass if `stop_process_tree` were changed to silently no-op on a finished process.
-   It is the only assertion-less test in the suite; the project's TDD/review standard
-   wants every test to assert something. Make the tolerated-no-op contract explicit.
-   Evidence: `tests/test_proctree.py:25`
-   Acceptance: the test asserts the call returns `None` (its void contract, reached
-   only if no exception was raised) and the process stays reaped; the suite passes and
-   `looptight verify` passes.
+## Next
 
 ## Rules
 

@@ -25,7 +25,10 @@ def test_stop_process_tree_kills_a_running_process():
 def test_stop_process_tree_tolerates_an_already_finished_process():
     process = subprocess.Popen(["true"] if sys.platform != "win32" else ["cmd", "/c", "exit"])
     process.wait()
-    stop_process_tree(process)  # must not raise on an already-reaped process
+    # Returns None (its void contract) rather than raising on an already-reaped
+    # process; reaching the assertion proves no exception was raised.
+    assert stop_process_tree(process) is None
+    assert process.poll() is not None  # still reaped, not resurrected
 
 
 def test_stop_process_tree_uses_taskkill_when_os_is_nt(monkeypatch):
