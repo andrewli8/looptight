@@ -39,9 +39,9 @@ its own; this session does the building.
 3. `looptight verify --json`; only a `pass` authorizes a commit.
 4. Commit the coherent change, then repeat.
 
-On NO_WORK carrying a generate_ideas directive, add 1 to 6 evidence-backed tasks (each
-with an `Evidence:` path and an observable `Acceptance:`) to docs/STATUS.md, then
-continue. Stop when no evidence-backed work remains.
+On NO_WORK carrying a generate_ideas directive, add 1 to 6 evidence-backed tasks as a
+numbered list (each with an `Evidence:` path and an observable `Acceptance:`; `-` bullets
+are not parsed) to docs/STATUS.md, then continue. Stop when no evidence-backed work remains.
 
 ## Build toward a goal (0 to 1)
 

@@ -35,6 +35,11 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- The session-loop instructions (in installed `CLAUDE.md`/`AGENTS.md` and the
+  Claude Code skill) now say to add generated `## Next` tasks as a *numbered*
+  list. The discovery parser only reads numbered items, so an agent's natural
+  `-` bullets were silently dropped — the loop then saw `no_work` and stalled
+  despite freshly added tasks. The instruction now matches the parser.
 - `.looptight.toml` with a leading UTF-8 BOM (common from Windows editors) now
   loads instead of failing with a cryptic `Invalid statement (at line 1, column
   1)`. The file is decoded BOM-tolerantly; plain UTF-8 is unaffected.

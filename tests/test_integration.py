@@ -18,6 +18,10 @@ def test_installs_same_small_loop_for_all_agents(tmp_path):
     # The loop generates grounded tasks on an empty queue by default, with an escape.
     assert "generate_ideas" in SESSION_LOOP
     assert "--no-ideas" in SESSION_LOOP
+    # The discovery parser only reads a numbered list under `## Next`; the
+    # instruction must say so, or an agent's natural `-` bullets are silently
+    # dropped and the loop stalls thinking there is no work.
+    assert "numbered" in SESSION_LOOP
 
 
 def test_install_repairs_start_marker_without_matching_end(tmp_path):
