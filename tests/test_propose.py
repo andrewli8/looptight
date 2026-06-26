@@ -56,6 +56,25 @@ def test_from_todos_skips_malformed_python_file(tmp_path):
     assert from_todos(tmp_path) == []
 
 
+def test_from_skipped_tests_ignores_js_marker_in_multiline_template_literal(tmp_path):
+    # An it.skip(...) on a continuation line of a multi-line backtick template
+    # literal (e.g. example code embedded in a string) is not a real skipped test
+    # and must not be surfaced; a real it.skip(...) outside the literal still is.
+    _write(
+        tmp_path,
+        "tests/a.test.js",
+        "const example = `\n"
+        'it.skip("documentation, not a real skip", () => {});\n'
+        "`;\n"
+        'it.skip("real skipped test", () => {});\n',
+    )
+    cands = from_skipped_tests(tmp_path)
+    names = [c.title for c in cands]
+    assert any("real skipped test" in n for n in names)
+    assert not any("documentation, not a real skip" in n for n in names)
+    assert len(cands) == 1
+
+
 def test_from_skipped_tests_detects_markers(tmp_path):
     _write(
         tmp_path,

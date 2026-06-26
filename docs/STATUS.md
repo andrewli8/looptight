@@ -631,21 +631,14 @@ existing CLI session and makes no model or API calls of its own.
   previously-untested branches: no-comment `(None, False)`, unclosed block
   `(body, True)`, closed inline block `(body, False)`, and backtick template-literal
   `(None, False)` — four new tests in `test_propose.py`; no production code change.
+- JS/TS skipped-test discovery ignores skip markers inside a multi-line template
+  literal or block comment: `from_skipped_tests`'s JS loop now threads `in_block`/
+  `in_template` across lines (via the template-aware `_js_line_comment`) and skips
+  lines that begin inside one, so an `it.skip(...)` written as example text in a
+  multi-line backtick string is no longer a false-positive task. Single-line skip
+  detection is unchanged. Sibling of the TODO template-literal fix; covered by a test.
 
 ## Next
-
-1. JS/TS skipped-test discovery must ignore skip markers inside a multi-line
-   template literal or block comment. `from_skipped_tests`'s JS loop calls
-   `_js_skip_candidate` per line with no cross-line state, and `_code_only` only
-   strips single-line strings, so an `it.skip(...)` on a continuation line of a
-   multi-line backtick template literal (e.g. example code in docs) is surfaced as
-   a real skipped test — a false positive that pollutes the queue with non-work,
-   the sibling of the TODO template-literal bug just fixed.
-   Evidence: `src/looptight/discovery.py:382`
-   Acceptance: a new test in `tests/test_propose.py` writes a `.test.js` with an
-   `it.skip(...)` inside a multi-line backtick template literal plus a real
-   `it.skip(...)` outside it, and asserts `from_skipped_tests` returns only the
-   real one; single-line skip detection is unchanged, and `looptight verify` passes.
 
 ## Rules
 

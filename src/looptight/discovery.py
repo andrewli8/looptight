@@ -380,9 +380,18 @@ def from_skipped_tests(root: Path) -> list[Candidate]:
                 )
             )
     for path in _js_discovery_files(root):
+        in_block = False
+        in_template = False
         for lineno, line in enumerate(
             path.read_text(encoding="utf-8", errors="ignore").splitlines(), 1
         ):
+            if in_block:  # inside a multi-line /* */ comment: not code
+                in_block = line.find("*/") == -1
+                continue
+            began_in_template = in_template
+            _body, in_block, in_template = _js_line_comment(line, in_template)
+            if began_in_template:
+                continue  # line begins inside a multi-line template literal: string text
             candidate = _js_skip_candidate(root, path, lineno, line)
             if candidate is not None:
                 out.append(candidate)
