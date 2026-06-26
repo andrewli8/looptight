@@ -86,6 +86,17 @@ def _all_py_files(root: Path) -> list[Path]:
     return sorted(out)
 
 
+def _all_js_files(root: Path) -> list[Path]:
+    """Every JS/TS-family file in the project, pruning vendored/build/cache dirs so a
+    big repo stays cheap. Layout-agnostic (src/, app/, components/, lib/, pages/, flat),
+    matching the Python TODO scan, so a non-src-layout project's markers are not missed."""
+    out: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in _PRUNE_DIRS]
+        out += [Path(dirpath) / name for name in filenames if Path(name).suffix in _JS_EXTS]
+    return sorted(out)
+
+
 def _js_test_files(root: Path) -> list[Path]:
     """JS/TS test files anywhere in the tree: `*.test.*`, `*.spec.*`, or under a
     `__tests__/` directory. Prunes vendored/build dirs so a big repo stays cheap.
@@ -242,7 +253,7 @@ def from_todos(root: Path) -> list[Candidate]:
             candidate = _todo_candidate(root, path, lineno, comment.lstrip("#"), comment)
             if candidate is not None:
                 out.append(candidate)
-    for path in _js_discovery_files(root):
+    for path in _all_js_files(root):
         for lineno, body in _js_comments(path):
             candidate = _todo_candidate(root, path, lineno, body, body)
             if candidate is not None:

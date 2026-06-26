@@ -35,6 +35,19 @@ def test_from_todos_finds_markers_with_location(tmp_path):
     assert all(c.location and ":" in c.location for c in cands)
 
 
+def test_from_todos_finds_js_markers_outside_src_layout(tmp_path):
+    # The common React/Next/Vue layout puts source under app/components/lib, not
+    # src/. JS TODO discovery must be layout-agnostic (like the Python path), or a
+    # whole project's markers are silently missed; vendored dirs stay pruned.
+    _write(tmp_path, "components/Button.tsx", "// TODO: real component todo\nexport const B = 1;\n")
+    _write(tmp_path, "lib/util.mjs", "// FIXME: lib util\n")
+    _write(tmp_path, "node_modules/dep/index.js", "// TODO: vendored, must be pruned\n")
+    titles = [c.title for c in from_todos(tmp_path)]
+    assert "real component todo" in titles
+    assert "lib util" in titles
+    assert "vendored, must be pruned" not in titles
+
+
 def test_from_todos_ignores_non_python(tmp_path):
     _write(tmp_path, "notes.txt", "TODO: not code\n")
     assert from_todos(tmp_path) == []

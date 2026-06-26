@@ -643,22 +643,13 @@ existing CLI session and makes no model or API calls of its own.
   written as example text in a docstring/multi-line string is no longer a false-positive
   task. The Python TODO path already had this via tokenize; the skip path now matches.
   Third sibling of the JS template-literal fixes; covered by a test.
+- JS/TS TODO discovery is layout-agnostic like the Python path: `from_todos` now scans
+  JS via a new `_all_js_files` that walks the whole tree (pruning vendored/build dirs),
+  so a project using the common `app/`/`components/`/`lib/`/`pages/` layout with no
+  top-level `src/` (React/Next/Vue) no longer has all its source TODOs silently missed.
+  Vendored dirs stay pruned; skip discovery stays test-file-scoped. Covered by a test.
 
 ## Next
-
-1. JS/TS TODO discovery must be layout-agnostic like the Python path. `from_todos`
-   scans Python via `_all_py_files` (whole tree, vendored dirs pruned) but JS via
-   `_js_discovery_files` (only `src/`, `tests/`, and colocated test files), so a
-   project using the common `app/`, `components/`, `lib/`, `pages/` layout with no
-   top-level `src/` (React/Next.js/Vue) has all its source TODOs silently missed.
-   The JS TODO scan should walk the whole tree (pruning vendored/build dirs) to
-   match Python; skip discovery stays test-file-scoped.
-   Evidence: `src/looptight/discovery.py:245`
-   Acceptance: a new `_all_js_files` walks the tree pruning `_PRUNE_DIRS`, `from_todos`
-   uses it for the JS scan, and a new test in `tests/test_propose.py` asserts a
-   `// TODO` in `components/x.tsx` (no `src/`) is found while a marker under
-   `node_modules/` is still pruned; existing src/tests TODO discovery is unchanged,
-   and `looptight verify` passes.
 
 ## Rules
 
