@@ -191,3 +191,15 @@ def test_batch_score_as_dict_pins_all_fields():
         "distinct": 3,
         "bounded": True,
     }
+
+
+def test_ref_resolves_handles_line_and_column_suffix(tmp_path):
+    # Evidence may be path, path:line, or path:line:col (e.g. a lint location).
+    # All three must resolve to the real file — stripping only one suffix wrongly
+    # drops path:line:col.
+    from looptight.grounding import ref_resolves
+
+    (tmp_path / "real.py").write_text("x = 1\n", encoding="utf-8")
+    assert ref_resolves(tmp_path, "real.py") is True
+    assert ref_resolves(tmp_path, "real.py:1") is True
+    assert ref_resolves(tmp_path, "real.py:1:5") is True  # path:line:col

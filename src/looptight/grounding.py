@@ -31,9 +31,14 @@ def evidence_refs(text: str) -> list[str]:
     return _EVIDENCE_RE.findall(text or "")
 
 
+_POSITION_SUFFIX = re.compile(r"(:\d+)+$")
+
+
 def ref_resolves(root: Path, ref: str) -> bool:
     """True when an evidence ref points at a real file inside the repository."""
-    path_text = ref.rsplit(":", 1)[0] if ":" in ref else ref  # drop an optional :line
+    # Drop a trailing position suffix: `path`, `path:line`, and `path:line:col`
+    # (e.g. a lint location) all point at the same file.
+    path_text = _POSITION_SUFFIX.sub("", ref)
     path_text = path_text.rstrip(".")  # tolerate a path that ends a sentence
     relative = Path(path_text)
     if not path_text or relative.is_absolute() or ".." in relative.parts:
