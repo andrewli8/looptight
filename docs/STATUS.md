@@ -723,6 +723,16 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Playwright's `test.fixme()` skip marker is not detected. `_JS_SKIP_CALL` matches
+   `skip`/`todo` but not `fixme`, so Playwright's standard "skip this broken test"
+   marker (`test.fixme(...)`, `test.describe.fixme(...)`) — a real skip in a top-tier
+   JS/TS test framework — goes undetected. Add `fixme` to the marker alternation
+   without matching `fixmeFoo`/identifiers.
+   Evidence: `src/looptight/discovery.py:387`
+   Acceptance: a new test in `tests/test_propose.py` asserts `test.fixme(...)` and the
+   chained `test.describe.fixme(...)` are surfaced while `it.fixmeFoo(` is not; plain
+   skip/todo/x-prefix detection is unchanged, and `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
