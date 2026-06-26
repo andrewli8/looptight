@@ -529,7 +529,36 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_None pending. The loop generates evidence-backed tasks here when this drains._
+1. `ranking.dedupe()` has no direct unit test; it is exercised only indirectly
+   through coordinator tests.
+   Evidence: `src/looptight/ranking.py:64`
+   Acceptance: `test_dedupe_collapses_whitespace_and_case` added to
+   `tests/test_propose.py` fails before the task, passes after; it asserts a
+   title differing only in case/whitespace is dropped while a distinct-location
+   candidate is kept, and `looptight verify --json` returns `pass`.
+
+2. `metacog._summarize()` has three untested branches: `total == 0` ("No specific
+   failures parsed"), `persisted == False` ("Showing the latest … none held"),
+   and `iterations == 1` ("1 try").
+   Evidence: `src/looptight/metacog.py:158`
+   Acceptance: Three new assertions in `tests/test_metacog.py` directly call
+   `_summarize` for each untested branch and check the distinct output string;
+   `looptight verify --json` returns `pass` with no production change.
+
+3. `grounding.ref_resolves()` strips trailing periods (`rstrip(".")`) to tolerate
+   evidence refs that end a sentence, but no test exercises this path.
+   Evidence: `src/looptight/grounding.py:37`
+   Acceptance: `test_ref_resolves_strips_trailing_period` added to
+   `tests/test_idea_eval.py` proves `ref_resolves(root, "src/x.py.")` returns
+   `True` when `src/x.py` exists; `looptight verify --json` returns `pass`.
+
+4. `experience.summary_text()` truncates to the top-`k` ideas by count, but the
+   existing test uses only 2 landed and 1 failed idea — fewer than the default
+   `k=5` — so the truncation branch never fires.
+   Evidence: `src/looptight/experience.py:115`
+   Acceptance: A new test in `tests/test_experience.py` with 7 failed ideas of
+   varying counts proves only the top-5 appear and the lowest-count idea is absent
+   from the output; `looptight verify --json` returns `pass`.
 
 ## Rules
 
