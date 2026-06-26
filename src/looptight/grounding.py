@@ -19,12 +19,24 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-__all__ = ["evidence_refs", "ref_resolves", "is_grounded", "evidence_is_truthful"]
+__all__ = [
+    "evidence_refs", "ref_resolves", "is_grounded", "evidence_is_truthful",
+    "strip_anchor_decoration",
+]
 
 # One path token per ``Evidence:`` marker. A path carries no spaces, so the token
 # ends at the first whitespace, ``;`` or ``,`` (which begin a following clause or
 # prose). Cite multiple files with multiple ``Evidence:`` markers, not a list.
 _EVIDENCE_RE = re.compile(r"\bEvidence:\s*([^\s;,]+)")
+
+
+def strip_anchor_decoration(ref: str) -> str:
+    """An evidence anchor with idiomatic decoration removed: a markdown code span
+    (`` `path` ``, how this repo's STATUS.md and LLM-generated tasks write anchors)
+    and a trailing sentence period. A *leading* dot is meaningful (``./path``,
+    ``.dotfile``) and is preserved. Shared by the gate and the swarm planner so
+    the tolerance is defined and tested in exactly one place (it has drifted)."""
+    return ref.strip("`").rstrip(".").rstrip("`")
 
 
 def evidence_refs(text: str) -> list[str]:
@@ -41,13 +53,9 @@ _POSITION_SUFFIX = re.compile(r"(:\d+)+$")
 
 def ref_resolves(root: Path, ref: str) -> bool:
     """True when an evidence ref points at a real file inside the repository."""
-    # Tolerate idiomatic decoration — a markdown code span (``Evidence: `path` ``,
-    # as this repo's own STATUS.md writes anchors) and a trailing sentence period
-    # — then drop a trailing position suffix so `path`, `path:line`, and
-    # `path:line:col` (e.g. a lint location) all resolve. Strip only surrounding
-    # backticks and a *trailing* period: a leading dot is meaningful (`./path`,
-    # `.dotfile`), so it must survive.
-    path_text = _POSITION_SUFFIX.sub("", ref.strip("`")).rstrip(".").rstrip("`")
+    # Strip idiomatic decoration, then drop a trailing position suffix so `path`,
+    # `path:line`, and `path:line:col` (e.g. a lint location) all resolve.
+    path_text = _POSITION_SUFFIX.sub("", strip_anchor_decoration(ref))
     relative = Path(path_text)
     if not path_text or relative.is_absolute() or ".." in relative.parts:
         return False

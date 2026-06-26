@@ -19,6 +19,7 @@ from .config import Config, load_config
 from .console import Console
 from .detect import detect_agent, detect_verify
 from .discovery import Candidate, from_status_next
+from .grounding import strip_anchor_decoration
 from .limits import (
     DEFAULT_LIMIT_BACKOFF,
     DEFAULT_LIMIT_MAX_WAIT,
@@ -131,11 +132,10 @@ def _planned_tasks_are_grounded(root: Path, candidates: list[Candidate]) -> bool
         match = re.search(r"\bEvidence:\s+([^;\s]+)", candidate.detail)
         if not match:
             return False
-        # Strip a markdown code span / trailing period the planner may wrap the
-        # path in (``Evidence: `src/a.py:1` ``), matching the grounding gate.
-        # Only surrounding backticks and a trailing period: a leading dot
-        # (`./path`, `.dotfile`) is meaningful and must survive.
-        reference = match.group(1).strip("`").rstrip(".").rstrip("`")
+        # Normalize the anchor through the shared helper (markdown code span /
+        # trailing period, leading dot preserved) so this check cannot drift from
+        # the grounding gate, as it once did (carrying the same backtick bug).
+        reference = strip_anchor_decoration(match.group(1))
         path_text, separator, line_text = reference.rpartition(":")
         if not separator or not line_text.isdigit():
             path_text, line_text = reference, ""

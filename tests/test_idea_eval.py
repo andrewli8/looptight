@@ -165,6 +165,19 @@ def test_grounding_tolerates_markdown_backticked_evidence(tmp_path):
     assert is_grounded(tmp_path, "Do it. Evidence: `src/ghost.py`") is False
 
 
+def test_strip_anchor_decoration_normalizes_idiomatic_decoration():
+    # The shared normalizer used by the gate and the swarm planner: strip a
+    # markdown code span and a trailing period; keep the position and a leading
+    # dot. Locking it here means the tolerance is defined in one tested place.
+    from looptight.grounding import strip_anchor_decoration
+
+    assert strip_anchor_decoration("`src/a.py:10`") == "src/a.py:10"  # position kept
+    assert strip_anchor_decoration("src/a.py.") == "src/a.py"         # trailing period
+    assert strip_anchor_decoration("`src/a.py`.") == "src/a.py"       # backtick then period
+    assert strip_anchor_decoration("./src/a.py") == "./src/a.py"      # leading dot kept
+    assert strip_anchor_decoration(".looptight.toml") == ".looptight.toml"
+
+
 def test_ref_resolves_keeps_meaningful_leading_dots(tmp_path):
     # Stripping a markdown code span must not eat a meaningful leading dot: a
     # `./path` relative prefix and a `.dotfile` are valid anchors. (Regression:
