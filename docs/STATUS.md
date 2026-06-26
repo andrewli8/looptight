@@ -699,6 +699,20 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. A single-line parametrize case disabled via `marks=` is not detected. A
+   standalone `marks = pytest.mark.skip(...)` line is caught by the existing
+   `\w+=pytest.mark.skip` rule, but the common single-line form
+   `pytest.param(2, marks=pytest.mark.skip(reason=...))` puts `marks=` mid-line, so
+   `_is_skip_line` (anchored at line start) misses it — a real disabled test case in
+   a supported pattern. Detection must strip strings and comments to avoid matching a
+   `marks=pytest.mark.skip` mention in a comment/string.
+   Evidence: `src/looptight/discovery.py:294`
+   Acceptance: a new test in `tests/test_propose.py` asserts a single-line
+   `pytest.param(..., marks=pytest.mark.skip(...))` is surfaced, an env-gated
+   `marks=pytest.mark.skipif(os.environ...)` is suppressed, and a `marks=...skip`
+   mention inside a `#` comment is not a false hit; existing detection is unchanged,
+   and `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
