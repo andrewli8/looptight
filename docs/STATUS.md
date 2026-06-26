@@ -728,6 +728,16 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The JS known-broken markers `test.failing` (Jest) and `test.fails` (Vitest) are
+   not detected. They are the JS analogs of `pytest.xfail` and Playwright
+   `test.fixme` already surfaced — a test that runs and is expected to fail, i.e. a
+   known-broken test to fix. `_JS_SKIP_CALL` lacks `failing`/`fails`, so they slip
+   through in the two dominant JS frameworks.
+   Evidence: `src/looptight/discovery.py:407`
+   Acceptance: a new test in `tests/test_propose.py` asserts `test.failing(...)` and
+   `it.fails(...)` are surfaced while `it.failsafe(`/`it.failingly(` are not; plain
+   skip/todo/fixme detection is unchanged, and `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
