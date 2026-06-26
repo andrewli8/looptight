@@ -179,7 +179,12 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
         print(json.dumps(payload, indent=2))
         return 0
 
-    if not candidates:
+    if not candidates and source:
+        # A filtered query found nothing for *this* source — say so, rather than
+        # claiming a clean tree when other sources may still have work.
+        console.print(f"No candidate tasks from source [cyan]{source}[/cyan].")
+        console.print("Drop [bold]--source[/bold] to see every source.")
+    elif not candidates:
         console.print("No candidate tasks found from repo signals (clean tree).")
         console.print(
             "Run [bold]looptight next[/bold] to generate grounded tasks, or "

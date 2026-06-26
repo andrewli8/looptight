@@ -1698,3 +1698,20 @@ def test_task_source_health_counts_discoverable_signals(tmp_path):
 
     (tmp_path / "app" / "core.py").write_text("# TODO: handle empty input\n", encoding="utf-8")
     assert _task_source_health(tmp_path, ()) == "configured"  # a real discoverable TODO
+
+
+def test_propose_source_filter_empty_is_not_clean_tree(tmp_path, monkeypatch, capsys):
+    # `propose --source lint` with no lint candidates but real todo candidates must
+    # not claim a "clean tree" — that misleads the user into thinking there is no work.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / "app").mkdir()
+    (tmp_path / "app" / "m.py").write_text("# TODO: real work here\n", encoding="utf-8")
+
+    assert main(["propose", "--source", "lint"]) == 0
+    out = capsys.readouterr().out
+    assert "clean tree" not in out  # the tree is not clean; there is a todo
+    assert "lint" in out  # names the empty source
+    # The unfiltered query still surfaces the todo.
+    assert main(["propose"]) == 0
+    assert "real work here" in capsys.readouterr().out
