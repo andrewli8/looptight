@@ -12,6 +12,7 @@ import pytest
 
 from looptight.claims import ClaimStore, LegacyClaimsDisabled, claim_dir
 from looptight.coordinator import (
+    CoordinationError,
     Coordinator,
     IntegrationOutcome,
     MigrationBlocked,
@@ -191,6 +192,24 @@ def test_expired_owner_cannot_renew_or_complete_reassigned_lease(tmp_path):
     assert not coordinator.complete(first)
     assert coordinator.renew(second, ttl_s=10, now=2)
     assert coordinator.complete(second)
+
+
+def test_enqueue_integration_is_fenced_to_the_live_lease(tmp_path):
+    # A worker whose lease was superseded (expired, reclaimed by another run) must
+    # not enqueue an integration, or it would integrate stale or conflicting work.
+    coordinator = Coordinator.open(_repo(tmp_path / "repo"))
+    assert coordinator is not None
+    first_run = coordinator.start_run("test", now=0)
+    second_run = coordinator.start_run("test", now=2)
+    task = {"id": "task-one", "goal": "do it"}
+
+    first = coordinator.claim([task], first_run.id, ttl_s=1, now=0)
+    second = coordinator.claim([task], second_run.id, ttl_s=10, now=2)
+    assert second.generation == first.generation + 1  # first is now stale
+
+    with pytest.raises(CoordinationError):
+        coordinator.enqueue_integration(first, "refs/heads/main", "deadbeef")
+    assert coordinator.enqueue_integration(second, "refs/heads/main", "deadbeef")  # live lease ok
 
 
 def test_submit_proposals_dedupes_equivalent_tasks(tmp_path):
