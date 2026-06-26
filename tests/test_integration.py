@@ -3,7 +3,14 @@ from __future__ import annotations
 import pytest
 
 from looptight.config import ConfigError
-from looptight.integration import END, SESSION_LOOP, START, install_goal_instructions, install_session_instructions
+from looptight.integration import (
+    END,
+    GOAL_START,
+    SESSION_LOOP,
+    START,
+    install_goal_instructions,
+    install_session_instructions,
+)
 
 
 def test_installs_same_small_loop_for_all_agents(tmp_path):
@@ -37,6 +44,20 @@ def test_install_repairs_start_marker_without_matching_end(tmp_path):
     assert "Keep this." in text
     assert "orphaned managed block, no end" not in text
     assert text.endswith(SESSION_LOOP)
+
+
+def test_session_and_goal_blocks_are_idempotent_together(tmp_path):
+    # `init --integrate` installs both blocks. Re-running must report no change:
+    # the session block must not strip the blank line before the goal block (which
+    # the goal install then restores), making each run falsely report "installed".
+    install_session_instructions(tmp_path)
+    install_goal_instructions(tmp_path)
+    first = (tmp_path / "AGENTS.md").read_text()
+
+    assert install_session_instructions(tmp_path) == []
+    assert install_goal_instructions(tmp_path) == []
+    assert (tmp_path / "AGENTS.md").read_text() == first  # byte-stable
+    assert first.count(START) == 1 and first.count(GOAL_START) == 1
 
 
 def test_install_is_idempotent_and_preserves_surrounding_instructions(tmp_path):

@@ -82,10 +82,16 @@ def _install_block(root: Path, block: str, start: str, end: str) -> list[Path]:
         if start in current:
             before, remainder = current.split(start, 1)
             after = remainder.split(end, 1)[1] if end in remainder else ""
-            prefix = before.rstrip()
-            updated = (prefix + "\n\n" if prefix else "") + block + after.lstrip("\n")
+            prefix, suffix = before.rstrip(), after.strip("\n")
         else:
-            updated = current.rstrip() + ("\n\n" if current.strip() else "") + block
+            prefix, suffix = current.rstrip(), ""
+        # Canonical layout: each present section separated by exactly one blank
+        # line, one trailing newline. Normalizing the separators (rather than
+        # reusing whatever spacing surrounded the old block) keeps re-runs
+        # byte-stable, so a following managed block is not stripped-then-restored
+        # on every install — which made each run falsely report a change.
+        sections = [s for s in (prefix, block.strip("\n"), suffix) if s]
+        updated = "\n\n".join(sections) + "\n"
         if updated != current:
             atomic_write_text(path, updated)
             changed.append(path)

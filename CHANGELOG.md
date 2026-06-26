@@ -40,6 +40,12 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- `init --integrate` is now idempotent across both managed blocks. The session
+  block stripped the blank line before the goal block, which the goal install
+  then restored, so each block rewrote the file on every run — `init --integrate`
+  always reported "installed" instead of "already installed", and both installers
+  falsely reported a change. The blocks are now laid out canonically (one blank
+  line between sections) so re-running is byte-stable.
 - `init` no longer contradicts itself when no test command is detected. It used
   to print "Could not detect a test command — set `verify` in the config" while
   the file it wrote already contained `verify = "pytest -q"` (render_config's
