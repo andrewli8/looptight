@@ -6,7 +6,7 @@ from looptight.checkpoint import Checkpointer
 from looptight.config import Config
 from looptight.loop import run_loop
 from looptight.metacog import Decision, assess, progress_signal
-from looptight.types import StopReason, VerifyResult
+from looptight.types import IterationRecord, StopReason, VerifyResult
 
 from conftest import FakeAdapter
 
@@ -120,8 +120,7 @@ def test_unparseable_output_falls_back_to_cap(workdir):
 
 # --- escalation evidence ---------------------------------------------------
 
-def _rec(number: int, output: str) -> "IterationRecord":
-    from looptight.types import IterationRecord
+def _rec(number: int, output: str) -> IterationRecord:
     return IterationRecord(number=number, verify=VerifyResult(passed=False, exit_code=1, output=output))
 
 

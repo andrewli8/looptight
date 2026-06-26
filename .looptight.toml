@@ -1,7 +1,9 @@
 # looptight config — the one concept that matters is `verify`.
 # `verify` is the command that decides pass/fail. No verify, no loop.
 # Exit code 0 means pass; anything else means keep going.
-verify = "uv run pytest -q"
+# Mirrors CI's test job (pytest + ruff) so `looptight verify` gates on the same
+# checks CI runs; a green verify means a green build.
+verify = "uv run pytest -q && uv run ruff check"
 
 # Optional grounded task files and unattended primary-worktree permission.
 tasks = ["docs/STATUS.md"]
