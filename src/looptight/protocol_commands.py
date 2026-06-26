@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import json
 import subprocess
 import time
@@ -305,7 +306,15 @@ def _verify_policy_error(command: str, config, workdir: Path) -> str | None:
         )
     for changed in files:
         for protected in config.protected_paths:
-            if changed == protected.rstrip("/") or changed.startswith(protected.rstrip("/") + "/"):
+            prefix = protected.rstrip("/")
+            # Exact path, directory prefix (`config/` protects all of config/), or a
+            # glob (`config/*`, `*.env`). Globs must be honored, or a `*` pattern
+            # silently fails open and leaves the named files unprotected.
+            if (
+                changed == prefix
+                or changed.startswith(prefix + "/")
+                or fnmatch.fnmatch(changed, protected)
+            ):
                 return f"protected path changed by policy: {changed}"
     return None
 

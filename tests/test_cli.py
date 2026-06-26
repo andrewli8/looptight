@@ -1217,6 +1217,44 @@ def test_verify_json_refuses_protected_path_changes(tmp_path, monkeypatch, capsy
     assert "secrets/token.txt" in payload["output"]
 
 
+def test_verify_json_refuses_glob_protected_path_changes(tmp_path, monkeypatch, capsys):
+    # A glob pattern in protected_paths must actually protect matching files, not
+    # silently fail open (the `*` implies globbing).
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text(
+        'verify = "exit 0"\nprotected_paths = ["config/*", "*.env"]\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "config").mkdir()
+    (tmp_path / "config" / "app.conf").write_text("old\n", encoding="utf-8")
+    (tmp_path / "prod.env").write_text("A=1\n", encoding="utf-8")
+    (tmp_path / "src.py").write_text("x = 1\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "init"],
+        check=True,
+    )
+
+    # A change to a glob-protected file is refused.
+    (tmp_path / "config" / "app.conf").write_text("new\n", encoding="utf-8")
+    assert main(["verify", "--json"]) == 2
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "error"
+    assert "protected path" in payload["output"]
+    subprocess.run(["git", "checkout", "config/app.conf"], check=True)
+
+    # The `*.env` glob protects an env file too.
+    (tmp_path / "prod.env").write_text("A=2\n", encoding="utf-8")
+    assert main(["verify", "--json"]) == 2
+    assert "protected path" in json.loads(capsys.readouterr().out)["output"]
+    subprocess.run(["git", "checkout", "prod.env"], check=True)
+
+    # A non-matching file change still passes.
+    (tmp_path / "src.py").write_text("y = 2\n", encoding="utf-8")
+    assert main(["verify", "--json"]) == 0
+
+
 def test_verify_json_refuses_command_not_in_allowlist(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)

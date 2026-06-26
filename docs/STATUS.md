@@ -676,18 +676,12 @@ existing CLI session and makes no model or API calls of its own.
   `reason="..."` cannot over-extend the statement into later lines and make the
   env-gate classifier swallow an unrelated real-condition skip. The wrapped-skipif
   env-gate detection is otherwise unchanged. Covered by a test.
+- `protected_paths` honors glob patterns: `_verify_policy_error` matches a changed
+  file by exact path, directory prefix, OR `fnmatch` glob (`config/*`, `*.env`), so a
+  `*` pattern actually protects its files instead of silently failing open on the
+  safety gate. Exact and directory-prefix protection are unchanged. Covered by a test.
 
 ## Next
-
-1. `protected_paths` silently fails open for glob patterns. `_verify_policy_error`
-   matches a changed file by exact path or directory prefix, so a natural glob like
-   `config/*` or `*.env` never matches and the protected files are silently
-   unprotected (a fail-open on a safety gate). Glob patterns must be honored.
-   Evidence: `src/looptight/protocol_commands.py:308`
-   Acceptance: a new test in `tests/test_cli.py` configures `protected_paths` with
-   `config/*` and `*.env`, asserts a change to a matching file makes `verify` refuse
-   (exit 2, "protected path"), and a non-matching change still passes; exact-path and
-   directory-prefix protection are unchanged, and `looptight verify` passes.
 
 ## Rules
 
