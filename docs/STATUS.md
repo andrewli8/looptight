@@ -747,6 +747,17 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `detect_verify` does not recognize a `justfile`. `just` is a growing Makefile
+   alternative whose recipes use the same `name:` syntax, so a project whose only
+   task runner is a justfile with a `test:`/`check:` recipe gets "no test command
+   detected" and the wrong default. Detect `just test`/`just check` from a
+   `justfile`/`Justfile`/`.justfile`, analogous to the Makefile detection.
+   Evidence: `src/looptight/detect.py:77`
+   Acceptance: new tests in `tests/test_detect.py` assert a `justfile` with a `test:`
+   recipe detects `just test`, a `Justfile` with only `check:` detects `just check`
+   (`test` preferred when both exist), and a justfile with neither returns None;
+   Makefile detection is unchanged, and `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
