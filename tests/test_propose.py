@@ -26,6 +26,31 @@ def _write(root, rel, text):
 
 # --- extractors ------------------------------------------------------------
 
+def test_from_todos_detects_author_attributed_markers(tmp_path):
+    # The TODO(author): / FIXME(author): convention (Google/Chromium/LLVM/Go) is
+    # ubiquitous; it must be detected with the author dropped from the title, while
+    # compound words and plurals stay rejected. Same _TODO_RE drives Python and JS.
+    _write(
+        tmp_path,
+        "src/a.py",
+        "# TODO(alice): fix the thing\n"
+        "# FIXME(team-infra): broken\n"
+        "x = 1  # TODO(bob): later\n"
+        "# TODO: plain still works\n"
+        "# TODOS: not a marker\n"
+        "# fixme-style naming\n",
+    )
+    _write(tmp_path, "src/b.js", "// TODO(carol): js attributed\nconst x = 1;\n")
+    by_loc = {c.location: c.title for c in from_todos(tmp_path)}
+    assert by_loc.get("src/a.py:1") == "fix the thing"   # author stripped
+    assert by_loc.get("src/a.py:2") == "broken"
+    assert by_loc.get("src/a.py:3") == "later"
+    assert by_loc.get("src/a.py:4") == "plain still works"
+    assert "src/a.py:5" not in by_loc                    # TODOS: rejected
+    assert "src/a.py:6" not in by_loc                    # fixme-style rejected
+    assert by_loc.get("src/b.js:1") == "js attributed"   # JS uses the same rule
+
+
 def test_from_todos_finds_markers_with_location(tmp_path):
     _write(tmp_path, "src/pkg/a.py", "x = 1  # TODO: pin the timeout\n# FIXME broken on win\n")
     cands = from_todos(tmp_path)

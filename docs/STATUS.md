@@ -703,19 +703,13 @@ existing CLI session and makes no model or API calls of its own.
   comment first, so a `marks=...skip` mention in a comment or string is not a false
   hit, and the env-gate classifier still suppresses an `os.environ` skipif. Covered by a test.
 
-## Next
+- `TODO(author):` attributed markers are detected: `_TODO_RE` allows an optional
+  `(author)` group after the marker word and drops it from the title, so the ubiquitous
+  `# TODO(alice): ...` / `# FIXME(team): ...` convention (Google/Chromium/LLVM/Go) is
+  surfaced in both Python and JS. Plain `# TODO:` is unchanged, and `# TODOS:` /
+  `# fixme-style` prose stay rejected. Covered by a test.
 
-1. `TODO(author):` style markers are not detected. `_TODO_RE`'s lookahead requires
-   `:`, whitespace, or end-of-line immediately after the marker word, but the
-   ubiquitous `TODO(alice):` / `FIXME(team):` convention (Google, Chromium, LLVM, Go
-   stdlib) has a `(author)` first, so every attributed TODO/FIXME is silently missed
-   in both Python and JS. An optional `(author)` group should be allowed (and dropped
-   from the title), while `TODOS:`/compound words stay rejected.
-   Evidence: `src/looptight/discovery.py:33`
-   Acceptance: a new test in `tests/test_propose.py` asserts `# TODO(alice): fix` and
-   `# FIXME(bob): x` are surfaced with the author stripped from the title, plain
-   `# TODO:` still works, and `# TODOS:` / `# fixme-style` stay rejected (both Python
-   and JS); `looptight verify` passes.
+## Next
 
 ## Rules
 
