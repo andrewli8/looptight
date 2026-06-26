@@ -44,6 +44,8 @@ _VERIFY_RULES: tuple[tuple[str, str], ...] = (
     ("tox.ini", "pytest -q"),
     ("Cargo.toml", "cargo test"),
     ("go.mod", "go test ./..."),
+    ("deno.json", "deno test"),
+    ("deno.jsonc", "deno test"),
 )
 
 
