@@ -523,6 +523,9 @@ existing CLI session and makes no model or API calls of its own.
   escalation block carries the why (no duplicate verdict), and a capped failure list
   shows "… and N more" (via `total_failures`) instead of truncating silently; covered
   by tests in test_summary.py.
+- docs/usage.md documents `migrate`/the coordinator, which `doctor` prompts as setup
+  but no setup guide explained; framed honestly (the loop also runs on file claims),
+  guarded by a doc test in test_docs.py.
 
 ## Next
 

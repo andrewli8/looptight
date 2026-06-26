@@ -30,6 +30,14 @@ def test_usage_doc_teaches_the_task_authoring_format():
     assert "Evidence:" in text and "Acceptance:" in text, "usage.md lacks the task fields"
 
 
+def test_usage_doc_explains_migrate_that_doctor_prompts():
+    # doctor/readiness surface `run looptight migrate` as setup; the setup guide must
+    # explain it (what the coordinator is, and that the loop also runs without it).
+    text = (_DOCS / "usage.md").read_text(encoding="utf-8")
+    assert "migrate" in text, "usage.md never explains the migrate step doctor prompts"
+    assert "coordinator" in text, "usage.md does not say what migrate activates"
+
+
 def test_goal_doc_documents_the_goal_command():
     text = (_DOCS / "goal.md").read_text(encoding="utf-8")
     assert "looptight goal" in text, "goal.md does not document the goal command"
