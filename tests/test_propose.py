@@ -169,6 +169,27 @@ def test_from_skipped_tests_keeps_unconditional_skip_with_environ_reason(tmp_pat
     assert len(cands) == 1
 
 
+def test_from_skipped_tests_classifies_skip_by_enclosing_conditional(tmp_path):
+    # A pytest.skip() inside an if/elif (even nested) is an intentional capability
+    # guard, not rot; one under a for-loop (no if) is unconditional rot.
+    _write(
+        tmp_path,
+        "tests/test_c.py",
+        "import pytest, shutil\n\n"            # 1, 2
+        "def test_guarded():\n"                # 3
+        "    if True:\n"                       # 4
+        "        if shutil.which('tool') is None:\n"  # 5
+        "            pytest.skip('tool missing')\n"   # 6 (nested-if guard)
+        "    assert True\n\n"                  # 7, 8
+        "def test_looped():\n"                 # 9
+        "    for _ in range(1):\n"             # 10
+        "        pytest.skip('looped')\n",     # 11 (for-loop rot)
+    )
+    locs = [c.location for c in from_skipped_tests(tmp_path)]
+    assert any(loc.endswith(":11") for loc in locs)       # for-loop skip is rot
+    assert not any(loc.endswith(":6") for loc in locs)    # nested-if guard ignored
+
+
 def test_from_status_next_parses_numbered_list(tmp_path):
     _write(
         tmp_path,

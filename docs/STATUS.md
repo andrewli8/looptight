@@ -579,17 +579,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `from_skipped_tests` classifies a `pytest.skip()` as an intentional capability
-   guard only when it sits inside an `if`/`elif` (even nested), and as rot
-   otherwise. The multi-level walk-back in `_inside_conditional` and the
-   for-loop-is-not-a-guard distinction are untested, so a regression in this
-   subtle rot-vs-intentional logic would silently mis-surface skips.
-   Evidence: `src/looptight/discovery.py:288`
-   Acceptance: a new `tests/test_propose.py` test proves a `pytest.skip` under a
-   nested `if` is treated as intentional (not surfaced) while one under a `for`
-   (no `if`) is surfaced as rot; a mutation breaking the `if`/`elif` check fails
-   it; `looptight verify` passes.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
