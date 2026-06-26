@@ -7,10 +7,11 @@ agent: the goal is whatever you already asked Claude to do. This is the supply
 loop again, with the host Claude Code session as the agent instead of a spawned
 ``claude -p``.
 
-The hook stays dormant unless the repo opts in: the working directory must hold
-a ``.looptight.toml`` with ``hook = true``. Loop state (how many continuations
-we've forced this session) lives in a temp file keyed by Claude's session id,
-never in the working tree, so it can't dirty ``verify``.
+The hook stays dormant unless two things hold: it is registered in Claude Code's
+``settings.json`` (via ``looptight install-hook``), and the working directory has
+a ``verify`` command configured — no verify, no loop. Loop state (how many
+continuations we've forced this session) lives in a temp file keyed by Claude's
+session id, never in the working tree, so it can't dirty ``verify``.
 
 ``decide`` is the pure core and carries the policy; ``run_hook`` is the thin I/O
 shell that reads the event, loads state, and renders the response.
