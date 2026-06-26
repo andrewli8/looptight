@@ -119,3 +119,13 @@ def test_summary_indicates_truncated_failure_list():
     assert "… and 3 more" in text  # 13 total, 10 shown
     # At or under the cap, no overflow line.
     assert "more" not in summary.render(_escalated(["FAILED a::x - boom"], 1))
+
+
+def test_summary_header_delegate_mode():
+    result = RunResult(
+        goal="fix tests",
+        agent="claude",
+        mode="delegate",
+        stop_reason=StopReason.SUCCESS,
+    )
+    assert "driving native loop" in summary.header(result)
