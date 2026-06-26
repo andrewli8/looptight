@@ -579,16 +579,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `from_task_file` rejects a configured `task_file` that is absolute or contains
-   `..`, keeping discovery within the repository, but that guard is untested. A
-   regression would let a misconfigured `tasks = ["../../outside"]` or an absolute
-   path read files outside the repo.
-   Evidence: `src/looptight/discovery.py:401`
-   Acceptance: a new `tests/test_propose.py` test proves `from_task_file` returns
-   `[]` for an absolute path and for a `..`-traversal path (even when such a file
-   exists with valid tasks); a mutation removing the guard fails it; `looptight
-   verify` passes.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

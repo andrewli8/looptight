@@ -190,6 +190,20 @@ def test_from_skipped_tests_classifies_skip_by_enclosing_conditional(tmp_path):
     assert not any(loc.endswith(":6") for loc in locs)    # nested-if guard ignored
 
 
+def test_from_task_file_rejects_paths_outside_the_repo(tmp_path):
+    # A configured task_file must stay within the repo: an absolute path or a `..`
+    # traversal is rejected even when the target exists with valid tasks.
+    from looptight.discovery import from_task_file
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    outside = tmp_path / "outside.md"  # a sibling of the repo, reachable via ../
+    outside.write_text("## Next\n\n1. Leak. Acceptance: it passes.\n", encoding="utf-8")
+
+    assert from_task_file(repo, str(outside)) == []     # absolute path rejected
+    assert from_task_file(repo, "../outside.md") == []  # .. traversal rejected
+
+
 def test_from_status_next_parses_numbered_list(tmp_path):
     _write(
         tmp_path,
