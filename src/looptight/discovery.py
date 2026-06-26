@@ -28,12 +28,14 @@ from .grounding import evidence_is_truthful
 # false hit).
 # Anchored at the start of the comment body, so a marker word merely *mentioned*
 # mid-sentence in a comment is not a hit — only conventional "# TODO: ..." lines.
-# An optional "(author)" attribution (the ubiquitous "# TODO(alice): ..." convention)
-# is allowed and dropped from the title. The marker (or its attribution) must be
-# followed by ':', whitespace, or end of line, so a marker-prefixed compound word in
-# prose ("# fixme-style naming") or a plural ("# TODOS:") is not a hit.
+# An optional "(author)" or "[ticket]" attribution (`# TODO(alice):`, `# TODO[#12]:`)
+# is allowed and dropped from the title, and an optional leading "@" matches the JSDoc
+# `@todo` tag. The marker (or its attribution) must be followed by ':', whitespace, or
+# end of line, so a marker-prefixed compound word ("# fixme-style", "@todoize"), a
+# plural ("# TODOS:"), or another tag ("@param") is not a hit.
 _TODO_RE = re.compile(
-    r"^(TODO|FIXME|HACK|XXX)(?:\([^)]*\))?(?=[:\s]|$)[:\s]*(?P<text>.*)", re.IGNORECASE
+    r"^@?(TODO|FIXME|HACK|XXX)(?:\([^)]*\)|\[[^\]]*\])?(?=[:\s]|$)[:\s]*(?P<text>.*)",
+    re.IGNORECASE,
 )
 
 # The conventional leading ` * ` on a JSDoc/block-comment continuation line, stripped

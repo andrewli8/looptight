@@ -26,6 +26,37 @@ def _write(root, rel, text):
 
 # --- extractors ------------------------------------------------------------
 
+def test_from_todos_detects_ticket_and_jsdoc_markers(tmp_path):
+    # Issue-linked attribution (TODO[#123]:) and the JSDoc @todo tag are real marker
+    # forms in supported languages; @param/@todoize/TODOS: must stay rejected.
+    _write(
+        tmp_path,
+        "src/a.py",
+        "# TODO[#123]: ticket linked\n"
+        "# FIXME[JIRA-1]: jira ref\n"
+        "# TODO: plain still works\n"
+        "# TODOS: not a marker\n",
+    )
+    _write(
+        tmp_path,
+        "src/b.js",
+        "/**\n * @todo block tag work\n */\n"
+        "// @todo inline tag work\n"
+        "// @param x not a marker\n"
+        "// @todoize not a marker\n"
+        "const y = 1;\n",
+    )
+    by_loc = {c.location: c.title for c in from_todos(tmp_path)}
+    assert by_loc.get("src/a.py:1") == "ticket linked"   # [ticket] dropped from title
+    assert by_loc.get("src/a.py:2") == "jira ref"
+    assert by_loc.get("src/a.py:3") == "plain still works"
+    assert "src/a.py:4" not in by_loc                    # TODOS: rejected
+    assert by_loc.get("src/b.js:2") == "block tag work"  # @todo JSDoc block
+    assert by_loc.get("src/b.js:4") == "inline tag work"  # @todo inline
+    assert "src/b.js:5" not in by_loc                    # @param rejected
+    assert "src/b.js:6" not in by_loc                    # @todoize rejected
+
+
 def test_from_todos_detects_author_attributed_markers(tmp_path):
     # The TODO(author): / FIXME(author): convention (Google/Chromium/LLVM/Go) is
     # ubiquitous; it must be detected with the author dropped from the title, while

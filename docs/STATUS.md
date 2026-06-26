@@ -709,19 +709,13 @@ existing CLI session and makes no model or API calls of its own.
   surfaced in both Python and JS. Plain `# TODO:` is unchanged, and `# TODOS:` /
   `# fixme-style` prose stay rejected. Covered by a test.
 
-## Next
+- `TODO[ticket]:` and JSDoc `@todo` markers are detected: `_TODO_RE` allows a `[...]`
+  attribution alongside `(...)` and an optional leading `@`, so issue-linked TODOs
+  (`# TODO[#123]:`) and JSDoc `@todo` tags (` * @todo ...`) are surfaced with the
+  attribution dropped from the title. `@param`, `@todoize`, and `# TODOS:` stay
+  rejected; plain `# TODO:` is unchanged. Covered by a test.
 
-1. Two more real marker forms are missed: `TODO[ticket]:` issue-linked attribution
-   (`# TODO[#123]:`) and the JSDoc `@todo` tag (` * @todo ...`). `_TODO_RE` allows a
-   `(author)` attribution but not a `[ticket]` one, and has no `@`-tag prefix, so
-   both are silently dropped in supported languages. Allow a `[...]` attribution
-   alongside `(...)`, and an optional leading `@`, without matching `@todoize`,
-   `@param`, or `TODOS:`.
-   Evidence: `src/looptight/discovery.py:33`
-   Acceptance: a new test in `tests/test_propose.py` asserts `# TODO[#123]: x`,
-   `# FIXME[JIRA-1]: y`, and `// @todo z` / ` * @todo w` are surfaced (author/ticket
-   dropped from the title), plain `# TODO:` still works, and `@param`, `@todoize`,
-   `# TODOS:` stay rejected; `looptight verify` passes.
+## Next
 
 ## Rules
 
