@@ -391,6 +391,40 @@ def test_failed_curated_source_stays_above_automated():
     assert ordered.index("status-next") < ordered.index("lint")
 
 
+# --- dedupe -------------------------------------------------------------------
+
+from looptight.ranking import dedupe  # noqa: E402
+
+
+def _dc(title, location):
+    return Candidate(title=title, source="lint", location=location,
+                     suggested_verify=None, score=0.0, detail="d")
+
+
+def test_dedupe_collapses_whitespace_and_case():
+    # Same location + title differing only by case/whitespace → duplicate dropped.
+    first = _dc("Fix  Widget", "src/x.py:1")
+    dup = _dc("fix widget", "src/x.py:1")
+    other = _dc("Fix Other", "src/y.py:2")
+    result = dedupe([first, dup, other])
+    assert len(result) == 2
+    assert result[0].title == "Fix  Widget"  # first occurrence kept
+    assert result[1].title == "Fix Other"    # distinct location kept
+
+
+def test_dedupe_treats_none_location_as_key():
+    # Two candidates with location=None and the same normalized title → deduplicated.
+    c1 = _dc("Task A", None)
+    c2 = _dc("task a", None)
+    c3 = _dc("Task B", None)
+    result = dedupe([c1, c2, c3])
+    assert len(result) == 2
+
+
+def test_dedupe_empty_list_returns_empty():
+    assert dedupe([]) == []
+
+
 # --- polyglot TODO discovery (JS/TS), grounded by the adoption review ---
 
 def test_from_todos_finds_typescript_and_python_in_one_repo(tmp_path):

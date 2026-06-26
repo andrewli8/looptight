@@ -383,6 +383,10 @@ existing CLI session and makes no model or API calls of its own.
   drifts as docs/STATUS.md grows. Root-caused from a stuck queue (every task row
   marked complete because each rewrite minted a new line-based fingerprint). Covered
   by a line-drift stability test; the cross-route stability test still holds.
+- `ranking.dedupe()` has direct unit tests proving that candidates differing only
+  in title case/whitespace are deduplicated, distinct-location candidates are kept,
+  `None` location is a valid deduplication key, and an empty input returns an empty
+  list — each covered by new tests in `tests/test_propose.py`.
 
 - Experience reweighting is two-sided: the landed trailer records the task source
   (`<idea> landed <source>`), `build_model` populates `category_landed` from it via
@@ -529,15 +533,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `ranking.dedupe()` has no direct unit test; it is exercised only indirectly
-   through coordinator tests.
-   Evidence: `src/looptight/ranking.py:64`
-   Acceptance: `test_dedupe_collapses_whitespace_and_case` added to
-   `tests/test_propose.py` fails before the task, passes after; it asserts a
-   title differing only in case/whitespace is dropped while a distinct-location
-   candidate is kept, and `looptight verify --json` returns `pass`.
-
-2. `metacog._summarize()` has three untested branches: `total == 0` ("No specific
+1. `metacog._summarize()` has three untested branches: `total == 0` ("No specific
    failures parsed"), `persisted == False` ("Showing the latest … none held"),
    and `iterations == 1` ("1 try").
    Evidence: `src/looptight/metacog.py:158`
@@ -545,14 +541,14 @@ existing CLI session and makes no model or API calls of its own.
    `_summarize` for each untested branch and check the distinct output string;
    `looptight verify --json` returns `pass` with no production change.
 
-3. `grounding.ref_resolves()` strips trailing periods (`rstrip(".")`) to tolerate
+2. `grounding.ref_resolves()` strips trailing periods (`rstrip(".")`) to tolerate
    evidence refs that end a sentence, but no test exercises this path.
    Evidence: `src/looptight/grounding.py:37`
    Acceptance: `test_ref_resolves_strips_trailing_period` added to
    `tests/test_idea_eval.py` proves `ref_resolves(root, "src/x.py.")` returns
    `True` when `src/x.py` exists; `looptight verify --json` returns `pass`.
 
-4. `experience.summary_text()` truncates to the top-`k` ideas by count, but the
+3. `experience.summary_text()` truncates to the top-`k` ideas by count, but the
    existing test uses only 2 landed and 1 failed idea — fewer than the default
    `k=5` — so the truncation branch never fires.
    Evidence: `src/looptight/experience.py:115`
