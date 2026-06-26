@@ -507,14 +507,11 @@ existing CLI session and makes no model or API calls of its own.
   `install_goal_instructions` (which shares `_atomic_write` with its session sibling)
   leaves the original AGENTS.md intact and no `.tmp` behind when `os.replace` fails.
 
-## Next
+- `detect_verify` falls through when `package.json` has a non-dict top-level value
+  (e.g. `[]`), exercising the `isinstance(manifest, dict)` guard — covered by
+  `test_detect_verify_npm_non_dict_manifest_falls_through` in test_detect.py.
 
-1. Test that `detect_verify` falls through when `package.json` contains a top-level
-   non-dict JSON value (e.g. `[]`), exercising the `isinstance(manifest, dict)` guard.
-   Evidence: src/looptight/detect.py:47;
-   Acceptance: A new test in tests/test_detect.py writes `package.json` whose content
-   is `[]` and asserts `detect_verify` returns `None`. Passes under
-   `looptight verify --json`.
+## Next
 
 3. Test that a second call to `install_skill` replaces stale content with the current
    `SKILL_MD`, verifying the idempotent-overwrite contract.
