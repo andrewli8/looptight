@@ -579,6 +579,15 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `init` prints "Detected: <cmd>" and "<agent> (auto-detected)" even when the
+   user passed `--verify`/`--agent` explicitly, so it claims it detected a value
+   the user typed. cmd_init already knows the source (`args.verify`/`args.agent`).
+   It should say the value came from the flag in that case.
+   Evidence: `src/looptight/commands.py:75`
+   Acceptance: a new test asserts `init --verify X --agent Y` reports the values
+   as coming from the flags (not "Detected"/"auto-detected"), while plain init
+   still says detected; `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
