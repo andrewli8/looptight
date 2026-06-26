@@ -579,16 +579,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `next` attaches the `generate_ideas` directive on every `no_work`, even when
-   real candidates exist but are all leased by other live runs. A second session
-   that finds the queue busy is then told to generate more tasks, inflating the
-   queue with duplicates instead of waiting. It should generate ideas only when
-   there are genuinely no candidates, not when they are merely claimed.
-   Evidence: `src/looptight/tasks.py:180`
-   Acceptance: a new test proves `next_task` returns `no_work` without a directive
-   when candidates exist but are all leased by another run, while a genuinely empty
-   queue still carries the directive; `looptight verify` passes.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

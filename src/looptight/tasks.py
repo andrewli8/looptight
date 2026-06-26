@@ -177,6 +177,11 @@ def next_task(
             task = ClaimStore(private_dir, owner_id(workdir)).select(tasks)
     if task:
         return NextResult(status="task", task=task)
+    if tasks:
+        # Candidates exist but are all claimed by other live runs: the queue is
+        # being worked, not empty. Do not prompt idea generation — a second session
+        # told to "generate tasks" would inflate the queue with duplicates.
+        return NextResult(status="no_work")
     return NextResult(
         status="no_work", directive=_idea_directive(workdir) if idea_generation else None
     )

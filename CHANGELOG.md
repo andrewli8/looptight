@@ -40,6 +40,13 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- `next` no longer prompts idea generation when the queue is merely busy. It
+  attached the `generate_ideas` directive on every `no_work`, even when real
+  candidates existed but were all leased by other live runs — so a second session
+  finding the queue busy was told to "generate grounded tasks," inflating the
+  queue with duplicates. The directive (and the "queue empty" message) now appear
+  only when there are genuinely no candidates; a busy queue reports a plain
+  `NO_WORK`.
 - Swarm change-scoping (`_task_paths`) now resolves a markdown-backticked
   evidence anchor to its bare file. It parsed the evidence field with its own
   ad-hoc regex, so a `` `path:line` `` anchor (which the task summary now emits)

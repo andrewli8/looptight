@@ -188,6 +188,16 @@ def test_next_task_does_not_reap_a_fresh_live_lease(tmp_path):
 
     other = next_task(tmp_path, propose_fn=lambda w, limit=0: _leaked_candidate(), run_id="other")
     assert other.status == "no_work"  # fresh lease spared; the other run gets nothing
+    # Busy, not empty: a candidate exists but is leased, so do not prompt idea
+    # generation — that would inflate the queue with duplicate tasks.
+    assert other.directive is None
+
+
+def test_next_keeps_idea_directive_when_queue_is_genuinely_empty(tmp_path):
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    result = next_task(tmp_path, propose_fn=lambda w, limit=0: [])
+    assert result.status == "no_work"
+    assert result.directive is not None  # no candidates at all -> generate ideas
 
 
 def test_idea_directive_carries_quality_feedback(tmp_path):
