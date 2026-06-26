@@ -552,18 +552,13 @@ existing CLI session and makes no model or API calls of its own.
 - `summary.header()` `mode == "delegate"` branch is now covered:
   `test_summary_header_delegate_mode` in `tests/test_summary.py` builds a `RunResult`
   with `mode="delegate"` and asserts `"driving native loop"` in `summary.header(result)`.
+- `render_rich()` diffstat branch is now covered: `test_console_summary_includes_diffstat`
+  in `tests/test_summary.py` calls `render_rich` with a `RunResult(diffstat=...)` and
+  asserts `"changes:"` and `"src/a.py"` appear in the captured output.
 
 ## Next
 
-1. `render_rich()` diffstat branch is untested: `summary.py:94-97` shows `render_rich`
-   prints `changes:`/diffstat lines when `result.diffstat` is set, but no test calls
-   `render_rich` with a non-empty diffstat, leaving those 4 lines unexercised.
-   Evidence: `src/looptight/summary.py:94`
-   Acceptance: a new `test_console_summary_includes_diffstat` in `tests/test_summary.py`
-   calls `render_rich` with a `RunResult(diffstat="src/a.py | 3 +++", ...)` and asserts
-   `"changes:"` and `"src/a.py"` appear in the captured output.
-
-2. `_parse_absolute_reset` noon (`12pm`) case is untested: `limits.py:99` guards
+1. `_parse_absolute_reset` noon (`12pm`) case is untested: `limits.py:99` guards
    `if meridiem == "pm" and hour != 12`, so `12:00pm` (noon, hour stays 12) never
    enters the `+= 12` branch and is never exercised by any existing test.
    Evidence: `src/looptight/limits.py:99`

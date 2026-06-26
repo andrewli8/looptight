@@ -129,3 +129,18 @@ def test_summary_header_delegate_mode():
         stop_reason=StopReason.SUCCESS,
     )
     assert "driving native loop" in summary.header(result)
+
+
+def test_console_summary_includes_diffstat():
+    output = StringIO()
+    result = RunResult(
+        goal="fix",
+        agent="claude",
+        mode="supply",
+        stop_reason=StopReason.SUCCESS,
+        diffstat=" src/a.py | 3 +++",
+    )
+    summary.render_rich(result, Console(file=output))
+    text = output.getvalue()
+    assert "changes:" in text
+    assert "src/a.py" in text
