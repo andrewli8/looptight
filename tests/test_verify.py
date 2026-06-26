@@ -11,7 +11,6 @@ from looptight.types import VerifyResult
 from looptight.verify import (
     _MAX_OUTPUT_CHARS,
     _as_text,
-    _stop_process_tree,
     _timeout_output,
     _truncate,
     parse_score,
@@ -108,29 +107,10 @@ def test_timeout_preserves_partial_verify_output(tmp_path):
     assert result.status == "timeout"
 
 
-def test_timeout_stops_delayed_child_process_work(tmp_path, monkeypatch):
-    if os.name != "posix":
-        calls = []
-
-        class Process:
-            pid = 123
-            killed = False
-
-            def kill(self):
-                self.killed = True
-
-        process = Process()
-
-        def taskkill(command, **kwargs):
-            calls.append(command)
-            return type("Result", (), {"returncode": 0})()
-
-        monkeypatch.setattr("looptight.verify.subprocess.run", taskkill)
-        _stop_process_tree(process)  # type: ignore[arg-type]
-        assert calls == [["taskkill", "/F", "/T", "/PID", "123"]]
-        assert not process.killed
-        return
-
+@pytest.mark.skipif(os.name != "posix", reason="posix process-group orphan test")
+def test_timeout_stops_delayed_child_process_work(tmp_path):
+    # The Windows taskkill branch is covered by test_proctree; here we prove the
+    # posix process-group teardown leaves no orphan that touches the marker.
     marker = tmp_path / "orphaned"
     result = run_verify(
         f"(sleep 0.2; touch {marker}) & wait",

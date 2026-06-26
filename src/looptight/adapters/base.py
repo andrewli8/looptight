@@ -19,13 +19,13 @@ registering it.
 from __future__ import annotations
 
 import os
-import signal
 import subprocess
 import threading
 from abc import ABC, abstractmethod
 from pathlib import Path
 
 from ..limits import classify_limit, format_limit_error
+from ..proctree import stop_process_tree
 from ..types import IterationResult
 
 _ACTIVE_PROCESSES: set[subprocess.Popen[str]] = set()
@@ -63,36 +63,12 @@ def failure_iteration(
     )
 
 
-def _stop_process_tree(process: subprocess.Popen[str]) -> None:
-    if os.name == "posix":
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-            return
-        except OSError:
-            pass
-    elif os.name == "nt":
-        try:
-            stopped = subprocess.run(
-                ["taskkill", "/F", "/T", "/PID", str(process.pid)],
-                capture_output=True,
-                check=False,
-            )
-            if stopped.returncode == 0:
-                return
-        except OSError:
-            pass
-    try:
-        process.kill()
-    except OSError:
-        pass
-
-
 def stop_active_processes() -> None:
     """Terminate provider process trees owned by this Looptight process."""
     with _ACTIVE_LOCK:
         active = tuple(_ACTIVE_PROCESSES)
     for process in active:
-        _stop_process_tree(process)
+        stop_process_tree(process)
 
 
 def run_command(
@@ -129,7 +105,7 @@ def run_command(
             try:
                 stdout, stderr = process.communicate(timeout=timeout_s)
             except subprocess.TimeoutExpired:
-                _stop_process_tree(process)
+                stop_process_tree(process)
                 stdout, stderr = process.communicate()
                 message = f"provider timed out after {timeout_s:g}s"
                 stderr = f"{stderr.rstrip()}\n{message}" if stderr else message

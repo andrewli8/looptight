@@ -9,11 +9,11 @@ from __future__ import annotations
 
 import os
 import re
-import signal
 import subprocess
 import time
 from pathlib import Path
 
+from .proctree import stop_process_tree
 from .types import VerifyResult
 
 _SCORE_RE = re.compile(r"^\s*SCORE:\s*([-+]?\d*\.?\d+)\s*$", re.MULTILINE)
@@ -53,33 +53,6 @@ def _timeout_output(partial: str, command: str, timeout_s: float) -> str:
     return _truncate(f"{partial}{separator}verify timed out after {timeout_s:g}s: {command}")
 
 
-def _stop_process_tree(process: subprocess.Popen[str]) -> None:
-    """Stop the verifier shell and descendants before reporting a timeout."""
-    if os.name == "posix":
-        try:
-            os.killpg(process.pid, signal.SIGKILL)
-            return
-        except ProcessLookupError:
-            return
-        except OSError:
-            pass
-    elif os.name == "nt":
-        try:
-            result = subprocess.run(
-                ["taskkill", "/F", "/T", "/PID", str(process.pid)],
-                capture_output=True,
-                check=False,
-            )
-            if result.returncode == 0:
-                return
-        except OSError:
-            pass
-    try:
-        process.kill()
-    except OSError:
-        pass
-
-
 def run_verify(
     command: str,
     cwd: Path | None = None,
@@ -109,7 +82,7 @@ def run_verify(
         )
         stdout, stderr = proc.communicate(timeout=timeout_s)
     except subprocess.TimeoutExpired:
-        _stop_process_tree(proc)
+        stop_process_tree(proc)
         stdout, stderr = proc.communicate()
         partial = _as_text(stdout) + _as_text(stderr)
         return VerifyResult(
