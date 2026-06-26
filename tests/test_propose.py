@@ -35,6 +35,23 @@ def test_from_todos_finds_markers_with_location(tmp_path):
     assert all(c.location and ":" in c.location for c in cands)
 
 
+def test_js_skip_name_keeps_nested_quotes_whole(tmp_path):
+    # A skipped-test name with a nested quote of a different type (apostrophes are
+    # everywhere in test descriptions) must be captured whole, not truncated at the
+    # first inner quote; an empty name still falls back to a generic label.
+    _write(
+        tmp_path,
+        "tests/a.test.js",
+        "it.skip(\"name with 'apostrophe' inside\", () => {});\n"
+        "it.skip('name with \"double quotes\" inside', () => {});\n"
+        'describe.skip("", () => {});\n',
+    )
+    titles = [c.title for c in from_skipped_tests(tmp_path)]
+    assert any("name with 'apostrophe' inside" in t for t in titles)
+    assert any('name with "double quotes" inside' in t for t in titles)
+    assert any(t.endswith("skipped test") for t in titles)  # empty name fallback
+
+
 def test_from_todos_finds_js_markers_outside_src_layout(tmp_path):
     # The common React/Next/Vue layout puts source under app/components/lib, not
     # src/. JS TODO discovery must be layout-agnostic (like the Python path), or a

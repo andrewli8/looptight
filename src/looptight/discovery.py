@@ -342,8 +342,12 @@ def _module_is_optin(lines: list[str]) -> bool:
 # `.skip` forms). JS has no env-gate opt-in convention like pytest, so detection
 # is a plain marker match on code (string literals stripped) outside comment lines.
 _JS_SKIP_RE = re.compile(r"\b(?:x(?:it|describe|test)|(?:it|describe|test)\.(?:skip|todo))\s*\(")
+# Capture the test name to the matching closing quote of the *same* type as the
+# opener (backreference), so a nested quote of a different type — an apostrophe in a
+# double-quoted name, ubiquitous in test descriptions — is kept whole, not truncated.
 _JS_SKIP_NAME_RE = re.compile(
-    r"\b(?:x(?:it|describe|test)|(?:it|describe|test)\.(?:skip|todo))\s*\(\s*[\"'`]([^\"'`]+)[\"'`]"
+    r"\b(?:x(?:it|describe|test)|(?:it|describe|test)\.(?:skip|todo))\s*\(\s*"
+    r"(?P<q>[\"'`])(?P<name>(?:\\.|(?!(?P=q)).)*)(?P=q)"
 )
 
 
@@ -363,7 +367,8 @@ def _js_skip_candidate(root: Path, path: Path, lineno: int, line: str) -> Candid
     if not _JS_SKIP_RE.search(code):  # marker only inside a string/comment, or absent
         return None
     name_match = _JS_SKIP_NAME_RE.search(line)
-    name = name_match.group(1).strip() if name_match else "skipped test"
+    # An empty name (`it.skip("")`) falls back to a generic label, as before.
+    name = (name_match.group("name").strip() if name_match else "") or "skipped test"
     location = f"{_rel(root, path)}:{lineno}"
     return Candidate(
         title=f"un-skip / fix skipped test: {name}",

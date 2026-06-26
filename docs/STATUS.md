@@ -648,22 +648,13 @@ existing CLI session and makes no model or API calls of its own.
   so a project using the common `app/`/`components/`/`lib/`/`pages/` layout with no
   top-level `src/` (React/Next/Vue) no longer has all its source TODOs silently missed.
   Vendored dirs stay pruned; skip discovery stays test-file-scoped. Covered by a test.
+- JS skipped-test name extraction keeps nested quotes whole: `_JS_SKIP_NAME_RE` now
+  captures to the matching closing quote of the same type as the opener (backreference),
+  so `it.skip("name with 'apostrophe' inside")` yields the full name instead of
+  truncating at the inner quote -- apostrophes in test descriptions are ubiquitous. An
+  empty name still falls back to a generic label. Covered by a test.
 
 ## Next
-
-1. The JS skipped-test name extraction truncates names containing a nested quote.
-   `_JS_SKIP_NAME_RE` captures `[^"'`]+`, which stops at the first inner quote of any
-   type, so `it.skip("name with 'apostrophe' inside")` yields the title "name with".
-   Apostrophes in test descriptions ("user's", "doesn't", "can't") are extremely
-   common, so this routinely produces unhelpful candidate titles (the location is
-   still correct). The capture should run to the matching closing quote of the same
-   type as the opener.
-   Evidence: `src/looptight/discovery.py:318`
-   Acceptance: a new test in `tests/test_propose.py` asserts the candidate title for
-   `it.skip("name with 'apostrophe' inside")` contains the full name, that a
-   single-quoted name with a nested double quote is also kept whole, and that an
-   empty name still falls back to "skipped test"; existing skip detection is
-   unchanged, and `looptight verify` passes.
 
 ## Rules
 
