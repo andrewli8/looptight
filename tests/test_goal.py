@@ -327,6 +327,41 @@ def test_goal_next_human_output_stop_and_done_branches(tmp_path, monkeypatch, ca
     assert "goal done" in capsys.readouterr().out.lower()
 
 
+def test_goal_decision_as_dict_pins_all_statuses():
+    from looptight.goal import GoalDecision
+
+    required = {"schema_version", "command", "status", "iteration"}
+
+    # no_goal: bare required fields, no directive or reason
+    d = GoalDecision(status="no_goal").as_dict()
+    assert required <= d.keys()
+    assert d["command"] == "goal"
+    assert "directive" not in d
+    assert "reason" not in d
+
+    # active: carries directive, no reason
+    d = GoalDecision(status="active", directive={"action": "build_increment", "prompt": "go"}, iteration=2).as_dict()
+    assert required <= d.keys()
+    assert d["status"] == "active"
+    assert d["iteration"] == 2
+    assert "directive" in d
+    assert "reason" not in d
+
+    # done: no directive, no reason
+    d = GoalDecision(status="done", iteration=3).as_dict()
+    assert required <= d.keys()
+    assert d["status"] == "done"
+    assert "directive" not in d
+    assert "reason" not in d
+
+    # stop: carries reason, no directive
+    d = GoalDecision(status="stop", reason="max_iterations", iteration=5).as_dict()
+    assert required <= d.keys()
+    assert d["status"] == "stop"
+    assert d["reason"] == "max_iterations"
+    assert "directive" not in d
+
+
 def test_clear_goal_returns_false_outside_git(tmp_path):
     # No git repo -> goal_path is None -> clear_goal returns False without raising.
     assert clear_goal(tmp_path) is False

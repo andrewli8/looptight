@@ -573,16 +573,11 @@ existing CLI session and makes no model or API calls of its own.
 - The `stop` and `done` branches of `goal next` human output now have direct
   coverage: `test_goal_next_human_output_stop_and_done_branches` in tests/test_goal.py
   asserts "goal stop" on max-iterations and "goal done" on a passing done-check.
+- `GoalDecision.as_dict()` now has direct unit coverage via
+  `test_goal_decision_as_dict_pins_all_statuses` in tests/test_goal.py, asserting
+  required fields are always present and optional fields appear only when set.
 
 ## Next
-
-1. `GoalDecision.as_dict()` is exercised only indirectly via CLI JSON paths; no
-   test pins the schema across all four statuses.
-   Evidence: src/looptight/goal.py:107; tests/test_goal.py (no direct as_dict call)
-   Acceptance: `test_goal_decision_as_dict_pins_all_statuses` in tests/test_goal.py
-   calls `.as_dict()` for `active`, `done`, `stop`, and `no_goal`, asserting
-   `schema_version`, `command`, `status`, and `iteration` are always present, and
-   that `directive`/`reason` appear only for statuses that carry them.
 
 ## Rules
 
