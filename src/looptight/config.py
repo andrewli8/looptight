@@ -45,7 +45,6 @@ class Config:
     model: str | None = None  # provider model for spawned sessions (e.g. "opus"); None = CLI default
     max_iterations: int = DEFAULT_MAX_ITERATIONS
     native: bool = False  # drive the agent's own loop (e.g. Claude /goal) where it has one
-    hook: bool = False  # arm the Claude Code Stop-hook auto-loop in this repo
     patience: int = 0  # stop early after N iterations of no measurable progress (0 = off)
 
     def merged(self, **overrides: object) -> "Config":
