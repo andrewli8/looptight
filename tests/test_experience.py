@@ -80,6 +80,20 @@ def test_summary_text_bounded_and_empty_when_no_data():
     assert text.count("\n") <= 6  # bounded
 
 
+def test_summary_text_keeps_only_the_top_k_failed_ideas_by_count():
+    # With more failed ideas than k, the avoid list is bounded to the k
+    # highest-count ideas, in descending order. The existing bounded-test uses
+    # fewer than k ideas, so the truncation/ordering at experience.py:115 was
+    # never exercised; a regression that dropped `[:k]` or broke the sort would
+    # flood or misrank the planner note unnoticed.
+    failed = {"a": 70, "b": 60, "c": 50, "d": 40, "e": 30, "f": 20, "g": 10}
+    text = summary_text(Model(failed=failed), k=5)
+    avoid_line = next(line for line in text.splitlines() if line.startswith("Recently-failed"))
+    names = [n.strip(" .") for n in avoid_line.split(":", 1)[1].split(",")]
+    assert names == ["a", "b", "c", "d", "e"]  # top-5 by count, descending
+    assert "f" not in names and "g" not in names  # the two lowest are dropped
+
+
 def test_summary_text_surfaces_failure_modes_by_source():
     # Attribution capture: the note names WHY a source tends to fail, so the host can
     # avoid the failure mode (e.g. "scope") rather than just an opaque idea id.
