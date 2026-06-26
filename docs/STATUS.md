@@ -737,6 +737,17 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. JS skip discovery misses Mocha's `test/` (singular) directory. `_js_discovery_files`
+   scans `src/` and `tests/` (plus colocated `.test.`/`.spec.`/`__tests__/`), but
+   Mocha's default test directory is `test/` (singular) with plain-named files, so a
+   Mocha project's `it.skip` markers in `test/*.js` are missed entirely. (TODOs there
+   are already found via the layout-agnostic walk; only skip discovery is dir-scoped.)
+   Add `test` to the scanned subdirs.
+   Evidence: `src/looptight/discovery.py:153`
+   Acceptance: a new test in `tests/test_propose.py` asserts an `it.skip` in a
+   plain-named `test/auth.js` (singular dir) is detected, the `tests/` and colocated
+   patterns are unchanged, and `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
