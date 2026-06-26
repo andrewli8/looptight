@@ -781,6 +781,15 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `docs/SPEC.md` overclaims `--json` support. Its output contract says "Every
+   primary command supports human-readable output and `--json`", but only the nine
+   machine-facing commands take `--json` (`init --json` errors) — the same code-vs-doc
+   overclaim already fixed in the README. Name the machine-facing commands instead.
+   Evidence: `docs/SPEC.md:255`
+   Acceptance: SPEC's output contract names the machine-facing `--json` commands
+   rather than "every primary command"; a `tests/test_docs.py` assertion locks the
+   corrected framing, and `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
