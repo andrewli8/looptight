@@ -129,6 +129,27 @@ def test_from_todos_skips_malformed_python_file(tmp_path):
     assert from_todos(tmp_path) == []
 
 
+def test_skipif_with_unbalanced_paren_in_reason_is_still_surfaced(tmp_path):
+    # A skip reason string containing an unbalanced paren must not make the env-gate
+    # classifier swallow a real-condition skip by over-reading into later lines.
+    _write(
+        tmp_path,
+        "tests/test_a.py",
+        "import os\n"
+        "import sys\n"
+        "import pytest\n\n\n"
+        '@pytest.mark.skipif(sys.platform == "win32", reason="broken (see issue 42")\n'  # 6: real rot
+        "def test_real_rot():\n"
+        "    pass\n\n\n"
+        '@pytest.mark.skipif(not os.environ.get("E2E"), reason="opt-in")\n'  # 11: env opt-in
+        "def test_optin():\n"
+        "    pass\n",
+    )
+    locs = [c.location for c in from_skipped_tests(tmp_path)]
+    assert any(loc.endswith(":6") for loc in locs)       # real-condition skip surfaced
+    assert not any(loc.endswith(":11") for loc in locs)  # env-gated skip still suppressed
+
+
 def test_from_skipped_tests_detects_unittest_skips(tmp_path):
     # unittest is stdlib and widely used; its skips must be detected like pytest's.
     _write(

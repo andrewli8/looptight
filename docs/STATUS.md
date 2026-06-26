@@ -671,21 +671,13 @@ existing CLI session and makes no model or API calls of its own.
   the queue with non-fixable tasks. Tracked and untracked-but-unignored files (new
   work) are still scanned; outside Git or on any git error every path passes through,
   so discovery never depends on git succeeding. Covered by a test.
+- `_statement_text` ignores parentheses inside string literals: it now counts `(`/`)`
+  on `_code_only` (string-stripped) text, so an unbalanced paren in a skip
+  `reason="..."` cannot over-extend the statement into later lines and make the
+  env-gate classifier swallow an unrelated real-condition skip. The wrapped-skipif
+  env-gate detection is otherwise unchanged. Covered by a test.
 
 ## Next
-
-1. `_statement_text` miscounts parentheses inside string literals, hiding real
-   skips. It balances `(`/`)` on the raw line, so an unbalanced paren in a skip
-   reason (`reason="broken (see issue 42"`) over-extends the statement past the
-   real skip into later lines; if a later line references `os.environ`, the env-gate
-   classifier then suppresses a genuine rot skip as if it were an opt-in. The paren
-   count should ignore string-literal parens (use `_code_only`).
-   Evidence: `src/looptight/discovery.py:295`
-   Acceptance: a new test in `tests/test_propose.py` places a `@pytest.mark.skipif`
-   whose reason string has an unbalanced paren above an env-gated skip and asserts
-   the real-condition skip is still surfaced (not swallowed) while the env-gated one
-   stays suppressed; `_statement_text` counts parens on string-stripped code, and
-   `looptight verify` passes.
 
 ## Rules
 

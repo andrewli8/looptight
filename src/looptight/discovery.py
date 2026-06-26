@@ -334,13 +334,17 @@ def _statement_text(lines: list[str], start: int) -> str:
     """Join lines from ``start`` until parentheses balance — the full marker call.
 
     Lets us see a condition that wraps onto following lines (the common shape of
-    `pytestmark = pytest.mark.skipif(\\n    not os.environ.get(...))`).
+    `pytestmark = pytest.mark.skipif(\\n    not os.environ.get(...))`). Parens inside
+    string literals (e.g. an unbalanced `(` in a skip ``reason="..."``) are ignored,
+    so a quirky reason message cannot over-extend the statement into later lines and
+    make the env-gate classifier swallow an unrelated skip.
     """
     depth = 0
     chunk: list[str] = []
     for line in lines[start:]:
         chunk.append(line)
-        depth += line.count("(") - line.count(")")
+        code = _code_only(line)
+        depth += code.count("(") - code.count(")")
         if depth <= 0:
             break
     return "\n".join(chunk)
