@@ -735,18 +735,12 @@ existing CLI session and makes no model or API calls of its own.
   alongside the JS `.mjs`/`.cjs` pair (standard since TS 4.7), so TODO/skip markers in
   TypeScript ESM/CJS module files are no longer silently missed. Covered by a test.
 
-## Next
+- JS skip discovery scans Mocha's `test/` (singular) directory: `_js_discovery_files`
+  adds `test` alongside `src`/`tests`, so a Mocha project's `it.skip` markers in
+  plain-named `test/*.js` files (its default convention) are detected. The `tests/` and
+  colocated `.test.`/`.spec.`/`__tests__/` patterns are unchanged. Covered by a test.
 
-1. JS skip discovery misses Mocha's `test/` (singular) directory. `_js_discovery_files`
-   scans `src/` and `tests/` (plus colocated `.test.`/`.spec.`/`__tests__/`), but
-   Mocha's default test directory is `test/` (singular) with plain-named files, so a
-   Mocha project's `it.skip` markers in `test/*.js` are missed entirely. (TODOs there
-   are already found via the layout-agnostic walk; only skip discovery is dir-scoped.)
-   Add `test` to the scanned subdirs.
-   Evidence: `src/looptight/discovery.py:153`
-   Acceptance: a new test in `tests/test_propose.py` asserts an `it.skip` in a
-   plain-named `test/auth.js` (singular dir) is detected, the `tests/` and colocated
-   patterns are unchanged, and `looptight verify` passes.
+## Next
 
 ## Rules
 

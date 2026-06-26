@@ -151,12 +151,13 @@ def _js_test_files(root: Path) -> list[Path]:
 
 
 def _js_discovery_files(root: Path) -> list[Path]:
-    """Deduplicated JS/TS files to scan: everything under `src/` and `tests/`,
-    plus any colocated test file (`*.test.*` / `*.spec.*` / `__tests__/`) elsewhere.
+    """Deduplicated JS/TS files to scan: everything under `src/`, `tests/`, and `test/`
+    (Mocha's default singular test directory), plus any colocated test file
+    (`*.test.*` / `*.spec.*` / `__tests__/`) elsewhere.
     """
     seen: set[Path] = set()
     files: list[Path] = []
-    for sub in ("src", "tests"):
+    for sub in ("src", "tests", "test"):
         for path in _files_with_exts(root, sub, _JS_EXTS):
             if path not in seen:
                 seen.add(path)

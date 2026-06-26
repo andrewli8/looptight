@@ -374,6 +374,16 @@ def test_from_skipped_tests_ignores_py_marker_in_multiline_string(tmp_path):
     assert len(cands) == 1
 
 
+def test_js_skip_discovery_covers_mocha_singular_test_dir(tmp_path):
+    # Mocha's default test directory is test/ (singular) with plain-named files;
+    # skip markers there must be discovered alongside tests/ and colocated files.
+    _write(tmp_path, "test/auth.js", 'it.skip("login broken", () => {});\n')
+    _write(tmp_path, "tests/b.js", 'it.skip("plural dir skip", () => {});\n')
+    locs = [c.location for c in from_skipped_tests(tmp_path)]
+    assert any(loc.endswith("test/auth.js:1") for loc in locs)   # singular dir
+    assert any(loc.endswith("tests/b.js:1") for loc in locs)     # plural dir unchanged
+
+
 def test_from_skipped_tests_ignores_js_marker_in_multiline_template_literal(tmp_path):
     # An it.skip(...) on a continuation line of a multi-line backtick template
     # literal (e.g. example code embedded in a string) is not a real skipped test
