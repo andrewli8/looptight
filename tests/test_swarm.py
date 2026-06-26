@@ -608,6 +608,23 @@ def test_planned_tasks_grounded_tolerates_backticked_evidence(tmp_path):
     assert _planned_tasks_are_grounded(tmp_path, [fabricated]) is False
 
 
+def test_planned_tasks_grounded_tolerates_bold_evidence_marker(tmp_path):
+    # The planner check must share the gate's marker tolerance: a bold marker
+    # (``**Evidence:** `path` ``) should still ground, not be rejected because a
+    # divergent regex missed it.
+    from looptight.discovery import Candidate
+    from looptight.swarm import _planned_tasks_are_grounded
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("x\n" * 5, encoding="utf-8")
+    candidate = Candidate(
+        title="t", source="status-next", location="docs/STATUS.md:5",
+        suggested_verify=None, score=0.0,
+        detail="Fix it. **Evidence:** `src/a.py:1` Acceptance: ok", acceptance="ok",
+    )
+    assert _planned_tasks_are_grounded(tmp_path, [candidate]) is True
+
+
 def test_planner_rejects_self_referential_evidence_and_retains_worktree(
     tmp_path, monkeypatch
 ):

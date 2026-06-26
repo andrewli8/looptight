@@ -19,7 +19,7 @@ from .config import Config, load_config
 from .console import Console
 from .detect import detect_agent, detect_verify
 from .discovery import Candidate, from_status_next
-from .grounding import strip_anchor_decoration
+from .grounding import evidence_refs, strip_anchor_decoration
 from .limits import (
     DEFAULT_LIMIT_BACKOFF,
     DEFAULT_LIMIT_MAX_WAIT,
@@ -129,26 +129,29 @@ class PlanningResult:
 
 def _planned_tasks_are_grounded(root: Path, candidates: list[Candidate]) -> bool:
     for candidate in candidates:
-        match = re.search(r"\bEvidence:\s+([^;\s]+)", candidate.detail)
-        if not match:
+        # Find anchors with the shared parser so the planner's marker tolerance
+        # (markdown emphasis, code spans) cannot drift from the grounding gate, as
+        # it once did. The planner keeps its own stricter policy below: it also
+        # rejects the STATUS file as circular evidence and checks the cited line
+        # is within the file, neither of which the gate does.
+        refs = evidence_refs(candidate.detail or "")
+        if not refs:
             return False
-        # Normalize the anchor through the shared helper (markdown code span /
-        # trailing period, leading dot preserved) so this check cannot drift from
-        # the grounding gate, as it once did (carrying the same backtick bug).
-        reference = strip_anchor_decoration(match.group(1))
-        path_text, separator, line_text = reference.rpartition(":")
-        if not separator or not line_text.isdigit():
-            path_text, line_text = reference, ""
-        path = Path(path_text)
-        if path.is_absolute() or ".." in path.parts or path == Path("docs/STATUS.md"):
-            return False
-        evidence = root / path
-        if not evidence.is_file():
-            return False
-        if line_text:
-            lines = evidence.read_text(encoding="utf-8", errors="ignore").splitlines()
-            if int(line_text) < 1 or int(line_text) > len(lines):
+        for ref in refs:
+            reference = strip_anchor_decoration(ref)
+            path_text, separator, line_text = reference.rpartition(":")
+            if not separator or not line_text.isdigit():
+                path_text, line_text = reference, ""
+            path = Path(path_text)
+            if path.is_absolute() or ".." in path.parts or path == Path("docs/STATUS.md"):
                 return False
+            evidence = root / path
+            if not evidence.is_file():
+                return False
+            if line_text:
+                lines = evidence.read_text(encoding="utf-8", errors="ignore").splitlines()
+                if int(line_text) < 1 or int(line_text) > len(lines):
+                    return False
     return True
 
 
