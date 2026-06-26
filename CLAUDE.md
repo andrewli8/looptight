@@ -25,6 +25,16 @@ seeding it:
 - Route a doubt to "is this correct?", not "do I need sign-off?" A correctness doubt
   filed as a permissions question survives unexamined.
 
+To find genuine work (not invent it):
+
+- Dogfood the product in a throwaway repo. Real bugs hide in real usage, not in
+  reading code. Layout-agnostic discovery, the readiness task-source bug, and the
+  `propose --source` message were all found by running looptight as a user, after
+  code review called the surface clean.
+- Dig one level deeper before deferring something as a "product decision." A
+  confusing behavior is often a symptom of a clear bug underneath (the readiness fix
+  came from refusing to write off the `doctor` confusion).
+
 <!-- looptight:session-loop:start -->
 ## Looptight session loop
 
