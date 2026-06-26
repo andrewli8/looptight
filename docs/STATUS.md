@@ -541,16 +541,14 @@ existing CLI session and makes no model or API calls of its own.
   a trajectory, clears it, and asserts the next `record` starts a fresh single-entry
   attempt; no production code change. `_is_fresh`'s non-numeric `updated_at` path
   (`trajectory.py:72`) is also covered by `test_record_treats_non_numeric_updated_at_as_stale`.
+- `_verify_policy_error`'s `allowed_verify_commands` branch now has direct coverage:
+  `test_verify_json_refuses_command_not_in_allowlist` in `tests/test_cli.py` configures
+  an allowlist and verifies that a command outside it returns `status="error"` with
+  `"not allowed by policy"` in the output.
 
 ## Next
 
-1. `_verify_policy_error`'s `allowed_verify_commands` branch is untested: lines
-   284-285 reject a non-allowlisted verify command, but the only policy test covers
-   `protected_paths` — so an allowlist misconfiguration would go undetected.
-   Evidence: `src/looptight/protocol_commands.py:284`
-   Acceptance: a new test in `tests/test_cli.py` configures `allowed_verify_commands
-   = ["pytest -q"]`, runs `verify --json` with a command not in the list, and asserts
-   `status == "error"` with `"not allowed by policy"` in the output.
+(none)
 
 ## Rules
 

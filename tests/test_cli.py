@@ -1117,6 +1117,36 @@ def test_verify_json_refuses_protected_path_changes(tmp_path, monkeypatch, capsy
     assert "secrets/token.txt" in payload["output"]
 
 
+def test_verify_json_refuses_command_not_in_allowlist(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text(
+        'verify = "exit 0"\nallowed_verify_commands = ["pytest -q"]\n',
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "add", ".looptight.toml"], check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.email=looptight@example.invalid",
+            "-c",
+            "user.name=looptight",
+            "commit",
+            "-qm",
+            "init",
+        ],
+        check=True,
+    )
+
+    assert main(["verify", "--json"]) == 2
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "error"
+    assert "not allowed by policy" in payload["output"]
+    assert "exit 0" in payload["output"]
+
+
 @pytest.mark.parametrize(
     ("status", "expected"),
     [("pass", 0), ("fail", 1), ("timeout", 2), ("error", 2)],
