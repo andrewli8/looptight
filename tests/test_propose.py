@@ -106,6 +106,37 @@ def test_from_todos_skips_malformed_python_file(tmp_path):
     assert from_todos(tmp_path) == []
 
 
+def test_from_skipped_tests_detects_unittest_skips(tmp_path):
+    # unittest is stdlib and widely used; its skips must be detected like pytest's.
+    _write(
+        tmp_path,
+        "tests/test_u.py",
+        "import os, sys, unittest\n\n\n"
+        "class T(unittest.TestCase):\n"
+        '    @unittest.skip("not done")\n'                       # 5: unconditional rot
+        "    def test_a(self):\n"
+        "        pass\n\n"
+        '    @unittest.skipIf(sys.platform == "win32", "win")\n'  # 9: real-condition rot
+        "    def test_b(self):\n"
+        "        pass\n\n"
+        '    @unittest.skipUnless(os.environ.get("E2E"), "opt-in")\n'  # 13: env-gate, suppressed
+        "    def test_c(self):\n"
+        "        pass\n\n"
+        "    def test_d(self):\n"
+        '        self.skipTest("dynamic rot")\n'                  # 18: unconditional rot
+        "\n"
+        "    def test_e(self):\n"
+        "        if sys.platform == 'win32':\n"
+        '            self.skipTest("guarded")\n',                 # 22: capability guard, not rot
+    )
+    locs = [c.location for c in from_skipped_tests(tmp_path)]
+    assert any(loc.endswith(":5") for loc in locs)       # @unittest.skip -> rot
+    assert any(loc.endswith(":9") for loc in locs)       # skipIf real condition -> rot
+    assert not any(loc.endswith(":13") for loc in locs)  # env-gated skipUnless -> suppressed
+    assert any(loc.endswith(":18") for loc in locs)      # unconditional skipTest -> rot
+    assert not any(loc.endswith(":22") for loc in locs)  # guarded skipTest -> not rot
+
+
 def test_from_skipped_tests_ignores_py_marker_in_multiline_string(tmp_path):
     # A pytest.skip(...) on a line inside a triple-quoted multi-line string is
     # example text, not a real skip, and must not be surfaced; a real top-level

@@ -658,20 +658,15 @@ existing CLI session and makes no model or API calls of its own.
   ` * TODO: ...` inside a multi-line `/* ... */` or `/** ... */` block is matched instead
   of hidden behind the asterisk. Single-line `/* TODO */` and `// TODO` are unchanged.
   A real false-negative for idiomatic JS/TS; covered by a test.
+- Skipped-test discovery covers stdlib `unittest`, not only pytest: `_is_skip_line`
+  recognizes `@unittest.skip`, `@unittest.skipIf`/`skipUnless`, and `self.skipTest(...)`,
+  and the conditional-guard check now also spares a guarded `self.skipTest`. The shared
+  env-gate and `if`-guard classifiers decide rot vs intentional, so an env-gated
+  `skipUnless(os.environ...)` is suppressed while an `@unittest.skip` or a real-condition
+  skip is surfaced. A unittest-based project now gets skip discovery; pytest unchanged.
+  Covered by a test.
 
 ## Next
-
-1. Skipped-test discovery misses `unittest`-style skips. `_is_skip_line` only
-   matches pytest markers, so a `unittest`-based project (stdlib, widely used) gets
-   zero skip detection for `@unittest.skip(...)`, `@unittest.skipIf/skipUnless(...)`,
-   and `self.skipTest(...)`. The existing env-gate and conditional-guard classifiers
-   already handle the conditional cases correctly; only recognition is missing.
-   Evidence: `src/looptight/discovery.py:253`
-   Acceptance: new tests in `tests/test_propose.py` assert `@unittest.skip(...)` and
-   an unconditional `self.skipTest(...)` are surfaced as rot, a `self.skipTest(...)`
-   inside an `if` capability guard is not, an env-gated `@unittest.skipUnless(os.environ...)`
-   is suppressed, and a `@unittest.skipIf(sys.platform...)` real-condition skip is
-   surfaced; pytest behavior is unchanged, and `looptight verify` passes.
 
 ## Rules
 
