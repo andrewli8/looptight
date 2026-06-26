@@ -12,7 +12,7 @@ from pathlib import Path
 from .adapters import available_adapter_names, get_adapter
 from .checkpoint import is_git_primary_worktree, is_git_repo
 from .claims import MARKER_NAME
-from .config import CONFIG_NAME, Config, find_config, load_config, write_config
+from .config import CONFIG_NAME, DEFAULT_VERIFY, Config, find_config, load_config, write_config
 from .console import Console
 from .coordinator import coordination_scope
 from .daemon import run_daemon
@@ -79,7 +79,11 @@ def cmd_init(args: argparse.Namespace, console: Console) -> int:
             if quality["classification"] in ("lint-only", "none", "custom/unknown"):
                 console.print(f"[yellow]note:[/yellow] {quality['risk']}")
         else:
-            console.print("[yellow]Could not detect a test command — set `verify` in the config.[/yellow]")
+            console.print(
+                f"[yellow]No test command detected.[/yellow] Wrote a default "
+                f"[cyan]{DEFAULT_VERIFY}[/cyan] — replace it in {path.name} with your "
+                "project's test command."
+            )
         if agent:
             console.print(f"Agent: [cyan]{agent}[/cyan] (auto-detected).")
         else:

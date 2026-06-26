@@ -25,6 +25,10 @@ class ConfigError(Exception):
 
 DEFAULT_MAX_ITERATIONS = 6
 
+#: The example verify command written into a fresh config when none is detected.
+#: Shared so the rendered file and `init`'s message name the same default.
+DEFAULT_VERIFY = "pytest -q"
+
 
 @dataclass(frozen=True)
 class Config:
@@ -123,7 +127,7 @@ def _string_list(data: dict[str, object], field: str) -> tuple[str, ...]:
 
 def render_config(config: Config) -> str:
     """Render a minimal, commented config file. The comments teach ``verify``."""
-    verify = config.verify or "pytest -q"
+    verify = config.verify or DEFAULT_VERIFY
     tasks = ", ".join(_toml_string(task) for task in config.tasks)
     return f"""# looptight config — the one concept that matters is `verify`.
 # `verify` is the command that decides pass/fail. No verify, no loop.

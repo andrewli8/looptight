@@ -40,6 +40,11 @@ All notable changes to looptight are recorded here. The format follows
 
 ### Fixed
 
+- `init` no longer contradicts itself when no test command is detected. It used
+  to print "Could not detect a test command — set `verify` in the config" while
+  the file it wrote already contained `verify = "pytest -q"` (render_config's
+  default). The message now names the default it wrote and says to replace it,
+  and the default is a shared constant so the file and the message cannot drift.
 - The grounding gate now resolves an `Evidence:` anchor wrapped in markdown
   backticks (`` Evidence: `src/app.py:10` ``). Previously the backticks were
   treated as part of the path, so the anchor did not resolve and a real,

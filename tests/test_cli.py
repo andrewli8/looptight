@@ -30,6 +30,24 @@ def test_init_writes_config(tmp_path, monkeypatch):
     assert 'verify = "pytest -q"' in text
 
 
+def test_init_message_is_consistent_when_verify_undetected(tmp_path, monkeypatch, capsys):
+    # render_config writes a `pytest -q` default even when nothing is detected, so
+    # the message must not contradict it ("set verify" as if unset while the file
+    # already has pytest -q). It should name the default it wrote and say replace.
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.commands.detect_verify", lambda *a, **k: None)
+    monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: None)
+
+    assert main(["init"]) == 0
+
+    out = capsys.readouterr().out
+    text = (tmp_path / ".looptight.toml").read_text()
+    assert 'verify = "pytest -q"' in text  # render_config's default
+    assert "pytest -q" in out  # the message names what it actually wrote
+    assert "replace" in out.lower()  # and guides the user to replace it
+    assert "set `verify` in the config" not in out  # no longer claims it is unset
+
+
 def test_init_does_not_clobber_existing_config(tmp_path, monkeypatch, capsys):
     # Re-running init must not silently destroy a user's customized config.
     monkeypatch.chdir(tmp_path)
