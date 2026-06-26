@@ -134,17 +134,19 @@ stay busy:
 |--------|---------------|
 | `status-next` | the bounded `## Next` list in `docs/STATUS.md` |
 | `task-file` | files you list under `tasks` in config |
-| `skipped-test` | `@pytest.mark.skip` / `xfail` / `pytest.skip()`, plus JS/TS `it.skip` / `describe.skip` / `xit` / `xtest` |
-| `todo` | real `TODO` / `FIXME` / `HACK` / `XXX` comments, not strings |
+| `skipped-test` | pytest (`@pytest.mark.skip`/`xfail`/`skipif`, imperative `pytest.skip()`/`pytest.xfail()`, and parametrize `marks=`), stdlib `unittest`, plus JS/TS `it.skip` / `describe.skip` / `.fixme` / `.failing` / `xit` (Jest, Vitest, Mocha, Playwright, Cypress) |
+| `todo` | real `TODO` / `FIXME` / `HACK` / `XXX` comments — including `TODO(author):` / `[ticket]:` attribution and the JSDoc `@todo` tag — not strings |
 | `lint` | findings from your linter |
 
 TODO and skipped-test discovery is polyglot and layout-agnostic. For Python it
 scans the whole project, so a `src/` layout, a flat package (`mypackage/`), or
-top-level modules (`app.py`) all work. For JS/TS (`.js`, `.ts`, `.tsx`, and the
-rest of that family) it scans `src/`/`tests/` plus colocated `*.test.*` /
-`*.spec.*` files and `__tests__/` directories. Either way it ignores markers inside
-strings or comments and prunes vendored and cache directories (`node_modules`,
-`.venv`, `build`, `__pycache__`, and the rest).
+top-level modules (`app.py`) all work. For JS/TS it scans the whole
+`.js`/`.jsx`/`.ts`/`.tsx`/`.mjs`/`.cjs`/`.mts`/`.cts` family for TODOs, and finds
+skipped tests under `src/`, `tests/`, `test/` (Mocha), and `spec/` (Jasmine) plus
+colocated `*.test.*` / `*.spec.*` / `*.cy.*` (Cypress) files and `__tests__/`
+directories. Either way it ignores markers inside strings or comments, respects
+`.gitignore`, and prunes vendored and cache directories (`node_modules`, `.venv`,
+`build`, `__pycache__`, and the rest).
 
 Human-curated sources (`status-next`, `task-file`) rank above automated signals
 (`lint`, `todo`), so deliberate intent gets claimed before incidental nits. A dirty

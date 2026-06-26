@@ -32,6 +32,11 @@ def test_usage_doc_documents_polyglot_discovery():
     text = (_DOCS / "usage.md").read_text(encoding="utf-8")
     assert "__tests__" in text, "usage.md does not mention colocated JS/TS test discovery"
     assert "it.skip" in text, "usage.md does not mention JS/TS skip discovery"
+    # The discovery scope was broadened; the doc must keep up so it does not mislead
+    # users about what is supported (a code-vs-doc gap).
+    assert ".mts" in text, "usage.md does not mention the .mts/.cts TS module extensions"
+    assert ".cy." in text, "usage.md does not mention Cypress .cy. test files"
+    assert ".gitignore" in text, "usage.md does not mention .gitignore-aware discovery"
 
 
 def test_usage_doc_teaches_the_task_authoring_format():

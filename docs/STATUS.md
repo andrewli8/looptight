@@ -764,20 +764,13 @@ existing CLI session and makes no model or API calls of its own.
   silently dropped into a false `no_work`. `1.` parsing and `-` bullet exclusion are
   unchanged. Covered by a test.
 
-## Next
+- `docs/usage.md` accurately describes the broadened discovery scope: the JS/TS family
+  extensions (`.mjs`/`.cjs`/`.mts`/`.cts`), the `test/`/`spec/` directories, `*.cy.*`
+  colocated files, `.gitignore` respect, and the full pytest/unittest + JS-framework
+  marker set. A `test_docs.py` assertion locks `.mts`/`.cy.`/`.gitignore` so the doc
+  cannot silently drift from the code again.
 
-1. `docs/usage.md` under-describes the discovery scope after it was broadened. It
-   lists JS/TS extensions as `.js`/`.ts`/`.tsx` and scanning of `src/`/`tests/` plus
-   `*.test.*`/`*.spec.*`/`__tests__/`, and a partial skip-marker set — but discovery
-   now also covers `.mjs`/`.cjs`/`.mts`/`.cts`, the `test/`/`spec/` dirs, `*.cy.*`
-   files, `.gitignore`, and a much wider marker set. A code-vs-doc gap that misleads
-   users about what is supported.
-   Evidence: `docs/usage.md:143`
-   Acceptance: usage.md's discovery section is updated to accurately (and concisely)
-   describe the current scope (JS/TS family extensions, the `test/`/`spec/` dirs,
-   `*.cy.*` colocated files, `.gitignore` respect, and the pytest/unittest + JS
-   framework markers); a doc-accuracy assertion in `tests/test_docs.py` locks a couple
-   of the new facts, and `looptight verify` passes.
+## Next
 
 ## Rules
 
