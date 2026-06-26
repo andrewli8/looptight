@@ -212,6 +212,24 @@ def test_enqueue_integration_is_fenced_to_the_live_lease(tmp_path):
     assert coordinator.enqueue_integration(second, "refs/heads/main", "deadbeef")  # live lease ok
 
 
+def test_enqueue_publication_requires_a_complete_integration(tmp_path):
+    # Only a completed integration (with a result sha) may be queued for the
+    # remote; an unknown or not-yet-complete integration is rejected, so unverified
+    # work is never published.
+    coordinator = Coordinator.open(_repo(tmp_path / "repo"))
+    assert coordinator is not None
+
+    with pytest.raises(CoordinationError):
+        coordinator.enqueue_publication("unknown-id", "origin", "refs/heads/main")
+
+    run = coordinator.start_run("test", now=0)
+    lease = coordinator.claim([{"id": "t", "goal": "g"}], run.id, ttl_s=60, now=0)
+    integ_id = coordinator.enqueue_integration(lease, "refs/heads/main", "sha")
+    # the integration is queued, not yet complete -> publication is refused
+    with pytest.raises(CoordinationError):
+        coordinator.enqueue_publication(integ_id, "origin", "refs/heads/main")
+
+
 def test_submit_proposals_dedupes_equivalent_tasks(tmp_path):
     repo = _repo(tmp_path / "r")
     db = Coordinator.open(repo)
