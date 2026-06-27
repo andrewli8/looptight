@@ -277,6 +277,14 @@ def test_summarize_non_persistent_failures_branch():
     assert "never cleared" not in text
 
 
+def test_summarize_no_progress_persisted_failures():
+    # no_progress + total > 0 + persisted=True: "Improved, then stalled ... N failure(s) never cleared."
+    from looptight.metacog import _summarize
+    text = _summarize("no_progress", total=2, persisted=True, iterations=3)
+    assert "Improved, then stalled" in text
+    assert "never cleared" in text
+
+
 def test_summarize_single_iteration_uses_singular_try():
     # iterations == 1: "1 try" not "1 tries".
     from looptight.metacog import _summarize

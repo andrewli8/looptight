@@ -910,16 +910,12 @@ existing CLI session and makes no model or API calls of its own.
   is covered for justfile: `test_detect_verify_non_utf8_justfile_falls_through` writes a
   `justfile` with non-UTF-8 bytes and asserts `detect_verify` returns `None` — the sibling
   of the existing Makefile test, exercising the same exception path via the justfile branch.
+- `_summarize("no_progress", total>0, persisted=True)` is now covered:
+  `test_summarize_no_progress_persisted_failures` calls `_summarize("no_progress", total=2,
+  persisted=True, iterations=3)` and asserts both "Improved, then stalled" and "never
+  cleared" appear — the fourth branch previously untested (`metacog.py:167-168`).
 
 ## Next
-
-1. `_summarize("no_progress", total>0, persisted=True)` is untested: the combination
-   that produces "Improved, then stalled … N failure(s) never cleared." is never
-   exercised — existing tests cover `("escalated", persisted=True)` and
-   `("no_progress", persisted=False)` but not this fourth combination.
-   Evidence: src/looptight/metacog.py:158;
-   Acceptance: a new test calls `_summarize("no_progress", total=2, persisted=True,
-   iterations=3)` and asserts "Improved, then stalled" and "never cleared" both appear.
 
 ## Rules
 
