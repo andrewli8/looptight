@@ -228,6 +228,34 @@ def test_goal_cli_check_exit_code_reflects_done(tmp_path, monkeypatch, capsys):
     assert main(["goal", "check"]) == 0  # done-check passes -> goal complete
 
 
+def test_goal_cli_check_json_emits_verdict_and_preserves_exit_code(tmp_path, monkeypatch, capsys):
+    # `goal check` is an exit-code predicate, but `--json` must still emit a machine
+    # verdict like every other goal action (it printed human text or nothing under
+    # --json). The exit code is preserved so `/loop until: goal check` is unaffected.
+    import json as _json
+
+    from looptight.cli import main
+    from looptight.goal import clear_goal
+
+    monkeypatch.chdir(tmp_path)
+    _repo(tmp_path)
+
+    main(["goal", "build x", "--done", "false"])
+    capsys.readouterr()
+    assert main(["goal", "check", "--json"]) == 1  # not done -> exit preserved
+    payload = _json.loads(capsys.readouterr().out)  # valid JSON, not human text
+    assert payload["command"] == "goal" and payload["status"] == "pending"
+
+    main(["goal", "build x", "--done", "true"])
+    capsys.readouterr()
+    assert main(["goal", "check", "--json"]) == 0
+    assert _json.loads(capsys.readouterr().out)["status"] == "done"
+
+    clear_goal(tmp_path)
+    assert main(["goal", "check", "--json"]) == 1
+    assert _json.loads(capsys.readouterr().out)["status"] == "no_goal"
+
+
 def test_goal_check_messages_misconfiguration_not_silent(tmp_path, monkeypatch, capsys):
     from looptight.cli import main
 

@@ -820,6 +820,12 @@ existing CLI session and makes no model or API calls of its own.
   status-next/task-file task whose file had a space was silently dropped as ungrounded.
   A fabricated space-path still fails `ref_resolves`, so precision is unchanged.
 
+- `goal check --json` emits a machine verdict: the check action is an exit-code
+  predicate (`/loop until: looptight goal check`), but it ignored `--json` entirely —
+  printing human-colored text in its error branches and nothing in the predicate path,
+  the lone goal action not honoring `--json`. It now prints a JSON verdict
+  (`status`: done/pending/no_goal/no_done_check) while preserving the exit code.
+
 ## Next
 
 1. `settings._load` non-dict JSON guard has no test: `_load` raises `ValueError` when a settings file contains valid JSON that is not a dict (line 37: `raise ValueError("...does not contain a JSON object...")`), but no test exercises this guard, so a regression could silently corrupt a user's settings.json by overwriting a non-dict file. Evidence: `src/looptight/settings.py:37`; Acceptance: `test_install_refuses_non_dict_json_settings_file` in `tests/test_settings.py` writes `[]` to a settings.json and asserts `install(path)` raises `ValueError` whose message mentions "JSON object", then `looptight verify --json` returns `pass`.

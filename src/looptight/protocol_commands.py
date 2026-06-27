@@ -800,17 +800,31 @@ def cmd_goal(args: argparse.Namespace, console: Console) -> int:
         return 0
 
     if arg == "check":
+        # An exit-code predicate (for `/loop until: looptight goal check`), but --json
+        # must still emit a machine verdict for parity with the other goal actions. The
+        # exit code is unchanged so the shell-predicate use is unaffected either way.
+        def _check_result(status: str, code: int) -> int:
+            if args.json:
+                print(json.dumps(
+                    {"schema_version": 1, "command": "goal", "action": "check", "status": status},
+                    sort_keys=True,
+                ))
+            return code
+
         goal = read_goal(workdir)
         if goal is None:
-            console.print('[yellow]no active goal[/yellow] — set one with `looptight goal "<vision>"`.')
-            return 1
+            if not args.json:
+                console.print('[yellow]no active goal[/yellow] — set one with `looptight goal "<vision>"`.')
+            return _check_result("no_goal", 1)
         if not goal.done_check:
-            console.print(
-                "[yellow]this goal has no done-check[/yellow]; `goal check` cannot tell when "
-                'it is complete. Set one with `looptight goal "<vision>" --done "<command>"`.'
-            )
-            return 1
-        return 0 if run_done_check(workdir, goal.done_check) else 1
+            if not args.json:
+                console.print(
+                    "[yellow]this goal has no done-check[/yellow]; `goal check` cannot tell when "
+                    'it is complete. Set one with `looptight goal "<vision>" --done "<command>"`.'
+                )
+            return _check_result("no_done_check", 1)
+        done = run_done_check(workdir, goal.done_check)
+        return _check_result("done" if done else "pending", 0 if done else 1)
 
     # Otherwise `arg` is a vision to set/activate.
     goal = Goal(
