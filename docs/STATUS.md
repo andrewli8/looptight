@@ -822,6 +822,14 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `from_task_file` strikethrough skip has no test: a `1. ~~cancelled~~ Acceptance: done` entry is silently dropped (the guard `if text.startswith("~~"): continue` runs at discovery.py:556 but is never exercised), so a regression could silently surface cancelled tasks as real work. Evidence: `src/looptight/discovery.py:556`; Acceptance: `test_from_task_file_skips_strikethrough_items` in `tests/test_propose.py` adds a cancelled item, asserts it is absent from `from_task_file` output, and `looptight verify --json` returns `pass`.
+
+2. `_not_ignored` silent-fallback on git error has no test: `except (OSError, subprocess.TimeoutExpired)` at discovery.py:106-107 returns all paths when `git check-ignore` cannot run, but no test exercises that path, so a regression could filter out un-ignored files and silently drop valid tasks. Evidence: `src/looptight/discovery.py:106`; Acceptance: `test_not_ignored_falls_through_on_git_oserror` in `tests/test_propose.py` monkeypatches `subprocess.run` in `_not_ignored` to raise `OSError` and asserts all candidate paths are returned unchanged, then `looptight verify --json` returns `pass`.
+
+3. `idea_identity._path(None)` and generic-source fallback have no test: `_path(location)` returns `""` when location is falsy (line 31) and an unknown source falls through to the generic tuple (line 49); neither branch is exercised, so a regression in either could silently corrupt idea identity for future source types or `location=None` candidates. Evidence: `src/looptight/idea_identity.py:31`; Acceptance: two new tests in `tests/test_idea_identity.py` assert a `location=None` candidate returns a non-empty `idea_id` and an unknown source (e.g., `"verify"`) returns a distinct, stable `idea_id`, then `looptight verify --json` returns `pass`.
+
+4. `settings._load` non-dict JSON guard has no test: `_load` raises `ValueError` when a settings file contains valid JSON that is not a dict (line 37: `raise ValueError("...does not contain a JSON object...")`), but no test exercises this guard, so a regression could silently corrupt a user's settings.json by overwriting a non-dict file. Evidence: `src/looptight/settings.py:37`; Acceptance: `test_install_refuses_non_dict_json_settings_file` in `tests/test_settings.py` writes `[]` to a settings.json and asserts `install(path)` raises `ValueError` whose message mentions "JSON object", then `looptight verify --json` returns `pass`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
