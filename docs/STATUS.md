@@ -859,16 +859,13 @@ existing CLI session and makes no model or API calls of its own.
   left untouched, so a regression cannot silently overwrite a foreign settings file.
   Test: `test_install_refuses_non_dict_json_settings_file` in test_settings.py.
 
-## Next
+- Two config-validation branches real misconfigs hit are now covered: a non-array
+  `tasks` (`tasks = "TODO.md"` without brackets) and a quoted `max_changed_files`
+  (`"5"`) each raise a `ConfigError` naming the field, so a regression loosening
+  `_string_list`/`_optional_int` cannot let a malformed config through silently.
+  Tests in test_config.py.
 
-1. Two config-validation branches that real misconfigs hit are untested: `_string_list`
-   rejects a non-array value (`tasks = "TODO.md"` without brackets) and `_optional_int`
-   rejects a non-int string (`max_changed_files = "5"`). Existing tests cover only the
-   empty-string-in-array, negative, and boolean cases, so a regression loosening either
-   guard would let a malformed config through silently. Evidence: `src/looptight/config.py:123`;
-   Acceptance: two tests in `tests/test_config.py` write `tasks = "TODO.md"` and
-   `max_changed_files = "5"` respectively and assert `load_config` raises `ConfigError`
-   naming the field; `looptight verify --json` returns `pass`.
+## Next
 
 ## Rules
 

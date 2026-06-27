@@ -100,6 +100,27 @@ def test_load_config_rejects_non_string_verify(tmp_path):
     assert "verify" in str(exc.value)
 
 
+def test_load_config_rejects_non_array_tasks(tmp_path):
+    # A common mistake is `tasks = "TODO.md"` (a bare string, forgetting the array
+    # brackets); _string_list must reject the non-array value, not silently iterate
+    # the string's characters as task files.
+    path = tmp_path / ".looptight.toml"
+    path.write_text('tasks = "TODO.md"\n', encoding="utf-8")
+    with pytest.raises(ConfigError) as exc:
+        load_config(path)
+    assert "tasks" in str(exc.value)
+
+
+def test_load_config_rejects_string_max_changed_files(tmp_path):
+    # A quoted number (`max_changed_files = "5"`) is a string, not an int; the guard
+    # must reject it rather than later comparing a str to an int at enforcement time.
+    path = tmp_path / ".looptight.toml"
+    path.write_text('max_changed_files = "5"\n', encoding="utf-8")
+    with pytest.raises(ConfigError) as exc:
+        load_config(path)
+    assert "max_changed_files" in str(exc.value)
+
+
 def test_load_config_rejects_negative_max_changed_files(tmp_path):
     path = tmp_path / ".looptight.toml"
     path.write_text("max_changed_files = -1\n", encoding="utf-8")
