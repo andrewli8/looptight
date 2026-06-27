@@ -928,6 +928,12 @@ def test_failed_curated_source_stays_above_automated():
     assert ordered.index("status-next") < ordered.index("lint")
 
 
+def test_rank_with_model_unknown_source_scores_zero():
+    c = _rc("mystery", "some task")
+    result = rank_with_model([c], Model())
+    assert result[0].score == 0.0
+
+
 # --- dedupe -------------------------------------------------------------------
 
 from looptight.ranking import dedupe  # noqa: E402
