@@ -152,6 +152,20 @@ def test_normalize_merges_failures_differing_only_by_duration():
     assert a == b  # the volatile duration is normalized away
 
 
+def test_normalize_failure_replaces_hex_addresses():
+    from looptight.metacog import _normalize_failure
+    result = _normalize_failure("FAILED: segfault at 0xDEADBEEF in heap")
+    assert "0xADDR" in result
+    assert "0xDEADBEEF" not in result
+
+
+def test_normalize_failure_normalizes_in_seconds_fragment():
+    from looptight.metacog import _normalize_failure
+    result = _normalize_failure("FAILED: connection timed out in 2ms")
+    assert "in 2ms" not in result
+    assert "in Ns" in result
+
+
 def test_persistent_failures_keeps_only_what_never_cleared():
     from looptight.metacog import persistent_failures
 
