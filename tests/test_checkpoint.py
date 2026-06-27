@@ -77,6 +77,14 @@ def test_checkpointer_is_a_noop_outside_git(tmp_path):
     assert cp.restore() is False
 
 
+def test_restore_returns_false_when_enabled_but_no_snapshots(tmp_path):
+    _init_repo(tmp_path)
+    cp = Checkpointer(tmp_path)
+    assert cp.enabled is True
+    assert cp.snapshots == []
+    assert cp.restore() is False
+
+
 def test_checkpointer_is_a_noop_when_git_cannot_launch(tmp_path, monkeypatch):
     def fail_to_launch(*args, **kwargs):
         raise FileNotFoundError("git is not installed")

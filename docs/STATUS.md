@@ -876,18 +876,13 @@ existing CLI session and makes no model or API calls of its own.
   `test_has_dirty_git_worktree_returns_false_on_oserror` in tests/test_tasks.py monkeypatches
   `tasks.subprocess.run` to raise `OSError` and asserts the function returns `False` instead of
   propagating the exception — sibling of `test_checkpointer_is_a_noop_when_git_cannot_launch`.
+- `Checkpointer.restore()` enabled+no-snapshots path is covered:
+  `test_restore_returns_false_when_enabled_but_no_snapshots` in tests/test_checkpoint.py creates
+  a Checkpointer in a real git repo (enabled=True), leaves snapshots empty, and asserts
+  `restore()` returns `False` without raising — the `if not target: return False` branch at
+  checkpoint.py:95.
 
 ## Next
-
-4. `Checkpointer.restore()` enabled+no-snapshots path is untested: when `self.enabled` is True
-   but `self.snapshots` is empty and no sha is passed, `restore` returns `False` via
-   `if not target` (checkpoint.py:91). The existing tests cover `enabled=False` noop
-   (test_checkpoint.py:73, 80) and the `sha` passed explicitly (test_checkpoint.py:59) but not
-   the "enabled, no snapshots, no sha" case.
-   Evidence: src/looptight/checkpoint.py:86;
-   Acceptance: a new `test_restore_returns_false_when_enabled_but_no_snapshots` in
-   tests/test_checkpoint.py sets up a real git repo, creates a `Checkpointer` (enabled), and
-   asserts `restore()` returns `False` without raising.
 
 ## Rules
 
