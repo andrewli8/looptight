@@ -152,3 +152,10 @@ def test_limit_wait_caps_named_reset_and_backs_off_otherwise():
     assert limit_wait(300, 1, 1, 100) == 100   # cap clamps a long provider reset
     assert limit_wait(None, 2, 10, 1000) == 20  # exponential backoff: base * 2^(attempt-1)
     assert limit_wait(0, 1, 5, 100) == 5        # zero retry_after -> falls through to backoff
+
+
+def test_classify_limit_uses_default_1_second_for_unrecognized_unit():
+    # "fortnights" is not in _UNIT_SECONDS, so the .get(..., 1.0) default fires
+    signal = classify_limit("rate limit; retry after 5 fortnights")
+    assert signal is not None
+    assert signal.retry_after_s == 5.0
