@@ -85,6 +85,11 @@ def detect_verify(root: Path | None = None) -> str | None:
     if (base / "pom.xml").is_file():
         return "./mvnw test" if (base / "mvnw").is_file() else "mvn test"
 
+    # .NET project/solution files are arbitrarily named, so match by extension. Any
+    # of them maps to the unambiguous `dotnet test`.
+    if any(any(base.glob(f"*{ext}")) for ext in (".sln", ".csproj", ".fsproj", ".vbproj")):
+        return "dotnet test"
+
     makefile = base / "Makefile"
     if makefile.is_file():
         runner = _recipe_runner(makefile, "make")

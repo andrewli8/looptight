@@ -49,6 +49,19 @@ def test_detect_verify_maven_prefers_wrapper(tmp_path):
     assert detect.detect_verify(tmp_path) == "./mvnw test"
 
 
+def test_detect_verify_dotnet(tmp_path):
+    # .NET is a dominant ecosystem; a solution or project file maps to `dotnet test`
+    # (the unambiguous standard) rather than the pytest fallback. Project files are
+    # arbitrarily named, so detection globs for the well-known extensions.
+    (tmp_path / "MyApp.sln").write_text("Microsoft Visual Studio Solution File\n")
+    assert detect.detect_verify(tmp_path) == "dotnet test"
+
+
+def test_detect_verify_dotnet_csproj_only(tmp_path):
+    (tmp_path / "MyLib.csproj").write_text("<Project></Project>\n")
+    assert detect.detect_verify(tmp_path) == "dotnet test"
+
+
 def test_detect_verify_makefile_check_target(tmp_path):
     # `make check` (GNU/autotools, and a common "run all checks" target) is detected
     # as a fallback after `make test`; near-miss target names do not match.
