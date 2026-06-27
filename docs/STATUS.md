@@ -925,18 +925,12 @@ existing CLI session and makes no model or API calls of its own.
   invoked — covering the two `if not sha or not tip: return False` branches at
   `integration_queue.py:357-358`.
 
-## Next
+- `experience.py`'s `_git()` now passes `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}` to
+  `subprocess.run`, matching the same non-interactive guard used by `integration_queue` and
+  `swarm`, so a `git log` call from the experience module cannot hang on a credential prompt in
+  headless mode. Covered by `test_experience_git_sets_terminal_prompt_env` in test_experience.py.
 
-1. `experience.py`'s `_git()` omits `GIT_TERMINAL_PROMPT=0`: the equivalent helper in
-   `src/looptight/integration_queue.py:68` and `src/looptight/swarm.py:208` both set
-   `GIT_TERMINAL_PROMPT=0` via a shared `_git_env()` to prevent credential-prompt hangs in
-   headless mode, but `src/looptight/experience.py:26` calls `subprocess.run` with no env
-   override, so a network git op from the experience module can hang indefinitely waiting
-   for terminal input.
-   Evidence: src/looptight/experience.py:26;
-   Acceptance: `experience.py`'s `_git()` passes `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}`
-   to `subprocess.run`, and a new test monkeypatching `subprocess.run` asserts the env dict
-   contains `GIT_TERMINAL_PROMPT` equal to `"0"`.
+## Next
 
 ## Rules
 

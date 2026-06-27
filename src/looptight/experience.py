@@ -9,6 +9,7 @@ empty or unavailable.
 
 from __future__ import annotations
 
+import os
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -23,8 +24,11 @@ _OUTCOME_KEY = "Looptight-Outcome:"
 
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     try:
-        return subprocess.run(["git", *args], cwd=str(root),
-                              capture_output=True, text=True, check=False)
+        return subprocess.run(
+            ["git", *args], cwd=str(root),
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+            capture_output=True, text=True, check=False,
+        )
     except OSError as exc:
         return subprocess.CompletedProcess(["git", *args], 127, "", str(exc))
 

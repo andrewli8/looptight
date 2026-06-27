@@ -170,3 +170,21 @@ def test_landed_counts_returns_empty_when_git_not_found(tmp_path):
     # landed_counts must silently return {} rather than propagating the error.
     with patch("looptight.experience.subprocess.run", side_effect=OSError("git not found")):
         assert landed_counts(tmp_path, "HEAD") == {}
+
+
+def test_experience_git_sets_terminal_prompt_env(tmp_path):
+    # _git() in experience.py must pass GIT_TERMINAL_PROMPT=0 so a headless
+    # git log call cannot hang waiting for a credential prompt.
+    import looptight.experience as exp
+
+    captured_kwargs: dict = {}
+
+    def fake_run(cmd, **kwargs):
+        captured_kwargs.update(kwargs)
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    with patch.object(exp.subprocess, "run", fake_run):
+        exp._git(tmp_path, "log")
+
+    assert "env" in captured_kwargs, "_git must pass an explicit env"
+    assert captured_kwargs["env"].get("GIT_TERMINAL_PROMPT") == "0"
