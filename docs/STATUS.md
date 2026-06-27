@@ -868,18 +868,12 @@ existing CLI session and makes no model or API calls of its own.
   in tests/test_verify.py asserts the short path returns the text unchanged (no truncation
   marker), the long path prefixes the tail with `[...N earlier characters truncated...]`, and
   output exactly at the limit passes through without an off-by-one marker.
+- `_not_ignored`'s `TimeoutExpired` branch has direct regression coverage:
+  `test_not_ignored_falls_through_on_timeout` in tests/test_propose.py monkeypatches
+  `discovery.subprocess.run` to raise `TimeoutExpired` and asserts `_not_ignored` returns all
+  input paths unchanged — sibling of the existing OSError test (test_propose.py:588).
 
 ## Next
-
-1. `_not_ignored` in discovery.py does not have a `TimeoutExpired` regression test: the
-   `except (OSError, subprocess.TimeoutExpired): return paths` clause at discovery.py:106
-   has its `OSError` branch covered by `test_not_ignored_falls_through_on_git_oserror`
-   (tests/test_propose.py:588) but the `TimeoutExpired` arm is absent. Sibling: `from_lint`'s
-   own `TimeoutExpired` branch is directly tested (tests/test_propose.py:788).
-   Evidence: src/looptight/discovery.py:106;
-   Acceptance: a new `test_not_ignored_falls_through_on_timeout` in tests/test_propose.py
-   monkeypatches `discovery.subprocess.run` to raise `TimeoutExpired` and asserts
-   `_not_ignored` returns all input paths unchanged.
 
 3. `_has_dirty_git_worktree` OSError path is untested: the `except OSError: return False`
    branch at tasks.py:88 is never exercised by any test; the function is covered only through

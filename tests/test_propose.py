@@ -595,6 +595,23 @@ def test_not_ignored_falls_through_on_git_oserror(tmp_path, monkeypatch):
     assert disc._not_ignored(tmp_path, paths) == paths
 
 
+def test_not_ignored_falls_through_on_timeout(tmp_path, monkeypatch):
+    # When git check-ignore hangs past the timeout (TimeoutExpired), _not_ignored
+    # must return all input paths unchanged — the same contract as OSError.
+    import subprocess as _subprocess
+    import looptight.discovery as disc
+
+    paths = [tmp_path / "a.py", tmp_path / "b.py"]
+    monkeypatch.setattr(
+        disc.subprocess,
+        "run",
+        lambda *a, **kw: (_ for _ in ()).throw(
+            _subprocess.TimeoutExpired(cmd=["git", "check-ignore"], timeout=30)
+        ),
+    )
+    assert disc._not_ignored(tmp_path, paths) == paths
+
+
 def test_from_task_file_rejects_paths_outside_the_repo(tmp_path):
     # A configured task_file must stay within the repo: an absolute path or a `..`
     # traversal is rejected even when the target exists with valid tasks.
