@@ -49,6 +49,18 @@ def test_detect_verify_maven_prefers_wrapper(tmp_path):
     assert detect.detect_verify(tmp_path) == "./mvnw test"
 
 
+def test_detect_verify_elixir(tmp_path):
+    # mix is Elixir's single, unambiguous test runner.
+    (tmp_path / "mix.exs").write_text("defmodule X.MixProject do\nend\n")
+    assert detect.detect_verify(tmp_path) == "mix test"
+
+
+def test_detect_verify_swift(tmp_path):
+    # SwiftPM's standard test command for a Package.swift manifest.
+    (tmp_path / "Package.swift").write_text("// swift-tools-version:5.9\n")
+    assert detect.detect_verify(tmp_path) == "swift test"
+
+
 def test_detect_verify_dotnet(tmp_path):
     # .NET is a dominant ecosystem; a solution or project file maps to `dotnet test`
     # (the unambiguous standard) rather than the pytest fallback. Project files are

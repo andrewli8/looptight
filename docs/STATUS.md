@@ -849,6 +849,11 @@ existing CLI session and makes no model or API calls of its own.
   unambiguous `dotnet test`, completing the dominant general-purpose ecosystems
   (JS/Python/Rust/Go/JVM/.NET). Covered by tests in test_detect.py.
 
+- `detect_verify` recognizes Elixir (`mix.exs` → `mix test`) and Swift
+  (`Package.swift` → `swift test`); both have a single unambiguous test runner.
+  Ambiguous ecosystems (Ruby rake/rspec, PHP composer/phpunit) are deliberately left
+  to the user, since a wrong auto-detected verify is worse than the pytest default.
+
 ## Next
 
 1. `settings._load` non-dict JSON guard has no test: `_load` raises `ValueError` when a settings file contains valid JSON that is not a dict (line 37: `raise ValueError("...does not contain a JSON object...")`), but no test exercises this guard, so a regression could silently corrupt a user's settings.json by overwriting a non-dict file. Evidence: `src/looptight/settings.py:37`; Acceptance: `test_install_refuses_non_dict_json_settings_file` in `tests/test_settings.py` writes `[]` to a settings.json and asserts `install(path)` raises `ValueError` whose message mentions "JSON object", then `looptight verify --json` returns `pass`.

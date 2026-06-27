@@ -46,6 +46,8 @@ _VERIFY_RULES: tuple[tuple[str, str], ...] = (
     ("go.mod", "go test ./..."),
     ("deno.json", "deno test"),
     ("deno.jsonc", "deno test"),
+    ("mix.exs", "mix test"),        # Elixir: mix is the single test runner
+    ("Package.swift", "swift test"),  # SwiftPM
 )
 
 
