@@ -892,15 +892,13 @@ existing CLI session and makes no model or API calls of its own.
   with `source="unknown-source"` and asserts `rank([c])[0].score == 0.0` — the
   `.get(c.source, 0)` default branch that all prior tests bypassed.
 
-## Next
+- `_outcome()` in `daemon.py:71-72` returns `("fault", merged>0)` when a run errors after
+  some workers merged: `test_outcome_fault_with_merged_workers` in `tests/test_daemon.py`
+  calls `_outcome` directly with `SwarmResult(reason=REASON_ERROR, merged=1)` and asserts
+  `outcome == "fault"` and `merged == 1` — the fault-with-progress branch previously
+  untested (all prior error tests used the default `merged=0`).
 
-1. `_outcome()` in `daemon.py:71-72` returns `("fault", merged)` with `merged > 0` when a
-   swarm run partially merges work before faulting; no test exercises this combination — every
-   current `REASON_ERROR` test uses the default `merged=0` via `_result(REASON_ERROR)`.
-   Evidence: src/looptight/daemon.py:71;
-   Acceptance: a new test calls `run_daemon` (or `_outcome` directly) with a `SwarmResult`
-   having `reason=REASON_ERROR` and one worker with `status="merged"`, and asserts the resulting
-   `DaemonCycle.merged == 1` and `DaemonCycle.outcome == "fault"`.
+## Next
 
 ## Rules
 

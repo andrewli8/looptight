@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from looptight.config import Config
-from looptight.daemon import DEFAULT_FAULT_BACKOFF, DaemonCycle, run_daemon
+from looptight.daemon import DEFAULT_FAULT_BACKOFF, DaemonCycle, _outcome, run_daemon
 from looptight.swarm import (
     REASON_ERROR,
     REASON_IDLE,
@@ -269,3 +269,12 @@ def test_daemon_survives_a_failing_on_fault_hook():
     )
     assert report.cycles == 2
     assert report.faults == 2  # the daemon kept going despite the hook raising
+
+
+def test_outcome_fault_with_merged_workers():
+    # _outcome() returns ("fault", merged>0) when a run errors but some workers
+    # merged before the fault — the "fault" branch at daemon.py:71-72.
+    result = _result(REASON_ERROR, merged=1)
+    outcome, merged = _outcome(result)
+    assert outcome == "fault"
+    assert merged == 1
