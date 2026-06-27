@@ -568,6 +568,23 @@ def test_from_skipped_tests_classifies_skip_by_enclosing_conditional(tmp_path):
     assert not any(loc.endswith(":6") for loc in locs)    # nested-if guard ignored
 
 
+def test_from_task_file_skips_strikethrough_items(tmp_path):
+    # A numbered item whose text begins with ~~ (markdown strikethrough, meaning
+    # cancelled) must be silently dropped by from_task_file so a regression cannot
+    # surface cancelled tasks as real work.
+    from looptight.discovery import from_task_file
+
+    (tmp_path / "tasks.md").write_text(
+        "## Next\n\n"
+        "1. ~~cancelled task~~ Acceptance: done.\n"
+        "2. Real task. Acceptance: passes.\n",
+        encoding="utf-8",
+    )
+    titles = [c.title for c in from_task_file(tmp_path, "tasks.md")]
+    assert any("Real task" in t for t in titles)
+    assert not any("cancelled" in t for t in titles)
+
+
 def test_from_task_file_rejects_paths_outside_the_repo(tmp_path):
     # A configured task_file must stay within the repo: an absolute path or a `..`
     # traversal is rejected even when the target exists with valid tasks.
