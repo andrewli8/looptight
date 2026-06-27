@@ -887,16 +887,14 @@ existing CLI session and makes no model or API calls of its own.
   calls `classify_limit("rate limit; retry after 5 fortnights")` and asserts
   `signal.retry_after_s == 5.0` — the `.get(..., 1.0)` default branch.
 
+- `rank()`'s unknown-source score-0 fallback (`ranking.py:43`) is covered:
+  `test_rank_unknown_source_scores_zero` in `tests/test_propose.py` creates a `Candidate`
+  with `source="unknown-source"` and asserts `rank([c])[0].score == 0.0` — the
+  `.get(c.source, 0)` default branch that all prior tests bypassed.
+
 ## Next
 
-1. `rank()`'s unknown-source score-0 fallback in `ranking.py:43` is untested: all tests use
-   known sources (`lint`, `todo`, `task-file`, `status-next`); the `.get(c.source, 0)` default
-   branch is never exercised.
-   Evidence: src/looptight/ranking.py:43;
-   Acceptance: a new test creates a `Candidate` with `source="unknown-source"` and asserts
-   `rank([c])[0].score == 0.0`.
-
-2. `_outcome()` in `daemon.py:71-72` returns `("fault", merged)` with `merged > 0` when a
+1. `_outcome()` in `daemon.py:71-72` returns `("fault", merged)` with `merged > 0` when a
    swarm run partially merges work before faulting; no test exercises this combination — every
    current `REASON_ERROR` test uses the default `merged=0` via `_result(REASON_ERROR)`.
    Evidence: src/looptight/daemon.py:71;

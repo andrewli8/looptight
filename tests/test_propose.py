@@ -841,6 +841,12 @@ def test_rank_human_curated_sources_outrank_automated_lint():
     assert [c.source for c in ranked] == ["task-file", "status-next", "lint"]
 
 
+def test_rank_unknown_source_scores_zero():
+    unknown = Candidate(title="u", source="unknown-source", location="x.py:1", suggested_verify=None, score=0, detail="")
+    ranked = rank([unknown])
+    assert ranked[0].score == 0.0
+
+
 def test_propose_dedups_by_location_and_title(tmp_path):
     _write(tmp_path, "src/a.py", "# TODO: same thing\n")
     _write(tmp_path, "docs/STATUS.md", "## Next\n\n1. same thing\n")
