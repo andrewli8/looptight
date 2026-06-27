@@ -1418,6 +1418,14 @@ def test_run_rejects_non_positive_max_iterations(value):
     assert exc.value.code == 2
 
 
+def test_run_rejects_negative_patience():
+    # --patience must use _non_negative_int, matching verify --patience.
+    # A negative value must be caught at parse time (exit 2), not reach RunSpec.
+    with pytest.raises(SystemExit) as exc:
+        build_parser().parse_args(["run", "--patience", "-1", "goal"])
+    assert exc.value.code == 2
+
+
 @pytest.mark.parametrize(
     "argv",
     [

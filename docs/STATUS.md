@@ -913,22 +913,14 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `run --patience` accepts negative values: the `--patience` argument in `build_parser`
-   uses `type=int` (cli.py:339) while every other bounded numeric argument in the same
-   file uses `_non_negative_int` or `_positive_int`. A negative patience value passes the
-   parser silently and may reach `RunSpec` unchecked.
-   Evidence: src/looptight/cli.py:339;
-   Acceptance: change `type=int` to `type=_non_negative_int` and add a test that
-   `build_parser().parse_args(["run", "--patience", "-1", "goal"])` raises `SystemExit`.
-
-2. `VerifyResult.short()` scored branch is untested: the `if self.score is not None`
+1. `VerifyResult.short()` scored branch is untested: the `if self.score is not None`
    path at types.py:56 (which emits `"PASS (score 0.85)"`) is never exercised by any
    test; every `VerifyResult` in the suite omits `score`.
    Evidence: src/looptight/types.py:56;
    Acceptance: a new test calls `VerifyResult(passed=True, exit_code=0, score=0.85).short()`
    and asserts the result is `"PASS (score 0.85)"`.
 
-3. `_summarize("no_progress", total>0, persisted=True)` is untested: the combination
+2. `_summarize("no_progress", total>0, persisted=True)` is untested: the combination
    that produces "Improved, then stalled … N failure(s) never cleared." is never
    exercised — existing tests cover `("escalated", persisted=True)` and
    `("no_progress", persisted=False)` but not this fourth combination.

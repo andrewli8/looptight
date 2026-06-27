@@ -336,7 +336,7 @@ def _add_run_flags(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--max-iterations", type=_positive_int, help="hard iteration cap")
     parser.add_argument(
         "--patience",
-        type=int,
+        type=_non_negative_int,
         help="stop early after N iterations with no measurable progress (0 = off)",
     )
     parser.add_argument(
