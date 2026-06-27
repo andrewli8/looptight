@@ -913,13 +913,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `persistent_from_sets([])`'s empty-list guard in `metacog.py:138` is untested: every call
-   to `persistent_from_sets` (via `persistent_failures`) passes a nonempty list; the
-   `if not failure_sets: return (), True` guard at line 138 is never reached.
-   Evidence: src/looptight/metacog.py:138;
-   Acceptance: a new test calls `persistent_from_sets([])` directly and asserts it returns
-   `((), True)` without raising.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

@@ -241,6 +241,13 @@ def test_persistent_from_sets_matches_record_based(workdir=None):
     assert persistent_failures(recs) == (lines, persisted)
 
 
+def test_persistent_from_sets_empty_list_returns_empty_tuple():
+    from looptight.metacog import persistent_from_sets
+
+    result = persistent_from_sets([])
+    assert result == ((), True)
+
+
 def test_escalation_from_signals_builds_the_same_report():
     from looptight.metacog import escalation_from_signals
     sets = [{"FAILED a::x - boom"}, {"FAILED a::x - boom"}]
