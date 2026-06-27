@@ -585,6 +585,16 @@ def test_from_task_file_skips_strikethrough_items(tmp_path):
     assert not any("cancelled" in t for t in titles)
 
 
+def test_not_ignored_falls_through_on_git_oserror(tmp_path, monkeypatch):
+    # When git check-ignore cannot run (OSError), _not_ignored must return all
+    # input paths unchanged so discovery never silently drops valid candidates.
+    import looptight.discovery as disc
+
+    paths = [tmp_path / "a.py", tmp_path / "b.py"]
+    monkeypatch.setattr(disc.subprocess, "run", lambda *a, **kw: (_ for _ in ()).throw(OSError("no git")))
+    assert disc._not_ignored(tmp_path, paths) == paths
+
+
 def test_from_task_file_rejects_paths_outside_the_repo(tmp_path):
     # A configured task_file must stay within the repo: an absolute path or a `..`
     # traversal is rejected even when the target exists with valid tasks.
