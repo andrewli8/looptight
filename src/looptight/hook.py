@@ -52,7 +52,7 @@ def continuation_reason(verify: VerifyResult) -> str:
     return (
         f"looptight: verification still fails ({verify.short()}). Keep going and "
         "fix the specific failures below; do not stop until the verify command "
-        f"passes.\n\n{verify.output[-3000:]}"
+        f"passes.\n\n{verify.context_output(3000)}"
     )
 
 

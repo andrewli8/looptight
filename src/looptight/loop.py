@@ -40,13 +40,10 @@ _CONTEXT_OUTPUT_LIMIT = 3000
 
 def _continuation_context(verify: VerifyResult) -> str:
     """What we feed back into the next iteration (B2 persistence)."""
-    output = verify.output
-    if len(output) > _CONTEXT_OUTPUT_LIMIT:
-        dropped = len(output) - _CONTEXT_OUTPUT_LIMIT
-        output = f"[...{dropped} earlier characters truncated...]\n{output[-_CONTEXT_OUTPUT_LIMIT:]}"
     return (
         f"The verification still reports {verify.short()}. Output below — address "
-        f"the specific failures, do not paper over them:\n\n{output}"
+        f"the specific failures, do not paper over them:\n\n"
+        f"{verify.context_output(_CONTEXT_OUTPUT_LIMIT)}"
     )
 
 

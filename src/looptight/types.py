@@ -57,6 +57,16 @@ class VerifyResult:
             return f"{label} (score {self.score:g})"
         return label
 
+    def context_output(self, limit: int) -> str:
+        """The output to feed back to the agent on a continuation: the last ``limit``
+        characters, prefixed with a truncation marker when earlier output was dropped
+        so a partial tail is never mistaken for the whole. Shared by the run loop and
+        the stop hook so the two continuation contexts cannot drift."""
+        if len(self.output) <= limit:
+            return self.output
+        dropped = len(self.output) - limit
+        return f"[...{dropped} earlier characters truncated...]\n{self.output[-limit:]}"
+
 
 @dataclass(frozen=True)
 class IterationResult:

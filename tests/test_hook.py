@@ -7,12 +7,26 @@ import json
 from looptight.config import Config, write_config
 from looptight.hook import (
     HookDecision,
+    continuation_reason,
     decide,
     read_count,
     run_hook,
     write_count,
 )
 from looptight.types import VerifyResult
+
+
+def test_continuation_reason_marks_truncated_verify_output():
+    # A huge verify output is fed back to the agent on every continuation; it is
+    # truncated to a tail, but must be MARKED (like the run loop's continuation
+    # context), or the agent mistakes a partial tail for the whole verify output.
+    long_reason = continuation_reason(VerifyResult(passed=False, exit_code=1, output="E" * 9000))
+    assert "truncated" in long_reason, "truncation of verify output was not marked"
+    assert len(long_reason) < 4000, "continuation reason is not bounded"
+    # A short output is included whole, with no spurious marker.
+    short_reason = continuation_reason(VerifyResult(passed=False, exit_code=1, output="one failure"))
+    assert "truncated" not in short_reason
+    assert "one failure" in short_reason
 
 
 def _fail(output: str = "1 failing test") -> VerifyResult:
