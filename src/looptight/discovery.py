@@ -265,6 +265,17 @@ def _js_comments(path: Path):
             yield lineno, body
 
 
+#: Cap the extracted marker text so a TODO on a minified/generated/pasted long line
+#: cannot become a multi-hundred-KB task that floods host-agent context (the same
+#: leanness `next --json` trimming protects). The location still pinpoints the line.
+_MAX_MARKER_TEXT = 200
+
+
+def _bound(text: str) -> str:
+    """Truncate overlong extracted text to a sane length with an ellipsis."""
+    return text if len(text) <= _MAX_MARKER_TEXT else text[:_MAX_MARKER_TEXT].rstrip() + "…"
+
+
 def _todo_candidate(root: Path, path: Path, lineno: int, body: str, detail: str) -> Candidate | None:
     """Build a `todo` candidate from a comment body, or None if it is not a marker."""
     match = _TODO_RE.match(body.strip())
@@ -273,12 +284,12 @@ def _todo_candidate(root: Path, path: Path, lineno: int, body: str, detail: str)
     text = match.group("text").strip() or match.group(1).upper()
     location = f"{_rel(root, path)}:{lineno}"
     return Candidate(
-        title=text,
+        title=_bound(text),
         source="todo",
         location=location,
         suggested_verify=None,
         score=0.0,
-        detail=detail.strip(),
+        detail=_bound(detail.strip()),
         acceptance=f"Remove the marker at {location} and pass project verification.",
     )
 
@@ -437,7 +448,7 @@ def _js_skip_candidate(root: Path, path: Path, lineno: int, line: str) -> Candid
     name = (name_match.group("name").strip() if name_match else "") or "skipped test"
     location = f"{_rel(root, path)}:{lineno}"
     return Candidate(
-        title=f"un-skip / fix skipped test: {name}",
+        title=_bound(f"un-skip / fix skipped test: {name}"),
         source="skipped-test",
         location=location,
         suggested_verify=None,

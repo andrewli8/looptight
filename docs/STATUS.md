@@ -808,6 +808,12 @@ existing CLI session and makes no model or API calls of its own.
   who runs `init` then `next` hit a dead-end caused by init's own output. init now
   prints "Commit .looptight.toml before looptight next — it requires a clean worktree."
 
+- Discovery bounds pathologically long marker text: a `TODO`/`FIXME`/skip on a
+  minified, generated, or pasted long line no longer becomes a multi-hundred-KB task
+  that floods host-agent context (one 200k-char line had produced a 196KB `propose`).
+  `_todo_candidate` and the JS skip title truncate to 200 chars with an ellipsis via a
+  shared `_bound`; the precise location still pinpoints the line.
+
 ## Next
 
 ## Rules
