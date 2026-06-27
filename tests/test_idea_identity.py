@@ -57,3 +57,22 @@ def test_skipped_test_identity_ignores_location():
     a = _c("skipped-test", "tests/test_a.py:10", "test_retry_path")
     b = _c("skipped-test", "tests/test_b.py:99", "test_retry_path")
     assert idea_id(a) == idea_id(b)
+
+
+def test_idea_id_with_none_location_returns_nonempty_hex():
+    # _path(None) returns "" (idea_identity.py:31); idea_id must still return a
+    # valid 12-char hex string rather than raising or returning an empty string.
+    c = _c("todo", None, "handle the empty case")
+    result = idea_id(c)
+    assert len(result) == 12 and all(ch in "0123456789abcdef" for ch in result)
+
+
+def test_idea_id_generic_source_is_stable_and_distinct():
+    # An unknown source (e.g. "verify") falls through to the generic tuple
+    # (idea_identity.py:49). The identity must be stable across calls and differ
+    # from a known-source candidate with the same title.
+    a = _c("verify", "src/foo.py:1", "check output")
+    b = _c("verify", "src/foo.py:1", "check output")
+    assert idea_id(a) == idea_id(b)  # stable
+    known = _c("todo", "src/foo.py:1", "check output")
+    assert idea_id(a) != idea_id(known)  # distinct from a known-source candidate

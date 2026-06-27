@@ -822,9 +822,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `idea_identity._path(None)` and generic-source fallback have no test: `_path(location)` returns `""` when location is falsy (line 31) and an unknown source falls through to the generic tuple (line 49); neither branch is exercised, so a regression in either could silently corrupt idea identity for future source types or `location=None` candidates. Evidence: `src/looptight/idea_identity.py:31`; Acceptance: two new tests in `tests/test_idea_identity.py` assert a `location=None` candidate returns a non-empty `idea_id` and an unknown source (e.g., `"verify"`) returns a distinct, stable `idea_id`, then `looptight verify --json` returns `pass`.
-
-4. `settings._load` non-dict JSON guard has no test: `_load` raises `ValueError` when a settings file contains valid JSON that is not a dict (line 37: `raise ValueError("...does not contain a JSON object...")`), but no test exercises this guard, so a regression could silently corrupt a user's settings.json by overwriting a non-dict file. Evidence: `src/looptight/settings.py:37`; Acceptance: `test_install_refuses_non_dict_json_settings_file` in `tests/test_settings.py` writes `[]` to a settings.json and asserts `install(path)` raises `ValueError` whose message mentions "JSON object", then `looptight verify --json` returns `pass`.
+1. `settings._load` non-dict JSON guard has no test: `_load` raises `ValueError` when a settings file contains valid JSON that is not a dict (line 37: `raise ValueError("...does not contain a JSON object...")`), but no test exercises this guard, so a regression could silently corrupt a user's settings.json by overwriting a non-dict file. Evidence: `src/looptight/settings.py:37`; Acceptance: `test_install_refuses_non_dict_json_settings_file` in `tests/test_settings.py` writes `[]` to a settings.json and asserts `install(path)` raises `ValueError` whose message mentions "JSON object", then `looptight verify --json` returns `pass`.
 
 ## Rules
 
