@@ -917,6 +917,35 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_normalize_failure`'s hex-address branch is untested: `_HEX_ADDR_RE.sub("0xADDR", ...)` at
+   `src/looptight/metacog.py:112` replaces patterns like `0xDEADBEEF` — and `_IN_SECONDS_RE` at
+   line 113 replaces "in 1.5ms" forms — but no test calls `_normalize_failure` directly with a
+   hex address or an "in Ns" string. The only existing test (`test_normalize_merges_failures_differing_only_by_duration`)
+   exercises only the `_DURATION_RE` path indirectly through `_failure_lines`.
+   Evidence: src/looptight/metacog.py:112;
+   Acceptance: a new test imports `_normalize_failure` directly and asserts `"0xADDR"` appears
+   when the input contains a hex literal, and a second assertion verifies `_IN_SECONDS_RE`
+   normalizes an "in 2ms" fragment.
+
+2. `_is_ancestor()`'s empty-string early-return guards are untested: the two `if not sha or
+   not tip: return False` branches at `src/looptight/integration_queue.py:357-358` are never
+   exercised — existing tests reach `_is_ancestor` only through `Publisher` integration paths
+   that always supply non-empty SHAs.
+   Evidence: src/looptight/integration_queue.py:357;
+   Acceptance: a new test calls `_is_ancestor(tmp_path, "", "abc")` and `_is_ancestor(tmp_path,
+   "abc", "")` and asserts both return `False` without invoking git.
+
+3. `experience.py`'s `_git()` omits `GIT_TERMINAL_PROMPT=0`: the equivalent helper in
+   `src/looptight/integration_queue.py:68` and `src/looptight/swarm.py:208` both set
+   `GIT_TERMINAL_PROMPT=0` via a shared `_git_env()` to prevent credential-prompt hangs in
+   headless mode, but `src/looptight/experience.py:26` calls `subprocess.run` with no env
+   override, so a network git op from the experience module can hang indefinitely waiting
+   for terminal input.
+   Evidence: src/looptight/experience.py:26;
+   Acceptance: `experience.py`'s `_git()` passes `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}`
+   to `subprocess.run`, and a new test monkeypatching `subprocess.run` asserts the env dict
+   contains `GIT_TERMINAL_PROMPT` equal to `"0"`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
