@@ -226,3 +226,17 @@ def test_render_config_includes_verify_tasks_and_direct_main():
     assert 'verify = "npm test"' in text
     assert 'tasks = ["TODO.md", "docs/STATUS.md"]' in text
     assert "direct_main = true" in text
+
+
+def test_write_config_is_atomic(tmp_path, monkeypatch):
+    # An interrupted write must leave no partial `.looptight.toml` (and no `.tmp`),
+    # so a re-run of `init` -- which refuses to overwrite an existing file -- is not
+    # left stuck with a corrupt config.
+    def boom(*args, **kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr("looptight.fsutil.os.replace", boom)
+    with pytest.raises(OSError):
+        write_config(Config(verify="true"), tmp_path)
+    assert not (tmp_path / CONFIG_NAME).exists()
+    assert not (tmp_path / CONFIG_NAME).with_suffix(".tmp").exists()

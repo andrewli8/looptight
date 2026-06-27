@@ -13,6 +13,8 @@ import tomllib
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+from .fsutil import atomic_write_text
+
 CONFIG_NAME = ".looptight.toml"
 
 
@@ -154,7 +156,12 @@ def _toml_string(value: str) -> str:
 
 
 def write_config(config: Config, directory: Path | None = None) -> Path:
-    """Write ``.looptight.toml`` into ``directory`` (default cwd). Returns the path."""
+    """Write ``.looptight.toml`` into ``directory`` (default cwd). Returns the path.
+
+    Atomic, like the other user-file writers (goal, ui, settings): an interrupted
+    write must not leave a partial config behind — `init` refuses to overwrite an
+    existing file, so a half-written one would otherwise strand the user.
+    """
     target = (directory or Path.cwd()) / CONFIG_NAME
-    target.write_text(render_config(config), encoding="utf-8")
+    atomic_write_text(target, render_config(config))
     return target
