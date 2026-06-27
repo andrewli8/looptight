@@ -919,17 +919,15 @@ existing CLI session and makes no model or API calls of its own.
   and `test_normalize_failure_normalizes_in_seconds_fragment` asserts "in 2ms" becomes "in Ns"
   — the two regex paths previously untested directly (`metacog.py:112-113`).
 
+- `_is_ancestor()`'s empty-string early-return guards are now covered:
+  `test_is_ancestor_returns_false_on_empty_sha` calls `_is_ancestor(tmp_path, "", "abc")` and
+  `_is_ancestor(tmp_path, "abc", "")`, asserts both return `False`, and asserts git was never
+  invoked — covering the two `if not sha or not tip: return False` branches at
+  `integration_queue.py:357-358`.
+
 ## Next
 
-1. `_is_ancestor()`'s empty-string early-return guards are untested: the two `if not sha or
-   not tip: return False` branches at `src/looptight/integration_queue.py:357-358` are never
-   exercised — existing tests reach `_is_ancestor` only through `Publisher` integration paths
-   that always supply non-empty SHAs.
-   Evidence: src/looptight/integration_queue.py:357;
-   Acceptance: a new test calls `_is_ancestor(tmp_path, "", "abc")` and `_is_ancestor(tmp_path,
-   "abc", "")` and asserts both return `False` without invoking git.
-
-2. `experience.py`'s `_git()` omits `GIT_TERMINAL_PROMPT=0`: the equivalent helper in
+1. `experience.py`'s `_git()` omits `GIT_TERMINAL_PROMPT=0`: the equivalent helper in
    `src/looptight/integration_queue.py:68` and `src/looptight/swarm.py:208` both set
    `GIT_TERMINAL_PROMPT=0` via a shared `_git_env()` to prevent credential-prompt hangs in
    headless mode, but `src/looptight/experience.py:26` calls `subprocess.run` with no env

@@ -14,6 +14,7 @@ from looptight.integration_queue import (
     IntegrationLock,
     Integrator,
     Publisher,
+    _is_ancestor,
     git_common_dir,
     integration_worktree,
     prepare_integration_worktree,
@@ -410,3 +411,18 @@ def test_git_runs_non_interactively(tmp_path, monkeypatch):
     monkeypatch.setattr(iq.subprocess, "run", fake_run)
     iq._git(tmp_path, "status")
     assert captured["env"]["GIT_TERMINAL_PROMPT"] == "0"
+
+
+def test_is_ancestor_returns_false_on_empty_sha(tmp_path, monkeypatch):
+    import looptight.integration_queue as iq
+
+    called = []
+
+    def fake_git(*args, **kwargs):
+        called.append(args)
+        return subprocess.CompletedProcess([], 0, "", "")
+
+    monkeypatch.setattr(iq, "_git", fake_git)
+    assert _is_ancestor(tmp_path, "", "abc") is False
+    assert _is_ancestor(tmp_path, "abc", "") is False
+    assert called == [], "git must not be invoked when either SHA is empty"
