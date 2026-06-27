@@ -29,6 +29,7 @@ from .limits import (
 from .coordinator import Coordinator
 from .integration_queue import (
     _GIT_IDENTITY,
+    _git_env,
     CoordinationTimeout,
     IntegrationLock,
     Integrator,
@@ -201,7 +202,12 @@ def _result(root: Path, result: SwarmResult) -> SwarmResult:
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     try:
         return subprocess.run(
-            ["git", *_GIT_IDENTITY, *args], cwd=root, capture_output=True, text=True, check=False
+            ["git", *_GIT_IDENTITY, *args],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            check=False,
+            env=_git_env(),
         )
     except OSError as exc:
         return subprocess.CompletedProcess(["git", *args], 127, "", str(exc))

@@ -798,18 +798,12 @@ existing CLI session and makes no model or API calls of its own.
   file is treated as not-current and rewritten rather than crashing with an uncaught
   `UnicodeDecodeError`. Matches the non-UTF-8 handling used by the other readers.
 
-## Next
+- Git network ops run non-interactively: `integration_queue._git` (push/fetch) and
+  `swarm._git` (push) now run git with `GIT_TERMINAL_PROMPT=0` via a shared `_git_env()`,
+  so a headless run can never hang on a credential prompt — a would-be hang becomes a
+  fast failure the queue reports and retries. Credential helpers still work.
 
-1. The integration/publication git helper can hang a headless run on a credential
-   prompt. `integration_queue._git` runs git with no `GIT_TERMINAL_PROMPT`, so a
-   `git push`/`fetch` to a remote needing credentials prompts and hangs forever in a
-   non-interactive context — defeating the daemon's unattended 24/7 purpose. Run git
-   with `GIT_TERMINAL_PROMPT=0` so it fails fast (the failure is then reported/retried)
-   instead of hanging.
-   Evidence: `src/looptight/integration_queue.py:52`
-   Acceptance: a new test in `tests/test_integration_queue.py` captures the env passed
-   to `subprocess.run` and asserts `GIT_TERMINAL_PROMPT=0`; existing git behavior is
-   unchanged, and `looptight verify` passes.
+## Next
 
 ## Rules
 

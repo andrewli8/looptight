@@ -394,3 +394,19 @@ def test_reconcile_ref_advance_is_a_cas_against_a_racing_advance(tmp_path):
     assert db.integration(integration_id).state != "complete"
     # The racing commit was not overwritten.
     assert _git(repo, "rev-parse", "refs/heads/main").stdout.strip() == racing
+
+
+def test_git_runs_non_interactively(tmp_path, monkeypatch):
+    # A headless push/fetch must never block on a credential prompt: _git sets
+    # GIT_TERMINAL_PROMPT=0 so git fails fast instead of hanging for input.
+    import looptight.integration_queue as iq
+
+    captured = {}
+
+    def fake_run(cmd, **kwargs):
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setattr(iq.subprocess, "run", fake_run)
+    iq._git(tmp_path, "status")
+    assert captured["env"]["GIT_TERMINAL_PROMPT"] == "0"

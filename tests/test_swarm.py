@@ -1082,3 +1082,19 @@ def test_remove_worker_worktree_force_removes_dir_with_untracked_files(tmp_path)
     result = swarm._remove_worker_worktree(root, worktree)
     assert result.returncode == 0
     assert not worktree.exists()
+
+
+def test_swarm_git_runs_non_interactively(tmp_path, monkeypatch):
+    # swarm._git pushes directly; like the integration helper it must be
+    # non-interactive so a credential-needing push fails fast instead of hanging.
+    import looptight.swarm as sw
+
+    captured = {}
+
+    def fake_run(cmd, **kwargs):
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setattr(sw.subprocess, "run", fake_run)
+    sw._git(tmp_path, "status")
+    assert captured["env"]["GIT_TERMINAL_PROMPT"] == "0"

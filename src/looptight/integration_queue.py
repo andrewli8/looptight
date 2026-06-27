@@ -49,10 +49,24 @@ class IntegrationError(Exception):
 _GIT_IDENTITY = ("-c", "user.name=looptight", "-c", "user.email=looptight@localhost")
 
 
+def _git_env() -> dict[str, str]:
+    """Environment for git subprocesses: non-interactive so a network op (push,
+    fetch) can never block on a credential prompt in a headless run — the daemon's
+    whole purpose is unattended operation. Credential helpers still work; only the
+    interactive terminal-prompt fallback is disabled, turning a would-be hang into a
+    fast failure the queue can report and retry."""
+    return {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
+
+
 def _git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     try:
         return subprocess.run(
-            ["git", *_GIT_IDENTITY, *args], cwd=str(root), capture_output=True, text=True, check=False
+            ["git", *_GIT_IDENTITY, *args],
+            cwd=str(root),
+            capture_output=True,
+            text=True,
+            check=False,
+            env=_git_env(),
         )
     except OSError as exc:
         return subprocess.CompletedProcess(["git", *args], 127, "", str(exc))
