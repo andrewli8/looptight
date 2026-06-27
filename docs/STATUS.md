@@ -932,6 +932,41 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `checkpoint._git()` lacks `GIT_TERMINAL_PROMPT=0`: the `_git` helpers in
+   `src/looptight/integration_queue.py:68` and `src/looptight/swarm.py:210` both set
+   `GIT_TERMINAL_PROMPT=0` via `_git_env()`, and `experience.py:27` was just fixed to match,
+   but `src/looptight/checkpoint.py:22` still calls `subprocess.run` without an env override
+   — an inconsistency that will bite if any new call in checkpoint adds a remote fetch.
+   Evidence: src/looptight/checkpoint.py:22;
+   Acceptance: `checkpoint._git()` passes `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}` and
+   a new test monkeypatches `subprocess.run` (not the module-level `_git`) and asserts the env
+   dict contains `GIT_TERMINAL_PROMPT` equal to `"0"`.
+
+2. `read_goal`'s `not isinstance(data, dict)` branch is untested: `src/looptight/goal.py:60`
+   returns `None` when the goal file holds valid JSON that is not a dict (e.g. `[]` or `"str"`),
+   but the existing tests only cover absent/non-UTF-8 files and a dict with the wrong
+   `schema_version` — never a file whose JSON parses but is not a dict.
+   Evidence: src/looptight/goal.py:60;
+   Acceptance: a new test writes `[]` to `goal_path(repo)` and asserts `read_goal(repo)` returns
+   `None` without raising.
+
+3. `_has_dirty_git_worktree`'s non-zero-returncode path is untested: `src/looptight/tasks.py:90`
+   returns `False` when `result.returncode != 0` (e.g., `git status` exits 128 in a non-repo
+   directory), but the only test covers the `OSError` branch — the exit-128 path
+   (False via the `returncode == 0` short-circuit) is never exercised.
+   Evidence: src/looptight/tasks.py:90;
+   Acceptance: a new test monkeypatches `subprocess.run` to return
+   `CompletedProcess(..., returncode=128, stdout="", stderr="not a git repo")` and asserts
+   `_has_dirty_git_worktree` returns `False`.
+
+4. `cmd_statusline`'s `project_dir` fallback is untested: `src/looptight/commands.py:551`
+   uses `workspace.get("project_dir")` when `current_dir` is absent, but the only existing
+   test passes `{"workspace": {"current_dir": ...}}` — the `project_dir` branch is never
+   exercised, so a regression removing it would go undetected.
+   Evidence: src/looptight/commands.py:551;
+   Acceptance: a new test passes `{"workspace": {"project_dir": str(tmp_path)}}` on stdin
+   (no `current_dir`) and asserts that `statusline` reads state from `tmp_path` correctly.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
