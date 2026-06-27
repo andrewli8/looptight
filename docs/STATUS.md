@@ -901,24 +901,22 @@ existing CLI session and makes no model or API calls of its own.
   `test_rank_with_model_unknown_source_scores_zero` creates a `Candidate` with
   `source="mystery"` and asserts `rank_with_model([c], Model())[0].score == 0.0` — the
   `.get(c.source, 0)` default combined with `reweight_factor` path.
+- `reweight_factor()`'s equal-split midpoint (`experience.py:105`) is covered:
+  `test_reweight_factor_equal_split_returns_midpoint` calls `reweight_factor("lint",
+  Model(category_landed={"lint": 1}, category_failed={"lint": 1}), lo=0.5, hi=1.5)` and
+  asserts the result equals `1.0` — the `rate=0.5` path previously exercised only at
+  extremes.
 
 ## Next
 
-1. `reweight_factor()`'s equal-split midpoint in `experience.py:105` is untested: current tests
-   cover all-failed (`rate=0` → `lo`) and all-landed (`rate=1` → `hi`), but not the 50/50 case
-   where `landed == failed` yields `rate=0.5` and the formula returns exactly the midpoint.
-   Evidence: src/looptight/experience.py:105;
-   Acceptance: a new test calls `reweight_factor("lint", Model(category_landed={"lint": 1},
-   category_failed={"lint": 1}), lo=0.5, hi=1.5)` and asserts the result equals `1.0`.
-
-2. `_recipe_runner()`'s `except (OSError, ValueError): return None` branch in `detect.py:125`
+1. `_recipe_runner()`'s `except (OSError, ValueError): return None` branch in `detect.py:125`
    is tested for Makefile but not justfile: `test_detect_verify_non_utf8_makefile_falls_through`
    covers the Makefile path; an analog for justfile is missing.
    Evidence: src/looptight/detect.py:125;
    Acceptance: a new test writes a `justfile` with non-UTF-8 bytes, calls `detect_verify`,
    and asserts the result is `None`.
 
-3. `persistent_from_sets([])`'s empty-list guard in `metacog.py:138` is untested: every call
+2. `persistent_from_sets([])`'s empty-list guard in `metacog.py:138` is untested: every call
    to `persistent_from_sets` (via `persistent_failures`) passes a nonempty list; the
    `if not failure_sets: return (), True` guard at line 138 is never reached.
    Evidence: src/looptight/metacog.py:138;

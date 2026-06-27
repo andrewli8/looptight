@@ -73,6 +73,11 @@ def test_reweight_clamped_and_neutral_without_data():
     assert reweight_factor("lint", m2, lo=0.5, hi=1.5) == 1.5
 
 
+def test_reweight_factor_equal_split_returns_midpoint():
+    m = Model(category_landed={"lint": 1}, category_failed={"lint": 1})
+    assert reweight_factor("lint", m, lo=0.5, hi=1.5) == 1.0
+
+
 def test_summary_text_bounded_and_empty_when_no_data():
     assert summary_text(Model()) == ""
     m = Model(landed={"a": 3, "b": 1}, failed={"x": 2})
