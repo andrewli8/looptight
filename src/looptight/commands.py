@@ -92,6 +92,11 @@ def cmd_init(args: argparse.Namespace, console: Console) -> int:
             console.print(f"Agent: [cyan]{agent}[/cyan] ({source}).")
         else:
             console.print("[yellow]No coding agent found on PATH (claude / codex / opencode).[/yellow]")
+        console.print()
+        console.print(
+            f"Commit [cyan]{path.name}[/cyan] before [bold]looptight next[/bold] — "
+            "it requires a clean worktree."
+        )
 
     if args.integrate:
         changed = install_session_instructions(workdir)

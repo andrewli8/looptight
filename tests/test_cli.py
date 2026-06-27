@@ -30,6 +30,18 @@ def test_init_writes_config(tmp_path, monkeypatch):
     assert 'verify = "pytest -q"' in text
 
 
+def test_init_guides_committing_the_config_before_next(tmp_path, monkeypatch, capsys):
+    # init writes an untracked .looptight.toml; the documented next step `next`
+    # refuses a dirty worktree, so a first-run user who runs init then next hits a
+    # dead-end caused by init's own output. init must guide them to commit it.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n")
+    assert main(["init"]) == 0
+    out = capsys.readouterr().out.lower()
+    assert "commit" in out, "init does not tell the user to commit the new config"
+    assert ".looptight.toml" in out
+
+
 def test_init_message_is_consistent_when_verify_undetected(tmp_path, monkeypatch, capsys):
     # render_config writes a `pytest -q` default even when nothing is detected, so
     # the message must not contradict it ("set verify" as if unset while the file

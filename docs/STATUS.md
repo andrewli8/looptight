@@ -803,6 +803,11 @@ existing CLI session and makes no model or API calls of its own.
   so a headless run can never hang on a credential prompt — a would-be hang becomes a
   fast failure the queue reports and retries. Credential helpers still work.
 
+- `init` guides committing the new config: it writes an untracked `.looptight.toml`,
+  and the documented next step `next` refuses a dirty worktree — so a first-run user
+  who runs `init` then `next` hit a dead-end caused by init's own output. init now
+  prints "Commit .looptight.toml before looptight next — it requires a clean worktree."
+
 ## Next
 
 ## Rules
