@@ -867,6 +867,47 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `VerifyResult.context_output` has no direct unit tests: the shared truncation contract
+   (types.py:60-68) is exercised only through `_continuation_context` in test_loop.py and
+   `continuation_reason` in test_hook.py, so a regression in the method itself would not be
+   caught at the unit level. The sibling coverage pattern: `_continuation_context` has two
+   direct tests (test_loop.py:215-230) proving the shared interface; `context_output` needs the
+   same.
+   Evidence: src/looptight/types.py:60;
+   Acceptance: `test_context_output_passthrough_and_truncation_marker` in tests/test_verify.py
+   (or tests/test_summary.py) asserts the short path returns the full text and the long path
+   returns a `[...N earlier characters truncated...]`-prefixed tail.
+
+2. `_not_ignored` in discovery.py does not have a `TimeoutExpired` regression test: the
+   `except (OSError, subprocess.TimeoutExpired): return paths` clause at discovery.py:106
+   has its `OSError` branch covered by `test_not_ignored_falls_through_on_git_oserror`
+   (tests/test_propose.py:588) but the `TimeoutExpired` arm is absent. Sibling: `from_lint`'s
+   own `TimeoutExpired` branch is directly tested (tests/test_propose.py:788).
+   Evidence: src/looptight/discovery.py:106;
+   Acceptance: a new `test_not_ignored_falls_through_on_timeout` in tests/test_propose.py
+   monkeypatches `discovery.subprocess.run` to raise `TimeoutExpired` and asserts
+   `_not_ignored` returns all input paths unchanged.
+
+3. `_has_dirty_git_worktree` OSError path is untested: the `except OSError: return False`
+   branch at tasks.py:88 is never exercised by any test; the function is covered only through
+   CLI integration tests (tests/test_cli.py:564). Sibling: `Checkpointer._git` OSError is
+   tested directly in `test_checkpointer_is_a_noop_when_git_cannot_launch`
+   (tests/test_checkpoint.py:80).
+   Evidence: src/looptight/tasks.py:88;
+   Acceptance: a new `test_has_dirty_git_worktree_returns_false_on_oserror` in tests/test_tasks.py
+   monkeypatches `tasks.subprocess.run` to raise `OSError` and asserts the function returns
+   `False`.
+
+4. `Checkpointer.restore()` enabled+no-snapshots path is untested: when `self.enabled` is True
+   but `self.snapshots` is empty and no sha is passed, `restore` returns `False` via
+   `if not target` (checkpoint.py:91). The existing tests cover `enabled=False` noop
+   (test_checkpoint.py:73, 80) and the `sha` passed explicitly (test_checkpoint.py:59) but not
+   the "enabled, no snapshots, no sha" case.
+   Evidence: src/looptight/checkpoint.py:86;
+   Acceptance: a new `test_restore_returns_false_when_enabled_but_no_snapshots` in
+   tests/test_checkpoint.py sets up a real git repo, creates a `Checkpointer` (enabled), and
+   asserts `restore()` returns `False` without raising.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
