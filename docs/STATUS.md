@@ -913,14 +913,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `VerifyResult.short()` scored branch is untested: the `if self.score is not None`
-   path at types.py:56 (which emits `"PASS (score 0.85)"`) is never exercised by any
-   test; every `VerifyResult` in the suite omits `score`.
-   Evidence: src/looptight/types.py:56;
-   Acceptance: a new test calls `VerifyResult(passed=True, exit_code=0, score=0.85).short()`
-   and asserts the result is `"PASS (score 0.85)"`.
-
-2. `_summarize("no_progress", total>0, persisted=True)` is untested: the combination
+1. `_summarize("no_progress", total>0, persisted=True)` is untested: the combination
    that produces "Improved, then stalled … N failure(s) never cleared." is never
    exercised — existing tests cover `("escalated", persisted=True)` and
    `("no_progress", persisted=False)` but not this fourth combination.

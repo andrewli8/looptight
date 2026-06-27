@@ -178,3 +178,8 @@ def test_context_output_passthrough_and_truncation_marker():
     # Output exactly at the limit — passthrough (no off-by-one).
     exact = "Z" * 10
     assert VerifyResult(passed=True, exit_code=0, output=exact).context_output(10) == exact
+
+
+def test_short_includes_score_when_present():
+    assert VerifyResult(passed=True, exit_code=0, score=0.85).short() == "PASS (score 0.85)"
+    assert VerifyResult(passed=False, exit_code=1, score=0.0).short() == "FAIL (score 0)"
