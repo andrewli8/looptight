@@ -838,6 +838,12 @@ existing CLI session and makes no model or API calls of its own.
   continuation context, which marks it. Both now share `VerifyResult.context_output`,
   fixing the hook and removing the drifted second copy of the truncation logic.
 
+- `detect_verify` recognizes JVM projects: `build.gradle`/`build.gradle.kts` →
+  `gradle test` and `pom.xml` → `mvn test`, preferring a committed wrapper
+  (`./gradlew test` / `./mvnw test`) when present — the version-pinned, no-global-
+  install way these tools standardly run. The dominant JVM ecosystem previously fell
+  back to the wrong `pytest -q` default at init. Covered by tests in test_detect.py.
+
 ## Next
 
 1. `settings._load` non-dict JSON guard has no test: `_load` raises `ValueError` when a settings file contains valid JSON that is not a dict (line 37: `raise ValueError("...does not contain a JSON object...")`), but no test exercises this guard, so a regression could silently corrupt a user's settings.json by overwriting a non-dict file. Evidence: `src/looptight/settings.py:37`; Acceptance: `test_install_refuses_non_dict_json_settings_file` in `tests/test_settings.py` writes `[]` to a settings.json and asserts `install(path)` raises `ValueError` whose message mentions "JSON object", then `looptight verify --json` returns `pass`.

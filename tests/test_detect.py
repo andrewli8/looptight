@@ -27,6 +27,28 @@ def test_detect_verify_deno_jsonc(tmp_path):
     assert detect.detect_verify(tmp_path) == "deno test"
 
 
+def test_detect_verify_gradle_prefers_wrapper(tmp_path):
+    # JVM projects (Gradle/Maven) are a top ecosystem; detect must not fall back to
+    # the pytest default for them. The committed wrapper is preferred when present
+    # (version-pinned, needs no global install), else the bare tool on PATH.
+    (tmp_path / "build.gradle").write_text("plugins { id 'java' }\n")
+    assert detect.detect_verify(tmp_path) == "gradle test"
+    (tmp_path / "gradlew").write_text("#!/bin/sh\n")
+    assert detect.detect_verify(tmp_path) == "./gradlew test"
+
+
+def test_detect_verify_gradle_kotlin_dsl(tmp_path):
+    (tmp_path / "build.gradle.kts").write_text('plugins { kotlin("jvm") }\n')
+    assert detect.detect_verify(tmp_path) == "gradle test"
+
+
+def test_detect_verify_maven_prefers_wrapper(tmp_path):
+    (tmp_path / "pom.xml").write_text("<project></project>\n")
+    assert detect.detect_verify(tmp_path) == "mvn test"
+    (tmp_path / "mvnw").write_text("#!/bin/sh\n")
+    assert detect.detect_verify(tmp_path) == "./mvnw test"
+
+
 def test_detect_verify_makefile_check_target(tmp_path):
     # `make check` (GNU/autotools, and a common "run all checks" target) is detected
     # as a fallback after `make test`; near-miss target names do not match.

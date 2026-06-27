@@ -76,6 +76,15 @@ def detect_verify(root: Path | None = None) -> str | None:
         if (base / marker).is_file():
             return command
 
+    # JVM build tools standardly ship a committed wrapper (gradlew/mvnw) that is
+    # version-pinned and needs no global install — the CI-standard way to run them —
+    # so prefer it when present, else the bare tool on PATH (like the npm branch, we
+    # avoid claiming a command that probably will not run).
+    if (base / "build.gradle").is_file() or (base / "build.gradle.kts").is_file():
+        return "./gradlew test" if (base / "gradlew").is_file() else "gradle test"
+    if (base / "pom.xml").is_file():
+        return "./mvnw test" if (base / "mvnw").is_file() else "mvn test"
+
     makefile = base / "Makefile"
     if makefile.is_file():
         runner = _recipe_runner(makefile, "make")
