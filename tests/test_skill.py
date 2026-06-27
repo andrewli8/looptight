@@ -52,3 +52,17 @@ def test_init_hints_at_install_skill_under_claude_code(tmp_path, monkeypatch, ca
     monkeypatch.setattr(commands, "detect_agent", lambda *a, **k: "claude")
     assert main(["init"]) == 0
     assert "install-skill" in capsys.readouterr().out
+
+
+def test_install_skill_tolerates_non_utf8_existing_file(tmp_path, monkeypatch, capsys):
+    # A non-UTF-8 SKILL.md must not crash `install-skill`: the "already up to date"
+    # read should treat an unreadable file as not-current and rewrite, matching the
+    # (OSError, ValueError) handling used by the other readers. UnicodeDecodeError is
+    # a ValueError, not an OSError, so an `except OSError`-only guard misses it.
+    monkeypatch.setenv("HOME", str(tmp_path))
+    path = skill_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"\xff\xfe not valid utf-8")
+
+    assert main(["install-skill"]) == 0  # must not raise
+    assert path.read_text(encoding="utf-8") == SKILL_MD  # rewritten cleanly

@@ -576,7 +576,9 @@ def cmd_install_skill(args: argparse.Namespace, console: Console) -> int:
     if path.is_file():
         try:
             already_current = path.read_text(encoding="utf-8") == SKILL_MD
-        except OSError:
+        except (OSError, ValueError):
+            # ValueError covers a non-UTF-8 file's UnicodeDecodeError: an unreadable
+            # existing skill is simply treated as not-current and rewritten.
             already_current = False
     install_skill()  # always (re)write so an upgraded package refreshes the file
     if already_current:

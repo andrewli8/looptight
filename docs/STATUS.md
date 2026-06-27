@@ -793,18 +793,12 @@ existing CLI session and makes no model or API calls of its own.
   (which `init` would otherwise refuse to overwrite, stranding the user). Covered by a
   failed-`os.replace` test that asserts no `.looptight.toml`/`.tmp` remains.
 
-## Next
+- `install-skill` tolerates a non-UTF-8 existing `SKILL.md`: the "already up to date"
+  read now catches `(OSError, ValueError)` instead of only `OSError`, so an unreadable
+  file is treated as not-current and rewritten rather than crashing with an uncaught
+  `UnicodeDecodeError`. Matches the non-UTF-8 handling used by the other readers.
 
-1. `cmd_install_skill`'s "already up to date" check catches only `OSError`, so a
-   non-UTF-8 `SKILL.md` crashes `install-skill` with an uncaught `UnicodeDecodeError`
-   (a `ValueError`, not an `OSError`). Every other read in the non-UTF-8 sweep
-   (`claims._read`, `trajectory._read`, `detect`, ...) catches `(OSError, ValueError)`;
-   this one was missed. Widen the except to match.
-   Evidence: `src/looptight/commands.py:578`
-   Acceptance: a new test in `tests/test_skill.py` (or `test_cli.py`) points
-   `skill_path` at a non-UTF-8 file and asserts `install-skill` does not raise (it
-   treats the unreadable file as not-current and rewrites); existing behavior is
-   unchanged, and `looptight verify` passes.
+## Next
 
 ## Rules
 
