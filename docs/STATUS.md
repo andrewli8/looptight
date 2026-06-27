@@ -826,6 +826,12 @@ existing CLI session and makes no model or API calls of its own.
   the lone goal action not honoring `--json`. It now prints a JSON verdict
   (`status`: done/pending/no_goal/no_done_check) while preserving the exit code.
 
+- The goal done-check no longer pollutes `--json`: `run_done_check` ran the predicate
+  without capturing its output, so a done-check that prints to stdout (test runners,
+  grep, make — common) leaked into looptight's own stdout and corrupted `goal check
+  --json` / `goal next --json`. The command is now run with `capture_output=True`
+  (only its exit code matters), keeping looptight's stdout clean.
+
 ## Next
 
 1. `settings._load` non-dict JSON guard has no test: `_load` raises `ValueError` when a settings file contains valid JSON that is not a dict (line 37: `raise ValueError("...does not contain a JSON object...")`), but no test exercises this guard, so a regression could silently corrupt a user's settings.json by overwriting a non-dict file. Evidence: `src/looptight/settings.py:37`; Acceptance: `test_install_refuses_non_dict_json_settings_file` in `tests/test_settings.py` writes `[]` to a settings.json and asserts `install(path)` raises `ValueError` whose message mentions "JSON object", then `looptight verify --json` returns `pass`.

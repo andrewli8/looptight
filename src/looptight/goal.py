@@ -86,9 +86,17 @@ def clear_goal(workdir: Path) -> bool:
 
 
 def run_done_check(workdir: Path, command: str) -> bool:
-    """Run a goal's --done command and return True on exit 0. Makes no model call."""
+    """Run a goal's --done command and return True on exit 0. Makes no model call.
+
+    The command is a predicate: only its exit code matters, so its stdout/stderr are
+    captured and discarded. Letting them through would pollute looptight's own stdout
+    — corrupting ``goal check --json`` / ``goal next --json`` for the many done-checks
+    (test runners, grep, make) that print as they run.
+    """
     try:
-        result = subprocess.run(command, shell=True, cwd=str(workdir), check=False)
+        result = subprocess.run(
+            command, shell=True, cwd=str(workdir), check=False, capture_output=True
+        )
     except OSError:
         return False
     return result.returncode == 0

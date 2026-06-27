@@ -256,6 +256,25 @@ def test_goal_cli_check_json_emits_verdict_and_preserves_exit_code(tmp_path, mon
     assert _json.loads(capsys.readouterr().out)["status"] == "no_goal"
 
 
+def test_goal_done_check_output_does_not_pollute_json(tmp_path, monkeypatch, capfd):
+    # The done-check is an exit-code predicate; its stdout must be captured, not
+    # leaked into looptight's own stdout, or it corrupts --json output. Real
+    # done-checks (test runners, grep, make) routinely print to stdout. capfd
+    # captures fd-level so a leaking subprocess write is visible.
+    import json as _json
+
+    from looptight.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    _repo(tmp_path)
+    main(["goal", "build x", "--done", "echo NOISE_TO_STDOUT; false"])
+    capfd.readouterr()
+    assert main(["goal", "check", "--json"]) == 1
+    out = capfd.readouterr().out
+    assert "NOISE_TO_STDOUT" not in out, "done-check stdout leaked into looptight stdout"
+    assert _json.loads(out)["status"] == "pending"
+
+
 def test_goal_check_messages_misconfiguration_not_silent(tmp_path, monkeypatch, capsys):
     from looptight.cli import main
 
