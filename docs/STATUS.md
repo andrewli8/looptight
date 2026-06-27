@@ -884,6 +884,28 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_parse_relative_reset`'s unrecognized-unit fallback (`1.0`) in `limits.py:86` is untested:
+   every parametrized `test_classify_limit_parses_relative_reset` case uses a known unit
+   (`s`, `seconds`, `minutes`, `hours`), so the `.get(..., 1.0)` default branch is never hit.
+   Evidence: src/looptight/limits.py:86;
+   Acceptance: a new test in `tests/test_limits.py` calls `classify_limit` with a string like
+   `"retry after 5 fortnights"` and asserts `signal.retry_after_s == 5.0`.
+
+2. `rank()`'s unknown-source score-0 fallback in `ranking.py:43` is untested: all tests use
+   known sources (`lint`, `todo`, `task-file`, `status-next`); the `.get(c.source, 0)` default
+   branch is never exercised.
+   Evidence: src/looptight/ranking.py:43;
+   Acceptance: a new test creates a `Candidate` with `source="unknown-source"` and asserts
+   `rank([c])[0].score == 0.0`.
+
+3. `_outcome()` in `daemon.py:71-72` returns `("fault", merged)` with `merged > 0` when a
+   swarm run partially merges work before faulting; no test exercises this combination — every
+   current `REASON_ERROR` test uses the default `merged=0` via `_result(REASON_ERROR)`.
+   Evidence: src/looptight/daemon.py:71;
+   Acceptance: a new test calls `run_daemon` (or `_outcome` directly) with a `SwarmResult`
+   having `reason=REASON_ERROR` and one worker with `status="merged"`, and asserts the resulting
+   `DaemonCycle.merged == 1` and `DaemonCycle.outcome == "fault"`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
