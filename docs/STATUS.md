@@ -906,17 +906,14 @@ existing CLI session and makes no model or API calls of its own.
   Model(category_landed={"lint": 1}, category_failed={"lint": 1}), lo=0.5, hi=1.5)` and
   asserts the result equals `1.0` — the `rate=0.5` path previously exercised only at
   extremes.
+- `_recipe_runner()`'s `except (OSError, ValueError): return None` branch (`detect.py:125`)
+  is covered for justfile: `test_detect_verify_non_utf8_justfile_falls_through` writes a
+  `justfile` with non-UTF-8 bytes and asserts `detect_verify` returns `None` — the sibling
+  of the existing Makefile test, exercising the same exception path via the justfile branch.
 
 ## Next
 
-1. `_recipe_runner()`'s `except (OSError, ValueError): return None` branch in `detect.py:125`
-   is tested for Makefile but not justfile: `test_detect_verify_non_utf8_makefile_falls_through`
-   covers the Makefile path; an analog for justfile is missing.
-   Evidence: src/looptight/detect.py:125;
-   Acceptance: a new test writes a `justfile` with non-UTF-8 bytes, calls `detect_verify`,
-   and asserts the result is `None`.
-
-2. `persistent_from_sets([])`'s empty-list guard in `metacog.py:138` is untested: every call
+1. `persistent_from_sets([])`'s empty-list guard in `metacog.py:138` is untested: every call
    to `persistent_from_sets` (via `persistent_failures`) passes a nonempty list; the
    `if not failure_sets: return (), True` guard at line 138 is never reached.
    Evidence: src/looptight/metacog.py:138;

@@ -179,6 +179,13 @@ def test_detect_verify_non_utf8_makefile_falls_through(tmp_path):
     assert detect.detect_verify(tmp_path) is None
 
 
+def test_detect_verify_non_utf8_justfile_falls_through(tmp_path):
+    # A non-UTF-8 justfile exercises the same _recipe_runner exception branch as
+    # the Makefile test above, but via the justfile detection path.
+    (tmp_path / "justfile").write_bytes(b"test:\n\t\xff\xfe not utf-8\n")
+    assert detect.detect_verify(tmp_path) is None
+
+
 def test_detect_verify_makefile_ignores_test_assignment(tmp_path):
     # `test:=...` / `test::=...` are Make variable assignments, not targets, so
     # they must not be mistaken for a `make test` rule.
