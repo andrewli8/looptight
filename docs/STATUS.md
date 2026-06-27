@@ -872,18 +872,12 @@ existing CLI session and makes no model or API calls of its own.
   `test_not_ignored_falls_through_on_timeout` in tests/test_propose.py monkeypatches
   `discovery.subprocess.run` to raise `TimeoutExpired` and asserts `_not_ignored` returns all
   input paths unchanged — sibling of the existing OSError test (test_propose.py:588).
+- `_has_dirty_git_worktree`'s `OSError` branch has direct unit coverage:
+  `test_has_dirty_git_worktree_returns_false_on_oserror` in tests/test_tasks.py monkeypatches
+  `tasks.subprocess.run` to raise `OSError` and asserts the function returns `False` instead of
+  propagating the exception — sibling of `test_checkpointer_is_a_noop_when_git_cannot_launch`.
 
 ## Next
-
-3. `_has_dirty_git_worktree` OSError path is untested: the `except OSError: return False`
-   branch at tasks.py:88 is never exercised by any test; the function is covered only through
-   CLI integration tests (tests/test_cli.py:564). Sibling: `Checkpointer._git` OSError is
-   tested directly in `test_checkpointer_is_a_noop_when_git_cannot_launch`
-   (tests/test_checkpoint.py:80).
-   Evidence: src/looptight/tasks.py:88;
-   Acceptance: a new `test_has_dirty_git_worktree_returns_false_on_oserror` in tests/test_tasks.py
-   monkeypatches `tasks.subprocess.run` to raise `OSError` and asserts the function returns
-   `False`.
 
 4. `Checkpointer.restore()` enabled+no-snapshots path is untested: when `self.enabled` is True
    but `self.snapshots` is empty and no sha is passed, `restore` returns `False` via

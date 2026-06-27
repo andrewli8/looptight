@@ -5,7 +5,7 @@ from __future__ import annotations
 import subprocess
 
 from looptight.propose import Candidate
-from looptight.tasks import _summary_and_evidence, next_task
+from looptight.tasks import _has_dirty_git_worktree, _summary_and_evidence, next_task
 
 
 def _candidate(title: str, detail: str) -> Candidate:
@@ -229,3 +229,17 @@ def test_idea_directive_carries_quality_feedback(tmp_path):
     # An empty queue carries a null feedback signal, not a missing key.
     (docs / "STATUS.md").write_text("## Next\n\n_drained_\n", encoding="utf-8")
     assert _idea_directive(tmp_path)["current_quality"] is None
+
+
+def test_has_dirty_git_worktree_returns_false_on_oserror(tmp_path, monkeypatch):
+    # When the git subprocess cannot be launched (OSError), _has_dirty_git_worktree
+    # must return False rather than propagating the exception, so next_task can
+    # proceed outside environments with git on PATH.
+    import looptight.tasks as tasks_module
+
+    monkeypatch.setattr(
+        tasks_module.subprocess,
+        "run",
+        lambda *a, **kw: (_ for _ in ()).throw(OSError("git not found")),
+    )
+    assert _has_dirty_git_worktree(tmp_path) is False
