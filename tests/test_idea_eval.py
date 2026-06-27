@@ -67,6 +67,23 @@ def test_evidence_refs_strips_markdown_backticks():
     assert evidence_refs(cand) == ["src/a.py:10"]
 
 
+def test_grounding_accepts_backtick_delimited_path_with_spaces(tmp_path):
+    # A backtick-delimited anchor delimits the path unambiguously, so a space inside
+    # it is part of the path (`my src/a file.py:1`). A real grounded task whose file
+    # has a space in its path was silently dropped because the bare-token rule cut the
+    # anchor at the first space. A fabricated space-path still fails to resolve.
+    (tmp_path / "my src").mkdir()
+    (tmp_path / "my src" / "a file.py").write_text("x = 1\n")
+    real = _candidate("Spaced", "Spaced. Evidence: `my src/a file.py:1` Acceptance: x")
+    ghost = _candidate("Ghost", "Ghost. Evidence: `my src/ghost file.py:1` Acceptance: x")
+    assert evidence_refs(real) == ["my src/a file.py:1"]
+    assert is_grounded(tmp_path, real) is True
+    assert is_grounded(tmp_path, ghost) is False  # a space-path still must resolve
+    # A bare (un-delimited) anchor still ends at the first space, as before.
+    bare = _candidate("Bare", "Bare. Evidence: src/a.py:10 trailing prose Acceptance: x")
+    assert evidence_refs(bare) == ["src/a.py:10"]
+
+
 def test_is_grounded_true_only_when_every_anchor_resolves(tmp_path):
     _repo_with_files(tmp_path)
     real = _candidate("Harden a", "Harden a. Evidence: src/a.py:10; Acceptance: x")

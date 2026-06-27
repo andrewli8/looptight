@@ -25,12 +25,14 @@ __all__ = [
 ]
 
 # One path token per ``Evidence:`` marker. After the marker, skip whitespace and
-# any markdown emphasis a writer wraps the label in (``**Evidence:**``, ``*…*``,
-# a code span) before the path; otherwise the closing ``**`` is captured as the
-# anchor and the real path is missed. A path carries no spaces, so the token ends
-# at the first whitespace, ``;`` or ``,`` (which begin a following clause or
-# prose). Cite multiple files with multiple ``Evidence:`` markers, not a list.
-_EVIDENCE_RE = re.compile(r"\bEvidence:[\s*`]*([^\s;,]+)")
+# any markdown emphasis a writer wraps the label in (``**Evidence:**``, ``*…*``)
+# before the path; otherwise the closing ``**`` is captured as the anchor and the
+# real path is missed. Then take either a backtick-delimited code span — whose
+# backticks delimit the path, so a space inside it (``my src/a file.py:1``) is part
+# of the path — or, when undecorated, a bare token that ends at the first
+# whitespace, ``;`` or ``,`` (which begin a following clause or prose). Cite
+# multiple files with multiple ``Evidence:`` markers, not a list.
+_EVIDENCE_RE = re.compile(r"\bEvidence:[\s*]*(?:`([^`]+)`|([^\s;,`*]+))")
 
 
 def strip_anchor_decoration(ref: str) -> str:
@@ -48,7 +50,8 @@ def evidence_refs(text: str) -> list[str]:
     Surrounding markdown code-span backticks are stripped so the anchor is the
     bare path for every consumer (the resolver and the diversity metric alike).
     """
-    return [ref.strip("`") for ref in _EVIDENCE_RE.findall(text or "")]
+    # Each match yields (code-span, bare-token); exactly one group is populated.
+    return [(span or bare).strip("`") for span, bare in _EVIDENCE_RE.findall(text or "")]
 
 
 # A trailing position: one or more ``:N`` groups, each an optional ``-N`` range.

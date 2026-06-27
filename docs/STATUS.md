@@ -814,6 +814,12 @@ existing CLI session and makes no model or API calls of its own.
   `_todo_candidate` and the JS skip title truncate to 200 chars with an ellipsis via a
   shared `_bound`; the precise location still pinpoints the line.
 
+- The grounding gate tolerates a backtick-delimited path with spaces: an anchor like
+  `` `my src/a file.py:1` `` is delimited by its backticks, so the space is part of the
+  path. Previously the bare-token rule cut it at the first space, so a real grounded
+  status-next/task-file task whose file had a space was silently dropped as ungrounded.
+  A fabricated space-path still fails `ref_resolves`, so precision is unchanged.
+
 ## Next
 
 ## Rules
