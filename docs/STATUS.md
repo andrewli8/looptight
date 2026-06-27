@@ -790,6 +790,17 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `write_config` writes `.looptight.toml` non-atomically while every other user-file
+   writer (goal, ui, settings, trajectory, integration) uses `atomic_write_text`. An
+   interrupted `init` leaves a partial config, and because `init` refuses to overwrite
+   an existing file ("already exists -- leaving it untouched"), the user is stuck with
+   a corrupt config that `init` will not fix. `write_config` should use
+   `atomic_write_text` like its siblings.
+   Evidence: `src/looptight/config.py:163`
+   Acceptance: a new test in `tests/test_config.py` monkeypatches `os.replace` to fail
+   and asserts `write_config` raises and leaves no `.looptight.toml` and no `.tmp`
+   behind; normal writes are unchanged, and `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
