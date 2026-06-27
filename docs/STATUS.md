@@ -864,21 +864,14 @@ existing CLI session and makes no model or API calls of its own.
   (`"5"`) each raise a `ConfigError` naming the field, so a regression loosening
   `_string_list`/`_optional_int` cannot let a malformed config through silently.
   Tests in test_config.py.
+- `VerifyResult.context_output` has direct unit coverage: `test_context_output_passthrough_and_truncation_marker`
+  in tests/test_verify.py asserts the short path returns the text unchanged (no truncation
+  marker), the long path prefixes the tail with `[...N earlier characters truncated...]`, and
+  output exactly at the limit passes through without an off-by-one marker.
 
 ## Next
 
-1. `VerifyResult.context_output` has no direct unit tests: the shared truncation contract
-   (types.py:60-68) is exercised only through `_continuation_context` in test_loop.py and
-   `continuation_reason` in test_hook.py, so a regression in the method itself would not be
-   caught at the unit level. The sibling coverage pattern: `_continuation_context` has two
-   direct tests (test_loop.py:215-230) proving the shared interface; `context_output` needs the
-   same.
-   Evidence: src/looptight/types.py:60;
-   Acceptance: `test_context_output_passthrough_and_truncation_marker` in tests/test_verify.py
-   (or tests/test_summary.py) asserts the short path returns the full text and the long path
-   returns a `[...N earlier characters truncated...]`-prefixed tail.
-
-2. `_not_ignored` in discovery.py does not have a `TimeoutExpired` regression test: the
+1. `_not_ignored` in discovery.py does not have a `TimeoutExpired` regression test: the
    `except (OSError, subprocess.TimeoutExpired): return paths` clause at discovery.py:106
    has its `OSError` branch covered by `test_not_ignored_falls_through_on_git_oserror`
    (tests/test_propose.py:588) but the `TimeoutExpired` arm is absent. Sibling: `from_lint`'s

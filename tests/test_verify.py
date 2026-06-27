@@ -158,3 +158,23 @@ def test_timeout_output_with_partial_output():
 def test_timeout_output_empty_partial_has_no_leading_separator():
     result = _timeout_output("", "pytest -q", 10.0)
     assert result.startswith("verify timed out")
+
+
+def test_context_output_passthrough_and_truncation_marker():
+    # Short output — returned whole, no truncation marker added.
+    short = VerifyResult(passed=False, exit_code=1, output="one failure\n")
+    assert short.context_output(100) == "one failure\n"
+    assert "truncated" not in short.context_output(100)
+
+    # Long output — the dropped prefix is named; only the tail survives.
+    big = "A" * 30 + "B" * 10
+    result = VerifyResult(passed=False, exit_code=1, output=big)
+    out = result.context_output(10)
+    dropped = len(big) - 10
+    assert f"[...{dropped} earlier characters truncated...]" in out
+    assert out.endswith("B" * 10)
+    assert "A" not in out  # prefix is gone
+
+    # Output exactly at the limit — passthrough (no off-by-one).
+    exact = "Z" * 10
+    assert VerifyResult(passed=True, exit_code=0, output=exact).context_output(10) == exact
