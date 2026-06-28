@@ -2590,6 +2590,19 @@ def test_status_goal_line_preserves_bracket_tokens_in_the_vision(tmp_path, monke
     assert "[dim]" in capsys.readouterr().out  # the vision's token survives on the goal line
 
 
+def test_propose_location_has_no_literal_markup(tmp_path, monkeypatch, capsys):
+    # The candidate line is written verbatim (to keep user title tokens), so its location must not
+    # carry looptight [dim] markup or it shows literally as "[dim]path[/dim]".
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# TODO: handle empty input\n")
+    assert main(["propose"]) == 0
+    out = capsys.readouterr().out
+    assert "[dim]" not in out and "[/dim]" not in out  # no literal markup anywhere in the output
+    assert "src/a.py" in out  # the location is still shown (plain)
+
+
 def test_status_panel_preserves_bracket_tokens_in_a_worker_error(tmp_path, monkeypatch, capsys):
     # The panel is rendered plain text carrying user content; a worker error with a "[red]"-style
     # token must not be silently eaten by markup stripping when status prints the panel.

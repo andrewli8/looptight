@@ -238,7 +238,9 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
                     f"{int(candidate.score)})[/dim]"
                 )
                 last_source = candidate.source
-            where = f" [dim]{candidate.location}[/dim]" if candidate.location else ""
+            # Plain location (no [dim]): the line is written verbatim to keep user title tokens,
+            # so it cannot carry looptight markup — and the console renders no dim anyway.
+            where = f" {candidate.location}" if candidate.location else ""
             console.write(f"  {i}. {candidate.title}{where}")  # user title — preserve any tokens
         console.print()
         console.print(

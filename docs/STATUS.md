@@ -1938,6 +1938,11 @@ existing CLI session and makes no model or API calls of its own.
   removing either defensive guard is caught; the overlay path always degrades to idle rather than
   crashing `looptight status` / `looptight ui`.
 
+- `propose` no longer shows literal `[dim]…[/dim]` around the candidate location: the line is
+  written verbatim (to keep user title tokens), so the vestigial `[dim]` markup is dropped
+  from the location, leaving a plain `path:line`. Fixes a regression from the verbatim-print
+  change. Found by dogfooding TODO auto-discovery. Covered by a no-literal-markup test.
+
 ## Next
 
 ## Rules
