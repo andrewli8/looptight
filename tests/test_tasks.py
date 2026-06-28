@@ -277,3 +277,22 @@ def test_has_dirty_git_worktree_returns_false_on_nonzero_returncode(tmp_path, mo
         ),
     )
     assert _has_dirty_git_worktree(tmp_path) is False
+
+
+def test_has_dirty_git_worktree_sets_terminal_prompt_env(tmp_path):
+    # _has_dirty_git_worktree must pass GIT_TERMINAL_PROMPT=0 so a headless
+    # git status call cannot hang waiting for a credential prompt.
+    from unittest.mock import patch
+    import looptight.tasks as tasks_module
+
+    captured_kwargs: dict = {}
+
+    def fake_run(cmd, **kwargs):
+        captured_kwargs.update(kwargs)
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    with patch.object(tasks_module.subprocess, "run", fake_run):
+        _has_dirty_git_worktree(tmp_path)
+
+    assert "env" in captured_kwargs, "_has_dirty_git_worktree must pass an explicit env"
+    assert captured_kwargs["env"].get("GIT_TERMINAL_PROMPT") == "0"

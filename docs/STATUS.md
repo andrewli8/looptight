@@ -960,6 +960,10 @@ existing CLI session and makes no model or API calls of its own.
   (`checkpoint.py`, `integration_queue.py`, `experience.py`, `swarm.py`) so a headless run
   cannot block on a credential prompt. Covered by
   `test_not_ignored_git_sets_terminal_prompt_env` in test_propose.py.
+- `_has_dirty_git_worktree` in `tasks.py` now passes `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}`
+  to its `git status --porcelain` subprocess; `import os` added. A headless `looptight next`
+  can no longer block waiting for git credentials via this path. Covered by
+  `test_has_dirty_git_worktree_sets_terminal_prompt_env` in test_tasks.py.
 - `_rel`'s `ValueError` branch (`discovery.py:176`) is covered:
   `test_rel_returns_absolute_string_when_path_outside_root` in test_propose.py calls
   `_rel(Path("/a"), Path("/b/c.py"))` and asserts the result is `"/b/c.py"`.
