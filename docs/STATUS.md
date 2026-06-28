@@ -1533,16 +1533,11 @@ existing CLI session and makes no model or API calls of its own.
   protocol_commands.py pass `GIT_TERMINAL_PROMPT=0`, extending the non-interactive-git
   invariant to the `looptight status` path. Covered by two test_cli.py env assertions.
 
-## Next
+- `coordinator_path` (`git rev-parse --git-common-dir`) passes `GIT_TERMINAL_PROMPT=0`,
+  completing the uniform non-interactive-git invariant across the session-native call sites
+  (next/status/goal all open the coordinator). Covered by a test_coordinator.py env assertion.
 
-1. `coordinator_path` in `coordinator.py:294` calls `subprocess.run(["git", "rev-parse",
-   "--git-common-dir"], ...)` with no `env` — the same headless-blocking risk as the
-   other git calls. Fix: add `import os` and pass
-   `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}`.
-   Evidence: `src/looptight/coordinator.py:294`
-   Acceptance: a new test in test_coordinator.py monkeypatches `coordinator.subprocess.run`
-   and asserts `env["GIT_TERMINAL_PROMPT"] == "0"` — sibling of
-   `test_not_ignored_git_sets_terminal_prompt_env` in test_propose.py.
+## Next
 
 ## Rules
 

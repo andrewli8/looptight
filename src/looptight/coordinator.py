@@ -294,6 +294,7 @@ def coordinator_path(workdir: Path) -> Path | None:
         result = subprocess.run(
             ["git", "rev-parse", "--git-common-dir"],
             cwd=workdir,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
             capture_output=True,
             text=True,
             check=False,

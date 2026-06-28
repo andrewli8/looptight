@@ -64,6 +64,24 @@ def test_open_reports_a_corrupt_database_as_unavailable(tmp_path):
     assert str(path) in str(exc.value)
 
 
+def test_coordinator_path_sets_terminal_prompt_env(tmp_path):
+    # coordinator_path's `git rev-parse` must pass GIT_TERMINAL_PROMPT=0 so a headless run
+    # (next/status/goal all open the coordinator) can't block on a credential prompt.
+    from unittest.mock import patch
+
+    import looptight.coordinator as coord
+
+    captured: dict = {}
+
+    def fake_run(cmd, **kwargs):
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(cmd, 1, "", "")
+
+    with patch.object(coord.subprocess, "run", fake_run):
+        coordinator_path(tmp_path)
+    assert captured.get("env", {}).get("GIT_TERMINAL_PROMPT") == "0"
+
+
 def test_coordinator_path_is_none_outside_git(tmp_path):
     assert coordinator_path(tmp_path) is None
     assert Coordinator.open(tmp_path) is None
