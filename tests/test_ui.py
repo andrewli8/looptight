@@ -331,6 +331,19 @@ def test_tally_total_cell_is_neutral_not_the_active_color():
     assert ".stat.complete{border-top-color:var(--cyan)}" in css
 
 
+def test_accessibility_semantics_connection_label_and_focus():
+    page = ui.PAGE
+    # (a) connection status is a live region, and update() sets it only on change (no poll spam)
+    conn = page[page.index('id="connection"'):page.index('id="connection"') + 70]
+    assert 'role="status"' in conn and 'aria-live="polite"' in conn
+    assert "if(c.textContent!=='live / polling')" in page
+    assert "if(c.textContent!=='state unavailable')" in page
+    # (b) a missing status does not render the literal "undefined" in the node label
+    assert "status ${status||'unknown'}" in page
+    # (c) the filter buttons get a visible focus style like the nodes
+    assert ".filter:focus-visible{" in page
+
+
 def test_live_regions_skip_unchanged_updates():
     # The tally and inspector are aria-live="polite" regions; they must not rebuild the DOM on
     # every 1.5s poll when nothing changed, or a screen reader re-announces them continuously.

@@ -1865,21 +1865,13 @@ existing CLI session and makes no model or API calls of its own.
   a live-region change-detection test (empirical browser confirmation was blocked by browser
   flakiness this session; the logic is unit-tested and verify-gated).
 
-## Next
+- Three a11y semantics fixes: the connection status is now a `role=status aria-live=polite`
+  region whose text is set only on change, so a screen reader learns when the backend goes
+  away without per-poll spam; the node `aria-label` falls back to `status unknown` instead of
+  emitting the literal `undefined`; and the `.filter` buttons get a visible `:focus-visible`
+  outline matching the nodes. Found by the accessibility audit. Covered by a semantics test.
 
-1. Three browser-UI accessibility gaps from the a11y audit, all mechanical: (a) the connection
-   status `#connection` (`src/looptight/ui.py:339`) flips to "state unavailable" / "live / polling"
-   with no `aria-live`, so a screen reader never learns the backend went away — add
-   `role="status" aria-live="polite"` AND guard `update()` (`src/looptight/ui.py:355`) to set the
-   text only when it changes (else it would re-announce every poll like the tally did); (b) the
-   node `aria-label` (`src/looptight/ui.py:349`) emits "status undefined" for a task with no status
-   — use `status ${status||'unknown'}` to match the inspector's existing guard; (c) the `.filter`
-   buttons have only the UA default focus ring on this near-black theme — add a `.filter:focus-
-   visible` rule mirroring `.node:focus` (`src/looptight/ui.py:333`).
-   Evidence: src/looptight/ui.py:339
-   Acceptance: tests assert `#connection` has `role="status" aria-live="polite"`, that `update()`
-   guards the connection text with a change check, that the node aria-label falls back to
-   `unknown`, and that a `.filter:focus-visible` outline rule exists.
+## Next
 
 ## Rules
 
