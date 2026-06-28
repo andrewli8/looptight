@@ -1433,7 +1433,25 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-## Rules
+1. The usage.md empty-queue example shows a bare `no_work` that the default never emits.
+   Evidence: docs/usage.md:117-118 shows `looptight next --json` returning
+   `{"command": "next", "schema_version": 1, "status": "no_work", "task": null}` with no
+   `directive`, but tasks.py:190-192 returns `_idea_directive(workdir)` whenever
+   `idea_generation` is on (the default), so `as_dict` always includes a `directive` object on
+   an empty queue. The same file's prose at usage.md:182-188 and SPEC document the directive as
+   the default. Doc fix, not code: the SPEC contract is what the code emits.
+   Acceptance: diff docs/usage.md so the bare-`no_work` snippet either shows the `next --no-ideas`
+   command (whose output genuinely omits the directive) or includes the `directive` object; the
+   snippet's command and output agree. No code change.
+
+2. The usage.md `next --json` task example omits two always-present task keys.
+   Evidence: docs/usage.md:95-102 shows a complete-looking `task` object (no trailing `...`)
+   lacking `idea_id` and `suggested_verify`, but tasks.py:151,157 always include both in every
+   task payload (SPEC lists them in the `next` contract). The adjacent verify example
+   (usage.md:110) already uses a trailing `...` to mark elision.
+   Acceptance: diff docs/usage.md so the task example includes `idea_id` and `suggested_verify`
+   (or a trailing `...`), matching the always-present keys. No code change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
