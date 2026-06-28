@@ -190,7 +190,7 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
         console.print(f"No candidate tasks from source [cyan]{source}[/cyan].")
         console.print("Drop [bold]--source[/bold] to see every source.")
     elif not candidates:
-        console.print("No candidate tasks found from repo signals (clean tree).")
+        console.print("No candidate tasks found from repo signals.")
         console.print(
             "Run [bold]looptight next[/bold] to generate grounded tasks, or "
             "[bold]looptight goal \"<vision>\"[/bold] to build toward a goal."

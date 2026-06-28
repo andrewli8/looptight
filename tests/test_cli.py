@@ -2509,3 +2509,16 @@ def test_propose_source_filter_empty_is_not_clean_tree(tmp_path, monkeypatch, ca
     # The unfiltered query still surfaces the todo.
     assert main(["propose"]) == 0
     assert "real work here" in capsys.readouterr().out
+
+
+def test_propose_no_signals_does_not_claim_clean_tree(tmp_path, monkeypatch, capsys):
+    # The no-candidates message speaks to task signals, not git state, so it must not assert
+    # "(clean tree)" when the worktree has untracked files (revert reports them in place).
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / "notes.txt").write_text("just some notes, no task markers\n", encoding="utf-8")
+
+    assert main(["propose"]) == 0
+    out = capsys.readouterr().out
+    assert "No candidate tasks found from repo signals" in out  # guidance still prints
+    assert "clean tree" not in out  # the tree is not clean

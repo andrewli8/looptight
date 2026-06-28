@@ -1480,17 +1480,12 @@ existing CLI session and makes no model or API calls of its own.
   tempting because `status --json` reports a `policy` object. An unknown table with no recognized
   keys is still ignored (forward-compatible). Covered by reject + ignore tests in test_config.py.
 
-## Next
+- `propose`'s no-candidates message no longer claims "(clean tree)": the line speaks to task
+  signals, not git state, so it now reads "No candidate tasks found from repo signals." and cannot
+  mislabel a worktree with untracked files (which `revert` correctly reports in place) as clean.
+  Covered by a CLI test alongside the existing `--source` clean-tree guard.
 
-1. `propose` claims "(clean tree)" when the worktree has uncommitted/untracked files.
-   Evidence: src/looptight/protocol_commands.py:193 prints the fixed string "No candidate tasks
-   found from repo signals (clean tree)." whenever there are no candidates, without checking
-   worktree cleanliness — so a repo with untracked files (which `revert` correctly reports as
-   "N untracked file(s) left in place") is mislabeled "clean tree". Honest-signals violation.
-   Fix: drop the inaccurate "(clean tree)" parenthetical (the message is about task signals, not
-   git state), or gate it on an actual `git status --porcelain` cleanliness check.
-   Acceptance: a failing-then-passing test asserts `propose` output in a repo with an untracked
-   file and no task signals does not contain "clean tree"; the no-candidates guidance still prints.
+## Next
 
 ## Rules
 
