@@ -1627,6 +1627,19 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The Stop-hook hands-off loop (and the new `continue_through_backlog` opt-in) is undocumented.
+   Evidence: `looptight install-hook` registers a Claude Code Stop hook (src/looptight/commands.py
+   `cmd_install_hook`, src/looptight/hook.py) that runs verify-until-green and, with
+   `continue_through_backlog = true`, carries the session through the grounded backlog and refocuses
+   it on drift — but docs/usage.md mentions neither (a grep for "install-hook"/"hook" finds nothing).
+   A real user-facing feature with no docs. Fix: add a short "Hands-off loop (Stop hook)" subsection
+   to docs/usage.md after the `verify --patience` section, covering `install-hook`, the
+   verify-until-green default, and the `continue_through_backlog` opt-in (continue while grounded
+   work remains, honest stop at NO_WORK, refocus on drift) — and add the flag to the `.looptight.toml`
+   example. Keep it accurate to the code (opt-in default false; no model call).
+   Acceptance: a `test_docs.py` assertion that usage.md documents `install-hook` and
+   `continue_through_backlog`; the `.looptight.toml` example block includes the flag.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
