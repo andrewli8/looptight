@@ -625,6 +625,16 @@ def test_not_ignored_falls_through_when_path_outside_root(tmp_path):
     assert result == paths
 
 
+def test_rel_returns_absolute_string_when_path_outside_root():
+    # _rel falls back to str(path) when path.relative_to(root) raises ValueError
+    # (path is outside root) — covering discovery.py:176-177.
+    from pathlib import Path
+    import looptight.discovery as disc
+
+    result = disc._rel(Path("/a"), Path("/b/c.py"))
+    assert result == "/b/c.py"
+
+
 def test_from_task_file_rejects_paths_outside_the_repo(tmp_path):
     # A configured task_file must stay within the repo: an absolute path or a `..`
     # traversal is rejected even when the target exists with valid tasks.

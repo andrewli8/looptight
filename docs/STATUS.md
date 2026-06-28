@@ -955,17 +955,13 @@ existing CLI session and makes no model or API calls of its own.
   `test_not_ignored_falls_through_when_path_outside_root` in test_propose.py passes a
   path outside `root`, triggering `relative_to` to raise `ValueError`, and asserts
   all input paths are returned unchanged.
+- `_rel`'s `ValueError` branch (`discovery.py:176`) is covered:
+  `test_rel_returns_absolute_string_when_path_outside_root` in test_propose.py calls
+  `_rel(Path("/a"), Path("/b/c.py"))` and asserts the result is `"/b/c.py"`.
 
 ## Next
 
-1. `_rel`'s `ValueError` branch at `discovery.py:176` is untested: when `path.relative_to(root)`
-   raises `ValueError` (path outside root), `_rel` returns the absolute string form, but
-   this fallback path has no direct test.
-   Evidence: src/looptight/discovery.py:176;
-   Acceptance: a new test calls `_rel(Path("/a"), Path("/b/c.py"))` and asserts the
-   result equals `"/b/c.py"` (the absolute path string, not relative).
-
-2. `verify.py`'s `OSError` branch at `verify.py:90` is untested by a true `OSError`
+1. `verify.py`'s `OSError` branch at `verify.py:90` is untested by a true `OSError`
    injection: the existing test covers shell exit 127 (binary not found on PATH), but
    the `except OSError` clause (e.g., a `PermissionError` on the binary) is never
    reached through monkeypatching — a regression narrowing the except would go
