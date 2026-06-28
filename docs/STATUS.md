@@ -1448,6 +1448,22 @@ existing CLI session and makes no model or API calls of its own.
   yields `{"status": "error", "error": "not_git"}` and CLI exit 2. Covered by a CLI test; the
   in-Git path is unchanged.
 
+## Next
+
+1. The shipped default loop stalls on a plain Python repo: `init` writes a `pytest`-family verify
+   but no `.gitignore`, so the first `verify` run creates untracked `__pycache__/`, and the next
+   `next` then errors `dirty_worktree` (CLAUDE.md says stop on a `next` error).
+   Evidence: src/looptight/commands.py:64-99 — `cmd_init` writes `.looptight.toml` with a
+   detected/default `pytest -q` verify and never creates a `.gitignore`; the `dirty_worktree`
+   message (protocol_commands.py:248-251) already tells users to add `__pycache__` to `.gitignore`,
+   confirming this is the known failure mode. Fix: when `init` sets a Python verify (pytest/python)
+   AND no `.gitignore` exists, create a one-line `.gitignore` containing `__pycache__/` (never
+   modify an existing user `.gitignore`), and print what it did. This unblocks the out-of-box
+   pytest loop without masking real dirt or touching the dirty-worktree gate.
+   Acceptance: a failing-then-passing test asserts `init` in a fresh git repo with a Python verify
+   writes a `.gitignore` containing `__pycache__/`; a second test asserts an existing `.gitignore`
+   is left byte-for-byte unchanged. The dirty-worktree gate is unchanged.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
