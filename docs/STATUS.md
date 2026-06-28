@@ -1823,6 +1823,18 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. In goal-mode human `status` the vision prints twice: on the dedicated `goal:` line
+   (`src/looptight/protocol_commands.py:631`) and again in the `next:` action's
+   `(building: <vision>)` parenthetical (`src/looptight/protocol_commands.py:641`, action built at
+   `:528`). The JSON `next_action` naming the vision is a tested contract
+   (`tests/test_cli.py::test_status_names_an_active_goals_vision`), so keep the action string and
+   strip the redundant `(building: …)` only from the human `next:` line when a goal is active (the
+   goal line right above already shows the vision).
+   Evidence: src/looptight/protocol_commands.py:641
+   Acceptance: a new test asserts goal-mode human `status` prints the vision once (the `next:` line
+   has no `(building:` parenthetical), while `status --json` `next_action` still contains the
+   vision.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
