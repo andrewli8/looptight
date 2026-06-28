@@ -1399,6 +1399,16 @@ existing CLI session and makes no model or API calls of its own.
   planner's `status` call fails and asserts `plan_next_tasks` returns `status="failed"` carrying the
   inspection error — a git failure during planning is a clean failure, not a crash. No production change.
 
+## Next
+
+1. The planner's git-diff inspection-failure path is untested.
+   Evidence: src/looptight/swarm.py:543-547 — `plan_next_tasks` returns `PlanningResult("failed",
+   ...)` if `git diff --name-only` cannot inspect the planner worktree's diff. The status-failure
+   sibling is covered but the diff one is not.
+   Acceptance: a test in tests/test_swarm.py wraps `_git` so the planner's `diff` call fails and
+   asserts `plan_next_tasks` returns `status="failed"` carrying the diff-inspection error. No
+   production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
