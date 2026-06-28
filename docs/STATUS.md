@@ -1951,6 +1951,17 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. A typo'd top-level config key (e.g. `verfy = "true"` for `verify`) is silently ignored, so the
+   user believes they set a value that was dropped — the same footgun `_reject_misplaced_keys`
+   (`src/looptight/config.py:119`) guards against for misplaced keys, but it only handles known
+   keys nested in a table, not near-miss typos. Add a check that flags an unknown top-level scalar
+   key that is a near-match (stdlib `difflib.get_close_matches`) to a `_KNOWN_FIELDS` name, raising
+   a `ConfigError` that suggests the intended key. A genuinely-unrelated unknown key is tolerated
+   (forward-compatible). Found by dogfooding the misconfiguration journey.
+   Evidence: src/looptight/config.py:119
+   Acceptance: a test asserts a `verfy`-keyed config raises `ConfigError` naming `verify`, while a
+   config with an unrelated unknown key (not near any field) still loads.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
