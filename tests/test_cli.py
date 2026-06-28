@@ -754,6 +754,21 @@ def test_status_readiness_reports_ready_repo(tmp_path, monkeypatch, capsys):
     }
 
 
+def test_readiness_remediation_for_missing_agent():
+    # When verify/git/task_sources are healthy but no agent CLI is installed, readiness
+    # guidance must point the user at installing an agent — the lone remediation branch
+    # the status integration tests do not reach.
+    from looptight.protocol_commands import _readiness_remediation
+
+    checks = {
+        "verify": "configured",
+        "git": "clean",
+        "task_sources": "configured",
+        "agent": "missing",
+    }
+    assert _readiness_remediation(checks, "fallback") == "install a supported agent CLI"
+
+
 def test_status_readiness_reports_partial_repo_with_remediation(
     tmp_path, monkeypatch, capsys
 ):
