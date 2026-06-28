@@ -52,6 +52,15 @@ def test_usage_doc_local_view_covers_the_session_loop_not_only_swarm():
     assert "verify result" in local, "Local view docs do not mention the verify verdict"
 
 
+def test_usage_doc_local_view_shows_the_verdict_in_goal_mode_and_statusline():
+    # The verify verdict now shows in goal mode and is appended to the session statusline; the
+    # Local view docs must reflect both so they stay honest about what the surfaces show.
+    text = (_DOCS / "usage.md").read_text(encoding="utf-8")
+    local = text.split("## Local view", 1)[1].split("\n## ", 1)[0]
+    assert "modes the last verify result" in local, "docs tie the verdict to the default loop only"
+    assert "· pass" in local, "statusline example omits the appended verify verdict"
+
+
 def test_usage_doc_documents_the_stop_hook_loop():
     # install-hook + the continue_through_backlog opt-in are real user-facing features; usage.md
     # must document them (they had no docs at all before).

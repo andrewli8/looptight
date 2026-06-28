@@ -221,16 +221,17 @@ looptight status --watch    # the same view, refreshing until you stop it
 looptight ui                # http://127.0.0.1:8765 (read-only browser map)
 ```
 
-`status` and `ui` show whatever loop is running. On the default `next`/`verify`
-loop they surface the **claimed task** and the **last verify result** (pass/fail);
-in goal mode they show the **active vision**; and a swarm or daemon shows its
-manager and workers. Both read the same loopback-only state and never open a public
-listener; `ui` is dependency-free.
+`status` and `ui` show whatever loop is running. They surface the **claimed task** on
+the default `next`/`verify` loop and the **active vision** in goal mode, and in both
+modes the last verify result (pass/fail, shown in red when it failed); a swarm or daemon
+shows its manager and workers. Both read the same loopback-only state and never open a
+public listener; `ui` is dependency-free.
 
 To see loop state in your Claude Code status bar, point `statusLine` at `looptight
 statusline` (it reads Claude Code's status-line JSON on stdin and prints one line —
-`looptight: <your current task>` on the default loop, or `looptight: 3 running · 1
-merged` for a swarm):
+`looptight: <your current task> · pass` on the default or goal loop (the trailing
+`· pass`/`· fail` is the last verify result), or `looptight: 3 running · 1 merged`
+for a swarm):
 
 ```json
 { "statusLine": { "type": "command", "command": "looptight statusline" } }

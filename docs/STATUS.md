@@ -1773,18 +1773,12 @@ existing CLI session and makes no model or API calls of its own.
   at a glance. The pass case is untouched (stays muted). Confirmed by dogfooding goal mode:
   the detail computed color is now red. Covered by a page test.
 
-## Next
+- The Local view docs now reflect the verdict work: they state the verify result shows in
+  both the default loop and goal mode (in red when it failed), and the statusline example
+  shows the appended `· pass`/`· fail` suffix. Keeps the docs honest about what each surface
+  shows. Covered by a strengthened test_docs assertion.
 
-1. The Local view docs in `docs/usage.md:224` are stale after the verdict work: they say goal
-   mode shows only "the active vision" and the statusline shows only `looptight: <your current
-   task>`, but the verify verdict now also shows in goal mode (`src/looptight/ui.py:251`) and is
-   appended to the session statusline (`src/looptight/ui.py:176`). Stale docs violate the honest-
-   signals principle. Update the Local view paragraph so goal mode mentions the verify result and
-   the statusline example shows the appended verdict.
-   Evidence: docs/usage.md:224
-   Acceptance: tests/test_docs.py asserts the Local view section says goal mode shows the verify
-   result (not only the vision) and that the statusline paragraph mentions the appended verdict;
-   the assertions pass against the updated docs.
+## Next
 
 ## Rules
 
