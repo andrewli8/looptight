@@ -1346,6 +1346,15 @@ existing CLI session and makes no model or API calls of its own.
   long-goal worker and an errored worker, asserting the panel truncates the goal ("...") and shows
   the error in brackets. No production change.
 
+## Next
+
+1. `ui.read_state`'s wrong-schema-version fallback is untested.
+   Evidence: src/looptight/ui.py:64-65 — a valid JSON state file whose `schema_version` is
+   unrecognised degrades to `empty_state()`, so a forward-incompatible state file cannot break the
+   read-only view. The corrupt/non-UTF-8 path is covered but this one is not.
+   Acceptance: a test in tests/test_ui.py writes a state file with `schema_version: 99` and asserts
+   `read_state` returns `empty_state()`. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
