@@ -98,8 +98,13 @@ def score_batch(root: Path, candidates: list[Candidate]) -> BatchScore:
 def score_status_next(root: Path) -> BatchScore:
     """Score whatever the host has generated into docs/STATUS.md's ``## Next``.
 
-    Reads the *uncapped* Next section (``cap=None``) so an over-budget batch is scored
-    at its true size — otherwise the discovery cap truncates to six and ``bounded``
-    could never report a section that exceeded the 1-6 bound.
+    Reads the *uncapped* (``cap=None``) and *unfiltered* (``enforce_truthful_evidence=False``)
+    Next section, so the score reflects the raw batch the host wrote — its true size (an
+    over-budget batch reports ``bounded=False``) and its real groundedness (``score_batch``
+    counts which items' evidence resolves). Pre-filtering ungrounded items here would force
+    ``grounded == size`` (groundedness a useless 1.0) and hide over-generation, defeating the
+    point of the feedback signal.
     """
-    return score_batch(root, from_status_next(root, cap=None))
+    return score_batch(
+        root, from_status_next(root, cap=None, enforce_truthful_evidence=False)
+    )

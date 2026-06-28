@@ -598,19 +598,23 @@ def from_task_file(
     return out
 
 
-def from_status_next(root: Path, *, cap: int | None = 6) -> list[Candidate]:
+def from_status_next(
+    root: Path, *, cap: int | None = 6, enforce_truthful_evidence: bool = True
+) -> list[Candidate]:
     """Return the executable tasks under the status Next heading (at most ``cap``).
 
-    This is the generated/planned queue, so its evidence anchors are enforced: an
-    item claiming evidence that does not resolve is dropped as ungrounded busywork.
-    ``cap`` defaults to the documented six-task maximum the ``next``/``propose`` path
-    enforces; ``cap=None`` reads the true count for the over-budget eval.
+    This is the generated/planned queue. By default its evidence anchors are enforced: an
+    item claiming evidence that does not resolve is dropped as ungrounded busywork — what the
+    ``next``/``propose`` claim path wants. The idea-evaluation path passes
+    ``enforce_truthful_evidence=False`` instead, so it scores the *raw* batch the host wrote
+    (and lets ``score_batch`` measure groundedness itself) rather than a pre-filtered subset.
+    ``cap`` defaults to the documented six-task maximum; ``cap=None`` reads the true count.
     """
     return from_task_file(
         root,
         "docs/STATUS.md",
         next_section_only=True,
-        enforce_truthful_evidence=True,
+        enforce_truthful_evidence=enforce_truthful_evidence,
         cap=cap,
     )
 

@@ -182,6 +182,33 @@ def test_score_status_next_flags_an_over_budget_section_as_unbounded(tmp_path):
     assert score.bounded is False
 
 
+def test_score_status_next_counts_ungrounded_items_so_groundedness_is_honest(tmp_path):
+    # The feedback signal must reflect the RAW batch the host wrote, not a grounding-filtered
+    # subset. Pre-filtering ungrounded items here would force grounded==size (groundedness a
+    # useless 1.0) and hide over-generation. 8 items, 3 with fabricated evidence.
+    from looptight.discovery import from_status_next
+
+    _repo_with_files(tmp_path)
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    lines = ["## Next", ""]
+    for i in range(5):
+        lines.append(f"{i + 1}. Real task {i}. Evidence: src/a.py:1; Acceptance: passes.")
+    for i in range(5, 8):
+        lines.append(f"{i + 1}. Fabricated {i}. Evidence: src/ghost{i}.py:1; Acceptance: passes.")
+    (docs / "STATUS.md").write_text("\n".join(lines) + "\n")
+
+    score = score_status_next(tmp_path)
+    assert score.size == 8  # all eight counted, not just the five grounded
+    assert score.grounded == 5  # only the resolving anchors
+    assert score.bounded is False  # the host over-generated past the 1-6 bound
+    assert 0.0 < score.groundedness < 1.0  # an honest fraction, not a constant 1.0
+
+    # The next/propose CLAIM path still drops the fabricated items (default enforcement).
+    claimable = from_status_next(tmp_path, cap=None)
+    assert len(claimable) == 5
+
+
 def test_grounding_tolerates_a_trailing_sentence_period(tmp_path):
     # Evidence written as a sentence ("... Evidence: src/a.py.") must still resolve,
     # while a fabricated path with a period stays rejected.

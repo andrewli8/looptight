@@ -1492,25 +1492,17 @@ existing CLI session and makes no model or API calls of its own.
   Brings goal-set in line with how `next` and the other goal actions already handle these. Covered
   by two CLI tests.
 
+- `score_status_next` now scores the RAW generated `## Next` batch (`from_status_next` gained
+  an `enforce_truthful_evidence` param, default True for the next/propose claim path; the eval
+  passes False), so `score_batch`'s own grounding check measures it: `size`/`bounded` reflect the
+  true count and `groundedness` is an honest fraction, not a constant 1.0. Previously the batch
+  was grounding-filtered before scoring, hiding over-generation and fabricated evidence from the
+  `current_quality` feedback; `propose --eval` now surfaces a fabricated item instead of dropping
+  it. Covered by an idea_eval test; the `propose --eval` CLI test updated to the corrected behavior.
+
 ## Next
 
-1. `score_status_next` scores the grounding-filtered subset, so `groundedness` is a useless
-   constant and `size`/`bounded` undercount — crippling the idea-generation feedback signal.
-   Evidence: src/looptight/idea_eval.py:105 calls `from_status_next(root, cap=None)`, which
-   hardcodes `enforce_truthful_evidence=True` (src/looptight/discovery.py:609-614), dropping
-   ungrounded items before `score_batch` runs. Since `score_batch` (src/looptight/idea_eval.py:85)
-   independently computes
-   `grounded = sum(is_grounded(...))`, pre-filtering forces `grounded == size` (groundedness always
-   1.0) and hides over-generation when items have fabricated evidence. The `current_quality`
-   feedback in the `generate_ideas` directive (tasks.py `_idea_directive`) then misreports how the
-   host's batch landed. Fix: give `from_status_next` an `enforce_truthful_evidence` param (default
-   True for the next/propose path) and have `score_status_next` pass `False`, so `score_batch`'s own
-   grounding check measures the raw batch.
-   Acceptance: a failing-then-passing test writes a `## Next` with N>6 items, some with
-   non-resolving Evidence, and asserts `score_status_next` reports `size == N`, `bounded == False`,
-   and `groundedness < 1.0`; the normal `next`/`propose` claim path still drops ungrounded items.
-
-2. Python skipped-test candidates in one file collide to a single `idea_id`, so cooldown suppresses
+1. Python skipped-test candidates in one file collide to a single `idea_id`, so cooldown suppresses
    sibling tests and outcome stats merge distinct tasks.
    Evidence: src/looptight/discovery.py:491 titles every Python skip `f"un-skip / fix skipped test
    in {path.name}"` (basename only), and src/looptight/idea_identity.py:45-46 keys `skipped-test` on
@@ -1523,7 +1515,7 @@ existing CLI session and makes no model or API calls of its own.
    Acceptance: a failing-then-passing test with two skipped tests in one file asserts their
    `idea_id`s differ; a single skip is unchanged.
 
-3. The cooldown failure count is all-time, not windowed, so an idea with old failures over-suppresses.
+2. The cooldown failure count is all-time, not windowed, so an idea with old failures over-suppresses.
    Evidence: src/looptight/coordinator.py:833-837 (`recent_failures`) runs `SELECT idea_id, COUNT(*),
    MAX(created_at) ... WHERE outcome='failed' GROUP BY idea_id` and filters rows only by
    `MAX(created_at) >= cutoff` — so `COUNT(*)` counts every failure ever, not just those in the
