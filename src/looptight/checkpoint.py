@@ -11,9 +11,14 @@ still runs; it just can't offer restore points).
 
 from __future__ import annotations
 
+import os
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
+
+
+def _git_env() -> dict[str, str]:
+    return {**os.environ, "GIT_TERMINAL_PROMPT": "0"}
 
 
 def _git(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -25,6 +30,7 @@ def _git(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
             capture_output=True,
             text=True,
             check=False,
+            env=_git_env(),
         )
     except OSError as exc:
         return subprocess.CompletedProcess(command, 127, stdout="", stderr=str(exc))

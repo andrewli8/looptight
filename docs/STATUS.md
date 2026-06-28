@@ -929,20 +929,15 @@ existing CLI session and makes no model or API calls of its own.
   `subprocess.run`, matching the same non-interactive guard used by `integration_queue` and
   `swarm`, so a `git log` call from the experience module cannot hang on a credential prompt in
   headless mode. Covered by `test_experience_git_sets_terminal_prompt_env` in test_experience.py.
+- `checkpoint._git()` passes `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}` via a local
+  `_git_env()`, matching the same non-interactive guard in `integration_queue`, `swarm`, and
+  `experience`; `import os` added. A new test monkeypatches `subprocess.run` directly and
+  asserts the env dict contains `GIT_TERMINAL_PROMPT` equal to `"0"`. Covered by
+  `test_checkpoint_git_sets_git_terminal_prompt_env` in test_checkpoint.py.
 
 ## Next
 
-1. `checkpoint._git()` lacks `GIT_TERMINAL_PROMPT=0`: the `_git` helpers in
-   `src/looptight/integration_queue.py:68` and `src/looptight/swarm.py:210` both set
-   `GIT_TERMINAL_PROMPT=0` via `_git_env()`, and `experience.py:27` was just fixed to match,
-   but `src/looptight/checkpoint.py:22` still calls `subprocess.run` without an env override
-   — an inconsistency that will bite if any new call in checkpoint adds a remote fetch.
-   Evidence: src/looptight/checkpoint.py:22;
-   Acceptance: `checkpoint._git()` passes `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}` and
-   a new test monkeypatches `subprocess.run` (not the module-level `_git`) and asserts the env
-   dict contains `GIT_TERMINAL_PROMPT` equal to `"0"`.
-
-2. `read_goal`'s `not isinstance(data, dict)` branch is untested: `src/looptight/goal.py:60`
+1. `read_goal`'s `not isinstance(data, dict)` branch is untested: `src/looptight/goal.py:60`
    returns `None` when the goal file holds valid JSON that is not a dict (e.g. `[]` or `"str"`),
    but the existing tests only cover absent/non-UTF-8 files and a dict with the wrong
    `schema_version` — never a file whose JSON parses but is not a dict.

@@ -142,3 +142,21 @@ def test_diffstat_returns_empty_when_diff_command_fails(tmp_path, monkeypatch):
     monkeypatch.setattr(checkpoint_module, "_git", failing_git)
 
     assert cp.diffstat() == ""
+
+
+def test_checkpoint_git_sets_git_terminal_prompt_env(tmp_path, monkeypatch):
+    """_git() passes GIT_TERMINAL_PROMPT=0 so headless runs never hang on a prompt."""
+    import looptight.checkpoint as cp_mod
+
+    captured_env: dict | None = None
+
+    def fake_run(cmd, **kwargs):
+        nonlocal captured_env
+        captured_env = kwargs.get("env")
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(cp_mod.subprocess, "run", fake_run)
+    cp_mod._git(["rev-parse", "HEAD"], tmp_path)
+
+    assert captured_env is not None
+    assert captured_env.get("GIT_TERMINAL_PROMPT") == "0"
