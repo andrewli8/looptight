@@ -1351,6 +1351,15 @@ existing CLI session and makes no model or API calls of its own.
   `schema_version: 99` and asserts `read_state` returns `empty_state()`, so a forward-incompatible
   state file cannot break the read-only view. No production change.
 
+## Next
+
+1. `ui._state_path`'s in-repo (Git common dir) branch is untested.
+   Evidence: src/looptight/ui.py:31-35 — inside a Git repo, the read-only view's state file lives
+   under the Git common dir (`<common>/looptight/<STATE_FILE>`); the outside-Git fallback (:36) is
+   exercised but the in-repo branch is not.
+   Acceptance: a test in tests/test_ui.py runs `_state_path` in a `git init`-ed dir and asserts the
+   path is under the git common dir and named `STATE_FILE`. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
