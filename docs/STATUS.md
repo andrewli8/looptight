@@ -1143,6 +1143,18 @@ existing CLI session and makes no model or API calls of its own.
   real finding is surfaced, so an unexpected ruff format line cannot be mis-surfaced as a
   lint task. No production change.
 
+## Next
+
+1. JS skip detection inside a multi-line block comment is untested.
+   Evidence: src/looptight/discovery.py:500-501 — the JS skip scanner tracks `in_block`
+   across lines so an `it.skip(...)` written as example text on a continuation line of a
+   `/* ... */` block comment is treated as comment, not a real skip. The full suite leaves
+   this continuation branch uncovered. Verified: such a file yields 0 candidates.
+   Acceptance: a test in tests/test_propose.py writes a `*.test.js` with `it.skip(...)` on a
+   continuation line inside a multi-line `/* */` block comment and asserts
+   `from_skipped_tests` returns no candidate, while a real `it.skip` outside the comment is
+   still surfaced. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
