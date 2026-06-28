@@ -875,7 +875,31 @@ def cmd_goal(args: argparse.Namespace, console: Console) -> int:
         done = run_done_check(workdir, goal.done_check)
         return _check_result("done" if done else "pending", 0 if done else 1)
 
-    # Otherwise `arg` is a vision to set/activate.
+    # Otherwise `arg` is a vision to set/activate. Validate before writing: a goal is stored
+    # in Git, and a vacuous vision would persist misleading state and hand the host an empty
+    # build directive. Both degrade cleanly (JSON envelope under --json) instead of a traceback.
+    from .checkpoint import is_git_repo
+
+    def _set_error(code: str, human: str) -> int:
+        if args.json:
+            print(json.dumps(
+                {"schema_version": 1, "command": "goal", "status": "error", "error": code},
+                sort_keys=True,
+            ))
+        else:
+            console.print(f"[red]{human}[/red]")
+        return 2
+
+    if not is_git_repo(workdir):
+        return _set_error(
+            "not_git",
+            "run `looptight goal` inside a Git repository; it stores the goal in Git.",
+        )
+    if not arg.strip():
+        return _set_error(
+            "empty_vision",
+            'a goal needs a non-empty vision; set one with `looptight goal "<vision>"`.',
+        )
     goal = Goal(
         vision=arg,
         done_check=args.done_check,

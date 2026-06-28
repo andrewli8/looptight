@@ -583,6 +583,40 @@ def test_next_human_output_notes_an_active_build_goal(tmp_path, monkeypatch, cap
     assert "goal next" in capsys.readouterr().out  # active goal -> note present
 
 
+def test_goal_set_refuses_outside_a_git_repo(tmp_path, monkeypatch, capsys):
+    # Setting a goal outside Git must not crash with a traceback (a goal is stored in Git);
+    # it degrades like every sibling path — a JSON error envelope under --json, exit 2.
+    from looptight.goal import read_goal
+
+    monkeypatch.chdir(tmp_path)  # not a git repo
+
+    assert main(["goal", "build a thing", "--json"]) == 2
+    data = json.loads(capsys.readouterr().out)
+    assert data["status"] == "error"
+    assert data["error"] == "not_git"
+
+    assert main(["goal", "build a thing"]) == 2  # human form clean too
+    assert "git repository" in capsys.readouterr().out.lower()
+    assert read_goal(tmp_path) is None  # nothing was written
+
+
+def test_goal_set_rejects_an_empty_vision(tmp_path, monkeypatch, capsys):
+    # An empty/whitespace vision is rejected at the boundary, not persisted as a vacuous goal
+    # that would hand the host a build directive with no stated vision.
+    from looptight.goal import read_goal
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+
+    assert main(["goal", "   ", "--json"]) == 2
+    data = json.loads(capsys.readouterr().out)
+    assert data["error"] == "empty_vision"
+    assert read_goal(tmp_path) is None  # no vacuous goal written
+
+    assert main(["goal", "build a real thing"]) == 0  # a real vision still sets a goal
+    assert read_goal(tmp_path) is not None
+
+
 def test_next_and_swarm_parsers_accept_no_ideas():
     assert build_parser().parse_args(["next", "--no-ideas"]).no_ideas is True
     assert build_parser().parse_args(["swarm", "--headless", "--no-ideas"]).no_ideas is True

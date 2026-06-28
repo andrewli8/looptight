@@ -1485,29 +1485,16 @@ existing CLI session and makes no model or API calls of its own.
   mislabel a worktree with untracked files (which `revert` correctly reports in place) as clean.
   Covered by a CLI test alongside the existing `--source` clean-tree guard.
 
+- `cmd_goal` validates before storing a goal: it refuses outside a Git repository (`not_git`) and
+  rejects an empty/whitespace vision (`empty_vision`) with a clean error — a JSON envelope under
+  `--json`, a message otherwise, exit 2 — instead of crashing with an uncaught `RuntimeError`
+  traceback (non-git) or persisting a vacuous goal that hands the host an empty build directive.
+  Brings goal-set in line with how `next` and the other goal actions already handle these. Covered
+  by two CLI tests.
+
 ## Next
 
-1. Setting a goal outside a Git repo crashes with an uncaught traceback, even with `--json`.
-   Evidence: src/looptight/goal.py:75 (`write_goal` raises `RuntimeError("cannot store a goal
-   outside a Git repository")`), called unguarded at protocol_commands.py:885 in `cmd_goal`'s
-   set-goal branch. Reproduced: `looptight goal "x" --json` in a non-git dir dumps a traceback at
-   exit 1. Every sibling path handles non-git cleanly (`next` → `not_git` error; `goal status`/
-   `next`/`clear` degrade), so setting a goal is the lone outlier. Fix: guard the set-goal branch
-   with `is_git_repo` and return a clean error (JSON envelope under `--json`, message otherwise,
-   exit 2), like `cmd_next`.
-   Acceptance: a failing-then-passing test asserts `main(["goal", "x", "--json"])` in a non-git dir
-   returns 2 with a parseable error envelope (no traceback) and the human form prints a clean message.
-
-2. `goal` accepts an empty/whitespace vision, persisting a vacuous goal and a meaningless directive.
-   Evidence: protocol_commands.py:878-885 constructs `Goal(vision=arg, ...)` and writes it with no
-   non-empty check, so `looptight goal "   "` stores `vision="   "` and `goal next` emits a
-   `build_increment` directive with an empty vision block. Violates "validate at system boundaries"
-   and SPEC "grounded tasks only". Fix: reject an empty/whitespace vision with a clear error before
-   writing (same error path as task 1's guard).
-   Acceptance: a failing-then-passing test asserts `main(["goal", "   "])` returns nonzero with a
-   clear message and writes no goal; a real vision still sets a goal.
-
-3. `score_status_next` scores the grounding-filtered subset, so `groundedness` is a useless
+1. `score_status_next` scores the grounding-filtered subset, so `groundedness` is a useless
    constant and `size`/`bounded` undercount — crippling the idea-generation feedback signal.
    Evidence: idea_eval.py:105 calls `from_status_next(root, cap=None)`, which hardcodes
    `enforce_truthful_evidence=True` (discovery.py:609-614), dropping ungrounded items before
@@ -1522,7 +1509,7 @@ existing CLI session and makes no model or API calls of its own.
    non-resolving Evidence, and asserts `score_status_next` reports `size == N`, `bounded == False`,
    and `groundedness < 1.0`; the normal `next`/`propose` claim path still drops ungrounded items.
 
-4. Python skipped-test candidates in one file collide to a single `idea_id`, so cooldown suppresses
+2. Python skipped-test candidates in one file collide to a single `idea_id`, so cooldown suppresses
    sibling tests and outcome stats merge distinct tasks.
    Evidence: discovery.py:491 titles every Python skip `f"un-skip / fix skipped test in
    {path.name}"` (basename only), and idea_identity.py:45-46 keys `skipped-test` on the normalized
@@ -1534,7 +1521,7 @@ existing CLI session and makes no model or API calls of its own.
    Acceptance: a failing-then-passing test with two skipped tests in one file asserts their
    `idea_id`s differ; a single skip is unchanged.
 
-5. The cooldown failure count is all-time, not windowed, so an idea with old failures over-suppresses.
+3. The cooldown failure count is all-time, not windowed, so an idea with old failures over-suppresses.
    Evidence: coordinator.py:833-837 (`recent_failures`) runs `SELECT idea_id, COUNT(*),
    MAX(created_at) ... WHERE outcome='failed' GROUP BY idea_id` and filters rows only by
    `MAX(created_at) >= cutoff` — so `COUNT(*)` counts every failure ever, not just those in the
