@@ -2497,6 +2497,30 @@ def test_status_is_goal_aware(tmp_path, monkeypatch, capsys):
     assert "goal: build a cli todo app" in out
 
 
+def test_status_goal_mode_names_the_vision_once_with_its_verdict(tmp_path, monkeypatch, capsys):
+    # Goal-mode static status printed the vision on a dedicated `goal:` line AND again via the
+    # overlay panel. The dedicated line is the single source, and it carries the build verdict.
+    from looptight import ui
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "true"\n', encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "x"],
+        cwd=tmp_path, check=True,
+    )
+    assert main(["goal", "build a CLI todo app"]) == 0
+    ui.write_verdict(tmp_path, "pass")
+    capsys.readouterr()
+
+    assert main(["status"]) == 0
+    out = capsys.readouterr().out
+    goal_lines = [ln for ln in out.splitlines() if ln.startswith("goal:")]
+    assert len(goal_lines) == 1, f"vision duplicated across goal lines: {goal_lines}"
+    assert "verify: pass" in goal_lines[0]  # build health on the dedicated goal line
+
+
 def test_positive_int_rejects_zero_and_port_rejects_out_of_range():
     # The argparse type validators reject invalid values with ArgumentTypeError,
     # so a bad --port or count fails at parse time rather than deep in a command.

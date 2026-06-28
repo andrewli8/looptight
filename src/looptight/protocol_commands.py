@@ -16,7 +16,7 @@ from .config import ConfigError, load_config
 from .console import Console
 from .coordinator import Coordinator, MigrationBlocked, coordination_scope, current_run_id
 from .detect import detect_agent, detect_verify
-from .ui import _with_session_task, read_state, render_state_panel
+from .ui import _with_session_task, read_state, read_verdict, render_state_panel
 from .verify import run_verify
 
 
@@ -623,9 +623,13 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
                 f"{coordinator_counts['pending_publications']} publications"
             )
         if active_goal is not None:
+            # Fold the last verify verdict onto the dedicated goal line so goal-mode build
+            # health stays visible once the redundant overlay panel is suppressed below.
+            verdict = read_verdict(workdir)
+            verdict_suffix = f" · verify: {verdict}" if verdict else ""
             console.print(
                 f"goal: {active_goal.vision} (iteration {active_goal.iteration}"
-                f"{', continuous' if active_goal.continuous else ''})"
+                f"{', continuous' if active_goal.continuous else ''}){verdict_suffix}"
             )
         if idea_quality is not None:
             console.print(
@@ -635,9 +639,12 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
                 f"bounded {'yes' if idea_quality['bounded'] else 'no'}"
             )
         console.print(f"next: {action}")
-        panel = render_state_panel(_with_session_task(read_state(workdir), workdir))
-        if panel:
-            console.print(panel)
+        # The dedicated goal line above is the single source in goal mode; the overlay panel
+        # would just repeat the vision, so render it only for swarm/session loops.
+        if active_goal is None:
+            panel = render_state_panel(_with_session_task(read_state(workdir), workdir))
+            if panel:
+                console.print(panel)
     return 0
 
 

@@ -1790,18 +1790,14 @@ existing CLI session and makes no model or API calls of its own.
   with a raw fallback for ad-hoc (markerless) evidence; the stored field and the parsers are
   untouched. Found by dogfooding `next`. Covered by a stutter test and a fallback test.
 
-## Next
+- Goal-mode static `status` no longer prints the vision twice: the overlay panel (which
+  duplicated the dedicated `goal:` line) is suppressed when a goal is active, and the last
+  verify verdict is folded onto the dedicated goal line so build health stays visible
+  (`goal: <vision> (iteration N) · verify: pass`). The panel is unchanged for swarm/session,
+  and `--watch` (panel-only) was never affected. Found by dogfooding. Covered by a test
+  asserting one goal line carrying the verdict.
 
-1. In goal mode the static `status` prints the vision on a dedicated `goal:` line
-   (`src/looptight/protocol_commands.py:627`) and again via the overlay panel
-   (`src/looptight/protocol_commands.py:638`), so the vision appears on two `goal:` lines —
-   confirmed by dogfooding. The `--watch` path is panel-only and has no dup. Suppress the panel
-   in the static `status` when a goal is active (the dedicated line is the single source) and
-   fold the last verify verdict onto that dedicated goal line so goal-mode build health stays
-   visible. Panel is unchanged for swarm/session.
-   Evidence: src/looptight/protocol_commands.py:638
-   Acceptance: a new test in tests/test_cli.py asserts goal-mode static `status` prints exactly
-   one `goal:` line, and that a written verdict appears on it (`verify: pass`).
+## Next
 
 ## Rules
 
