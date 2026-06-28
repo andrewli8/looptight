@@ -37,19 +37,25 @@ implement the task it gets back, run `verify`, and commit on a pass.
 ### Activate the coordinator (`migrate`) — optional
 
 A solo loop is ready without this: `looptight doctor` reports `setup: ready` and
-only hints at `migrate`. Run it when you want many sessions or worktrees to share
-one task queue safely — it activates the repo's coordinator, a private SQLite
-claim store:
+only hints at `migrate`. In fact `next` already claims through the repo's
+coordinator — a private SQLite claim store — in **any** Git repository, whether or
+not you have run `migrate`, which is why `doctor`/`status` report the coordinator
+as active for a plain repo. So a single solo session works straight after `init`
+with no extra step.
+
+What `migrate` does is **fence the legacy file-claim mechanism**, not switch the
+store on:
 
 ```bash
 looptight migrate
 ```
 
-The loop also runs without it, using file-based claims, so a single solo session
-works straight after `init`. The coordinator is the recommended setup once you run
-more than one session against the repo; see
-[architecture](architecture.md#repository-coordinator). Activation is one-way:
-file claims fail closed afterward.
+Run it when an older checkout may still hold live file-based claims and you want
+them retired before the coordinator is the sole authority. It refuses while any
+legacy file claim is still live, then writes a marker after which legacy file
+claims fail closed; it is idempotent and errors outside Git. The coordinator
+itself is already the claim store for every session and worktree of the repo; see
+[architecture](architecture.md#repository-coordinator).
 
 ## A worked example
 

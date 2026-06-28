@@ -53,6 +53,19 @@ def test_usage_doc_explains_optional_migrate():
     assert "coordinator" in text, "usage.md does not say what migrate activates"
 
 
+def test_usage_doc_describes_the_coordinator_claim_model_accurately():
+    # The code claims through the SQLite coordinator in ANY git repo from the first
+    # `next` (tasks.py); `migrate` fences the legacy file-claim mechanism, it does not
+    # switch the store on. usage.md must not say the solo loop runs on "file-based
+    # claims" until migrate — that contradicts the code and architecture.md.
+    text = (_DOCS / "usage.md").read_text(encoding="utf-8")
+    assert "using file-based claims" not in text, (
+        "usage.md still claims the solo loop runs on file-based claims; the "
+        "coordinator is the claim store in any git repo (see architecture.md)"
+    )
+    assert "fence" in text.lower(), "usage.md must say migrate fences legacy file claims"
+
+
 def test_goal_doc_documents_the_goal_command():
     text = (_DOCS / "goal.md").read_text(encoding="utf-8")
     assert "looptight goal" in text, "goal.md does not document the goal command"
