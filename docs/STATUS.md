@@ -1282,15 +1282,10 @@ existing CLI session and makes no model or API calls of its own.
   `daemon --workers 51` exits 2 with a "workers must be" message and `daemon` with no detectable
   verify exits 2 with a verify message. No production change.
 
-## Next
-
-1. `cmd_run`'s NotImplementedError handler is untested.
-   Evidence: src/looptight/commands.py:201-207 — when the run loop raises `NotImplementedError`
-   (an unsupported mode), `run` reports it (human or `--json`) and exits 3 rather than crashing.
-   Untested.
-   Acceptance: a test in tests/test_cli.py with `direct_main=true` and a stubbed `run_loop` that
-   raises `NotImplementedError` asserts `run --headless` exits 3 carrying the message. No
-   production change.
+- `cmd_run`'s NotImplementedError handler is covered:
+  `test_run_reports_not_implemented_from_loop_with_exit_3` in test_cli.py stubs `run_loop` to
+  raise `NotImplementedError` (with `direct_main=true`) and asserts `run --headless` exits 3
+  carrying the message rather than crashing. No production change.
 
 ## Rules
 

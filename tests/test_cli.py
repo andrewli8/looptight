@@ -1922,6 +1922,24 @@ def test_daemon_cli_paths_do_not_require_agent_on_path(tmp_path, monkeypatch):
     assert main(["daemon", "--headless", "--verify", "true"]) == 2
 
 
+def test_run_reports_not_implemented_from_loop_with_exit_3(tmp_path, monkeypatch, capsys):
+    # If the run loop raises NotImplementedError (an unsupported mode), `run` reports it and
+    # exits 3 rather than crashing.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text(
+        'verify = "exit 0"\ndirect_main = true\n', encoding="utf-8"
+    )
+
+    def raise_not_implemented(*args, **kwargs):
+        raise NotImplementedError("this run mode is not supported")
+
+    monkeypatch.setattr("looptight.commands.run_loop", raise_not_implemented)
+    code = main(["run", "do the thing", "--headless", "--agent", "claude"])
+    assert code == 3
+    assert "this run mode is not supported" in capsys.readouterr().out
+
+
 def test_daemon_cli_rejects_too_many_workers_and_missing_verify(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
