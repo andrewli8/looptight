@@ -1235,6 +1235,17 @@ existing CLI session and makes no model or API calls of its own.
   returns `status="failed"` with the provider error — so a crashed planning provider is a clean
   failure, not an accepted plan. No production change.
 
+## Next
+
+1. `plan_next_tasks`'s off-scope-change rejection is untested.
+   Evidence: src/looptight/swarm.py:557-562 rejects a plan that changes any file other than
+   docs/STATUS.md (the planner may only refresh the task list), but no test exercises a planner
+   that edits a different file.
+   Acceptance: a test in tests/test_swarm.py uses a planner adapter that edits a non-STATUS file
+   and asserts `plan_next_tasks` returns `status="failed"` mentioning only docs/STATUS.md may
+   change. No production change.
+
+## Rules
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
