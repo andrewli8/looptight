@@ -586,6 +586,26 @@ class Coordinator:
             owned = str(row[0]) if row else None
         return owned, int(active)
 
+    def active_lease_for_owner(self, owner: str, *, now: float | None = None) -> Lease | None:
+        """The live lease (with task payload) currently held by ``owner``, if any.
+
+        Owner-keyed (via ``runs.owner``), not run-keyed, so a Stop hook can find the task this
+        worktree's session claimed without sharing the session's run id.
+        """
+        timestamp = time.time() if now is None else now
+        row = self.connection.execute(
+            """SELECT t.id, t.fingerprint, l.run_id, l.generation, t.payload
+               FROM leases l JOIN tasks t ON t.id = l.task_id JOIN runs r ON r.id = l.run_id
+               WHERE r.owner = ? AND l.expires_at > ? ORDER BY t.id LIMIT 1""",
+            (owner, timestamp),
+        ).fetchone()
+        if row is None:
+            return None
+        task_id, fingerprint, run_id, generation, payload = row
+        return Lease(
+            str(fingerprint), str(run_id), int(generation), json.loads(payload), int(task_id)
+        )
+
     def current_lease(self, task_id: int) -> Lease | None:
         row = self.connection.execute(
             """SELECT t.fingerprint, l.run_id, l.generation, t.payload

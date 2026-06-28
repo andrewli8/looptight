@@ -82,6 +82,25 @@ def test_coordinator_path_sets_terminal_prompt_env(tmp_path):
     assert captured.get("env", {}).get("GIT_TERMINAL_PROMPT") == "0"
 
 
+def test_active_lease_for_owner_returns_the_owners_live_lease(tmp_path):
+    # The Stop hook finds the task this worktree's session claimed via the owner, not the run id.
+    repo = _repo(tmp_path / "r")
+    db = Coordinator.open(repo)
+    assert db is not None
+    run = db.start_run("session", owner="owner-x")
+    db.claim(
+        [{"id": "t1", "evidence": "Evidence: src/foo.py:1", "goal": "fix foo"}],
+        run.id,
+        ttl_s=60,
+    )
+
+    lease = db.active_lease_for_owner("owner-x")
+    assert lease is not None
+    assert lease.payload["id"] == "t1"
+    assert lease.payload["evidence"] == "Evidence: src/foo.py:1"
+    assert db.active_lease_for_owner("nobody") is None  # a different owner holds nothing
+
+
 def test_coordinator_path_is_none_outside_git(tmp_path):
     assert coordinator_path(tmp_path) is None
     assert Coordinator.open(tmp_path) is None

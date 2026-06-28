@@ -21,9 +21,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import subprocess
 import tempfile
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Callable
 
 from .config import Config, ConfigError, find_config, load_config
@@ -32,6 +34,85 @@ from .verify import run_verify
 
 VerifyFn = Callable[[str, Path], VerifyResult]
 WorkFn = Callable[[Path], bool]
+DriftFn = Callable[[Path], "str | None"]
+
+
+def _changed_files(cwd: Path) -> list[str]:
+    """Repo-relative files with uncommitted changes (staged + unstaged) vs HEAD.
+
+    Empty on any git error, so an adverse repo state never produces a false drift signal.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "diff", "HEAD", "--name-only"],
+            cwd=cwd,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return []
+    if result.returncode != 0:
+        return []
+    return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+
+
+def _off_task(evidence_paths: list[str], changed_files: list[str]) -> bool:
+    """True only when there ARE changes and NONE relate to the claimed task's evidence.
+
+    Conservative on purpose: a change is "on task" if it is the evidence file itself or shares the
+    evidence file's stem (so the source file *and* its sibling test — ``foo.py`` and
+    ``tests/test_foo.py`` — both count). Directory is intentionally NOT scope: in a flat layout
+    every file shares a directory, which would make drift never fire. Drift fires only when the
+    diff is wholly unrelated to every evidence anchor. An empty diff or empty evidence is never drift.
+    """
+    if not changed_files or not evidence_paths:
+        return False
+    for path in evidence_paths:
+        stem = PurePosixPath(path).stem
+        for changed in changed_files:
+            if changed == path or (stem and stem in PurePosixPath(changed).name):
+                return False  # at least one change relates to the claimed task
+    return True
+
+
+def drift_reason(goal: str, evidence_paths: list[str], changed: list[str]) -> str:
+    """What we feed back when the diff has wholly left the claimed task's evidence scope."""
+    return (
+        f"looptight: your changes ({', '.join(changed[:5])}) don't touch the evidence of your "
+        f"claimed task ({', '.join(evidence_paths[:3])}). Refocus on that task — {goal} — or "
+        "claim a different one with `looptight next` before stopping."
+    )
+
+
+def _drift_directive(cwd: Path) -> str | None:
+    """A refocus message when this worktree's session has drifted off its claimed task, else None.
+
+    Reads the owner's live lease (the claimed task) and the uncommitted diff; any coordinator or
+    git error is swallowed so the hook never traps the session on an adverse state.
+    """
+    try:
+        from .claims import owner_id
+        from .coordinator import Coordinator
+        from .grounding import evidence_refs, strip_position_suffix
+
+        coordinator = Coordinator.open(cwd)
+        if coordinator is None:
+            return None
+        try:
+            lease = coordinator.active_lease_for_owner(owner_id(cwd))
+        finally:
+            coordinator.close()
+        if lease is None:
+            return None
+        evidence_paths = [strip_position_suffix(ref) for ref in evidence_refs(str(lease.payload.get("evidence") or ""))]
+        if not _off_task(evidence_paths, _changed_files(cwd)):
+            return None
+        goal = str(lease.payload.get("goal") or lease.payload.get("id") or "your claimed task")
+        return drift_reason(goal, evidence_paths, _changed_files(cwd))
+    except Exception:
+        return None
 
 
 def _has_grounded_work(cwd: Path) -> bool:
@@ -143,7 +224,11 @@ def _config_for(cwd: Path) -> Config:
 
 
 def run_hook(
-    stdin_text: str, *, verify_fn: VerifyFn = run_verify, work_fn: WorkFn = _has_grounded_work
+    stdin_text: str,
+    *,
+    verify_fn: VerifyFn = run_verify,
+    work_fn: WorkFn = _has_grounded_work,
+    drift_fn: DriftFn = _drift_directive,
 ) -> tuple[str | None, int]:
     """Process one Stop-hook event.
 
@@ -174,19 +259,20 @@ def run_hook(
     prior = read_count(state) if event.get("stop_hook_active") else 0
 
     verify = verify_fn(config.verify, cwd)
-    # Only probe for backlog when the change is green and the opt-in is set: a passing change
-    # with grounded tasks still queued should carry the session on, but an honest stop is allowed
-    # once `propose` is dry.
-    work_remains = (
-        config.continue_through_backlog and verify.passed and work_fn(cwd)
-    )
-    decision, new_count = decide(
-        verify,
-        prior,
-        config.max_iterations,
-        work_remains=work_remains,
-        continue_on_work=config.continue_through_backlog,
-    )
+    # When opted in and the change is green, first check for drift (the session left its claimed
+    # task's scope) — refocus takes priority over draining the backlog — then for remaining work.
+    drift = drift_fn(cwd) if config.continue_through_backlog and verify.passed else None
+    if drift and prior < config.max_iterations:
+        decision, new_count = HookDecision(block=True, reason=drift), prior + 1
+    else:
+        work_remains = config.continue_through_backlog and verify.passed and work_fn(cwd)
+        decision, new_count = decide(
+            verify,
+            prior,
+            config.max_iterations,
+            work_remains=work_remains,
+            continue_on_work=config.continue_through_backlog,
+        )
     try:
         write_count(state, new_count)
     except OSError:

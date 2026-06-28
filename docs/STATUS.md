@@ -1615,26 +1615,17 @@ existing CLI session and makes no model or API calls of its own.
   by `decide` unit tests (continue / honest-stop / opt-in-off / cap), `run_hook` integration with a
   stubbed work probe, and a config round-trip. Lever 2 (drift directive) is next.
 
-## Next
+- Loop-control lever 2 (drift directive): under the `continue_through_backlog` opt-in, the Stop
+  hook refocuses a session that has wandered off its claimed task. `Coordinator.active_lease_for_owner`
+  reads the owner's live lease (with payload), and a conservative pure `_off_task` flags drift only
+  when the uncommitted diff (`git diff HEAD`) is wholly unrelated to the task's evidence — a change
+  is on-task if it is the evidence file or shares its stem, so a normal source+test edit never
+  trips it (directory is deliberately not scope, since a flat layout would never drift). On drift
+  the hook blocks with a refocus directive (priority over backlog continuation); on-task or opt-in
+  off, nothing changes. Verified end-to-end on the live repo. Covered by coordinator, `_off_task`,
+  and `run_hook` tests. Both loop-control levers (smart stop-gate + drift) are now built.
 
-1. Loop-control lever 2 (drift directive): the Stop hook can't tell when the session has wandered
-   off its claimed task.
-   Evidence: src/looptight/hook.py only reasons about verify (and now backlog); it never compares the
-   diff against the claimed task. The coordinator exposes the claimed task id (coordinator.py:572
-   `summary`) but not its payload/evidence, and there is no owner-keyed active-lease lookup. Build,
-   gated by the existing `continue_through_backlog` opt-in and conservatively to avoid noise: (a) add
-   `Coordinator.active_lease_for_owner(owner)` returning the live Lease (with payload) for an owner
-   (join leases→runs on `runs.owner`); (b) a pure `_off_task(evidence_paths, changed_files)` that is
-   True only when there ARE changed files and NONE is the evidence file or under its directory (so a
-   normal source+test edit never trips it); (c) in `run_hook`, when verify passes and the owner holds
-   a claimed task whose evidence the uncommitted diff (`git diff HEAD --name-only`) entirely misses,
-   block with a refocus directive (priority over the backlog continuation). Evidence:
-   src/looptight/coordinator.py:589 (`current_lease` payload shape), src/looptight/grounding.py:47
-   (`evidence_refs`), src/looptight/claims.py:64 (`owner_id`).
-   Acceptance: `active_lease_for_owner` returns the owner's live lease payload (coordinator test);
-   `_off_task` is True for an all-out-of-scope diff and False when any changed file is in the evidence
-   scope or when the diff is empty (unit tests); a `run_hook` test (stubbed lease + diff) blocks with
-   a refocus message on drift and stays silent when on-scope; opt-in off changes nothing.
+## Next
 
 ## Rules
 

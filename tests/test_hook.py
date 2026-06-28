@@ -127,12 +127,58 @@ def test_run_hook_allows_when_passing(tmp_path):
     assert output is None
 
 
+def test_off_task_flags_a_wholly_unrelated_diff():
+    from looptight.hook import _off_task
+
+    assert _off_task(["src/foo.py"], ["src/unrelated_widget.py"]) is True
+    assert _off_task(["src/foo.py"], ["docs/readme.md"]) is True
+
+
+def test_off_task_is_false_when_any_change_relates_to_the_evidence():
+    from looptight.hook import _off_task
+
+    assert _off_task(["src/foo.py"], ["src/foo.py"]) is False  # the evidence file itself
+    assert _off_task(["src/foo.py"], ["tests/test_foo.py"]) is False  # sibling test (shares stem)
+    assert _off_task(["src/foo.py"], ["x.py", "src/foo.py"]) is False  # one in scope is enough
+
+
+def test_off_task_is_false_for_empty_diff_or_evidence():
+    from looptight.hook import _off_task
+
+    assert _off_task(["src/foo.py"], []) is False  # nothing changed → not drift
+    assert _off_task([], ["src/foo.py"]) is False  # no evidence to scope against → not drift
+
+
+def test_run_hook_blocks_with_a_refocus_directive_on_drift(tmp_path):
+    # Opted in, change green, but the session has drifted off its claimed task → refocus.
+    write_config(Config(verify="pytest -q", continue_through_backlog=True), tmp_path)
+    event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
+    output, _ = run_hook(
+        event,
+        verify_fn=lambda c, w: _pass(),
+        drift_fn=lambda w: "looptight: refocus on src/foo.py",
+        work_fn=lambda w: True,  # work remains, but drift takes priority
+    )
+    assert json.loads(output)["decision"] == "block"
+    assert "refocus" in json.loads(output)["reason"]
+
+
+def test_run_hook_silent_when_on_task(tmp_path):
+    # No drift and no backlog → the green change is allowed to stop.
+    write_config(Config(verify="pytest -q", continue_through_backlog=True), tmp_path)
+    event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
+    output, _ = run_hook(
+        event, verify_fn=lambda c, w: _pass(), drift_fn=lambda w: None, work_fn=lambda w: False
+    )
+    assert output is None
+
+
 def test_run_hook_continues_through_backlog_when_enabled(tmp_path):
     # Opt-in: a green change with grounded work remaining carries the session on to `next`.
     write_config(Config(verify="pytest -q", continue_through_backlog=True), tmp_path)
     event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
     output, _ = run_hook(
-        event, verify_fn=lambda c, w: _pass(), work_fn=lambda w: True
+        event, verify_fn=lambda c, w: _pass(), drift_fn=lambda w: None, work_fn=lambda w: True
     )
     assert json.loads(output)["decision"] == "block"
     assert "looptight next" in json.loads(output)["reason"]
@@ -143,7 +189,7 @@ def test_run_hook_honest_stop_when_backlog_is_dry(tmp_path):
     write_config(Config(verify="pytest -q", continue_through_backlog=True), tmp_path)
     event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
     output, _ = run_hook(
-        event, verify_fn=lambda c, w: _pass(), work_fn=lambda w: False
+        event, verify_fn=lambda c, w: _pass(), drift_fn=lambda w: None, work_fn=lambda w: False
     )
     assert output is None
 
@@ -153,7 +199,7 @@ def test_run_hook_backlog_opt_in_off_stops_on_green(tmp_path):
     write_config(Config(verify="pytest -q"), tmp_path)
     event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
     output, _ = run_hook(
-        event, verify_fn=lambda c, w: _pass(), work_fn=lambda w: True
+        event, verify_fn=lambda c, w: _pass(), drift_fn=lambda w: None, work_fn=lambda w: True
     )
     assert output is None
 
