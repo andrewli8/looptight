@@ -1527,6 +1527,35 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_has_dirty_git_worktree` in `tasks.py:81` calls `subprocess.run(["git", "status",
+   "--porcelain"], ...)` with no `env`, unlike every other git call in the codebase
+   (`checkpoint.py`, `integration_queue.py`, `experience.py`, `swarm.py`, and now
+   `discovery.py` after the recent fix) which all pass `GIT_TERMINAL_PROMPT=0`.
+   A headless `looptight next` call can block waiting for git credentials.
+   Fix: add `import os` to `tasks.py` and pass `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}`
+   to the `subprocess.run` call. Evidence: `src/looptight/tasks.py:81`
+   Acceptance: a new test in test_tasks.py monkeypatches `tasks.subprocess.run` and
+   asserts the captured kwargs contain `env` with `GIT_TERMINAL_PROMPT == "0"` — sibling
+   of `test_not_ignored_git_sets_terminal_prompt_env` in test_propose.py.
+
+2. `_changed_entries` in `protocol_commands.py:307` calls `subprocess.run(["git",
+   "status", "--short"], ...)` with no `env`. `_git_common_dir` at `protocol_commands.py:638`
+   has the same gap. Both are in the `looptight status` path. Fix: add `import os` and pass
+   `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}` to each call.
+   Evidence: `src/looptight/protocol_commands.py:307`
+   Acceptance: two new tests in test_cli.py (or test_protocol_commands.py), one per
+   function, each monkeypatching `protocol_commands.subprocess.run` and asserting
+   `env["GIT_TERMINAL_PROMPT"] == "0"`.
+
+3. `coordinator_path` in `coordinator.py:294` calls `subprocess.run(["git", "rev-parse",
+   "--git-common-dir"], ...)` with no `env` — the same headless-blocking risk as the
+   other git calls. Fix: add `import os` and pass
+   `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}`.
+   Evidence: `src/looptight/coordinator.py:294`
+   Acceptance: a new test in test_coordinator.py monkeypatches `coordinator.subprocess.run`
+   and asserts `env["GIT_TERMINAL_PROMPT"] == "0"` — sibling of
+   `test_not_ignored_git_sets_terminal_prompt_env` in test_propose.py.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
