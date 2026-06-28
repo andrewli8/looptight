@@ -1476,6 +1476,31 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Config keys placed under a TOML table (e.g. `[policy]`) are silently dropped, so safety
+   settings a user believes they set never apply.
+   Evidence: src/looptight/config.py:84-93 reads every field only from the top-level `data` dict
+   (`_optional_int(data, "max_changed_files")`, `_string_list(data, "protected_paths")`, …), so a
+   `[policy]` table with `max_changed_files`/`protected_paths` is never consulted and never
+   rejected — and `status --json` reports a `policy` object, inviting users to nest those exact
+   keys. These are safety-relevant (change caps, protected paths), so a silent drop is a footgun.
+   Fix: after parsing, if any top-level TOML table contains a recognized config key, raise a
+   `ConfigError` naming the table and key(s) ("config keys are top-level, not under a [table]");
+   wrong top-level value *types* already error, so this closes the misplaced-table gap. Unknown
+   tables with no recognized keys stay ignored (forward-compatible).
+   Acceptance: a failing-then-passing test asserts `load_config` on a `.looptight.toml` with a
+   `[policy]` table holding `max_changed_files` raises `ConfigError`; a config with only a
+   harmless unknown table (no known keys) still loads.
+
+2. `propose` claims "(clean tree)" when the worktree has uncommitted/untracked files.
+   Evidence: src/looptight/protocol_commands.py:193 prints the fixed string "No candidate tasks
+   found from repo signals (clean tree)." whenever there are no candidates, without checking
+   worktree cleanliness — so a repo with untracked files (which `revert` correctly reports as
+   "N untracked file(s) left in place") is mislabeled "clean tree". Honest-signals violation.
+   Fix: drop the inaccurate "(clean tree)" parenthetical (the message is about task signals, not
+   git state), or gate it on an actual `git status --porcelain` cleanliness check.
+   Acceptance: a failing-then-passing test asserts `propose` output in a repo with an untracked
+   file and no task signals does not contain "clean tree"; the no-candidates guidance still prints.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
