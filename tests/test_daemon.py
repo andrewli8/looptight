@@ -76,8 +76,23 @@ def test_daemon_stops_after_max_cycles_and_sleeps_between_only():
     assert rec.sleeps == [600.0, 600.0]
 
 
+def test_outcome_treats_idle_and_no_work_as_idle_despite_early_merges():
+    # A cumulative merge earlier in a cycle must not flip a back-off signal to progress:
+    # REASON_IDLE (swarm stalled) and REASON_NO_WORK (backlog drained) poll/back off even
+    # when a worker merged before the cycle reached that terminal state — otherwise the
+    # daemon re-attacks a degenerate planner state with no delay, burning model calls.
+    assert _outcome(_result(REASON_IDLE, merged=1)) == ("idle", 1)
+    assert _outcome(_result(REASON_NO_WORK, merged=2)) == ("idle", 2)
+    assert _outcome(_result(REASON_LIMIT, merged=1)) == ("idle", 1)
+    # Only a draining REASON_ERROR (some merged, no top-level error) loops on with delay 0.
+    assert _outcome(_result(REASON_ERROR, merged=1, error=None)) == ("progress", 1)
+    assert _outcome(_result(REASON_ERROR, merged=0, error="boom"))[0] == "fault"
+    assert _outcome(_result(REASON_ERROR, merged=0))[0] == "fault"  # bare error, nothing merged
+
+
 def test_daemon_runs_progress_cycles_back_to_back_without_sleeping():
-    rec = _Recorder([_result(REASON_IDLE, merged=1)])
+    # A draining backlog (REASON_ERROR, some merged, no top-level error) loops on with no delay.
+    rec = _Recorder([_result(REASON_ERROR, merged=1, error=None)])
     report = run_daemon(
         Path("."),
         agent="claude",
@@ -117,7 +132,7 @@ def test_daemon_fault_streak_resets_after_progress():
         [
             _result(REASON_ERROR, error="boom"),
             _result(REASON_ERROR, error="boom"),
-            _result(REASON_IDLE, merged=1),
+            _result(REASON_ERROR, merged=1, error=None),  # draining: progress, resets streak
             _result(REASON_ERROR, error="boom"),
             _result(REASON_IDLE),
         ]

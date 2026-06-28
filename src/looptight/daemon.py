@@ -73,11 +73,17 @@ def _outcome(result: SwarmResult) -> tuple[str, int]:
     mid-progress. Only when nothing merged does a bare ``REASON_ERROR`` back off.
     """
     merged = sum(1 for worker in result.workers if worker.status == "merged")
-    genuine_fault = result.reason == REASON_ERROR and result.error is not None
-    if not genuine_fault and merged:
-        return "progress", merged
     if result.reason == REASON_ERROR:
+        # A bare REASON_ERROR (no top-level error) with merges is the backlog draining —
+        # agents merged some but not all this cycle — so loop on immediately. A genuine
+        # fault, or an error cycle that merged nothing, backs off.
+        genuine_fault = result.error is not None
+        if not genuine_fault and merged:
+            return "progress", merged
         return "fault", merged
+    # NO_WORK (backlog drained), IDLE (swarm stalled), LIMIT (usage limit) are poll/back-off
+    # signals: an early merge before the cycle reached that terminal state does not mean
+    # there is more to do right now, so they must not be misread as progress (delay 0).
     return "idle", merged
 
 

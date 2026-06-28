@@ -1554,24 +1554,17 @@ existing CLI session and makes no model or API calls of its own.
   the stop/escalate decision in `assess` is untouched. Covered by a metacog test; the
   keeps-only-what-cleared / no-overlap / nothing-parses cases are unchanged.
 
+- The daemon's idle/stall backoff is no longer defeated by an early merge: `_outcome`
+  classifies `progress` (delay 0) only for a draining `REASON_ERROR` (some merged, no top-level
+  error); `NO_WORK`/`IDLE`/`LIMIT` map to `idle` regardless of cumulative merges, so a stalled
+  swarm or drained backlog polls after `idle_sleep_seconds` instead of re-attacking a
+  degenerate planner state with no delay (a model-call-burning loop). Covered by a direct
+  `_outcome` test; two tests that used `REASON_IDLE+merged` as the progress example now use the
+  genuine `REASON_ERROR`-draining case.
+
 ## Next
 
-1. The daemon's idle/stall backoff is defeated whenever a cycle merged any work.
-   Evidence: src/looptight/daemon.py:75-81 — `_outcome` returns `("progress", merged)` with
-   `delay=0` for any non-genuine-fault cycle where `merged > 0`, but `merged` is cumulative over
-   the whole cycle (`result.workers` is the accumulated list). So a `REASON_IDLE` (swarm stalled,
-   back off) or `REASON_NO_WORK` (backlog drained, poll) cycle that merged even one early worker is
-   classified `progress` → `delay=0` (daemon.py:158-163), skipping the `idle_sleep_seconds` poll
-   and immediately re-attacking a degenerate planner state — a tight, model-call-burning loop with
-   no backoff, defeating the token-respectful poll the docstring promises. Only the draining case
-   (`REASON_ERROR` without a top-level error: agents merged some but not all) should loop on with
-   `delay=0`. Fix: classify `progress` only when `result.reason == REASON_ERROR` and not a genuine
-   fault and `merged > 0`; `NO_WORK`/`IDLE`/`LIMIT` map to `idle` regardless of cumulative merges.
-   Acceptance: a failing-then-passing test asserts `_outcome` on a `REASON_IDLE` and a
-   `REASON_NO_WORK` result that contains a merged worker returns `("idle", 1)`; the draining
-   `REASON_ERROR`+merged case still returns `("progress", n)` and a genuine fault still `("fault", _)`.
-
-2. Daemon shutdown can hang up to an hour: the interruptible sleep is not forwarded into the swarm.
+1. Daemon shutdown can hang up to an hour: the interruptible sleep is not forwarded into the swarm.
    Evidence: src/looptight/daemon.py:124-138 — `run_daemon` calls `run_cycle` (run_continuous_swarm)
    without `sleep=`, so the provider-limit waits inside the swarm (which accepts `sleep`,
    swarm.py:694/707) use the default `time.sleep`. Under PEP 475 `time.sleep` is not aborted by a
