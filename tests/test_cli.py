@@ -1922,6 +1922,17 @@ def test_daemon_cli_paths_do_not_require_agent_on_path(tmp_path, monkeypatch):
     assert main(["daemon", "--headless", "--verify", "true"]) == 2
 
 
+def test_hook_command_runs_run_hook_and_returns_a_code(tmp_path, monkeypatch, capsys):
+    # The hook command reads the Stop-hook event on stdin and returns run_hook's code.
+    # With no verify configured the hook is dormant: it allows the stop (exit 0) cleanly.
+    import io
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    monkeypatch.setattr("sys.stdin", io.StringIO('{"stop_hook_active": false}'))
+    assert main(["hook"]) == 0
+
+
 def test_statusline_command_falls_back_to_idle_on_error(monkeypatch, capsys):
     # A status line must never break the host editor: if rendering raises, print idle.
     import io
