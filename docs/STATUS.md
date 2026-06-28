@@ -1550,6 +1550,19 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. A single unparseable iteration wipes "persisted" detection in escalation evidence.
+   Evidence: src/looptight/metacog.py:140 — `persistent_from_sets` intersects across *all*
+   per-iteration failure sets, so one iteration whose output yields an empty set (a timeout or a
+   format the extractor missed) forces the intersection empty and drops to the final-iteration
+   fallback with `persisted=False`, even when a failure truly held across every *meaningful* try
+   (e.g. `[{x}, {}, {x}]` reports `persisted=False`). In an escalation every iteration already
+   failed, so an empty set is missing information, not a fixed failure. Fix: intersect only the
+   non-empty failure sets; keep the existing empty/no-overlap/final-fallback behavior otherwise.
+   This is escalation *evidence* only (it never feeds the stop/escalate decision in `assess`).
+   Acceptance: a failing-then-passing test asserts `persistent_from_sets([{x}, set(), {x}])`
+   returns `((x,), True)`; the existing keeps-only-what-cleared, no-overlap, and nothing-parses
+   tests stay green.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
