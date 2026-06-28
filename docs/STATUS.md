@@ -1245,6 +1245,16 @@ existing CLI session and makes no model or API calls of its own.
   planner adapter that edits nothing (`ok=True`) and asserts `plan_next_tasks` returns
   `status="no_work"` (the continuous swarm's stop signal). No production change.
 
+## Next
+
+1. The swarm worker rate-limited status is untested.
+   Evidence: src/looptight/swarm.py:323-324 — `_run_worker` marks a worker `limited` (not
+   `failed`) when its run loop ends on a provider rate-limit error, so the continuous swarm can
+   wait it out rather than treating it as a failure. Untested.
+   Acceptance: a test in tests/test_swarm.py uses an adapter returning a rate-limit error and
+   asserts the worker's status is `limited`. No production change.
+
+## Rules
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
