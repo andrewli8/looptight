@@ -79,6 +79,10 @@ def run_command(
             return subprocess.run(
                 cmd,
                 cwd=str(workdir),
+                # Headless agents take their prompt via argv, never stdin. Redirect stdin from
+                # /dev/null so a credential prompt or interactive confirmation gets EOF and the
+                # agent fails fast, instead of inheriting looptight's stdin and hanging forever.
+                stdin=subprocess.DEVNULL,
                 capture_output=True,
                 text=True,
                 errors="replace",
@@ -88,6 +92,7 @@ def run_command(
             cmd,
             cwd=str(workdir),
             **new_process_group_kwargs(),
+            stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,

@@ -23,6 +23,38 @@ def test_run_command_tolerates_non_utf8_output(tmp_path):
     assert proc.returncode == 2
 
 
+def test_run_command_redirects_stdin_from_devnull(monkeypatch, tmp_path):
+    # Both branches must pass stdin=DEVNULL so a headless agent can't hang on inherited stdin
+    # (a credential prompt / interactive confirmation gets EOF and the agent fails fast).
+    import looptight.adapters.base as base
+
+    captured: dict = {}
+
+    def fake_run(cmd, **kwargs):
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setattr(base.subprocess, "run", fake_run)
+    run_command(["agent"], tmp_path)  # timeout_s is None -> subprocess.run branch
+    assert captured.get("stdin") == subprocess.DEVNULL
+
+    class _FakeProc:
+        returncode = 0
+
+        def communicate(self, timeout=None):
+            return ("", "")
+
+    popen_kwargs: dict = {}
+
+    def fake_popen(cmd, **kwargs):
+        popen_kwargs.update(kwargs)
+        return _FakeProc()
+
+    monkeypatch.setattr(base.subprocess, "Popen", fake_popen)
+    run_command(["agent"], tmp_path, timeout_s=5)  # timeout -> Popen branch
+    assert popen_kwargs.get("stdin") == subprocess.DEVNULL
+
+
 def test_provider_adapter_passes_worker_timeout_to_command(monkeypatch, tmp_path):
     captured = {}
 
