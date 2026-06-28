@@ -1668,21 +1668,13 @@ existing CLI session and makes no model or API calls of its own.
   machine-stable `claimed_task` JSON field is unchanged. Completes the show-the-goal-not-the-id
   thread across the ui, statusline, and status. Covered by a CLI test.
 
-## Next
+- The `ui` session view is structurally a session, not a swarm: render() toggles a `session`
+  class on the graph in session mode, and the stylesheet drops to two columns and hides the
+  swarm workers lane — so the page shows just manager → claimed task, no empty "no workers"
+  column. Completes the swarm-framing fix started on the manager node; swarm mode keeps all three
+  lanes. Verified live; guarded by page/stylesheet assertions.
 
-1. The `ui` session view still shows the swarm's empty "workers" lane, so its 3-lane swarm
-   structure leaks into a single-session view.
-   Evidence: src/looptight/ui.py render() always renders the three lanes (manager/tasks/workers) and
-   the `.graph` grid is fixed at three columns, so in session mode (the overlaid claim, no workers)
-   the page shows an empty "WORKERS / no workers" column beside the manager→task pair — swarm
-   structure that does not apply to a single `next`/`verify` session (verified by rendering the
-   session view), completing the swarm-framing leak the manager-node fix partly addressed. Fix:
-   toggle a `session` class on the graph when `sessionMode`, with CSS that drops to two columns and
-   hides the workers lane, so the session view is structurally a session (manager → task). Swarm
-   mode keeps all three lanes.
-   Acceptance: a `test_ui.py` assertion that the page toggles a `session` class on the graph and the
-   stylesheet hides the workers lane / uses two columns under it; verified visually that the session
-   view shows no empty workers lane.
+## Next
 
 ## Rules
 

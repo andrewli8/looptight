@@ -47,6 +47,13 @@ def test_do_get_rejects_a_non_loopback_host(tmp_path):
     assert errors["code"] == 403
 
 
+def test_session_view_is_two_lane_not_three():
+    # In session mode the swarm workers lane is dropped so the view is structurally a session
+    # (manager → task), not a 3-lane swarm.
+    assert "classList.toggle('session',sessionMode)" in ui.PAGE
+    assert ".graph.session #workers{display:none}" in ui.PAGE
+
+
 def test_manager_node_is_mode_aware():
     # In session mode the manager node must not claim to be a swarm orchestrator running an
     # integration gate; render() picks the label/detail by mode.
