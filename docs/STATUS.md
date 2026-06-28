@@ -1305,16 +1305,10 @@ existing CLI session and makes no model or API calls of its own.
   (with `direct_main=true`) exits 2 with a "no coding agent" message when `detect_agent` returns
   None and with a "verify" message when no verify is configured or detectable. No production change.
 
-## Next
-
-1. `cmd_daemon`'s per-cycle output and fault hook are untested.
-   Evidence: src/looptight/commands.py:264-273 (`on_cycle` prints each cycle's outcome) and
-   :284-295 (`fault_hook` runs `--on-fault` with a JSON payload), plus the stop summary
-   :329-334, are unexercised because the existing daemon test stubs `run_daemon` without
-   invoking its callbacks.
-   Acceptance: a test in tests/test_cli.py stubs `run_daemon` to invoke `on_cycle` with a
-   progress and a fault cycle and `on_fault` with a payload (with `--on-fault true`), and asserts
-   the cycle lines and stop summary are printed. No production change.
+- `cmd_daemon`'s per-cycle output, fault hook, and stop summary are covered:
+  `test_daemon_cli_renders_cycle_outcomes_and_stop_summary` in test_cli.py stubs `run_daemon`
+  to invoke `on_cycle` (progress + fault) and `on_fault` (with `--on-fault true`), asserting the
+  per-cycle lines, the fault detail, and the "daemon stopped" summary are printed. No production change.
 
 ## Rules
 

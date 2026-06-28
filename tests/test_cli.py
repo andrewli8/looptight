@@ -1959,6 +1959,31 @@ def test_run_reports_not_implemented_from_loop_with_exit_3(tmp_path, monkeypatch
     assert "this run mode is not supported" in capsys.readouterr().out
 
 
+def test_daemon_cli_renders_cycle_outcomes_and_stop_summary(tmp_path, monkeypatch, capsys):
+    from looptight.daemon import DaemonCycle, DaemonReport
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+
+    def fake_run_daemon(root, *, on_cycle=None, on_fault=None, **kwargs):
+        on_cycle(DaemonCycle(1, "progress", "ok", 2, None, 0.0))
+        on_cycle(DaemonCycle(2, "fault", "error", 0, "boom", 30.0))
+        if on_fault is not None:
+            on_fault({"cycle": 2, "reason": "error", "backoff_s": 30, "last_error": "boom"})
+        return DaemonReport(cycles=2, progress=1, idle=0, faults=1, last_reason="error")
+
+    monkeypatch.setattr("looptight.commands.run_daemon", fake_run_daemon)
+    code = main([
+        "daemon", "--headless", "--agent", "claude", "--verify", "exit 0",
+        "--max-cycles", "2", "--on-fault", "true",
+    ])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "cycle 1" in out and "progress" in out
+    assert "cycle 2" in out and "fault" in out and "boom" in out
+    assert "daemon stopped" in out and "faults 1" in out
+
+
 def test_daemon_cli_rejects_too_many_workers_and_missing_verify(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
