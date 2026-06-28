@@ -1799,6 +1799,20 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `status` prints the same next-step instruction twice under two labels. `_readiness_remediation`
+   (`src/looptight/protocol_commands.py:738`) returns its `fallback_action` (wired to the same
+   `action` the bottom `next:` line prints, `src/looptight/protocol_commands.py:542`) whenever
+   readiness has no distinct blocker, and in the dirty-worktree case both branches independently
+   produce the identical "review changes and run `looptight verify --json`" string — so in the two
+   most common states (fully ready, and dirty mid-work) the user sees `readiness next: <X>` then
+   `next: <X>`, the same line twice. Suppress the human `readiness next:` line
+   (`src/looptight/protocol_commands.py:600`) when its remediation equals the `next:` action;
+   keep it only when it adds a distinct readiness-specific step. JSON `next_remediation` unchanged.
+   Evidence: src/looptight/protocol_commands.py:600
+   Acceptance: a new test in tests/test_cli.py asserts a ready/dirty repo's `status` human output
+   contains the next-step string once (no `readiness next:` duplicate), and a repo whose readiness
+   remediation differs from the next action still prints both.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
