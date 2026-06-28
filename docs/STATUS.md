@@ -1440,18 +1440,13 @@ existing CLI session and makes no model or API calls of its own.
   `suggested_verify` keys (tasks.py:151,157), so it teaches the full task contract rather than a
   narrower shape. A `test_docs.py` assertion locks both keys into the doc.
 
-## Next
-
-1. `next` silently treats a non-git directory as an empty clean repo, unlike every sibling command.
-   Evidence: src/looptight/tasks.py:78-90 — `_has_dirty_git_worktree` returns `False` when
-   `git status` fails (which includes "not a repo"), and `next_task` (tasks.py:116-130) has no
-   git-repo guard, so outside a repo `next` returns `no_work` + a `generate_ideas` directive at
-   exit 0. `doctor`, `status`, and `verify` all refuse with a not-a-git-repo error. Per CLAUDE.md
-   the `no_work`+`generate_ideas` result would drive a host session to start writing tasks into a
-   non-repo with no coordinator. `next` should refuse outside Git like its siblings.
-   Acceptance: a failing-then-passing test in tests/ asserts `next_task` on a non-git dir returns
-   an error result (machine-readable, CLI exit 2), matching the dirty-worktree guard's shape; the
-   existing in-Git behavior is unchanged.
+- `next` refuses outside a Git repository like `doctor`, `status`, and `verify`, instead of
+  treating a non-repo as an empty clean queue and emitting a `generate_ideas` directive (which
+  would drive a host session to build into a directory with no checkpoints or claim coordinator).
+  The guard lives at the command boundary (`cmd_next`, protocol_commands.py) where siblings check
+  and where the bug manifests, keeping `next_task` usable as a non-git unit harness: a non-repo
+  yields `{"status": "error", "error": "not_git"}` and CLI exit 2. Covered by a CLI test; the
+  in-Git path is unchanged.
 
 ## Rules
 

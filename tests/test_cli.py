@@ -22,6 +22,30 @@ def test_run_parser_accepts_resume_on_limit_flags():
     assert args.limit_max_wait_seconds == 3600.0
 
 
+def _commit_fixture():
+    # Commit fixture files so the worktree is clean when `next` runs (next refuses a
+    # dirty worktree). Mirrors the real loop: code is committed before claiming a task.
+    subprocess.run(["git", "add", "-A"], check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t",
+         "commit", "-qm", "fixture", "--allow-empty"],
+        check=True,
+    )
+
+
+def _reset_claims():
+    # Drop the coordinator's claim store so a following `next` re-offers the task. In a real
+    # repo a claim persists, so re-running `next` will not re-hand a claimed task; these tests
+    # assert determinism ("same committed code -> same decision"), which a fresh session sees.
+    from pathlib import Path as _Path
+
+    from looptight.coordinator import coordinator_path
+
+    path = coordinator_path(_Path.cwd())
+    if path is not None and path.exists():
+        path.unlink()
+
+
 def test_init_writes_config(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n")
@@ -199,8 +223,10 @@ def test_run_exits_one_when_verify_never_passes(tmp_path, monkeypatch):
 def test_next_prints_a_grounded_task(tmp_path, monkeypatch, capsys):
     # `looptight next` emits the top grounded task for the current session to do.
     monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "a.py").write_text("# TODO: fix the timeout\n")
+    _commit_fixture()
     assert main(["next"]) == 0
     assert "fix the timeout" in capsys.readouterr().out
 
@@ -211,14 +237,17 @@ def test_next_human_output_shows_acceptance_without_changing_json(
     # A person running `looptight next` should see the observable done-criterion,
     # not just the goal, while the machine `--json` decision stays unchanged.
     monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "a.py").write_text("# TODO: fix the timeout\n")
 
+    _commit_fixture()
     assert main(["next"]) == 0
     human = capsys.readouterr().out
     assert "fix the timeout" in human
     assert "Remove the marker" in human
 
+    _reset_claims()  # a fresh session re-offers the same task; the prior `next` claimed it
     assert main(["next", "--json"]) == 0
     data = json.loads(capsys.readouterr().out)
     assert "Remove the marker" in data["task"]["acceptance"]
@@ -349,9 +378,11 @@ def test_status_surfaces_generated_queue_quality(tmp_path, monkeypatch, capsys):
 def test_next_human_output_guides_through_verify_and_commit(tmp_path, monkeypatch, capsys):
     # A new dev should see the whole loop from the task: implement, verify, commit on pass.
     monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "a.py").write_text("# TODO: fix the timeout\n")
 
+    _commit_fixture()
     assert main(["next"]) == 0
     human = capsys.readouterr().out.lower()
     assert "implement" in human
@@ -365,6 +396,7 @@ def test_next_human_output_guides_through_verify_and_commit(tmp_path, monkeypatc
 
 def test_next_no_work_directs_idea_generation_by_default(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
     assert main(["next"]) == 0
     out = capsys.readouterr().out
     assert "NO_WORK" in out
@@ -373,12 +405,14 @@ def test_next_no_work_directs_idea_generation_by_default(tmp_path, monkeypatch, 
 
 def test_next_no_work_is_bare_with_no_ideas(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
     assert main(["next", "--no-ideas"]) == 0
     assert capsys.readouterr().out.strip() == "NO_WORK"
 
 
 def test_next_json_no_work_directs_idea_generation_by_default(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
     assert main(["next", "--json"]) == 0
     data = json.loads(capsys.readouterr().out)
     assert data["status"] == "no_work"
@@ -415,11 +449,14 @@ def test_propose_eval_scores_the_generated_queue(tmp_path, monkeypatch, capsys):
 
 def test_next_json_contract_is_grounded_and_stable(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "a.py").write_text("# TODO: fix the timeout\n")
 
+    _commit_fixture()
     assert main(["next", "--json"]) == 0
     first = json.loads(capsys.readouterr().out)
+    _reset_claims()  # determinism is over committed code, not claim state; re-offer the task
     assert main(["next", "--json"]) == 0
     second = json.loads(capsys.readouterr().out)
 
@@ -437,6 +474,7 @@ def test_next_json_contract_is_grounded_and_stable(tmp_path, monkeypatch, capsys
 def test_next_json_no_work_contract(tmp_path, monkeypatch, capsys):
     # With idea generation off, the no_work payload is the bare, stable contract.
     monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
     assert main(["next", "--json", "--no-ideas"]) == 0
     data = json.loads(capsys.readouterr().out)
     assert data == {
@@ -449,6 +487,7 @@ def test_next_json_no_work_contract(tmp_path, monkeypatch, capsys):
 
 def test_next_json_trims_redundant_goal_for_grounded_status_task(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "thing.py").write_text("x = 1\n")
     (tmp_path / "docs").mkdir()
@@ -459,6 +498,7 @@ def test_next_json_trims_redundant_goal_for_grounded_status_task(tmp_path, monke
         encoding="utf-8",
     )
 
+    _commit_fixture()
     assert main(["next", "--json"]) == 0
     task = json.loads(capsys.readouterr().out)["task"]
     assert "Cover the thing module" in task["goal"]
@@ -470,6 +510,7 @@ def test_next_json_trims_redundant_goal_for_grounded_status_task(tmp_path, monke
 
 def test_next_human_explains_task_selection(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "thing.py").write_text("x = 1\n")
     (tmp_path / "docs").mkdir()
@@ -480,6 +521,7 @@ def test_next_human_explains_task_selection(tmp_path, monkeypatch, capsys):
         encoding="utf-8",
     )
 
+    _commit_fixture()
     assert main(["next"]) == 0
 
     out = capsys.readouterr().out
@@ -520,6 +562,7 @@ def test_next_and_swarm_parsers_accept_no_ideas():
 
 def test_next_json_reads_each_configured_task_file(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
     (tmp_path / ".looptight.toml").write_text(
         'tasks = ["TODO.md", "docs/BACKLOG.md"]\n', encoding="utf-8"
     )
@@ -538,6 +581,7 @@ def test_next_json_reads_each_configured_task_file(tmp_path, monkeypatch, capsys
         "docs/BACKLOG.md:5",
     }
 
+    _commit_fixture()
     assert main(["next", "--json"]) == 0
     data = json.loads(capsys.readouterr().out)
 
@@ -550,6 +594,7 @@ def test_next_json_returns_no_work_for_empty_configured_sources(
     tmp_path, monkeypatch, capsys
 ):
     monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
     (tmp_path / ".looptight.toml").write_text(
         'tasks = ["TODO.md"]\n', encoding="utf-8"
     )
@@ -557,6 +602,7 @@ def test_next_json_returns_no_work_for_empty_configured_sources(
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "a.py").write_text("# TODO: ignored fallback signal\n")
 
+    _commit_fixture()
     assert main(["next", "--json"]) == 0
     assert json.loads(capsys.readouterr().out)["status"] == "no_work"
 
@@ -1920,6 +1966,23 @@ def test_daemon_cli_paths_do_not_require_agent_on_path(tmp_path, monkeypatch):
     assert main(["daemon", "--headless", "--agent", "claude", "--verify", "true", "--max-cycles", "1"]) == 0
     # nothing provided and nothing on PATH: clean exit 2, not a crash.
     assert main(["daemon", "--headless", "--verify", "true"]) == 2
+
+
+def test_next_refuses_outside_a_git_repo(tmp_path, monkeypatch, capsys):
+    # `next` must refuse a non-git directory like doctor/status/verify, not treat it as an
+    # empty clean queue and emit a generate_ideas directive that drives building into a
+    # non-repo. JSON carries a machine-readable not_git error; both forms exit 2.
+    monkeypatch.chdir(tmp_path)  # not a git repo
+
+    assert main(["next", "--json"]) == 2
+    data = json.loads(capsys.readouterr().out)
+    assert data["status"] == "error"
+    assert data["error"] == "not_git"
+    assert "directive" not in data  # no generate_ideas directive outside a repo
+
+    assert main(["next"]) == 2
+    assert "not a git repo" in capsys.readouterr().out.lower()
+    assert list(tmp_path.iterdir()) == []  # refused without touching the directory
 
 
 def test_next_human_output_prints_a_generic_error(tmp_path, monkeypatch, capsys):

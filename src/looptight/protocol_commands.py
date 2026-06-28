@@ -226,10 +226,27 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
 
 def cmd_next(args: argparse.Namespace, console: Console) -> int:
     """Print the single next task for the current session to execute."""
-    from .tasks import next_task
+    from .checkpoint import is_git_repo
+    from .tasks import NextResult, next_task
+
+    workdir = Path.cwd()
+    # Refuse outside a Git repository like `doctor`, `status`, and `verify` do. Without
+    # this guard `next` would treat a non-repo as an empty clean queue and hand back a
+    # `generate_ideas` directive, driving a host session to build into a directory with no
+    # checkpoints or claim coordinator (tasks.py's git probes silently no-op outside Git).
+    if not is_git_repo(workdir):
+        result = NextResult(status="error", error="not_git")
+        if args.json:
+            print(json.dumps(result.as_dict(), sort_keys=True))
+        else:
+            console.print(
+                "[red]not a git repo:[/red] run `looptight next` inside a Git repository; "
+                "it needs Git for checkpoints and task claims."
+            )
+        return 2
 
     idea_generation = load_config().idea_generation and not args.no_ideas
-    result = next_task(Path.cwd(), idea_generation=idea_generation)
+    result = next_task(workdir, idea_generation=idea_generation)
     if args.json:
         print(json.dumps(result.as_dict(), sort_keys=True))
         return 2 if result.status == "error" else 0
