@@ -83,6 +83,26 @@ def cmd_verify(args: argparse.Namespace, console: Console) -> int:
     return _verify_exit_code(result.status)
 
 
+def _active_task_identity(workdir: Path) -> str | None:
+    """The idea id of the task this worktree's session currently holds, for trajectory scoping.
+
+    Read-only; any coordinator error degrades to None so the stall path never breaks verify.
+    """
+    try:
+        coordinator = Coordinator.open(workdir)
+        if coordinator is None:
+            return None
+        try:
+            lease = coordinator.active_lease_for_owner(owner_id(workdir))
+        finally:
+            coordinator.close()
+        if lease is None:
+            return None
+        return str(lease.payload.get("idea_id") or "") or None
+    except Exception:
+        return None
+
+
 def _stall_signal(workdir: Path, command: str, result, patience: int) -> dict | None:
     """Session-native value-aware stopping: persist the verify trajectory and,
     when ``--patience`` is set, return the stall verdict (and escalation evidence
@@ -102,7 +122,7 @@ def _stall_signal(workdir: Path, command: str, result, patience: int) -> dict | 
 
     entries = trajectory.record(
         workdir, command, progress_signal(result), _failure_lines(result.output),
-        passed=result.passed,
+        passed=result.passed, task=_active_task_identity(workdir),
     )
     if result.passed or not entries:
         return None

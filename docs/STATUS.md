@@ -1709,22 +1709,17 @@ existing CLI session and makes no model or API calls of its own.
   `begin_publication` keeps the first observed tip. Covered by recover-on-transient and
   bounded-retry-then-fail tests. (Design choice — auto-retry vs strand — documented for review.)
 
-## Next
+- The verify trajectory no longer bleeds across tasks: it is keyed on the claimed task (the
+  active claim's idea id) as well as (worktree, command), so a second task that reuses the
+  repo's constant verify command starts a fresh trajectory instead of inheriting a prior
+  abandoned task's signal history (which could wrongly stall it on its first verify under
+  `--patience`). `_stall_signal` reads the task via `active_lease_for_owner` (read-only, degrades
+  to None — no regression for the no-claim case); the stall DECISION is unchanged, only the
+  trajectory's scope. Within the metacog `--patience` subsystem; the core verify path is
+  untouched. Covered by a changed-task reset test. (Design choice — scope by claim idea id —
+  documented for review.)
 
-1. The verify trajectory bleeds across tasks: it is keyed only on (worktree, command), with no task
-   identity, so under `--patience` a second task sharing the verify command inherits the prior
-   abandoned task's signal history and can be wrongly stalled on its first verify.
-   Evidence: src/looptight/trajectory.py:65-74 (`_is_fresh`) and `record` key the persisted
-   trajectory on the verify command + 30-min recency only — no task id. A repo's verify command is
-   constant (e.g. `pytest`), so task B reuses task A's trajectory unless an intervening verify passed
-   or 30 min elapsed. Fix (within the metacog `--patience` subsystem, so the core verify path is
-   untouched): thread the active claim's `idea_id` into `trajectory.record` as a `task` key (read in
-   `_stall_signal` via `active_lease_for_owner`), and have `_is_fresh` require the same task — so a
-   different task starts a fresh trajectory. The stall DECISION (`assess`) is unchanged; only the
-   trajectory's scope. No claim → task None → same as today (no regression).
-   Acceptance: `trajectory.record` gains a `task` param; a record under task X then a record under
-   task Y (same command, fresh) does NOT inherit X's entries (Y starts fresh); same-task records
-   still accumulate; the no-task path is unchanged. Design choice (scope by claim idea_id) documented.
+## Next
 
 ## Rules
 

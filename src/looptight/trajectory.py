@@ -62,10 +62,14 @@ def clear(root: Path) -> None:
         path.unlink(missing_ok=True)
 
 
-def _is_fresh(prior: dict | None, command: str, now: float) -> bool:
-    """True when ``prior`` belongs to the same ongoing attempt: same verify
-    command and recent. A non-numeric timestamp is treated as stale."""
-    if prior is None or prior.get("command") != command:
+def _is_fresh(prior: dict | None, command: str, task: str | None, now: float) -> bool:
+    """True when ``prior`` belongs to the same ongoing attempt: same verify command, same
+    claimed task, and recent. A non-numeric timestamp is treated as stale.
+
+    Keying on the task too (the active claim's idea id) stops a second task that reuses the
+    repo's constant verify command from inheriting the prior task's abandoned signal history.
+    """
+    if prior is None or prior.get("command") != command or prior.get("task") != task:
         return False
     try:
         age = now - float(prior.get("updated_at", 0))
@@ -81,13 +85,14 @@ def record(
     failures: set[str],
     *,
     passed: bool,
+    task: str | None = None,
     now: float | None = None,
 ) -> list[dict]:
     """Record one verify outcome and return the attempt's entries (oldest first).
 
     A passing verify clears the attempt and returns ``[]``. Otherwise the entry
-    ``{"signal", "failures"}`` is appended, after resetting when the verify command
-    changed or the prior entry is stale. A no-op (returns ``[]``) outside Git.
+    ``{"signal", "failures"}`` is appended, after resetting when the verify command or the
+    claimed ``task`` changed, or the prior entry is stale. A no-op (returns ``[]``) outside Git.
     """
     path = _path(root)
     if path is None:
@@ -99,7 +104,7 @@ def record(
     prior = _read(path)
     entries = (
         list(prior["entries"])
-        if _is_fresh(prior, command, now) and isinstance(prior.get("entries"), list)
+        if _is_fresh(prior, command, task, now) and isinstance(prior.get("entries"), list)
         else []
     )
     entries.append({"signal": signal, "failures": sorted(failures)})
@@ -108,6 +113,7 @@ def record(
         {
             "schema_version": SCHEMA_VERSION,
             "command": command,
+            "task": task,
             "updated_at": now,
             "entries": entries,
         },

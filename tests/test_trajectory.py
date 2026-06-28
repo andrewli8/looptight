@@ -38,6 +38,19 @@ def test_record_resets_on_changed_command(tmp_path):
     assert len(fresh) == 1  # different command -> different attempt
 
 
+def test_record_resets_on_changed_task(tmp_path):
+    # The repo's verify command is constant, so without task scoping a second task would inherit
+    # the first's abandoned trajectory. A different claimed task starts a fresh attempt.
+    repo = _repo(tmp_path)
+    trajectory.record(repo, "pytest -q", -2.0, set(), passed=False, task="idea-A")
+    trajectory.record(repo, "pytest -q", -1.0, set(), passed=False, task="idea-A")
+    fresh = trajectory.record(repo, "pytest -q", -5.0, set(), passed=False, task="idea-B")
+    assert len(fresh) == 1  # different task -> different attempt, no bleed
+    # Same task still accumulates.
+    same = trajectory.record(repo, "pytest -q", -4.0, set(), passed=False, task="idea-B")
+    assert len(same) == 2
+
+
 def test_record_resets_on_stale_gap(tmp_path):
     repo = _repo(tmp_path)
     trajectory.record(repo, "pytest -q", -2.0, set(), passed=False, now=1000.0)
