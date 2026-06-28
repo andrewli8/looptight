@@ -264,6 +264,30 @@ def test_plan_next_tasks_rejects_changes_outside_status_md(tmp_path, monkeypatch
     assert "docs/STATUS.md" in (result.error or "")
 
 
+def test_plan_next_tasks_fails_when_merge_to_root_conflicts(tmp_path, monkeypatch):
+    # A failed merge of the accepted plan into the repo is aborted and reported as a planning
+    # failure, never leaving a half-merged tree.
+    _repo(tmp_path)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "docs")
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: PlanningAdapter())
+
+    real_git = swarm._git
+
+    def selective_git(root, *args):
+        if args[:2] == ("merge", "--no-commit"):
+            return subprocess.CompletedProcess(["git"], 1, "", "merge conflict broke")
+        return real_git(root, *args)
+
+    monkeypatch.setattr("looptight.swarm._git", selective_git)
+    result = plan_next_tasks(tmp_path, agent="fake", verify="exit 0")
+
+    assert result.status == "failed"
+    assert "merge conflict broke" in (result.error or "")
+
+
 def test_plan_next_tasks_fails_when_planner_commit_fails(tmp_path, monkeypatch):
     # After a valid plan passes verify, a failing commit in the planner worktree is a clean
     # planning failure.
