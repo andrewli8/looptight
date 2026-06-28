@@ -1656,20 +1656,13 @@ existing CLI session and makes no model or API calls of its own.
   `_with_session_task`. Swarm mode (workers present) is unchanged; truly-empty stays "idle".
   Covered by statusline session/swarm/idle unit tests.
 
-## Next
+- The `ui` manager node is mode-aware: in session mode (the overlaid session claim) it reads
+  "session" / "your next / verify loop" instead of the swarm "orchestrator" /
+  "deterministic integration gate", so a single next/verify session is no longer misrepresented
+  as a swarm orchestrator running an integration gate. Swarm mode is unchanged. Verified live;
+  guarded by a render() page assertion.
 
-1. The `ui` manager node shows swarm framing ("orchestrator / deterministic integration gate") even
-   in session mode, where there is no swarm to orchestrate or integrate.
-   Evidence: src/looptight/ui.py render() hardcodes
-   `node('manager','orchestrator',manager.status,'deterministic integration gate','manager')`, so
-   when the session overlay sets `manager.status = "session"` (no workers) the node still claims to
-   be an orchestrator running an integration gate — inaccurate for a single `next`/`verify` session
-   (verified by rendering the session view). Fix: make the manager node mode-aware — in session mode
-   show a session title and detail (e.g. "session" / "your next / verify loop"); keep
-   "orchestrator" / "deterministic integration gate" for swarm mode.
-   Acceptance: a `test_ui.py` assertion that render() chooses the manager label/detail by mode
-   (a session branch keyed on `manager.status==='session'`); verified visually that the session
-   view's manager node no longer reads as a swarm orchestrator.
+## Next
 
 ## Rules
 

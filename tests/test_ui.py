@@ -47,6 +47,14 @@ def test_do_get_rejects_a_non_loopback_host(tmp_path):
     assert errors["code"] == 403
 
 
+def test_manager_node_is_mode_aware():
+    # In session mode the manager node must not claim to be a swarm orchestrator running an
+    # integration gate; render() picks the label/detail by mode.
+    assert "sessionMode" in ui.PAGE
+    assert "your next / verify loop" in ui.PAGE  # session-mode detail
+    assert "deterministic integration gate" in ui.PAGE  # swarm-mode detail still present
+
+
 def test_worker_node_shows_the_task_goal_not_just_the_id():
     # A worker with no error should read as "what it's building", not an opaque task id; render()
     # looks the goal up from state.tasks by task_id.
