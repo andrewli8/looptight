@@ -52,6 +52,23 @@ def test_stop_process_tree_falls_back_to_kill_when_killpg_raises_oserror(monkeyp
     assert process.killed  # fell through to the final process.kill()
 
 
+def test_stop_process_tree_swallows_a_final_kill_oserror(monkeypatch):
+    # Best-effort teardown never raises: if killpg falls through AND the final
+    # process.kill() also raises OSError (an already-reaped race), it is swallowed.
+    class FakeProcess:
+        pid = 789
+
+        def kill(self):
+            raise OSError("already gone")
+
+    def raise_oserror(pid, sig):
+        raise OSError("operation not permitted")
+
+    monkeypatch.setattr("looptight.proctree.os.name", "posix")
+    monkeypatch.setattr("looptight.proctree.os.killpg", raise_oserror)
+    assert stop_process_tree(FakeProcess()) is None  # type: ignore[arg-type]
+
+
 def test_stop_process_tree_uses_taskkill_when_os_is_nt(monkeypatch):
     # The Windows branch shells out to taskkill /F /T; exercise it on any OS by
     # faking os.name so the nt path is covered, not only on a Windows runner.

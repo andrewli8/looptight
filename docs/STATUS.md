@@ -1287,15 +1287,10 @@ existing CLI session and makes no model or API calls of its own.
   raise `NotImplementedError` (with `direct_main=true`) and asserts `run --headless` exits 3
   carrying the message rather than crashing. No production change.
 
-## Next
-
-1. `stop_process_tree`'s final-kill OSError swallow is untested.
-   Evidence: src/looptight/proctree.py:50-53 — after the POSIX killpg fallthrough, even the
-   final `process.kill()` is wrapped in `except OSError: pass`, so an already-reaped process
-   cannot make best-effort teardown raise. Untested.
-   Acceptance: a test in tests/test_proctree.py makes `os.killpg` raise a generic `OSError` and
-   a fake process whose `kill()` also raises `OSError`, and asserts `stop_process_tree` returns
-   `None` without raising. No production change.
+- `stop_process_tree`'s final-kill OSError swallow is covered:
+  `test_stop_process_tree_swallows_a_final_kill_oserror` in test_proctree.py makes `os.killpg`
+  raise and a fake process whose `kill()` also raises `OSError`, asserting `stop_process_tree`
+  returns `None` without raising — best-effort teardown never raises. No production change.
 
 ## Rules
 
