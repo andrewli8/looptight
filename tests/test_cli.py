@@ -646,6 +646,25 @@ def test_goal_set_refuses_outside_a_git_repo(tmp_path, monkeypatch, capsys):
     assert read_goal(tmp_path) is None  # nothing was written
 
 
+def test_goal_set_guides_to_the_first_increment(tmp_path, monkeypatch, capsys):
+    # Plain `goal set` should not leave the user wondering "now what?" — it names the next step
+    # (like init/next do), while `--continuous` still prints the full hands-off driver recipe.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "i", "--allow-empty"],
+        cwd=tmp_path, check=True,
+    )
+
+    assert main(["goal", "build a calculator"]) == 0
+    out = capsys.readouterr().out
+    assert "goal set: build a calculator" in out
+    assert "looptight goal next" in out  # the first-increment pointer
+
+    assert main(["goal", "build a calculator", "--continuous"]) == 0
+    assert "/loop until: looptight goal check" in capsys.readouterr().out  # recipe unchanged
+
+
 def test_goal_set_rejects_an_empty_vision(tmp_path, monkeypatch, capsys):
     # An empty/whitespace vision is rejected at the boundary, not persisted as a vacuous goal
     # that would hand the host a build directive with no stated vision.

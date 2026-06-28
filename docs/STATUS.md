@@ -1914,16 +1914,13 @@ existing CLI session and makes no model or API calls of its own.
   "run `looptight next`" that disagreed with the session panel right below it. Found by
   dogfooding the new-user journey. Covered by a separate-invocation test.
 
-## Next
+- Plain `goal set` (non-continuous) now guides the next step like init/next do, naming
+  `looptight goal next` for the first increment and mentioning `--continuous` for a hands-off
+  loop — instead of dead-ending at "goal set: <vision>". The `--continuous` path still prints
+  the full driver recipe. Found by dogfooding the goal-mode journey. Covered by a goal-set
+  guidance test.
 
-1. Plain `goal set` (without `--continuous`) prints only "goal set: <vision>" and gives no
-   next-step guidance, while `init`, `next`, and `goal set --continuous` all guide the user's
-   next action (`src/looptight/protocol_commands.py:983`). A user is left unsure how to proceed.
-   Add a one-line pointer for the non-continuous case naming `looptight goal next` as the first
-   increment (and mentioning `--continuous` for a hands-off loop).
-   Evidence: src/looptight/protocol_commands.py:983
-   Acceptance: a test asserts plain `goal set` output names `looptight goal next` as the next
-   step, and the `--continuous` path is unchanged (still prints the driver recipe).
+## Next
 
 ## Rules
 

@@ -986,6 +986,12 @@ def cmd_goal(args: argparse.Namespace, console: Console) -> int:
     console.write(f"goal set: {arg}")  # user vision — preserve any tokens
     if args.continuous:
         console.print(_goal_driver_recipe(workdir))
+    else:
+        # Guide the next step like init/next do, so a plain `goal set` does not dead-end.
+        console.print(
+            "Run `looptight goal next` for the first increment, then build → "
+            "`looptight verify` → commit and repeat; pass `--continuous` for a hands-off loop."
+        )
     return 0
 
 
