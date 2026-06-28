@@ -1341,6 +1341,15 @@ existing CLI session and makes no model or API calls of its own.
   return an error `NextResult` and asserts `next` prints "error:" with the message (the non-dirty
   else branch). No production change.
 
+## Next
+
+1. `render_state_panel`'s goal-truncation and worker-error display are untested.
+   Evidence: src/looptight/ui.py:96-97 (a worker goal over 63 chars is truncated to 60 + "...")
+   and :100-102 (a worker's error is appended in brackets). Untested.
+   Acceptance: a test in tests/test_ui.py calls `render_state_panel` with a state whose worker has
+   a long goal and another worker with an error, asserting the panel truncates the goal ("...")
+   and shows the error. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
