@@ -1664,6 +1664,18 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `looptight status` names the claimed task by its opaque fingerprint, not what it is.
+   Evidence: src/looptight/protocol_commands.py:480 builds the next-action as
+   `f"continue claimed task {claimed_task}"`, where `claimed_task` is the coordinator fingerprint
+   (a 12-hex id) — so the human reads "continue claimed task 9c2e4a1f8b30" instead of the task's
+   goal, the same opaque-id gap fixed in the ui/statusline. Fix: when a task is claimed, fetch its
+   goal from the lease (`active_lease_for_owner(owner_id(workdir))`, already used by the hook/ui) and
+   make the action read "continue your claimed task: <goal>", falling back to the fingerprint when
+   the goal is unavailable. Keep the machine-stable `claimed_task` JSON field as the fingerprint.
+   Evidence: src/looptight/coordinator.py (`active_lease_for_owner`), src/looptight/claims.py:64.
+   Acceptance: a `test_cli.py` test with an active claim asserts `status --json`'s `next_action`
+   contains the task goal (not the bare fingerprint); the `claimed_task` field stays the fingerprint.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
