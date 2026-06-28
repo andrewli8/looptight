@@ -473,6 +473,26 @@ def test_render_state_panel_empty_without_workers():
     assert render_state_panel({"manager": {"status": "idle"}, "workers": []}) == ""
 
 
+def test_render_state_panel_shows_the_session_loop(monkeypatch, tmp_path):
+    from looptight.ui import render_state_panel
+
+    # The session/goal overlay (no swarm workers) renders a one-line summary, so `status --watch`
+    # shows the current loop instead of "no active workers".
+    session = {
+        "manager": {"status": "session", "verify": "pass"},
+        "tasks": [{"id": "t1", "goal": "fix the parser", "status": "claimed"}],
+        "workers": [],
+    }
+    panel = render_state_panel(session)
+    assert "session" in panel and "fix the parser" in panel and "verify: pass" in panel
+
+    goal = {"manager": {"status": "goal"}, "tasks": [{"id": "g", "goal": "ship it"}], "workers": []}
+    assert render_state_panel(goal) == "goal: ship it"
+    # workers present -> the worker panel still wins
+    swarm = {"manager": {"status": "running"}, "tasks": [], "workers": [{"number": 1, "status": "running"}]}
+    assert render_state_panel(swarm).startswith("swarm:")
+
+
 def test_statusline_summarizes_workers_or_idle():
     from looptight.ui import statusline
 

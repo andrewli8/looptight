@@ -16,7 +16,7 @@ from .config import ConfigError, load_config
 from .console import Console
 from .coordinator import Coordinator, MigrationBlocked, coordination_scope, current_run_id
 from .detect import detect_agent, detect_verify
-from .ui import read_state, render_state_panel
+from .ui import _with_session_task, read_state, render_state_panel
 from .verify import run_verify
 
 
@@ -439,7 +439,10 @@ def _watch_status(
     ticks = 0
     try:
         while max_ticks == 0 or ticks < max_ticks:
-            panel = render_state_panel(read_state(workdir)) or "swarm: no active workers"
+            panel = (
+                render_state_panel(_with_session_task(read_state(workdir), workdir))
+                or "idle — run `looptight next` to claim a task"
+            )
             if clear:
                 console.print("\033[2J\033[H", end="")  # clear screen, cursor home
             console.print(panel)
@@ -627,7 +630,7 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
                 f"bounded {'yes' if idea_quality['bounded'] else 'no'}"
             )
         console.print(f"next: {action}")
-        panel = render_state_panel(read_state(workdir))
+        panel = render_state_panel(_with_session_task(read_state(workdir), workdir))
         if panel:
             console.print(panel)
     return 0

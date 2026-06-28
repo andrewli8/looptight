@@ -101,12 +101,33 @@ _WORKER_STATUS_ORDER = (
 )
 
 
+def _session_panel(state: dict[str, object]) -> str:
+    """A one-line panel for the session/goal overlay (no swarm workers), or "" when empty.
+
+    Mirrors the swarm panel for the default `next` loop / goal mode: `session: <goal> · verify: pass`.
+    """
+    manager = state.get("manager") or {}
+    status = str(manager.get("status", ""))
+    tasks = state.get("tasks") or []
+    if status not in ("session", "goal") or not tasks or not isinstance(tasks[0], dict):
+        return ""
+    goal = str(tasks[0].get("goal") or tasks[0].get("id") or "").strip()
+    if not goal:
+        return ""
+    line = f"{status}: {goal}"
+    verify = manager.get("verify")
+    if isinstance(verify, str) and verify:
+        line += f" · verify: {verify}"
+    return line
+
+
 def render_state_panel(state: dict[str, object]) -> str:
-    """Render swarm/daemon worker state as a compact terminal panel, or "" when
-    there are no workers. Pure: takes a state dict (from :func:`read_state`)."""
+    """Render the current loop as a compact terminal panel, or "" when idle. Pure: takes a state
+    dict (from :func:`read_state`, optionally session-overlaid). Swarm/daemon workers render as a
+    multi-line worker panel; the session/goal overlay renders as a one-line summary."""
     workers = state.get("workers") or []
     if not isinstance(workers, list) or not workers:
-        return ""
+        return _session_panel(state)
     goals = {
         t.get("id"): str(t.get("goal", ""))
         for t in (state.get("tasks") or [])
