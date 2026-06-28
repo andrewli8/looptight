@@ -1751,20 +1751,15 @@ existing CLI session and makes no model or API calls of its own.
   now consistent across both solo modes on every surface. No verdict / swarm mode unchanged.
   Covered by goal-overlay and goal-detail tests.
 
-## Next
+- The tally now buckets every real swarm status: `verified` (passed verify, awaiting merge)
+  joins `active`, and `limited` (hit a usage cap) / `interrupted` join `attention`, in both
+  the Python `_STATUS_GROUPS` and the mirrored JS `groups` set. Previously a task in any of
+  those states counted toward `total` but no bucket, so `active + attention + complete` was
+  silently less than `total` and the filter buttons disagreed with the tally. Found by
+  dogfooding the ui with a swarm state. Covered by a status-coverage test and a
+  groups-in-sync test.
 
-1. The tally's `_STATUS_GROUPS` in `src/looptight/ui.py:269` omits three real swarm worker/task
-   statuses — `verified` (`src/looptight/swarm.py:365`, passed verify, awaiting merge),
-   `limited` (`src/looptight/swarm.py:324`, hit a usage cap), and `interrupted`
-   (`src/looptight/swarm.py:673`) — so a task in any of those states counts toward `total` but
-   no bucket, making `active + attention + complete` silently less than `total`. Add `verified`
-   to `active` and `limited`/`interrupted` to `attention` (in both the Python `_STATUS_GROUPS`
-   and the mirrored JS `groups` set in the page so the filter buttons agree with the tally).
-   Evidence: src/looptight/ui.py:269
-   Acceptance: a new test in tests/test_ui.py builds a state whose tasks cover every real worker
-   status (including verified/limited/interrupted) and asserts `summarize` returns
-   `active + attention + complete == total`; another asserts the page `groups` set matches
-   `_STATUS_GROUPS`.
+## Next
 
 ## Rules
 

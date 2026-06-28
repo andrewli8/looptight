@@ -266,9 +266,13 @@ def _solo_overlay(
 
 #: The status groups the page filters and tallies by, kept here so the server-computed
 #: summary and the client's filter use one definition.
+# Buckets cover every status the swarm/session actually publishes, so active+attention+complete
+# always equals total. "verified" is in flight (passed verify, awaiting merge); "limited" (hit a
+# usage cap) and "interrupted" could not finish, so they need attention. Keep the JS `groups` set
+# in the page in sync (test_page_filter_groups_match_the_python_status_groups guards the drift).
 _STATUS_GROUPS = {
-    "active": frozenset({"ready", "running", "claimed", "integrating"}),
-    "attention": frozenset({"failed", "error", "conflict", "timeout"}),
+    "active": frozenset({"ready", "running", "claimed", "integrating", "verified"}),
+    "attention": frozenset({"failed", "error", "conflict", "timeout", "limited", "interrupted"}),
     "complete": frozenset({"complete", "completed", "passed", "merged"}),
 }
 
@@ -332,7 +336,7 @@ main{padding:28px 32px}.tally{display:flex;flex-wrap:wrap;gap:10px;margin-bottom
 <script>
 const $=id=>document.getElementById(id);
 let state={schema_version:1,manager:{status:'idle'},tasks:[],workers:[]},filter='all',selected=null,records={};
-const groups={active:new Set(['ready','running','claimed','integrating']),attention:new Set(['failed','error','conflict','timeout']),complete:new Set(['complete','completed','passed','merged'])};
+const groups={active:new Set(['ready','running','claimed','integrating','verified']),attention:new Set(['failed','error','conflict','timeout','limited','interrupted']),complete:new Set(['complete','completed','passed','merged'])};
 function visible(status){return filter==='all'||groups[filter].has((status||'').toLowerCase())}
 function eventAge(timestamp,now=Date.now()){const age=now-Date.parse(timestamp);if(!timestamp||!Number.isFinite(age)||age<0)return'UNKNOWN';const seconds=Math.floor(age/1000);if(seconds<60)return`${seconds}S AGO`;const minutes=Math.floor(seconds/60);if(minutes<60)return`${minutes}M AGO`;const hours=Math.floor(minutes/60);if(hours<24)return`${hours}H AGO`;return`${Math.floor(hours/24)}D AGO`}
 function select(record){selected=record;document.querySelectorAll('.node').forEach(n=>n.setAttribute('aria-pressed',String(n.dataset.node===record.id)));const panel=$('inspector');panel.replaceChildren();const title=document.createElement('strong'),detail=document.createElement('span');title.textContent=`${record.kind} · ${record.title}`;detail.textContent=`status ${record.status||'unknown'} · ${record.detail||'no additional detail'}`;panel.append(title,detail)}

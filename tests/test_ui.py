@@ -276,6 +276,37 @@ def test_summarize_is_a_coherent_task_centric_partition():
     assert s["active"] + s["attention"] + s["complete"] <= s["total"]  # a coherent subset
 
 
+def test_summarize_buckets_every_real_swarm_status():
+    # Every status the swarm actually publishes must land in a tally bucket, so the four cells
+    # stay coherent: active + attention + complete == total. verified (awaiting merge), limited
+    # (hit a usage cap), and interrupted were previously unbucketed and silently undercounted.
+    real = [
+        "ready", "running", "claimed", "integrating", "verified",  # in flight
+        "merged",  # complete
+        "failed", "error", "conflict", "timeout", "limited", "interrupted",  # attention
+    ]
+    state = {"tasks": [{"id": str(i), "status": s} for i, s in enumerate(real)]}
+    s = ui.summarize(state)
+    assert s["total"] == len(real)
+    assert s["active"] + s["attention"] + s["complete"] == s["total"]  # no status falls through
+    assert "verified" in ui._STATUS_GROUPS["active"]  # passed verify, still integrating
+    assert {"limited", "interrupted"} <= ui._STATUS_GROUPS["attention"]  # could not finish
+
+
+def test_page_filter_groups_match_the_python_status_groups():
+    # The JS `groups` set drives the filter buttons; it must mirror _STATUS_GROUPS so the filters
+    # and the tally agree on which statuses are active/attention/complete.
+    import re
+
+    block = ui.PAGE[ui.PAGE.index("const groups={"):]
+    block = block[: block.index("};") + 1]
+    parsed = {
+        m.group(1): set(re.findall(r"'([^']*)'", m.group(2)))
+        for m in re.finditer(r"(\w+):new Set\(\[([^\]]*)\]\)", block)
+    }
+    assert parsed == {k: set(v) for k, v in ui._STATUS_GROUPS.items()}
+
+
 def test_summarize_tolerates_empty_and_malformed_state():
     assert ui.summarize({}) == {"total": 0, "active": 0, "attention": 0, "complete": 0}
     assert ui.summarize({"tasks": [None, "x", {"status": "running"}]})["total"] == 1
