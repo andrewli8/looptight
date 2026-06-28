@@ -1746,6 +1746,17 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The goal-mode overlay in `src/looptight/ui.py:251` omits the verify verdict and
+   freshness that the session-mode branch (`src/looptight/ui.py:241`) carries, even though
+   goal-mode build increments are verify-gated — so the browser ui, statusline, and panel
+   show pass/fail in session mode but not in goal mode. Factor both solo overlays through one
+   `_solo_overlay` helper so the goal view also carries `manager.verify` and the verdict
+   freshness, and surface it in the goal-mode `mgrDetail` of the `render()` script.
+   Evidence: src/looptight/ui.py:251
+   Acceptance: a new test in tests/test_ui.py asserts `_with_session_task` over a goal claim
+   sets `manager["verify"]` from the verdict sidecar (and leaves it absent when no verdict
+   exists); the goal-mode `mgrDetail` includes `verify:` when a verdict is present.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
