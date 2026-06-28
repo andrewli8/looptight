@@ -1426,12 +1426,15 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. The serialized-integration commit-failure path is untested.
-   Evidence: src/looptight/swarm.py:384-389 — when a verified worker's merge commit into the repo
-   fails, `_integrate` aborts the merge and marks the worker `failed` rather than leaving a partial
-   integration. Untested (the worker-side commit failure is covered, this is the integration side).
-   Acceptance: a test in tests/test_swarm.py wraps `_git` so the integration `merge:` commit fails
-   and asserts the worker is `failed` with the integration-commit error. No production change.
+1. `swarm._integrate` (the direct-merge integration) is the no-coordinator fallback only.
+   Evidence: src/looptight/swarm.py:450 (`if coordinator is None` — `# pragma: no cover`, "swarm
+   always runs inside Git") is the sole caller of `_integrate` (449-453); a coordinated swarm
+   integrates through the durable `Integrator` instead. So `_integrate`'s 369-391 body (merge,
+   integration-verify, commit, abort) is unreachable in normal runs, which is why coverage flags it
+   and a `run_swarm`-driven test cannot hit it. Decide: drop the dead fallback, or mark it
+   `pragma: no cover` like its caller, so the coverage signal stops pointing at unreachable code.
+   Acceptance: a one-file change to swarm.py that either removes `_integrate` (if truly dead) or
+   marks it no-cover with a comment; no behavior change; the swarm tests stay green.
 
 ## Rules
 ## Rules
