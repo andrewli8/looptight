@@ -316,6 +316,21 @@ def test_plan_next_tasks_fails_gracefully_outside_a_git_repo(tmp_path):
     assert "Git repository" in (result.error or "")
 
 
+def test_swarm_cli_continuous_prints_round_summary(tmp_path, monkeypatch, capsys):
+    # Continuous mode prints a "continuous · N rounds · M plans · K resumes" summary.
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        "looptight.swarm.run_continuous_swarm",
+        lambda *a, **k: SwarmResult((), rounds=3, plans=1, resumes=0),
+    )
+    main([
+        "swarm", "--headless", "--agent", "codex", "--verify", "exit 0",
+        "--continuous", "--max-rounds", "5",
+    ])
+    out = capsys.readouterr().out
+    assert "continuous" in out and "3 rounds" in out and "1 plans" in out
+
+
 def test_swarm_cli_prints_error_and_no_work_results(tmp_path, monkeypatch, capsys):
     # The human swarm output surfaces a top-level error and a NO_WORK result.
     monkeypatch.chdir(tmp_path)
