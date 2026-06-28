@@ -1336,14 +1336,10 @@ existing CLI session and makes no model or API calls of its own.
   asserts `revert` outside a git repo exits 1 with a "not a git repo" message — both in test_cli.py.
   No production change.
 
-## Next
-
-1. `cmd_next`'s generic-error human output is untested.
-   Evidence: src/looptight/protocol_commands.py:252-253 — for a non-`dirty_worktree` error, `next`
-   prints `error: <message>`. The dirty-worktree branch is tested but this generic else branch
-   is not.
-   Acceptance: a test in tests/test_cli.py monkeypatches `next_task` to return an error
-   `NextResult` and asserts `next` prints "error:" with the message. No production change.
+- `cmd_next`'s generic-error human output is covered:
+  `test_next_human_output_prints_a_generic_error` in test_cli.py monkeypatches `next_task` to
+  return an error `NextResult` and asserts `next` prints "error:" with the message (the non-dirty
+  else branch). No production change.
 
 ## Rules
 

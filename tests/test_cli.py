@@ -1922,6 +1922,21 @@ def test_daemon_cli_paths_do_not_require_agent_on_path(tmp_path, monkeypatch):
     assert main(["daemon", "--headless", "--verify", "true"]) == 2
 
 
+def test_next_human_output_prints_a_generic_error(tmp_path, monkeypatch, capsys):
+    # For a non-dirty-worktree error, `next` prints "error: <message>".
+    from looptight.tasks import NextResult
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    monkeypatch.setattr(
+        "looptight.tasks.next_task",
+        lambda *a, **k: NextResult(status="error", error="coordination unavailable"),
+    )
+    main(["next"])
+    out = capsys.readouterr().out
+    assert "error:" in out and "coordination unavailable" in out
+
+
 def test_doctor_next_setup_command_branches():
     from looptight.commands import _doctor_next_setup_command
 
