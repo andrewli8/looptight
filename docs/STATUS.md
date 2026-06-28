@@ -1500,22 +1500,15 @@ existing CLI session and makes no model or API calls of its own.
   `current_quality` feedback; `propose --eval` now surfaces a fabricated item instead of dropping
   it. Covered by an idea_eval test; the `propose --eval` CLI test updated to the corrected behavior.
 
+- Python skipped-test candidates in one file no longer collide to a single `idea_id`: the
+  candidate title now names the enclosing test (`_enclosing_test_name` finds the `def` above an
+  imperative skip or below a decorator skip), so sibling skips stay distinct ideas — cooldown
+  can't suppress an innocent sibling and outcome stats don't merge. A module-level `pytestmark`
+  with no enclosing function keeps the file-level title (one idea). Covered by a test_propose test.
+
 ## Next
 
-1. Python skipped-test candidates in one file collide to a single `idea_id`, so cooldown suppresses
-   sibling tests and outcome stats merge distinct tasks.
-   Evidence: src/looptight/discovery.py:491 titles every Python skip `f"un-skip / fix skipped test
-   in {path.name}"` (basename only), and src/looptight/idea_identity.py:45-46 keys `skipped-test` on
-   the normalized title alone (location dropped) — so two skips in one file share an `idea_id`. The
-   JS path (src/looptight/discovery.py:452-454) puts the test name in the title and stays distinct,
-   and the claim id (src/looptight/tasks.py:143-146) keeps full location, confirming the collision
-   is unintended. Fix: include the
-   enclosing test's identity in the Python skip title (extract the nearest `def test_*`, like JS uses
-   the test name), falling back to the basename for a module-level skip with no enclosing function.
-   Acceptance: a failing-then-passing test with two skipped tests in one file asserts their
-   `idea_id`s differ; a single skip is unchanged.
-
-2. The cooldown failure count is all-time, not windowed, so an idea with old failures over-suppresses.
+1. The cooldown failure count is all-time, not windowed, so an idea with old failures over-suppresses.
    Evidence: src/looptight/coordinator.py:833-837 (`recent_failures`) runs `SELECT idea_id, COUNT(*),
    MAX(created_at) ... WHERE outcome='failed' GROUP BY idea_id` and filters rows only by
    `MAX(created_at) >= cutoff` — so `COUNT(*)` counts every failure ever, not just those in the

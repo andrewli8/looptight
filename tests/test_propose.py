@@ -284,6 +284,31 @@ def test_conditional_skip_with_blank_line_in_block_is_suppressed(tmp_path):
     assert from_skipped_tests(tmp_path) == []
 
 
+def test_python_skipped_tests_in_one_file_have_distinct_idea_ids(tmp_path):
+    # Two independent skipped tests in one file must not collapse to a single idea_id —
+    # that would make cooldown suppress the innocent sibling and merge their outcome stats.
+    # The enclosing test name (not the line, which would break line-move stability)
+    # distinguishes them.
+    from looptight.discovery import from_skipped_tests
+    from looptight.idea_identity import idea_id
+
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_two.py").write_text(
+        "import pytest\n\n"
+        "@pytest.mark.skip(reason='a')\n"
+        "def test_alpha():\n    assert True\n\n"
+        "def test_beta():\n    pytest.skip('later')\n    assert True\n"
+    )
+    cands = from_skipped_tests(tmp_path)
+    assert len(cands) == 2
+    assert len({idea_id(c) for c in cands}) == 2, "sibling skipped tests collapsed to one idea_id"
+
+    by_title = sorted(c.title for c in cands)
+    assert "test_alpha" in by_title[0]  # decorator skip names its test
+    assert "test_beta" in by_title[1]   # imperative skip names its enclosing test
+
+
 def test_adjacent_numbered_items_without_blank_line_parse_separately(tmp_path):
     # The numbered-item continuation parser breaks at the next numbered item, so two
     # adjacent `## Next` items with no blank line between them are two tasks, not one.

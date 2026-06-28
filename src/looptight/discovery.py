@@ -464,6 +464,32 @@ def _js_skip_candidate(root: Path, path: Path, lineno: int, line: str) -> Candid
     )
 
 
+_DEF_RE = re.compile(r"\s*(?:async\s+)?def\s+(?P<name>\w+)\s*\(")
+
+
+def _enclosing_test_name(lines: list[str], idx: int) -> str | None:
+    """The test function a skip belongs to, so sibling skips in one file stay distinct.
+
+    A decorator skip (``@pytest.mark.skip``) sits above its ``def``; an imperative skip
+    (``pytest.skip(...)``/``self.skipTest(...)``) sits inside the body, below its ``def``.
+    A module-level ``pytestmark`` has no enclosing function (returns ``None`` → file-level
+    title, one idea for the whole disabled module). Including the name — not the line —
+    keeps the idea identity line-move stable while separating two different tests.
+    """
+    if lines[idx].lstrip().startswith("@"):
+        for j in range(idx + 1, min(idx + 8, len(lines))):
+            match = _DEF_RE.match(lines[j])
+            if match:
+                return match.group("name")
+            if lines[j].strip() and not lines[j].lstrip().startswith("@"):
+                break
+    for j in range(idx, -1, -1):
+        match = _DEF_RE.match(lines[j])
+        if match:
+            return match.group("name")
+    return None
+
+
 def from_skipped_tests(root: Path) -> list[Candidate]:
     """Skipped / xfailed tests — each is a candidate to fix and re-enable.
 
@@ -486,9 +512,11 @@ def from_skipped_tests(root: Path) -> list[Candidate]:
                 continue
             if stripped.startswith(("pytest.skip(", "pytest.xfail(", "self.skipTest(")) and _inside_conditional(lines, idx):
                 continue
+            test_name = _enclosing_test_name(lines, idx)
+            where = f"{test_name} in {path.name}" if test_name else f"in {path.name}"
             out.append(
                 Candidate(
-                    title=f"un-skip / fix skipped test in {path.name}",
+                    title=f"un-skip / fix skipped test {where}",
                     source="skipped-test",
                     location=f"{_rel(root, path)}:{idx + 1}",
                     suggested_verify=None,
