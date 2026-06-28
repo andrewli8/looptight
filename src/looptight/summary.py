@@ -59,7 +59,7 @@ def render(result: RunResult) -> str:
     mark = "✓" if result.passed else "✗"
     tail = _tail(result)
     lines.append("")
-    lines.append(f"{mark} {tail} · {result.iteration_count} iteration(s)")
+    lines.append(f"{mark} {tail} · {_iterations(result.iteration_count)}")
     evidence = _escalation_lines(result)
     if evidence:
         lines += ["", *evidence]
@@ -68,22 +68,32 @@ def render(result: RunResult) -> str:
     return "\n".join(lines)
 
 
-def render_rich(result: RunResult, console) -> None:
-    """Print the summary to a rich Console with green/red emphasis (E2)."""
-    console.print(header(result), style="bold")
-    console.print()
-    for record in result.iterations:
-        style = "green" if record.verify.passed else "red"
-        console.print(f"iteration {record.number} → verify: ", end="")
-        console.print(record.verify.short(), style=f"bold {style}", end="")
+def _iterations(n: int) -> str:
+    """``"1 iteration"`` / ``"2 iterations"`` — proper agreement, not the lazy ``(s)``."""
+    return f"{n} iteration{'s' if n != 1 else ''}"
+
+
+def render_rich(result: RunResult, console, *, include_progress: bool = True) -> None:
+    """Print the summary to a rich Console with green/red emphasis (E2).
+
+    With ``include_progress=False`` the header and per-iteration lines are omitted, for a caller
+    (``cmd_run``) that already streamed them live — so only the conclusion is printed once.
+    """
+    if include_progress:
+        console.print(header(result), style="bold")
         console.print()
+        for record in result.iterations:
+            style = "green" if record.verify.passed else "red"
+            console.print(f"iteration {record.number} → verify: ", end="")
+            console.print(record.verify.short(), style=f"bold {style}", end="")
+            console.print()
 
     passed = result.passed
     mark = "✓" if passed else "✗"
     tail = _tail(result)
     console.print()
     console.print(
-        f"{mark} {tail} · {result.iteration_count} iteration(s)",
+        f"{mark} {tail} · {_iterations(result.iteration_count)}",
         style="bold green" if passed else "bold red",
     )
     evidence = _escalation_lines(result)

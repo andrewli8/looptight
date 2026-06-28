@@ -239,8 +239,9 @@ def cmd_run(args: argparse.Namespace, console: Console) -> int:
         import json
         print(json.dumps(result.as_dict(), sort_keys=True))
     else:
-        console.print()
-        render_rich(result, console)
+        # The banner and per-iteration lines were already streamed live above, so the summary
+        # prints only the conclusion (done line, escalation, diffstat) — not a duplicate of them.
+        render_rich(result, console, include_progress=False)
     return 0 if result.stop_reason is StopReason.SUCCESS else 1
 
 

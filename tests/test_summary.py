@@ -26,7 +26,7 @@ def test_summary_has_readable_iterations_and_result():
     text = summary.render(_result(StopReason.SUCCESS))
     assert "iteration 1 → verify: FAIL" in text
     assert "iteration 2 → verify: PASS" in text
-    assert "✓ done · 2 iteration(s)" in text
+    assert "✓ done · 2 iterations" in text  # proper plural
 
 
 def test_summary_shows_stop_reasons():
@@ -64,7 +64,18 @@ def test_console_summary_matches_plain_result():
     output = StringIO()
     summary.render_rich(_result(StopReason.SUCCESS), Console(file=output))
     assert "iteration 1 → verify: FAIL" in output.getvalue()
-    assert "✓ done · 2 iteration(s)" in output.getvalue()
+    assert "✓ done · 2 iterations" in output.getvalue()  # proper plural
+
+
+def test_render_rich_can_omit_progress_for_cmd_run():
+    # cmd_run streams the banner + iterations live, so the summary must print only the conclusion
+    # (no duplicate header/iteration list).
+    output = StringIO()
+    summary.render_rich(_result(StopReason.SUCCESS), Console(file=output), include_progress=False)
+    out = output.getvalue()
+    assert "iteration 1 → verify:" not in out  # not reprinted
+    assert "supplying loop" not in out  # header not reprinted
+    assert "done" in out  # the conclusion is still shown
 
 
 def test_summary_shows_escalation_evidence_when_present():

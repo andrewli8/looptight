@@ -1955,20 +1955,14 @@ existing CLI session and makes no model or API calls of its own.
   typos; an unrelated unknown key is still tolerated (forward-compatible). Found by dogfooding
   the misconfiguration journey. Covered by typo-rejected and unrelated-tolerated tests.
 
-## Next
+- `run --headless`'s human output no longer prints the banner and iteration lines twice: the
+  live display (cmd_run) streams them, and the summary (`render_rich`) now prints only the
+  conclusion via a new `include_progress=False` flag (standalone `render_rich`/`render` still
+  show the full summary). Also the lazy `iteration(s)` plural is now proper (`1 iteration` /
+  `2 iterations`). Found by dogfooding `run` with a fake agent. Covered by a no-duplication
+  test and updated plural assertions.
 
-1. `run --headless`'s human output prints the banner and every iteration line TWICE: `cmd_run`
-   shows a live banner + per-iteration counter (`src/looptight/commands.py:206,212`), then
-   `render_rich` reprints the header + the same iterations + the conclusion
-   (`src/looptight/summary.py:71`). The summary's only non-duplicated content is the conclusion
-   (done line, escalation, diffstat). Also `render`/`render_rich` use the lazy `iteration(s)`
-   plural (`summary.py:62,86`). Add an `include_progress` flag to `render_rich` (default True for
-   standalone use) that `cmd_run` sets False so the summary prints only the conclusion, and switch
-   to a proper `iteration`/`iterations` plural. Found by dogfooding `run` with a fake agent.
-   Evidence: src/looptight/summary.py:71
-   Acceptance: a test asserts `cmd_run` non-JSON output shows the iteration line once (not twice)
-   and says "1 iteration"; the standalone `render_rich`/`render` still show iterations and say
-   "2 iterations" for two.
+## Next
 
 ## Rules
 
