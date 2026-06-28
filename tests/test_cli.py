@@ -2735,6 +2735,30 @@ def test_status_goal_mode_names_the_vision_once_with_its_verdict(tmp_path, monke
     assert "verify: pass" in goal_lines[0]  # build health on the dedicated goal line
 
 
+def test_status_goal_line_shows_max_iterations_like_goal_status(tmp_path, monkeypatch, capsys):
+    # The `status` goal line and `goal status` describe the same goal; both must show the
+    # max-iterations backstop. Previously `status` dropped it, so "max 5" appeared under
+    # `goal status` but vanished under `status` for the same goal.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "true"\n', encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "x"],
+        cwd=tmp_path, check=True,
+    )
+    assert main(["goal", "build a CLI todo app", "--max-iterations", "5"]) == 0
+    capsys.readouterr()
+
+    assert main(["status"]) == 0
+    status_line = [ln for ln in capsys.readouterr().out.splitlines() if ln.startswith("goal:")][0]
+    assert "max 5" in status_line
+
+    assert main(["goal", "status"]) == 0
+    goal_status_line = [ln for ln in capsys.readouterr().out.splitlines() if ln.startswith("goal:")][0]
+    assert "max 5" in goal_status_line  # the two descriptors agree
+
+
 def test_positive_int_rejects_zero_and_port_rejects_out_of_range():
     # The argparse type validators reject invalid values with ArgumentTypeError,
     # so a bad --port or count fails at parse time rather than deep in a command.

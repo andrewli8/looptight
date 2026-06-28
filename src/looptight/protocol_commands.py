@@ -479,6 +479,17 @@ def humanized_checks(checks: dict[str, object]) -> str:
     return " · ".join(f"{key} {humanize_status(value)}" for key, value in checks.items())
 
 
+def goal_descriptor(goal) -> str:
+    """The one-line ``goal:`` descriptor shared by ``status`` and ``goal status`` so the two
+    never drift on which fields they show (iteration, continuous, the max-iterations backstop).
+    Callers pass it to ``console.write`` to preserve any markup-like tokens in the vision."""
+    return (
+        f"goal: {goal.vision} (iteration {goal.iteration}"
+        f"{', continuous' if goal.continuous else ''}"
+        f"{f', max {goal.max_iterations}' if goal.max_iterations else ''})"
+    )
+
+
 def cmd_status(args: argparse.Namespace, console: Console) -> int:
     """Report safety state without running validation or claiming work."""
     workdir = Path.cwd()
@@ -643,10 +654,8 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
             # health stays visible once the redundant overlay panel is suppressed below.
             verdict = read_verdict(workdir)
             verdict_suffix = f" · verify: {verdict}" if verdict else ""
-            console.write(  # user vision — preserve any tokens (no looptight markup here)
-                f"goal: {active_goal.vision} (iteration {active_goal.iteration}"
-                f"{', continuous' if active_goal.continuous else ''}){verdict_suffix}"
-            )
+            # user vision — preserve any tokens (no looptight markup here)
+            console.write(goal_descriptor(active_goal) + verdict_suffix)
         if idea_quality is not None:
             console.print(
                 f"idea quality: {idea_quality['size']} task{'s' if idea_quality['size'] != 1 else ''} · "
@@ -898,11 +907,7 @@ def cmd_goal(args: argparse.Namespace, console: Console) -> int:
             # Guide the user out of the dead-end, consistent with `goal next`/`goal check`.
             console.print("no active goal; set one with `looptight goal \"<vision>\"`")
         else:
-            console.write(  # user vision — preserve any tokens
-                f"goal: {goal.vision} (iteration {goal.iteration}"
-                f"{', continuous' if goal.continuous else ''}"
-                f"{f', max {goal.max_iterations}' if goal.max_iterations else ''})"
-            )
+            console.write(goal_descriptor(goal))  # user vision — preserve any tokens
         return 0
 
     if arg == "clear":

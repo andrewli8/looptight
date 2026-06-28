@@ -1999,6 +1999,12 @@ existing CLI session and makes no model or API calls of its own.
   and `goal check` — it was the lone sibling action that dead-ended with a bare `no active
   goal`. Found by dogfooding the goal-mode journey. Covered by a guidance-parity test.
 
+- The `status` goal line and `goal status` now render the same goal descriptor via one shared
+  `goal_descriptor` helper, so both show the `max <N>` iteration backstop (the `status` line
+  previously dropped it, so `max 5` appeared under `goal status` but vanished under `status`
+  for the same goal). `status` still appends its build-health verdict suffix. Replaces two
+  drifted f-strings. Found by dogfooding the active-goal journey. Covered by a parity test.
+
 ## Next
 
 ## Rules
