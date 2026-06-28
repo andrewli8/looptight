@@ -729,8 +729,25 @@ def test_swarm_human_output_explains_integration_and_next_action(
     out = capsys.readouterr().out
     assert "explanation: verified workers integrate one at a time" in out
     assert "integration: merged 1" in out
-    assert "next: inspect retained worktrees for failures or continue with `looptight next --json`" in out
+    # All workers merged → no retained worktrees, so the next line must NOT mention inspecting them.
+    assert "next: continue with `looptight next --json`" in out
+    assert "retained worktrees" not in out
     assert out.splitlines()[-1] == "1 worker · 1 merged"
+
+
+def test_swarm_next_line_points_at_worktrees_on_failure(tmp_path, monkeypatch, capsys):
+    # A failed worker retains a worktree, so the next line should point the operator at it.
+    _repo(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: UnrelatedEditingAdapter())
+
+    assert main(
+        ["swarm", "--headless", "--agent", "codex", "--verify", "exit 0", "--workers", "1"]
+    ) == 1
+
+    out = capsys.readouterr().out
+    assert "worktree retained for recovery" in out  # a failed worker retained one
+    assert "next: inspect the retained worktrees above" in out
 
 
 def test_swarm_human_output_explains_recovery_guarantees(

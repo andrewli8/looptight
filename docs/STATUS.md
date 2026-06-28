@@ -1962,17 +1962,13 @@ existing CLI session and makes no model or API calls of its own.
   `2 iterations`). Found by dogfooding `run` with a fake agent. Covered by a no-duplication
   test and updated plural assertions.
 
-## Next
+- The swarm `next:` line is now conditional on actual failures: an all-merged run says
+  "continue with `looptight next --json`" (no misleading mention of retained worktrees that
+  do not exist), while a run with a failed/timeout/conflict worker points at the retained
+  worktrees above. Found by dogfooding the swarm success path with a fake agent. Covered by a
+  merged-case and a failure-case test.
 
-1. The swarm human output's `next:` line (`src/looptight/swarm.py:906`) unconditionally says
-   "inspect retained worktrees for failures or continue", but a retained worktree only exists for a
-   failed/timeout/conflict worker (`src/looptight/swarm.py:901`) — so on an all-merged run the user
-   is told to inspect failure worktrees that do not exist. Make the line conditional: mention the
-   retained worktrees only when at least one worker actually retained one; otherwise just point at
-   `looptight next --json`. Found by dogfooding the swarm success path with a fake agent.
-   Evidence: src/looptight/swarm.py:906
-   Acceptance: a test asserts an all-merged swarm run's `next:` line does NOT mention retained
-   worktrees, while a run with a failed worker does.
+## Next
 
 ## Rules
 

@@ -903,9 +903,12 @@ def cmd_swarm(args, console: Console) -> int:
     counts = Counter(worker.status for worker in result.workers)
     console.print("explanation: verified workers integrate one at a time")
     console.print(f"integration: merged {counts['merged']}")
-    console.print(
-        "next: inspect retained worktrees for failures or continue with `looptight next --json`"
-    )
+    # A worktree is only retained for a failed/timeout/conflict worker, so point at it only when
+    # one exists — an all-merged run has nothing to inspect.
+    if any(worker.status in {"failed", "timeout", "conflict"} for worker in result.workers):
+        console.print("next: inspect the retained worktrees above, or continue with `looptight next --json`")
+    else:
+        console.print("next: continue with `looptight next --json`")
     console.print("recovery: stale leases requeue when abandoned runs are reaped")
     console.print("recovery: pending integrations are reconciled before claiming new work")
     console.print("recovery: rejected pushes stay failed and are never force-pushed")
