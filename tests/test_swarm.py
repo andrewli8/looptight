@@ -187,6 +187,14 @@ class WholeFileRewriteAdapter(EditingAdapter):
         return IterationResult(transcript="done")
 
 
+def test_plan_next_tasks_fails_gracefully_outside_a_git_repo(tmp_path):
+    # The continuous-swarm planner needs a Git repo with a commit; outside one it returns a
+    # clear PlanningResult failure rather than crashing (the daemon must keep its footing).
+    result = plan_next_tasks(tmp_path, agent="fake", verify="exit 0")
+    assert result.status == "failed"
+    assert "Git repository" in (result.error or "")
+
+
 def test_swarm_cli_prints_error_and_no_work_results(tmp_path, monkeypatch, capsys):
     # The human swarm output surfaces a top-level error and a NO_WORK result.
     monkeypatch.chdir(tmp_path)

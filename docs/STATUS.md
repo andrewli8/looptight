@@ -1224,15 +1224,10 @@ existing CLI session and makes no model or API calls of its own.
   error:" on a protected-path change (exit 2) — the verify config-error path and the
   policy-error human path that the JSON-only policy tests did not reach. No production change.
 
-## Next
-
-1. `plan_next_tasks`'s git-precondition failure is untested.
-   Evidence: src/looptight/swarm.py:503-504 (`_planner_worktree` returns "continuous planning
-   requires a Git repository with at least one commit" outside a repo) feeding swarm.py:525-526
-   (`plan_next_tasks` returns `PlanningResult("failed", error)`). This is the daemon's
-   continuous planner failing gracefully outside Git, but it is untested.
-   Acceptance: a test in tests/test_swarm.py calls `plan_next_tasks` in a non-git directory and
-   asserts `status == "failed"` with a Git-repository message. No production change.
+- `plan_next_tasks`'s git-precondition failure is covered:
+  `test_plan_next_tasks_fails_gracefully_outside_a_git_repo` in test_swarm.py asserts it
+  returns `PlanningResult("failed", ...)` with a Git-repository message outside a repo — so
+  the daemon's continuous planner keeps its footing rather than crashing. No production change.
 
 ## Rules
 
