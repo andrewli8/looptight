@@ -1786,6 +1786,18 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `next`'s human output prints `evidence: Evidence: src/m.py:1` — the `Evidence:` label is
+   duplicated, because the stored evidence field keeps its `Evidence:` prefix (required by
+   `evidence_refs`, `src/looptight/grounding.py:47`) while the renderer adds its own `evidence:`
+   label (`src/looptight/protocol_commands.py:315`). `acceptance:` has no such stutter. Found by
+   dogfooding `next`. Display the parsed anchors instead: when `evidence_refs` finds anchors,
+   show the joined bare paths; otherwise fall back to the raw value (ad-hoc todo/lint evidence
+   has no marker). Render-only — the stored field keeps its prefix so the parsers are untouched.
+   Evidence: src/looptight/protocol_commands.py:315
+   Acceptance: a new test in tests/test_cli.py asserts `next`'s human output contains
+   `evidence: src/...` without a second `Evidence:`, and the ad-hoc fallback still shows its
+   raw evidence line.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
