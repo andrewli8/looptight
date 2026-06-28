@@ -1676,6 +1676,22 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The `ui` session view shows the claimed task but not the loop's key signal — the last verify
+   verdict (pass/fail).
+   Evidence: src/looptight/ui.py `_with_session_task` surfaces the claimed task, but nothing records
+   or shows the latest `verify` result for the session loop (only swarm worker statuses reflect
+   verify), so the view can't tell you whether your last gate passed. `verify` already conditionally
+   persists session state (src/looptight/protocol_commands.py:48 `_stall_signal` → trajectory for
+   `--patience`), so a tiny verdict write is a consistent extension, not a new side-effect class.
+   Fix (conservative, documented for review): add `write_verdict`/`read_verdict` to src/looptight/ui.py
+   (a small JSON sidecar next to the state file, atomic, degrade-safe), have `cmd_verify` write the
+   verdict after `run_verify` (guarded — never break verify), and have `_with_session_task` read it
+   and show it in the session manager detail ("your next / verify loop · verify: pass"). Swarm mode
+   and the machine `verify` contract are unchanged.
+   Acceptance: `write_verdict`/`read_verdict` round-trip and degrade to None on a missing/corrupt
+   file; `_with_session_task` includes the verdict in the manager when present; a `verify` CLI run
+   writes the verdict file; the page renders `manager.verify` in the session detail.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
