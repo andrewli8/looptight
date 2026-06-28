@@ -1307,6 +1307,15 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `cmd_daemon`'s per-cycle output and fault hook are untested.
+   Evidence: src/looptight/commands.py:264-273 (`on_cycle` prints each cycle's outcome) and
+   :284-295 (`fault_hook` runs `--on-fault` with a JSON payload), plus the stop summary
+   :329-334, are unexercised because the existing daemon test stubs `run_daemon` without
+   invoking its callbacks.
+   Acceptance: a test in tests/test_cli.py stubs `run_daemon` to invoke `on_cycle` with a
+   progress and a fault cycle and `on_fault` with a payload (with `--on-fault true`), and asserts
+   the cycle lines and stop summary are printed. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
