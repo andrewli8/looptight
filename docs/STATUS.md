@@ -971,6 +971,19 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_verifier_quality` misclassifies a tests+lint command as `lint-only`.
+   Evidence: src/looptight/protocol_commands.py:654-658; the `ruff/flake8/eslint/
+   prettier` lint check returns `lint-only` and short-circuits before the unit/
+   integration/e2e checks below it, so `uv run pytest -q && uv run ruff check`
+   (this repo's own verify) reports `lint-only` even though it runs pytest —
+   understating verifier strength. Reproduce: `looptight status` prints
+   "verifier quality: lint-only".
+   Acceptance: a new test in tests/test_protocol_commands.py (or test_commands.py)
+   asserts `_verifier_quality("uv run pytest -q && uv run ruff check")["classification"]
+   == "unit"`, and that a pure-lint command (`"ruff check"`) still classifies as
+   `lint-only`; the fix reorders so `lint-only` applies only when no test/e2e/
+   integration runner is present.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
