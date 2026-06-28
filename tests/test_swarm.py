@@ -38,6 +38,11 @@ class EditingAdapter(Adapter):
         return IterationResult(transcript="done")
 
 
+class NoOpAdapter(EditingAdapter):
+    def run_iteration(self, goal, context, workdir, model=None):
+        return IterationResult(transcript="did nothing")  # success, but no file changes
+
+
 class UnrelatedEditingAdapter(EditingAdapter):
     def run_iteration(self, goal, context, workdir, model=None):
         result = super().run_iteration(goal, context, workdir, model)
@@ -172,6 +177,24 @@ def test_swarm_refuses_dirty_invoking_worktree(tmp_path):
 
     assert result.error == "swarm requires a clean Git worktree"
     assert result.workers == ()
+
+
+def test_swarm_rejects_a_worker_that_produces_no_changes(tmp_path, monkeypatch):
+    # A worker whose run loop succeeds but makes no file changes (HEAD still at base) is a
+    # no-op, not a success: it is marked failed rather than merged as an empty result.
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: NoOpAdapter())
+
+    result = run_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0", max_iterations=1),
+        workers=1,
+    )
+
+    assert not result.passed
+    assert result.workers[0].status == "failed"
+    assert result.workers[0].error == "agent produced no changes"
 
 
 def test_swarm_does_not_merge_work_that_fails_verify(tmp_path, monkeypatch):

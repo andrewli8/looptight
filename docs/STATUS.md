@@ -1170,16 +1170,11 @@ existing CLI session and makes no model or API calls of its own.
   worktrees are retained — the core safety path no prior scenario exercised (all used
   `verify="exit 0"`). No production change.
 
-## Next
-
-1. The swarm "agent produced no changes" rejection is untested.
-   Evidence: src/looptight/swarm.py:360-364 — when a worker's run loop succeeds but it made
-   no file changes and left HEAD at the base, `_run_worker` marks it `failed` with "agent
-   produced no changes" rather than treating a no-op as success. No existing fake adapter
-   produces zero changes, so this branch is unexercised.
-   Acceptance: a test in tests/test_swarm.py uses a no-op adapter (run_iteration returns
-   success but edits nothing) with `verify="exit 0"` and asserts the worker is `failed`
-   with error "agent produced no changes" and nothing is merged. No production change.
+- The swarm "agent produced no changes" rejection is covered:
+  `test_swarm_rejects_a_worker_that_produces_no_changes` in test_swarm.py uses a no-op
+  adapter (success but no edits) and asserts the worker is `failed` with "agent produced no
+  changes" rather than merged as an empty result — the no-op branch no prior adapter
+  exercised. No production change.
 
 ## Rules
 
