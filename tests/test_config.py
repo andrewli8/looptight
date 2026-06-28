@@ -89,6 +89,13 @@ def test_load_config_rejects_string_direct_main(tmp_path):
     assert "direct_main" in str(exc.value)
 
 
+def test_continue_through_backlog_round_trips_and_defaults_false(tmp_path):
+    assert load_config(tmp_path / "missing.toml").continue_through_backlog is False
+    path = tmp_path / ".looptight.toml"
+    path.write_text('verify = "pytest -q"\ncontinue_through_backlog = true\n', encoding="utf-8")
+    assert load_config(path).continue_through_backlog is True
+
+
 def test_load_config_rejects_keys_nested_under_a_table(tmp_path):
     # The schema is flat; a [policy] table holding safety keys would be silently dropped
     # (status --json reports a "policy" object, inviting exactly this mistake). Fail fast.
@@ -226,6 +233,7 @@ def test_rendered_config_contains_only_supported_settings(tmp_path):
         "tasks",
         "direct_main",
         "idea_generation",
+        "continue_through_backlog",
         "protected_paths",
         "no_direct_push",
         "allowed_verify_commands",

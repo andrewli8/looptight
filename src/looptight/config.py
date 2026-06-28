@@ -40,6 +40,7 @@ class Config:
     tasks: tuple[str, ...] = ()
     direct_main: bool = False  # explicitly permit unattended execution in the primary worktree
     idea_generation: bool = True  # generate grounded tasks when the queue is empty (off: --no-ideas)
+    continue_through_backlog: bool = False  # Stop hook keeps the session going while grounded tasks remain
     protected_paths: tuple[str, ...] = ()
     no_direct_push: bool = False
     max_changed_files: int | None = None
@@ -87,6 +88,7 @@ def load_config(path: Path | None = None) -> Config:
             tasks=_string_list(data, "tasks"),
             direct_main=_boolean(data, "direct_main", False),
             idea_generation=_boolean(data, "idea_generation", True),
+            continue_through_backlog=_boolean(data, "continue_through_backlog", False),
             protected_paths=_string_list(data, "protected_paths"),
             no_direct_push=_boolean(data, "no_direct_push", False),
             max_changed_files=_optional_int(data, "max_changed_files"),
@@ -105,6 +107,7 @@ _KNOWN_FIELDS = frozenset(
         "tasks",
         "direct_main",
         "idea_generation",
+        "continue_through_backlog",
         "protected_paths",
         "no_direct_push",
         "max_changed_files",
@@ -179,6 +182,10 @@ direct_main = {str(config.direct_main).lower()}
 
 # Generate grounded tasks when the queue empties (set false, or pass --no-ideas).
 idea_generation = {str(config.idea_generation).lower()}
+
+# Let the Stop hook keep the session going while grounded tasks remain (honest stop when
+# none do). Opt-in; the hook otherwise just runs verify-until-green.
+continue_through_backlog = {str(config.continue_through_backlog).lower()}
 
 # Optional policy controls. Empty values are disabled.
 protected_paths = []

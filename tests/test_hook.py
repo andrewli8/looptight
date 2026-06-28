@@ -56,6 +56,37 @@ def test_decide_gives_up_at_cap():
     assert count == 0
 
 
+def test_decide_continues_through_backlog_when_green_and_work_remains():
+    decision, count = decide(
+        _pass(), prior_blocks=0, max_iterations=6, work_remains=True, continue_on_work=True
+    )
+    assert decision.block is True
+    assert "looptight next" in decision.reason  # directs the session to claim the next task
+    assert count == 1
+
+
+def test_decide_allows_an_honest_stop_when_green_and_no_work():
+    decision, count = decide(
+        _pass(), prior_blocks=0, max_iterations=6, work_remains=False, continue_on_work=True
+    )
+    assert decision.block is False  # nothing claimable left → honest stop
+    assert count == 0
+
+
+def test_decide_ignores_backlog_when_opt_in_is_off():
+    decision, _ = decide(
+        _pass(), prior_blocks=0, max_iterations=6, work_remains=True, continue_on_work=False
+    )
+    assert decision.block is False  # default behavior unchanged: green means stop
+
+
+def test_decide_backlog_respects_the_iteration_cap():
+    decision, _ = decide(
+        _pass(), prior_blocks=6, max_iterations=6, work_remains=True, continue_on_work=True
+    )
+    assert decision.block is False  # cap reached → stop even with work remaining
+
+
 def test_decision_to_stdout_shapes_claude_json():
     payload = HookDecision(block=True, reason="fix it").to_stdout()
     assert json.loads(payload) == {"decision": "block", "reason": "fix it"}
@@ -93,6 +124,37 @@ def test_run_hook_allows_when_passing(tmp_path):
     write_config(Config(verify="pytest -q"), tmp_path)
     event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
     output, _ = run_hook(event, verify_fn=lambda c, w: _pass())
+    assert output is None
+
+
+def test_run_hook_continues_through_backlog_when_enabled(tmp_path):
+    # Opt-in: a green change with grounded work remaining carries the session on to `next`.
+    write_config(Config(verify="pytest -q", continue_through_backlog=True), tmp_path)
+    event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
+    output, _ = run_hook(
+        event, verify_fn=lambda c, w: _pass(), work_fn=lambda w: True
+    )
+    assert json.loads(output)["decision"] == "block"
+    assert "looptight next" in json.loads(output)["reason"]
+
+
+def test_run_hook_honest_stop_when_backlog_is_dry(tmp_path):
+    # Opt-in on, but no grounded work remains → an honest stop, not a forced loop.
+    write_config(Config(verify="pytest -q", continue_through_backlog=True), tmp_path)
+    event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
+    output, _ = run_hook(
+        event, verify_fn=lambda c, w: _pass(), work_fn=lambda w: False
+    )
+    assert output is None
+
+
+def test_run_hook_backlog_opt_in_off_stops_on_green(tmp_path):
+    # Default (flag off): a green change stops regardless of any backlog — behavior unchanged.
+    write_config(Config(verify="pytest -q"), tmp_path)
+    event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
+    output, _ = run_hook(
+        event, verify_fn=lambda c, w: _pass(), work_fn=lambda w: True
+    )
     assert output is None
 
 

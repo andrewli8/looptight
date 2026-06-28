@@ -31,6 +31,21 @@ from .types import VerifyResult
 from .verify import run_verify
 
 VerifyFn = Callable[[str, Path], VerifyResult]
+WorkFn = Callable[[Path], bool]
+
+
+def _has_grounded_work(cwd: Path) -> bool:
+    """True when `propose` finds at least one grounded candidate (read-only; claims nothing).
+
+    Any discovery/coordinator error is swallowed and read as 'no work', so an adverse repo
+    state never traps the session in a forced loop.
+    """
+    try:
+        from .propose import propose
+
+        return bool(propose(cwd, limit=0))
+    except Exception:
+        return False
 
 
 @dataclass(frozen=True)
@@ -56,21 +71,43 @@ def continuation_reason(verify: VerifyResult) -> str:
     )
 
 
+def backlog_reason() -> str:
+    """What we feed back when the change is green but grounded tasks still remain."""
+    return (
+        "looptight: verification passed and grounded tasks remain. Run `looptight next` "
+        "to claim the top one and implement it, then verify and commit. Stop only when "
+        "`next` reports NO_WORK — do not fabricate work to keep busy."
+    )
+
+
 def decide(
-    verify: VerifyResult, prior_blocks: int, max_iterations: int
+    verify: VerifyResult,
+    prior_blocks: int,
+    max_iterations: int,
+    *,
+    work_remains: bool = False,
+    continue_on_work: bool = False,
 ) -> tuple[HookDecision, int]:
     """Pure policy core.
 
     Given the latest verify result and how many continuations we've already
     forced this user-turn, decide whether to force another, and return the new
-    count. Resets to 0 when verify passes or the cap is reached, so a later
-    user request starts with a fresh budget of continuations.
+    count. Resets to 0 when verify passes with nothing left to do, or the cap is
+    reached, so a later user request starts with a fresh budget of continuations.
+
+    Two reasons to keep going: the current change is not yet green (``verify``
+    fails), or — only when ``continue_on_work`` is set — the change is green but
+    claimable grounded work remains (``work_remains``). When verify passes and no
+    grounded work remains, the stop is allowed: an honest stop, not a forced one.
     """
-    if verify.passed:
-        return HookDecision(block=False), 0
-    if prior_blocks >= max_iterations:
-        return HookDecision(block=False), 0
-    return HookDecision(block=True, reason=continuation_reason(verify)), prior_blocks + 1
+    if not verify.passed:
+        if prior_blocks >= max_iterations:
+            return HookDecision(block=False), 0
+        return HookDecision(block=True, reason=continuation_reason(verify)), prior_blocks + 1
+    # The current change is green.
+    if continue_on_work and work_remains and prior_blocks < max_iterations:
+        return HookDecision(block=True, reason=backlog_reason()), prior_blocks + 1
+    return HookDecision(block=False), 0
 
 
 def _state_path(session_id: str, cwd: Path) -> Path:
@@ -105,7 +142,9 @@ def _config_for(cwd: Path) -> Config:
         return Config()
 
 
-def run_hook(stdin_text: str, *, verify_fn: VerifyFn = run_verify) -> tuple[str | None, int]:
+def run_hook(
+    stdin_text: str, *, verify_fn: VerifyFn = run_verify, work_fn: WorkFn = _has_grounded_work
+) -> tuple[str | None, int]:
     """Process one Stop-hook event.
 
     Returns ``(stdout_or_None, exit_code)``. Anything that isn't a clean "block"
@@ -135,7 +174,19 @@ def run_hook(stdin_text: str, *, verify_fn: VerifyFn = run_verify) -> tuple[str 
     prior = read_count(state) if event.get("stop_hook_active") else 0
 
     verify = verify_fn(config.verify, cwd)
-    decision, new_count = decide(verify, prior, config.max_iterations)
+    # Only probe for backlog when the change is green and the opt-in is set: a passing change
+    # with grounded tasks still queued should carry the session on, but an honest stop is allowed
+    # once `propose` is dry.
+    work_remains = (
+        config.continue_through_backlog and verify.passed and work_fn(cwd)
+    )
+    decision, new_count = decide(
+        verify,
+        prior,
+        config.max_iterations,
+        work_remains=work_remains,
+        continue_on_work=config.continue_through_backlog,
+    )
     try:
         write_count(state, new_count)
     except OSError:

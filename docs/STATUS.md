@@ -1606,23 +1606,16 @@ existing CLI session and makes no model or API calls of its own.
   came from. The `source` field was already written to state by the swarm but never displayed.
   Wire ids are unchanged. Guarded by a render() page assertion.
 
-## Next
+- Loop-control lever 1 (smart stop-gate): the Stop hook now carries a session through the
+  grounded backlog when opted in. With `continue_through_backlog = true`, a *passing* verify no
+  longer always ends the turn — `decide` blocks with a `looptight next` directive while claimable
+  grounded work remains (probed read-only via `propose`, no claim), under the iteration cap, and
+  allows an honest stop once `propose` is dry. It deliberately does not force on the bare
+  generate_ideas directive (the busywork trap). Default off preserves verify-until-green. Covered
+  by `decide` unit tests (continue / honest-stop / opt-in-off / cap), `run_hook` integration with a
+  stubbed work probe, and a config round-trip. Lever 2 (drift directive) is next.
 
-1. Loop-control lever 1 (smart stop-gate): the Stop hook continues until verify is green but cannot
-   carry the session through the grounded backlog, and there is no validation-gated honest stop.
-   Evidence: src/looptight/hook.py:59-73 (`decide`) only blocks while `verify` fails; once verify
-   passes it always allows the stop, so a host session finishes one change and stops even when
-   grounded tasks remain. Add an opt-in `continue_through_backlog` config flag (default False to
-   preserve today's behavior): when verify PASSES and the flag is on, the hook checks for *claimable*
-   grounded work via `propose(cwd, limit=0)` (read-only, no claim) and, under the iteration cap,
-   blocks with a directive telling the session to run `looptight next` and continue; when no grounded
-   candidate remains it allows an honest stop. It deliberately does NOT force on the bare
-   `generate_ideas` directive (that never empties, the busywork trap) — idea generation stays the
-   host's judgment. Evidence: src/looptight/config.py:42,89 (Config flag pattern), src/looptight/propose.py:37.
-   Acceptance: `decide` gains a `work_remains`/`continue_on_work` path with unit tests — verify-pass +
-   work-remains + flag-on → block (continue) under the cap, verify-pass + no-work → allow stop,
-   verify-pass + flag-off → allow stop (unchanged); a `run_hook` test with a stubbed propose asserts
-   the end-to-end continue-vs-stop; the config flag round-trips through write/load.
+## Next
 
 ## Rules
 
