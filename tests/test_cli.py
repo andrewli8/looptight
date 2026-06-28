@@ -835,6 +835,31 @@ def test_status_json_classifies_common_verifier_quality(
         assert data["verifier_quality"]["risk"]
 
 
+def test_status_json_ignores_negated_marker_deselection(
+    tmp_path, monkeypatch, capsys
+):
+    # A pytest `-m "not integration"` / `not e2e` deselection EXCLUDES those
+    # markers, so the command is a unit run — it must not be read as an
+    # integration/e2e verifier off the incidental substring. A real path- or
+    # marker-based integration/e2e command is unaffected.
+    monkeypatch.chdir(tmp_path)
+    cases = {
+        'pytest -m "not integration"': "unit",
+        'pytest -m "not e2e"': "unit",
+        "pytest tests/integration_suite": "integration",  # real integration, unchanged
+        "playwright test": "e2e",  # real e2e, unchanged
+    }
+    for command, expected in cases.items():
+        # single-quoted TOML literal: the commands contain double quotes
+        (tmp_path / ".looptight.toml").write_text(f"verify = '{command}'\n")
+        assert main(["status", "--json"]) == 0
+        data = json.loads(capsys.readouterr().out)
+        assert data["verifier_quality"]["classification"] == expected, (
+            f"expected {expected!r} for {command!r}, "
+            f"got {data['verifier_quality']['classification']!r}"
+        )
+
+
 def test_status_json_classifies_detected_runners_as_unit(
     tmp_path, monkeypatch, capsys
 ):

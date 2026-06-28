@@ -651,15 +651,19 @@ def _verifier_quality(command: str | None) -> dict[str, str]:
             "risk": "No verifier is configured, so Looptight cannot gate changes.",
         }
     normalized = command.lower()
+    # A pytest `-m "not integration"` / `not e2e` deselection EXCLUDES those markers,
+    # so drop the negated clause before the substring scan — the command is a unit
+    # run and must not be read as an integration/e2e verifier off the leftover word.
+    scan = normalized.replace("not integration", "").replace("not e2e", "")
     # Strongest signal wins. A command that runs tests *and* a linter (e.g.
     # `pytest -q && ruff check`) is classified by its tests, not short-circuited
     # to lint-only — so lint-only is checked last, only when no test runner is present.
-    if any(tool in normalized for tool in ("playwright", "cypress")) or "e2e" in normalized:
+    if any(tool in scan for tool in ("playwright", "cypress")) or "e2e" in scan:
         return {
             "classification": "e2e",
             "risk": "End-to-end checks are strong for covered flows, but uncovered paths can still break.",
         }
-    if "integration" in normalized:
+    if "integration" in scan:
         return {
             "classification": "integration",
             "risk": "Integration checks cover connected components, but may not cover every user flow.",

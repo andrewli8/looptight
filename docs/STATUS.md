@@ -990,21 +990,17 @@ existing CLI session and makes no model or API calls of its own.
   recipes stay `custom/unknown` (arbitrary). Found by the bug-hunt audit; covered
   by `test_status_json_classifies_detected_runners_as_unit` in test_cli.py.
 
+- `_verifier_quality` ignores a negated-marker deselection: a pytest
+  `-m "not integration"` / `not e2e` clause is stripped before the substring scan
+  (`scan = normalized.replace("not integration","")...`), so a command that
+  *excludes* those markers classifies by its real runner (`unit`) instead of being
+  mislabeled `integration`/`e2e`. Real path/marker integration and `playwright`
+  e2e commands are unchanged. Found by the audit; covered by
+  `test_status_json_ignores_negated_marker_deselection` in test_cli.py.
+
 ## Next
 
-1. `_verifier_quality` mis-classifies on an incidental "integration"/"e2e" substring.
-   Evidence: src/looptight/protocol_commands.py:657 (e2e) and :662 (integration) do a
-   bare substring test before the test-runner check, so a deselection or helper name
-   flips the label: `pytest -m "not integration"` → `integration` (the command
-   *excludes* integration tests), `pytest tests/integration` → `integration`,
-   `npm run test:e2e-helpers` → `e2e`. Same bug-class as the `pytest && ruff` fix.
-   Acceptance: tighten the e2e/integration match so an incidental substring (notably
-   a `not integration` / `-m "not ..."` deselection) does not override the real
-   test-runner signal; a test asserting `_verifier_quality('pytest -m "not integration"')
-   ["classification"] == "unit"` goes red-to-green without regressing
-   `pytest tests/integration_suite` → `integration` or `playwright test` → `e2e`.
-
-2. `max_changed_files` policy double-counts a renamed file.
+1. `max_changed_files` policy double-counts a renamed file.
    Evidence: src/looptight/protocol_commands.py:304 (`_changed_file_list` emits both
    sides of a `old -> new` rename — correct, and needed for the protected-path scan)
    feeding the count check at :319 (`len(files) > config.max_changed_files`). A single
