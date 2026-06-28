@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import fnmatch
 import json
+import os
 import subprocess
 import time
 from collections.abc import Callable
@@ -307,6 +308,7 @@ def _changed_entries(workdir: Path) -> list[list[str]] | None:
     result = subprocess.run(
         ["git", "status", "--short"],
         cwd=workdir,
+        env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
         capture_output=True,
         text=True,
         check=False,
@@ -638,6 +640,7 @@ def _git_common_dir(workdir: Path) -> Path | None:
     result = subprocess.run(
         ["git", "rev-parse", "--git-common-dir"],
         cwd=workdir,
+        env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
         capture_output=True,
         text=True,
         check=False,

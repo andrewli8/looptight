@@ -2561,3 +2561,38 @@ def test_propose_no_signals_does_not_claim_clean_tree(tmp_path, monkeypatch, cap
     out = capsys.readouterr().out
     assert "No candidate tasks found from repo signals" in out  # guidance still prints
     assert "clean tree" not in out  # the tree is not clean
+
+
+def test_changed_entries_sets_terminal_prompt_env(tmp_path):
+    # _changed_entries' `git status --short` (the looptight status path) must pass
+    # GIT_TERMINAL_PROMPT=0 so a headless run can't block on a credential prompt.
+    from unittest.mock import patch
+
+    import looptight.protocol_commands as pc
+
+    captured: dict = {}
+
+    def fake_run(cmd, **kwargs):
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    with patch.object(pc.subprocess, "run", fake_run):
+        pc._changed_entries(tmp_path)
+    assert captured.get("env", {}).get("GIT_TERMINAL_PROMPT") == "0"
+
+
+def test_git_common_dir_sets_terminal_prompt_env(tmp_path):
+    # _git_common_dir's `git rev-parse` must likewise be non-interactive.
+    from unittest.mock import patch
+
+    import looptight.protocol_commands as pc
+
+    captured: dict = {}
+
+    def fake_run(cmd, **kwargs):
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(cmd, 1, "", "")
+
+    with patch.object(pc.subprocess, "run", fake_run):
+        pc._git_common_dir(tmp_path)
+    assert captured.get("env", {}).get("GIT_TERMINAL_PROMPT") == "0"

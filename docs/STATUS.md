@@ -1529,18 +1529,13 @@ existing CLI session and makes no model or API calls of its own.
   call, so a headless `looptight next` can't block on a git credential prompt — part of the
   uniform non-interactive-git invariant. Covered by a test_tasks.py env assertion.
 
+- `_changed_entries` (`git status --short`) and `_git_common_dir` (`git rev-parse`) in
+  protocol_commands.py pass `GIT_TERMINAL_PROMPT=0`, extending the non-interactive-git
+  invariant to the `looptight status` path. Covered by two test_cli.py env assertions.
+
 ## Next
 
-1. `_changed_entries` in `protocol_commands.py:307` calls `subprocess.run(["git",
-   "status", "--short"], ...)` with no `env`. `_git_common_dir` at `protocol_commands.py:638`
-   has the same gap. Both are in the `looptight status` path. Fix: add `import os` and pass
-   `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}` to each call.
-   Evidence: `src/looptight/protocol_commands.py:307`
-   Acceptance: two new tests in test_cli.py (or test_protocol_commands.py), one per
-   function, each monkeypatching `protocol_commands.subprocess.run` and asserting
-   `env["GIT_TERMINAL_PROMPT"] == "0"`.
-
-2. `coordinator_path` in `coordinator.py:294` calls `subprocess.run(["git", "rev-parse",
+1. `coordinator_path` in `coordinator.py:294` calls `subprocess.run(["git", "rev-parse",
    "--git-common-dir"], ...)` with no `env` — the same headless-blocking risk as the
    other git calls. Fix: add `import os` and pass
    `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}`.
