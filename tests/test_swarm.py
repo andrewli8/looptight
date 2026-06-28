@@ -608,6 +608,29 @@ def test_planned_tasks_grounded_tolerates_backticked_evidence(tmp_path):
     assert _planned_tasks_are_grounded(tmp_path, [fabricated]) is False
 
 
+def test_planned_tasks_grounded_rejection_branches(tmp_path):
+    # The planner grounding gate's three remaining rejection/acceptance branches:
+    # no evidence anchor, path-only evidence (no :line), and a line past the file end.
+    from looptight.discovery import Candidate
+    from looptight.swarm import _planned_tasks_are_grounded
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("x\n" * 5, encoding="utf-8")  # 5 lines
+
+    def _c(detail):
+        return Candidate(
+            title="t", source="status-next", location="docs/STATUS.md:5",
+            suggested_verify=None, score=0.0, detail=detail, acceptance="ok",
+        )
+
+    # No evidence anchor at all → not grounded.
+    assert _planned_tasks_are_grounded(tmp_path, [_c("Fix it. Acceptance: ok")]) is False
+    # Path-only evidence (no :line) to a real file → grounded.
+    assert _planned_tasks_are_grounded(tmp_path, [_c("Fix it. Evidence: `src/a.py`")]) is True
+    # A cited line beyond the file's length → not grounded.
+    assert _planned_tasks_are_grounded(tmp_path, [_c("Fix it. Evidence: `src/a.py:999`")]) is False
+
+
 def test_task_paths_resolves_backticked_evidence_to_bare_path(tmp_path):
     # The change-scope set must include the file a backticked evidence anchor
     # points at; otherwise a worker's edit to its own evidence file looks

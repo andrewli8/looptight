@@ -1156,17 +1156,12 @@ existing CLI session and makes no model or API calls of its own.
   `## Next` items with no blank line parse as two tasks — both in test_propose.py. No
   production change.
 
-## Next
-
-1. The continuous-swarm planner grounding gate has three untested rejection branches.
-   Evidence: src/looptight/swarm.py:138-139 (a planned candidate with no evidence anchor →
-   not grounded), :142-144 (path-only evidence with no `:line` suffix), and :153-154 (a
-   cited line beyond the file → not grounded). `_planned_tasks_are_grounded` is the gate
-   that stops the continuous swarm from acting on fabricated, circular, or out-of-range
-   planned tasks; the STATUS-circular and missing-file branches are covered but these are not.
-   Acceptance: a unit test in tests/test_swarm.py calls `_planned_tasks_are_grounded` with
-   (a) a candidate naming no evidence → False, (b) a path-only evidence to a real file →
-   True, and (c) an evidence line past the file's end → False. No production change.
+- The continuous-swarm planner grounding gate's three remaining branches are covered:
+  `test_planned_tasks_grounded_rejection_branches` in test_swarm.py asserts
+  `_planned_tasks_are_grounded` rejects a candidate with no evidence anchor, accepts
+  path-only evidence to a real file, and rejects an evidence line past the file end — so
+  the gate that stops the continuous swarm acting on fabricated or out-of-range planned
+  tasks is fully exercised. No production change.
 
 ## Rules
 ## Rules
