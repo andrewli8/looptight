@@ -1767,19 +1767,13 @@ existing CLI session and makes no model or API calls of its own.
   share one color language across all status groups. Covered by a border-legend test and a
   badge test.
 
-## Next
+- A failing solo-mode verdict now reads red instead of muted gray: when the overlaid
+  `manager.verify` is present and not "pass", the manager node gets a `verify-fail` class and
+  its detail ("… · verify: fail") renders in the attention color, so a broken gate is legible
+  at a glance. The pass case is untouched (stays muted). Confirmed by dogfooding goal mode:
+  the detail computed color is now red. Covered by a page test.
 
-1. The solo-mode manager detail in `src/looptight/ui.py:348` renders the verify verdict as
-   muted gray text, so a failing gate ("verify: fail") reads identically to a passing one and is
-   invisible at a glance — confirmed by dogfooding goal mode with a failing verdict. Red is
-   already the attention color in this UI (`src/looptight/ui.py:327`). When the overlaid
-   `manager.verify` is present and not "pass", add a `verify-fail` class to the manager node and
-   add a CSS rule so its detail reads red, making the most important negative signal legible
-   without touching the pass case.
-   Evidence: src/looptight/ui.py:348
-   Acceptance: a new test in tests/test_ui.py asserts the page adds the `verify-fail` class only
-   when `manager.verify` is present and not "pass", and that a `.verify-fail` detail rule uses
-   `var(--red)`.
+## Next
 
 ## Rules
 

@@ -212,6 +212,16 @@ def test_session_claim_takes_precedence_over_a_goal(monkeypatch, tmp_path):
     assert state["tasks"][0]["goal"] == "a claimed task"
 
 
+def test_page_marks_a_failing_verdict_for_legibility():
+    # A failing gate is the most important negative signal; it must not read like a passing one.
+    # The page adds a verify-fail class only when manager.verify is present and not "pass", and a
+    # CSS rule colors that manager detail red (the established attention color).
+    page = ui.PAGE
+    assert "manager.verify&&manager.verify!=='pass'" in page  # guarded: present and not pass
+    assert "verify-fail" in page
+    assert ".manager.verify-fail .detail{color:var(--red)}" in page
+
+
 def test_page_renders_goal_mode():
     assert "mode==='goal'" in ui.PAGE
     assert "your goal build loop" in ui.PAGE
