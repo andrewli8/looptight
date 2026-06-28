@@ -57,6 +57,16 @@ def _hold_lock(common, entered, release):
         release.wait(3)
 
 
+def test_prepare_integration_worktree_rejects_an_unresolvable_ref(tmp_path):
+    # The integrator must not prepare a worktree for a target ref that does not exist:
+    # rev-parse --verify fails and it raises a clear IntegrationError.
+    from looptight.integration_queue import IntegrationError, prepare_integration_worktree
+
+    repo = _repo(tmp_path / "r")
+    with pytest.raises(IntegrationError):
+        prepare_integration_worktree(repo, "refs/heads/does-not-exist")
+
+
 def test_integration_queue_handles_git_failures(tmp_path, monkeypatch):
     # The durable integrator must not crash on a git failure: git_common_dir raises a clear
     # IntegrationError outside a repo, and _git returns code 127 when git is not on PATH.

@@ -1207,16 +1207,10 @@ existing CLI session and makes no model or API calls of its own.
   when `subprocess.run` raises `OSError` — so a git failure cannot crash the durable
   integrator. No production change.
 
-## Next
-
-1. `prepare_integration_worktree` rejecting an unresolvable target ref is untested.
-   Evidence: src/looptight/integration_queue.py:155-157 raises `IntegrationError` (`cannot
-   resolve <ref>`) when `git rev-parse --verify <target_ref>` fails, the guard that stops the
-   integrator from preparing a worktree for a ref that does not exist. Cleanly reachable
-   (a bogus ref in a real repo), but untested.
-   Acceptance: a test in tests/test_integration_queue.py calls `prepare_integration_worktree`
-   with a nonexistent target ref in a real repo and asserts it raises `IntegrationError`. No
-   production change.
+- `prepare_integration_worktree` rejecting an unresolvable target ref is covered:
+  `test_prepare_integration_worktree_rejects_an_unresolvable_ref` in test_integration_queue.py
+  asserts it raises `IntegrationError` for a nonexistent ref in a real repo — the guard that
+  stops the integrator preparing a worktree for a ref that does not exist. No production change.
 
 ## Rules
 
