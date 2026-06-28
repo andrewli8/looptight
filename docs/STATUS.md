@@ -942,16 +942,13 @@ existing CLI session and makes no model or API calls of its own.
   `test_has_dirty_git_worktree_returns_false_on_nonzero_returncode` in test_tasks.py
   monkeypatches `subprocess.run` to return `CompletedProcess` with `returncode=128` and
   asserts `_has_dirty_git_worktree` returns `False` via the `returncode == 0` short-circuit.
+- `cmd_statusline`'s `project_dir` fallback is covered:
+  `test_statusline_uses_project_dir_when_current_dir_absent` in test_cli.py passes
+  `{"workspace": {"project_dir": str(tmp_path)}}` on stdin (no `current_dir`) and asserts
+  `statusline` reads swarm state from `tmp_path` correctly — a regression removing the
+  branch would now be caught.
 
 ## Next
-
-1. `cmd_statusline`'s `project_dir` fallback is untested: `src/looptight/commands.py:551`
-   uses `workspace.get("project_dir")` when `current_dir` is absent, but the only existing
-   test passes `{"workspace": {"current_dir": ...}}` — the `project_dir` branch is never
-   exercised, so a regression removing it would go undetected.
-   Evidence: src/looptight/commands.py:551;
-   Acceptance: a new test passes `{"workspace": {"project_dir": str(tmp_path)}}` on stdin
-   (no `current_dir`) and asserts that `statusline` reads state from `tmp_path` correctly.
 
 ## Rules
 

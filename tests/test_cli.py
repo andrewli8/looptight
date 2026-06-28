@@ -1835,6 +1835,29 @@ def test_statusline_command_reads_stdin_and_prints_one_line(tmp_path, monkeypatc
     assert "running" in out
 
 
+def test_statusline_uses_project_dir_when_current_dir_absent(tmp_path, monkeypatch, capsys):
+    import io
+
+    from looptight.ui import write_state
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    write_state(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "manager": {"status": "running"},
+            "tasks": [],
+            "workers": [{"number": 1, "task_id": "t2", "status": "verified", "error": None}],
+        },
+    )
+    payload = json.dumps({"workspace": {"project_dir": str(tmp_path)}, "model": {"id": "x"}})
+    monkeypatch.setattr("sys.stdin", io.StringIO(payload))
+    assert main(["statusline"]) == 0
+    out = capsys.readouterr().out.strip()
+    assert out.splitlines()[0].startswith("looptight:")
+    assert "verified" in out
+
+
 def test_statusline_parser_registered():
     args = build_parser().parse_args(["statusline"])
     assert args.command == "statusline"
