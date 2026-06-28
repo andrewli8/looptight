@@ -86,7 +86,6 @@ def _has_dirty_git_worktree(workdir: Path) -> bool:
             capture_output=True,
             text=True,
             check=False,
-            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
         )
     except OSError:
         return False
