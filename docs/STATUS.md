@@ -1292,6 +1292,15 @@ existing CLI session and makes no model or API calls of its own.
   raise and a fake process whose `kill()` also raises `OSError`, asserting `stop_process_tree`
   returns `None` without raising — best-effort teardown never raises. No production change.
 
+- `proctree.py`'s remaining uncovered branches are now covered:
+  `test_new_process_group_kwargs_fallback_for_unknown_os` covers the `return {}` fallback and
+  `test_stop_process_tree_taskkill_oserror_falls_through_to_kill` covers the Windows taskkill
+  `OSError` path; proctree.py reaches 97% (one Windows-only line remains untestable on Linux).
+  `run_hook`'s valid-JSON-non-dict guard (`hook.py:120`) is covered by
+  `test_run_hook_tolerates_valid_json_non_dict_event`; `hook.py` is now 100%. No production change.
+
+## Next
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

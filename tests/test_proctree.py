@@ -7,7 +7,7 @@ import sys
 
 import pytest
 
-from looptight.proctree import stop_process_tree
+from looptight.proctree import new_process_group_kwargs, stop_process_tree
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="posix process-group semantics")
@@ -91,3 +91,28 @@ def test_stop_process_tree_uses_taskkill_when_os_is_nt(monkeypatch):
     stop_process_tree(process)  # type: ignore[arg-type]
     assert calls == [["taskkill", "/F", "/T", "/PID", "123"]]
     assert not process.killed  # taskkill succeeded, so the fallback kill is unused
+
+
+def test_new_process_group_kwargs_fallback_for_unknown_os(monkeypatch):
+    monkeypatch.setattr("looptight.proctree.os.name", "other")
+    assert new_process_group_kwargs() == {}
+
+
+def test_stop_process_tree_taskkill_oserror_falls_through_to_kill(monkeypatch):
+    class FakeProcess:
+        pid = 789
+        killed = False
+
+        def kill(self):
+            self.killed = True
+
+    def raise_oserror(command, **kwargs):
+        raise OSError("no taskkill")
+
+    monkeypatch.setattr("looptight.proctree.os.name", "nt")
+    monkeypatch.setattr("looptight.proctree.subprocess.run", raise_oserror)
+    process = FakeProcess()
+    stop_process_tree(process)  # type: ignore[arg-type]
+    assert process.killed  # taskkill failed with OSError; fell through to process.kill()
+
+

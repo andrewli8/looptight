@@ -120,6 +120,14 @@ def test_run_hook_tolerates_malformed_event():
     assert code == 0
 
 
+def test_run_hook_tolerates_valid_json_non_dict_event():
+    # Valid JSON that is not a dict (e.g. a list) must be treated like a malformed
+    # event: allow the stop (None, 0) without raising — the not-a-dict guard at hook.py:120.
+    output, code = run_hook("[]", verify_fn=lambda c, w: _fail())
+    assert output is None
+    assert code == 0
+
+
 def test_run_hook_tolerates_non_path_cwd():
     event = json.dumps({"cwd": {"unexpected": "object"}})
     output, code = run_hook(event, verify_fn=lambda c, w: _fail())
