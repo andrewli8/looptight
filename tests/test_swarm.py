@@ -264,6 +264,29 @@ def test_plan_next_tasks_rejects_changes_outside_status_md(tmp_path, monkeypatch
     assert "docs/STATUS.md" in (result.error or "")
 
 
+def test_plan_next_tasks_fails_on_git_diff_inspection_failure(tmp_path, monkeypatch):
+    # A git-diff failure while inspecting the planner worktree is a clean planning failure.
+    _repo(tmp_path)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "docs")
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: PlanningAdapter())
+
+    real_git = swarm._git
+
+    def selective_git(root, *args):
+        if args[:1] == ("diff",):
+            return subprocess.CompletedProcess(["git"], 1, "", "diff inspection broke")
+        return real_git(root, *args)
+
+    monkeypatch.setattr("looptight.swarm._git", selective_git)
+    result = plan_next_tasks(tmp_path, agent="fake", verify="exit 0")
+
+    assert result.status == "failed"
+    assert "diff inspection broke" in (result.error or "")
+
+
 def test_plan_next_tasks_fails_on_git_status_inspection_failure(tmp_path, monkeypatch):
     # A git failure while inspecting the planner worktree is a clean planning failure, not a crash.
     _repo(tmp_path)
