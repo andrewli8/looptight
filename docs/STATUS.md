@@ -1096,17 +1096,11 @@ existing CLI session and makes no model or API calls of its own.
   matching the existing v1→v2 and v2→v3 migration tests, so the new owner migration
   cannot silently break a real user's existing DB on a future edit.
 
-## Next
-
-1. The "unsupported coordinator schema" version-skew guard is untested.
-   Evidence: src/looptight/coordinator.py:157-160 raises `RuntimeError("unsupported
-   coordinator schema N; expected M")` when a DB's `user_version` exceeds the known
-   `SCHEMA_VERSION` — the guard that makes opening a DB written by a *newer* looptight
-   (after a downgrade) fail with a clear message instead of misbehaving. No test feeds
-   an out-of-range version, so a regression that dropped the guard would go unnoticed.
-   Acceptance: a test in tests/test_coordinator.py writes a DB with `PRAGMA
-   user_version = 99` and asserts `Coordinator.open` raises `RuntimeError` whose message
-   contains "unsupported coordinator schema". No production change.
+- The "unsupported coordinator schema" version-skew guard is covered:
+  `test_open_rejects_a_newer_unsupported_schema_version` in test_coordinator.py writes a
+  DB with `user_version = 99` and asserts `Coordinator.open` raises `RuntimeError`
+  containing "unsupported coordinator schema", so opening a DB written by a newer
+  looptight (after a downgrade) fails clearly instead of misbehaving. No production change.
 
 ## Rules
 

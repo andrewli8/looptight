@@ -414,6 +414,21 @@ def test_migration_v3_to_v4_adds_owner_column(tmp_path):
     coord.close()
 
 
+def test_open_rejects_a_newer_unsupported_schema_version(tmp_path):
+    # A DB written by a *newer* looptight (user_version beyond SCHEMA_VERSION, e.g. after
+    # a downgrade) must fail to open with a clear error rather than misbehave on a schema
+    # it does not understand. Guards coordinator.py's version-skew RuntimeError.
+    repo = _repo(tmp_path / "repo")
+    path = coordinator_path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    raw = sqlite3.connect(path)
+    raw.executescript("PRAGMA user_version = 99;")  # a future, unknown schema
+    raw.close()
+
+    with pytest.raises(RuntimeError, match="unsupported coordinator schema"):
+        Coordinator.open(repo)
+
+
 def test_coordination_scope_reports_three_states(tmp_path):
     from looptight.claims import MARKER_NAME
     from looptight.coordinator import coordination_scope, coordinator_path
