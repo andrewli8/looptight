@@ -1137,6 +1137,17 @@ existing CLI session and makes no model or API calls of its own.
   whole-module skip assignment form is surfaced as one candidate, while an env-gated
   `skipif` assignment stays suppressed as intentional infrastructure. No production change.
 
+## Next
+
+1. `from_lint`'s skip-unparseable-output-line guard is untested.
+   Evidence: src/looptight/discovery.py:627-628 (`if not match: continue`) ignores any
+   ruff output line that is not `loc:col: CODE msg`, so a future format change or a stray
+   warning line cannot be mis-surfaced as a lint task. Real ruff output (quiet+concise) is
+   all matching lines, so the branch is only reachable by injected output.
+   Acceptance: a test in tests/test_propose.py monkeypatches the ruff finder and
+   `subprocess.run` so `from_lint` receives a stray non-matching line plus one real
+   `path:line:col: CODE msg`, and asserts only the real finding is surfaced. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
