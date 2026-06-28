@@ -1691,6 +1691,19 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `looptight ui` does not represent goal mode — the one loop mode with no live view.
+   Evidence: src/looptight/ui.py `_with_session_task` overlays the swarm state or the session claim,
+   but a vision-driven build (`looptight goal "<vision>"`, driven by `goal next`) has no claimed
+   `next` task, so the page shows "idle" while a goal build is active. The goal state is available
+   read-only via `read_goal` (src/looptight/goal.py:49 → `Goal.vision`, `Goal.iteration`). Fix
+   (parallel to the session overlay, read-side): after the session-claim check, if a goal is active
+   overlay a goal view — manager status "goal", and a node showing the vision with source
+   "goal · iteration N" — and make render() handle the "goal" manager mode (its own label/detail,
+   the two-lane framing already used for session mode).
+   Acceptance: a `test_ui.py` test asserts `_with_session_task` (stubbed `read_goal`, no swarm state,
+   no claim) yields `manager.status == "goal"` and a node carrying the vision; a session claim still
+   takes precedence over a goal; and the page renders the goal manager mode.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
