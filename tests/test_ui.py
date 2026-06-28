@@ -691,6 +691,19 @@ def test_ui_handler_404_for_unknown_path(tmp_path):
     assert errors == [404]
 
 
+def test_render_state_panel_and_page_default_a_missing_worker_number():
+    from looptight.ui import PAGE, render_state_panel
+
+    state = {
+        "manager": {"status": "running"},
+        "tasks": [{"id": "t1", "goal": "fix"}],
+        "workers": [{"status": "running", "task_id": "t1"}],  # no "number" key
+    }
+    panel = render_state_panel(state)
+    assert "#?" in panel and "#None" not in panel  # malformed worker reads as unknown
+    assert "w.number??'?'" in PAGE or "w.number ?? '?'" in PAGE  # browser title fallback
+
+
 def test_render_state_panel_signals_a_truncated_worker_error():
     from looptight.ui import render_state_panel
 

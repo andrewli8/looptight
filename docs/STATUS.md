@@ -1840,18 +1840,12 @@ existing CLI session and makes no model or API calls of its own.
   dogfooding (a `frobnicate` status computes a muted badge; `running` stays acid). Found by
   the edge-state audit. Covered by a page test.
 
-## Next
+- A worker missing its `number` now reads as unknown rather than a literal None/undefined:
+  the terminal panel shows `#?` (was `#None`) and the browser node title shows `worker ?`
+  (was `worker undefined`). Small defensive fallback on a malformed/corrupt state. Found by
+  the edge-state audit. Covered by a missing-number test.
 
-1. A worker missing its `number` renders `#None` in the terminal panel
-   (`src/looptight/ui.py:148`, `f"  #{worker.get('number')}"`) and `worker undefined` as the node
-   title in the browser (`src/looptight/ui.py:347`, `worker ${w.number}`). Default a missing
-   number to `?` on both surfaces ("#?" / "worker ?") so a malformed worker reads as unknown
-   rather than as a literal None/undefined. (The wire still matches via the node id, which is left
-   as-is.)
-   Evidence: src/looptight/ui.py:148
-   Acceptance: a new test in tests/test_ui.py asserts `render_state_panel` shows `#?` (not
-   `#None`) for a worker dict with no `number`, and that the page title expression falls back with
-   `?? '?'`.
+## Next
 
 ## Rules
 
