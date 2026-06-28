@@ -1149,6 +1149,20 @@ existing CLI session and makes no model or API calls of its own.
   example), while a real `it.skip` outside the comment is still surfaced — exercising the
   scanner's cross-line `in_block` tracking. No production change.
 
+## Next
+
+1. Two discovery parser boundary branches are untested.
+   Evidence: src/looptight/discovery.py:392-393 (the conditional-skip backward scan skips
+   blank lines, so a `pytest.skip()` under an `if` with a blank line between is still
+   classified conditional/intentional and suppressed) and discovery.py:567-568 (the
+   numbered-item continuation parser breaks at the next `##` section or numbered item, so
+   two adjacent items with no blank line between them parse as two). Both are load-bearing
+   (verified) but uncovered.
+   Acceptance: tests in tests/test_propose.py assert a conditional `pytest.skip` with a
+   blank line inside its `if` block yields no candidate, and two adjacent numbered
+   `## Next` items (no blank line between) parse as two separate tasks. No production change.
+
+## Rules
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
