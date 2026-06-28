@@ -2300,6 +2300,21 @@ def test_install_hook_command_install_already_and_uninstall(tmp_path, monkeypatc
     assert "1 looptight hook " in out and "hook(s)" not in out  # proper singular, not lazy (s)
 
 
+def test_install_hook_message_is_scope_accurate(tmp_path, monkeypatch, capsys):
+    # A --project install is repo-scoped (fires in THIS repo), not "any repo"; the default user
+    # install is global. The guidance line must match the scope it actually wrote.
+    monkeypatch.chdir(tmp_path)
+
+    assert main(["install-hook", "--project"]) == 0
+    project_out = capsys.readouterr().out.lower()
+    assert "this repo" in project_out and "any repo" not in project_out
+
+    # Default (user) install: redirect the path so the real ~/.claude is never touched.
+    monkeypatch.setattr("looptight.settings.user_settings_path", lambda: tmp_path / "user-settings.json")
+    assert main(["install-hook"]) == 0
+    assert "any repo" in capsys.readouterr().out.lower()
+
+
 def test_run_guard_fails_without_agent_or_verify(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)

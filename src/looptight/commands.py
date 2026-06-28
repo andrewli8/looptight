@@ -652,6 +652,11 @@ def cmd_install_hook(args: argparse.Namespace, console: Console) -> int:
     else:
         console.print(f"already installed in {path}")
     console.print()
-    console.print("The hook fires in any repo that has a [cyan]verify[/cyan] command configured.")
-    console.print("Run [cyan]looptight init[/cyan] in a project to set one up.")
+    if args.project:
+        # A project install lives in this repo's .claude/settings.json, so it is repo-scoped.
+        console.print("The hook fires in [cyan]this repo[/cyan]'s Claude Code sessions once it has a [cyan]verify[/cyan] command.")
+        console.print("Run [cyan]looptight init[/cyan] here if you have not set one up.")
+    else:
+        console.print("The hook fires in any repo that has a [cyan]verify[/cyan] command configured.")
+        console.print("Run [cyan]looptight init[/cyan] in a project to set one up.")
     return 0
