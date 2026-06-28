@@ -1811,19 +1811,12 @@ existing CLI session and makes no model or API calls of its own.
   score suffix are unchanged. Found by the data-representation audit. Covered by a
   timeout/error short() test.
 
-## Next
+- The tally cells are now one coherent legend with the graph: `total` reads neutral
+  (`var(--line)`), `active` acid, `attention` red, `complete` cyan. Previously the `.stat`
+  default was acid and there was no `.stat.active` rule, so the neutral total count wore the
+  active color. Found by the data-representation audit. Covered by a tally-legend test.
 
-1. The tally `total` cell wears the same acid top-border as `active`, contradicting the legend
-   the graph nodes follow (acid=active). In `src/looptight/ui.py:326` the `.stat` default is
-   `border-top:3px solid var(--acid)` and there is no `.stat.active` rule, so both the neutral
-   `total` count and the `active` count render acid — a glance reads `total` as an active
-   indicator. Make the `.stat` default border neutral (`var(--line)`) and add an explicit
-   `.stat.active` acid rule, so the four cells read total=neutral, active=acid, attention=red,
-   complete=cyan — one coherent legend with the graph.
-   Evidence: src/looptight/ui.py:326
-   Acceptance: a new test in tests/test_ui.py asserts the default `.stat` border-top is
-   `var(--line)` (not acid) and that a `.stat.active` rule sets the acid border, while
-   `.stat.attention`/`.stat.complete` stay red/cyan.
+## Next
 
 ## Rules
 

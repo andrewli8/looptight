@@ -317,6 +317,20 @@ def test_page_filter_groups_match_the_python_status_groups():
     assert parsed == {k: set(v) for k, v in ui._STATUS_GROUPS.items()}
 
 
+def test_tally_total_cell_is_neutral_not_the_active_color():
+    # The four tally cells are a legend: total=neutral, active=acid, attention=red, complete=cyan.
+    # total (no class) must NOT default to the acid border that marks active, or it reads as one.
+    css = ui.PAGE
+    import re
+
+    stat_default = re.search(r"\.stat\{[^}]*\}", css).group(0)
+    assert "border-top:3px solid var(--line)" in stat_default  # neutral default for total
+    assert "var(--acid)" not in stat_default  # total no longer wears the active color
+    assert ".stat.active{border-top-color:var(--acid)}" in css  # active is explicitly acid
+    assert ".stat.attention{border-top-color:var(--red)}" in css
+    assert ".stat.complete{border-top-color:var(--cyan)}" in css
+
+
 def test_node_border_colors_match_the_tally_legend():
     # The graph must use the same color legend as the tally: acid=active, red=attention,
     # cyan=complete. Otherwise an active task (cyan default) looks identical to a complete one
