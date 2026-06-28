@@ -1806,6 +1806,18 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `VerifyResult.short()` (`src/looptight/types.py:53`) collapses every non-pass to "FAIL", but
+   `status()` (`src/looptight/types.py:44`) correctly distinguishes pass/fail/timeout/error. So a
+   timeout prints `verify: FAIL (exit 2)` directly above `verifier result: timeout`
+   (`src/looptight/protocol_commands.py:69-70`) — the headline mislabels an execution timeout as a
+   test failure and contradicts the line below it. The same wrong label reaches the run-loop
+   record, the stop-hook/continuation messages, and the summary. Make `short()` reflect the real
+   status (uppercased: PASS/FAIL/TIMEOUT/ERROR, keeping the optional score suffix) so all six
+   surfaces label a timeout/error honestly.
+   Evidence: src/looptight/types.py:53
+   Acceptance: a new test asserts `short()` returns "TIMEOUT" for a timeout result and "ERROR" for
+   an errored result, while "PASS"/"FAIL" (with score suffix) are unchanged.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
