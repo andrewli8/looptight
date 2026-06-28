@@ -1981,6 +1981,12 @@ existing CLI session and makes no model or API calls of its own.
   Multi-iteration summaries are unchanged. Cleans up a residual of the run-output dedup. Found
   by dogfooding the run agent-failure path. Covered by a no-double-blank test.
 
+- The swarm outcome tally reads `0 workers` cleanly with no dangling `· ` separator when a
+  round produces no workers (a continuous planning-failure round, where the planner is
+  rejected for an ungrounded plan). `_swarm_tally` now omits the separator-plus-breakdown
+  when there is nothing to break down; multi-worker tallies are unchanged. Found by
+  dogfooding the continuous-swarm planning-failure path. Covered by an empty-tally test.
+
 ## Next
 
 ## Rules

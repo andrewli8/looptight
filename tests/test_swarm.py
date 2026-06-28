@@ -812,6 +812,12 @@ def test_swarm_tally_counts_each_terminal_status_once():
     assert swarm._swarm_tally(workers) == "4 workers · 2 merged · 1 failed · 1 timeout"
 
 
+def test_swarm_tally_has_no_dangling_separator_when_empty():
+    # A planner-failure round retains a worktree but produces zero workers. The tally must read
+    # "0 workers" cleanly, not "0 workers · " with a dangling separator and empty breakdown.
+    assert swarm._swarm_tally([]) == "0 workers"
+
+
 def test_swarm_json_output_omits_tally(tmp_path, monkeypatch, capsys):
     _repo(tmp_path)
     monkeypatch.chdir(tmp_path)

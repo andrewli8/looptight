@@ -945,4 +945,7 @@ def _swarm_tally(workers) -> str:
     ordered = preferred + sorted(set(counts) - set(preferred))
     # count-status order, matching the ui panel and statusline tallies
     parts = [f"{counts[status]} {status}" for status in ordered if counts[status]]
-    return f"{_plural(len(workers), 'worker')} · " + " · ".join(parts)
+    head = _plural(len(workers), "worker")
+    # No workers (e.g. a planner-failure round) has nothing to break down — omit the
+    # separator rather than trailing a dangling "· " with an empty tally.
+    return f"{head} · " + " · ".join(parts) if parts else head
