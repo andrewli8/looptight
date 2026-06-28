@@ -270,6 +270,21 @@ def test_from_todos_skips_malformed_python_file(tmp_path):
     assert from_todos(tmp_path) == []
 
 
+def test_skip_discovery_tolerates_bad_files(tmp_path):
+    # The skip-discovery boundary guards must never crash the loop on bad repo content:
+    # `_multiline_string_lines` on a malformed Python file and `_js_comments` on an
+    # unreadable JS/TS path both degrade quietly rather than raise.
+    from looptight.discovery import _js_comments, _multiline_string_lines
+
+    bad_py = tmp_path / "bad.py"
+    bad_py.write_bytes(b"\x00")  # a lone NUL trips tokenize → empty set, no raise
+    assert _multiline_string_lines(bad_py) == set()
+
+    a_dir = tmp_path / "adir"
+    a_dir.mkdir()  # read_text on a directory raises OSError → the generator yields nothing
+    assert list(_js_comments(a_dir)) == []
+
+
 def test_skipif_with_unbalanced_paren_in_reason_is_still_surfaced(tmp_path):
     # A skip reason string containing an unbalanced paren must not make the env-gate
     # classifier swallow a real-condition skip by over-reading into later lines.
