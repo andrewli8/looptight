@@ -116,3 +116,10 @@ def test_claim_dir_uses_git_private_state(tmp_path):
 
     assert path is not None
     assert path == (tmp_path / ".git" / "looptight" / "claims").resolve()
+
+
+def test_claim_dir_returns_none_on_oserror(tmp_path, monkeypatch):
+    import looptight.claims as claims_mod
+
+    monkeypatch.setattr(claims_mod.subprocess, "run", lambda *a, **kw: (_ for _ in ()).throw(OSError("no git")))
+    assert claim_dir(tmp_path) is None
