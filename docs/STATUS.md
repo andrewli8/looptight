@@ -1361,15 +1361,10 @@ existing CLI session and makes no model or API calls of its own.
   `verify="exit 1"` and asserts the planner rejects the plan with `status="failed"` mentioning
   planner verify, so a plan that breaks the build is not accepted. No production change.
 
-## Next
-
-1. `plan_next_tasks`'s accept-and-merge success path is untested.
-   Evidence: src/looptight/swarm.py:575-635 — a valid grounded plan that passes verify is committed
-   in the planner worktree and merged into the repo, returning `PlanningResult("planned")`. The
-   failure/rejection branches are tested but the success/merge path is not.
-   Acceptance: a test in tests/test_swarm.py uses `PlanningAdapter` with `verify="exit 0"` and
-   asserts `plan_next_tasks` returns `status="planned"` and the planned tasks merged into the repo's
-   docs/STATUS.md. No production change.
+- `plan_next_tasks`'s accept-and-merge success path is covered:
+  `test_plan_next_tasks_accepts_and_merges_a_valid_plan` in test_swarm.py uses `PlanningAdapter`
+  with `verify="exit 0"` and asserts the planner returns `status="planned"` and the planned tasks
+  merged into the repo's docs/STATUS.md — the full plan-accepted/commit/merge path. No production change.
 
 ## Rules
 
