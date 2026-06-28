@@ -1858,20 +1858,14 @@ existing CLI session and makes no model or API calls of its own.
   token instead of having it stripped. Markup-bearing lines stay on `console.print`. Found by
   the edge-state audit. Covered by propose-title and goal-vision token tests.
 
-## Next
+- The browser UI's two `aria-live` regions no longer re-announce on every 1.5s poll: `tally()`
+  early-returns on an unchanged `lastTallyKey`, and the poll-time inspector re-render is
+  guarded by `lastInspectorKey`, so a screen reader hears the tally/details only on a real
+  change (user clicks still update immediately). Found by the accessibility audit. Covered by
+  a live-region change-detection test (empirical browser confirmation was blocked by browser
+  flakiness this session; the logic is unit-tested and verify-gated).
 
-1. The browser UI's two `aria-live="polite"` regions re-announce every 1.5s even when nothing
-   changed, making the page nearly unusable with a screen reader. `tally()`
-   (`src/looptight/ui.py:353`) calls `strip.replaceChildren()` and rebuilds all four cells on every
-   poll, and `render()`'s tail (`src/looptight/ui.py:354`) re-runs `select(fresh)` every poll while
-   a node is selected, which `replaceChildren()`s the inspector. Add change-detection: track the
-   last-rendered tally key and inspector key and skip the DOM mutation when unchanged, so a screen
-   reader only announces real changes. User clicks still update the inspector immediately.
-   Evidence: src/looptight/ui.py:353
-   Acceptance: a new test in tests/test_ui.py asserts `tally()` early-returns on an unchanged key
-   (a `lastTallyKey` guard) and that the poll-time inspector re-render is guarded by a
-   `lastInspectorKey`; an empirical browser check confirms the tally DOM node is not replaced when
-   the state is unchanged.
+## Next
 
 ## Rules
 

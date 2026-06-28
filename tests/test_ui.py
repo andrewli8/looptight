@@ -331,6 +331,16 @@ def test_tally_total_cell_is_neutral_not_the_active_color():
     assert ".stat.complete{border-top-color:var(--cyan)}" in css
 
 
+def test_live_regions_skip_unchanged_updates():
+    # The tally and inspector are aria-live="polite" regions; they must not rebuild the DOM on
+    # every 1.5s poll when nothing changed, or a screen reader re-announces them continuously.
+    page = ui.PAGE
+    tally_fn = page[page.index("function tally("):page.index("function ", page.index("function tally(") + 12)]
+    assert "lastTallyKey" in tally_fn and "return" in tally_fn  # early-return on an unchanged key
+    # the poll-time inspector re-render is guarded so it only re-selects on a real change
+    assert "lastInspectorKey" in page
+
+
 def test_unknown_status_gets_a_neutral_badge_not_a_green_one():
     # Safe-by-default: a task/worker status outside the known set (corrupt state or a future
     # status not yet added to the groups) must not render the green "healthy" badge. It is tagged
@@ -535,9 +545,11 @@ def test_page_keeps_inspector_live_across_polls():
     # selection from the latest state instead of leaving the inspector stale.
     assert "records[id]=record;" in page
     assert "render(){tally();records={};" in page
-    # After rebuilding the graph, render() refreshes the selected node's detail
-    # from the freshly rendered records while preserving the selection.
-    assert "if(selected){const fresh=records[selected.id];if(fresh)select(fresh)}" in page
+    # After rebuilding the graph, render() refreshes the selected node's detail from the freshly
+    # rendered records while preserving the selection — but only when it actually changed, so the
+    # aria-live inspector is not re-announced on every poll.
+    assert "if(selected){const fresh=records[selected.id];if(fresh){" in page
+    assert "if(ik!==lastInspectorKey)select(fresh)" in page
 
 
 def test_legacy_state_without_timestamp_remains_readable(tmp_path):
