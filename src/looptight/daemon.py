@@ -141,6 +141,10 @@ def run_daemon(
                 limit_max_resumes=limit_max_resumes,
                 generate_ideas=config.idea_generation,
                 max_idle_rounds=max_idle_rounds,
+                # Forward the interruptible sleep so the swarm's internal usage-limit waits
+                # also abort promptly on SIGTERM/SIGINT — otherwise PEP 475 lets the default
+                # time.sleep run to completion (up to limit_max_wait_seconds) and shutdown hangs.
+                sleep=sleep,
             )
             outcome, merged = _outcome(result)
             reason, error = result.reason, result.error

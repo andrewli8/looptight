@@ -90,6 +90,24 @@ def test_outcome_treats_idle_and_no_work_as_idle_despite_early_merges():
     assert _outcome(_result(REASON_ERROR, merged=0))[0] == "fault"  # bare error, nothing merged
 
 
+def test_daemon_forwards_interruptible_sleep_into_the_cycle():
+    # The swarm's internal usage-limit waits must use the daemon's interruptible sleep, not the
+    # default time.sleep (which PEP 475 lets run to completion on a signal), or shutdown can hang
+    # up to limit_max_wait_seconds. run_daemon must pass its `sleep` through to run_cycle.
+    rec = _Recorder([_result(REASON_NO_WORK)])
+    run_daemon(
+        Path("."),
+        agent="claude",
+        config=_config(),
+        workers=2,
+        max_cycles=1,
+        sleep=rec.sleep,
+        run_cycle=rec.run_cycle,
+        on_cycle=rec.on_cycle,
+    )
+    assert rec.calls[0].get("sleep") == rec.sleep  # the daemon's interruptible sleep, not time.sleep
+
+
 def test_daemon_runs_progress_cycles_back_to_back_without_sleeping():
     # A draining backlog (REASON_ERROR, some merged, no top-level error) loops on with no delay.
     rec = _Recorder([_result(REASON_ERROR, merged=1, error=None)])

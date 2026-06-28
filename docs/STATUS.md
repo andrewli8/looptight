@@ -1562,18 +1562,13 @@ existing CLI session and makes no model or API calls of its own.
   `_outcome` test; two tests that used `REASON_IDLE+merged` as the progress example now use the
   genuine `REASON_ERROR`-draining case.
 
-## Next
+- The daemon forwards its interruptible `sleep` into `run_continuous_swarm`, so the swarm's
+  internal usage-limit waits also abort promptly on SIGTERM/SIGINT. Previously only the
+  between-cycle delay used it; the swarm's waits used the default `time.sleep`, which PEP 475
+  lets run to completion on a signal, so shutdown could hang up to `limit_max_wait_seconds`
+  (3600s) per attempt despite `cmd_daemon`'s ~1s claim. Covered by a sleep-forwarding test.
 
-1. Daemon shutdown can hang up to an hour: the interruptible sleep is not forwarded into the swarm.
-   Evidence: src/looptight/daemon.py:124-138 — `run_daemon` calls `run_cycle` (run_continuous_swarm)
-   without `sleep=`, so the provider-limit waits inside the swarm (which accepts `sleep`,
-   swarm.py:694/707) use the default `time.sleep`. Under PEP 475 `time.sleep` is not aborted by a
-   signal on the main thread, so a SIGTERM/SIGINT during a usage-limit wait (up to
-   `limit_max_wait_seconds`, default 3600s, unbounded resumes) does not stop the daemon "within ~1s"
-   as `cmd_daemon` claims (commands.py) — it blocks for the full wait. Fix: forward the injected
-   `sleep` into the `run_cycle` call so the swarm's internal waits use the interruptible sleep too.
-   Acceptance: a failing-then-passing test injects a `run_cycle` spy (or a fake) and asserts
-   `run_daemon` passes its `sleep` callable through to `run_cycle`; existing daemon tests stay green.
+## Next
 
 ## Rules
 
