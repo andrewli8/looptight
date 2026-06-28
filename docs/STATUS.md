@@ -1212,6 +1212,17 @@ existing CLI session and makes no model or API calls of its own.
   asserts it raises `IntegrationError` for a nonexistent ref in a real repo — the guard that
   stops the integrator preparing a worktree for a ref that does not exist. No production change.
 
+## Next
+
+1. The crash-recovery trailer lookups' git-failure fallbacks are untested.
+   Evidence: src/looptight/integration_queue.py:185-186 (`_trailer_commit_on_ref` returns
+   `None` when `git log` fails) and :193-194 (`_committed_result_in_worktree` returns `None`
+   when `git rev-parse HEAD` fails). These keep idempotent crash recovery from blowing up on a
+   transient git error, but neither fallback is exercised.
+   Acceptance: a test in tests/test_integration_queue.py monkeypatches `_git` to return a
+   failed CompletedProcess and asserts both `_trailer_commit_on_ref` and
+   `_committed_result_in_worktree` return `None`. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
