@@ -1541,23 +1541,14 @@ existing CLI session and makes no model or API calls of its own.
   completing the uniform non-interactive-git invariant across the session-native call sites
   (next/status/goal all open the coordinator). Covered by a test_coordinator.py env assertion.
 
-## Next
+- The integration crash-reconcile re-apply path is lease-fenced: `_reconcile_one`'s
+  nothing-committed branch now finishes `superseded` (via a shared `_superseded` helper used by
+  `_run`) when the lease was reaped+reclaimed by a newer owner/generation, instead of re-merging
+  and committing a stale candidate under a lease it no longer owns. Closes a durability hole
+  where the same task could double-apply across sessions; single-session crash recovery (lease
+  still owned) still re-applies. Covered by a reap+reclaim reconcile test.
 
-1. The integration reconcile re-apply path skips the lease fence, so a superseded lease can commit.
-   Evidence: src/looptight/integration_queue.py:347-352 — `_reconcile_one`'s nothing-committed
-   branch fetches `current_lease` only for idea/source, then calls `_apply` directly, unlike `_run`
-   (src/looptight/integration_queue.py:268-270) which finishes `superseded` when the lease is None or
-   its run_id/generation no longer matches the record. After a mid-merge crash, `reap_abandoned`
-   frees the lease and a new owner reclaims the task at a new generation; reconcile then re-merges,
-   verifies, commits, and CAS-advances the stale candidate under a lease it no longer owns —
-   violating the durable-integration invariant ("a superseded lease must not commit") and letting
-   the same task's work double-apply. Fix: apply the `_run` fence (factor it into a shared
-   `_superseded(record, lease)` helper) to the nothing-committed branch before preparing the
-   worktree or applying.
-   Acceptance: a failing-then-passing test in test_integration_queue.py puts a record in
-   `integrating`, reaps+reclaims its task to a new lease generation, runs `Integrator.reconcile`,
-   and asserts the outcome is `superseded` with the new owner's lease intact and the target ref
-   unchanged (no commit); single-session crash recovery (lease still owned) still re-applies.
+## Next
 
 ## Rules
 

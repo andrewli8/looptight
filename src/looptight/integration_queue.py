@@ -262,11 +262,22 @@ class Integrator:
         self.coordinator.finish_integration(record.id, outcome, max_attempts=self.max_attempts)
         return outcome
 
+    @staticmethod
+    def _superseded(record: IntegrationRecord, lease) -> bool:
+        """True when ``record``'s lease has been reassigned (reaped + reclaimed by a newer
+        owner/generation, or gone). Such a record must never commit — on the live path or
+        the crash-reconcile re-apply path."""
+        return (
+            lease is None
+            or lease.run_id != record.run_id
+            or lease.generation != record.lease_generation
+        )
+
     def _run(
         self, record: IntegrationRecord, root: Path | None, verify: str | None
     ) -> IntegrationOutcome:
         lease = self.coordinator.current_lease(record.task_id)
-        if lease is None or lease.run_id != record.run_id or lease.generation != record.lease_generation:
+        if self._superseded(record, lease):
             return self._finish(record, "superseded", error="lease superseded by a newer owner")
         if root is None or verify is None:  # only the superseded path may omit them
             raise ValueError("root and verify are required to integrate a non-superseded record")
@@ -344,11 +355,15 @@ class Integrator:
             if on_ref_again:
                 return self._finish(record, "complete", result_sha=on_ref_again)
             return self._finish(record, "conflict", error="target advanced during reconcile", retained=worktree)
-        # Nothing committed (crashed mid-merge): re-apply from the observed base.
-        fresh_worktree, fresh_observed = prepare_integration_worktree(root, record.target_ref)
+        # Nothing committed (crashed mid-merge): re-apply from the observed base — but only if
+        # this record still owns the lease. A reaped+reclaimed task (newer owner/generation) must
+        # not have its stale candidate re-merged and committed here, the same fence `_run` applies.
         lease = self.coordinator.current_lease(record.task_id)
-        idea = str(lease.payload.get("idea_id") or "") if lease else ""
-        category = str(lease.payload.get("source") or "") if lease else ""
+        if self._superseded(record, lease):
+            return self._finish(record, "superseded", error="lease superseded by a newer owner")
+        idea = str(lease.payload.get("idea_id") or "")
+        category = str(lease.payload.get("source") or "")
+        fresh_worktree, fresh_observed = prepare_integration_worktree(root, record.target_ref)
         return self._apply(record, root, verify, fresh_worktree, fresh_observed, idea, category)
 
 

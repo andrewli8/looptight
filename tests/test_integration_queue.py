@@ -178,6 +178,38 @@ def test_stale_fence_is_superseded_and_new_owner_keeps_lease(tmp_path):
     assert db.current_lease(lease1._row_id).run_id == run2.id  # new owner's lease intact
 
 
+def test_reconcile_fences_a_superseded_lease(tmp_path):
+    # A crash mid-merge leaves the record `integrating` with nothing committed. If the run
+    # is then reaped and a new owner reclaims the task at a fresh generation, reconcile must
+    # NOT re-merge/commit the stale candidate under a lease it no longer owns — it must finish
+    # `superseded`, exactly as the live `_run` path does. Otherwise the same task double-applies.
+    repo, candidate = _repo_with_candidate(tmp_path)
+    db = Coordinator.open(repo)
+    assert db is not None
+    run1 = db.start_run("one")
+    lease1 = db.claim([{"id": "t1"}], run1.id, ttl_s=60)
+    integration_id = db.enqueue_integration(lease1, "refs/heads/main", candidate)
+
+    with pytest.raises(InjectedCrash):
+        Integrator(db, crash_after="after_merge").run_next(repo, "exit 0")
+    assert db.integration(integration_id).state == "integrating"
+    ref_before = _git(repo, "rev-parse", "refs/heads/main").stdout.strip()
+
+    # run1 dies, is reaped, and a new owner reclaims t1 at a higher generation.
+    db.connection.execute("UPDATE runs SET heartbeat = 0 WHERE id = ?", (run1.id,))
+    assert run1.id in db.reap_abandoned(older_than_s=1, now=10_000)
+    run2 = db.start_run("two")
+    lease2 = db.claim([{"id": "t1"}], run2.id, ttl_s=60)
+    assert lease2.generation == lease1.generation + 1
+
+    outcomes = Integrator(db).reconcile(repo, "exit 0")
+
+    assert [o.status for o in outcomes] == ["superseded"]
+    assert db.current_lease(lease2._row_id).run_id == run2.id  # new owner's lease intact
+    # the stale candidate never landed: the target ref is unchanged
+    assert _git(repo, "rev-parse", "refs/heads/main").stdout.strip() == ref_before
+
+
 @pytest.mark.parametrize(
     "boundary", ["after_merge", "after_commit", "after_update_ref", "after_db_update"]
 )
