@@ -1461,21 +1461,16 @@ existing CLI session and makes no model or API calls of its own.
   "coordinator_unavailable"}` envelope under `--json`, a clean message otherwise, both exit 2 with
   no traceback. Covered by coordinator-level (corrupt + newer-schema) and CLI-level tests.
 
+- Curated `## Next` / task-file task text is bounded by a generous `_MAX_TASK_TEXT` (4000) cap,
+  closing the gap where `from_task_file` set `title`/`detail`/`acceptance` uncapped while TODO/lint
+  markers were already bounded to 200. A pasted multi-hundred-KB curated line can no longer become a
+  giant `goal`/`evidence` that floods host-agent context; normal paragraph-length tasks are
+  untouched. `_bound` now takes a `limit` param (default unchanged). Covered by a `test_propose.py`
+  test.
+
 ## Next
 
-1. Curated `## Next` / task-file task text is unbounded, bypassing the marker length cap.
-   Evidence: src/looptight/discovery.py:579-588 (`from_task_file` sets `title=task_text.strip()`
-   and `detail=text` with no cap), whereas TODO/lint markers are bounded to `_MAX_MARKER_TEXT`
-   (200) by `_bound` (discovery.py:271-276) precisely so "a long line cannot become a
-   multi-hundred-KB task that floods host-agent context." A 500 KB one-line `## Next` item becomes a
-   500 KB `goal`/`evidence` in `next --json`. Fix: bound the curated title and detail with a
-   generous cap (curated tasks are legitimately paragraph-length, so reuse `_bound` only with a
-   larger limit — e.g. a new `_MAX_TASK_TEXT` of a few KB — not the 200-char marker cap).
-   Acceptance: a failing-then-passing test feeds a `## Next` item far larger than the cap and
-   asserts the resulting candidate `title`/`detail` are truncated to the cap; a normal
-   paragraph-length task is left intact.
-
-2. `--json` commands break their contract on a config error: they print a plain-text
+1. `--json` commands break their contract on a config error: they print a plain-text
    `config error: ...` line to stdout instead of a JSON envelope.
    Evidence: src/looptight/cli.py top-level `except ConfigError` calls `console.print(...)`
    unconditionally, ignoring `args.json`, so `next`/`status`/`doctor`/`propose --json` emit

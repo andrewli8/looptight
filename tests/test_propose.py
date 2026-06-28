@@ -301,6 +301,33 @@ def test_adjacent_numbered_items_without_blank_line_parse_separately(tmp_path):
     assert candidates[0].title.startswith("One") and candidates[1].title.startswith("Two")
 
 
+def test_from_task_file_bounds_pathologically_long_curated_text(tmp_path):
+    # Curated `## Next` items get a (generous) cap too, so a pasted/minified multi-hundred-KB
+    # line cannot become a giant goal/evidence that floods host-agent context — the same
+    # protection TODO/lint markers get, just at a paragraph-friendly limit.
+    from looptight.discovery import _MAX_TASK_TEXT, from_task_file
+
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    huge = "x" * (_MAX_TASK_TEXT + 5000)
+    (docs / "T.md").write_text(
+        "## Next\n\n"
+        f"1. {huge} Evidence: docs/T.md:1; Acceptance: do the thing\n"
+        "2. A normal paragraph-length task. Evidence: docs/T.md:1; Acceptance: small\n"
+    )
+    cands = from_task_file(tmp_path, "docs/T.md", next_section_only=True)
+    assert len(cands) == 2
+
+    big = cands[0]
+    assert len(big.title) <= _MAX_TASK_TEXT + 1, "long curated title was not bounded"
+    assert big.title.endswith("…")
+    assert len(big.detail) <= _MAX_TASK_TEXT + 1, "long curated detail was not bounded"
+
+    # A normal paragraph-length task is left fully intact (no truncation, no ellipsis).
+    assert cands[1].title.startswith("A normal paragraph-length task")
+    assert not cands[1].title.endswith("…")
+
+
 def test_js_skip_inside_multiline_block_comment_is_ignored(tmp_path):
     # An it.skip(...) on a CONTINUATION line of a multi-line /* */ block comment is
     # commented-out example code, not a real skip → not surfaced; a real it.skip outside

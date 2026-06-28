@@ -270,10 +270,16 @@ def _js_comments(path: Path):
 #: leanness `next --json` trimming protects). The location still pinpoints the line.
 _MAX_MARKER_TEXT = 200
 
+#: Curated `## Next` / task-file items are legitimately paragraph-length (an Evidence pointer
+#: and an Acceptance clause), so they get a far more generous cap than the 200-char marker
+#: limit — but still bounded, so a pasted/minified multi-hundred-KB line cannot flood host-agent
+#: context the way an unbounded curated title/detail/acceptance otherwise would.
+_MAX_TASK_TEXT = 4000
 
-def _bound(text: str) -> str:
+
+def _bound(text: str, limit: int = _MAX_MARKER_TEXT) -> str:
     """Truncate overlong extracted text to a sane length with an ellipsis."""
-    return text if len(text) <= _MAX_MARKER_TEXT else text[:_MAX_MARKER_TEXT].rstrip() + "…"
+    return text if len(text) <= limit else text[:limit].rstrip() + "…"
 
 
 def _todo_candidate(root: Path, path: Path, lineno: int, body: str, detail: str) -> Candidate | None:
@@ -578,13 +584,13 @@ def from_task_file(
             continue  # claims evidence that does not resolve: a grounding-gate drop
         out.append(
             Candidate(
-                title=task_text.strip().rstrip(".;"),
+                title=_bound(task_text.strip().rstrip(".;"), _MAX_TASK_TEXT),
                 source="status-next" if next_section_only else "task-file",
                 location=f"{relative.as_posix()}:{item_lineno}",
                 suggested_verify=None,
                 score=0.0,
-                detail=text,
-                acceptance=acceptance.strip(),
+                detail=_bound(text, _MAX_TASK_TEXT),
+                acceptance=_bound(acceptance.strip(), _MAX_TASK_TEXT),
             )
         )
         if cap is not None and len(out) >= cap:
