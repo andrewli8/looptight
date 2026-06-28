@@ -1310,6 +1310,16 @@ existing CLI session and makes no model or API calls of its own.
   to invoke `on_cycle` (progress + fault) and `on_fault` (with `--on-fault true`), asserting the
   per-cycle lines, the fault detail, and the "daemon stopped" summary are printed. No production change.
 
+## Next
+
+1. The `install-hook` command's install/already-installed/uninstall paths are untested.
+   Evidence: src/looptight/commands.py:600-618 (`cmd_install_hook`) install, already-installed,
+   and uninstall human output have no command-level test (only the settings.install/uninstall
+   units are covered).
+   Acceptance: a test in tests/test_cli.py runs `install-hook --project` (isolated to cwd/.claude,
+   not the user's real settings) and asserts "installed", a second run "already installed", and
+   `--uninstall` "removed", each exit 0. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
