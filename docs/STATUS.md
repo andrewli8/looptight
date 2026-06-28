@@ -2047,6 +2047,13 @@ existing CLI session and makes no model or API calls of its own.
   for the whole backlog. `--limit 0` shows all with no notice. Found by dogfooding `propose`
   over 30 markers. Covered by a truncation-notice test.
 
+- Human `status` and `doctor` now surface a configured safety policy (`no direct push · max N
+  changed files · K protected paths · M allowed verify commands`) via a shared `policy_line`
+  helper — the rails appeared only in `--json`, so a user who set `no_direct_push`/`protected_paths`
+  could not confirm in human output that the protection took hold (and `doctor` exists to confirm
+  setup). Omitted entirely when all rails are default. Found by dogfooding `status`/`doctor` with a
+  policy configured. Covered by a policy-line test.
+
 ## Next
 
 ## Rules

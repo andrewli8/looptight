@@ -28,6 +28,7 @@ from .protocol_commands import (
     cmd_status,
     cmd_verify,
     humanized_checks,
+    policy_line,
 )
 from .summary import render_rich
 from .swarm import MAX_WORKERS, cmd_swarm
@@ -419,6 +420,9 @@ def cmd_doctor(args: argparse.Namespace, console: Console) -> int:
     )
     console.print(f"  agent (detected): {agent or '[red]none on PATH[/red]'}")
     console.print(f"  verify (detected): {verify or '[yellow]none[/yellow]'}")
+    configured_policy = policy_line(config)
+    if configured_policy:  # show the safety rails the user configured (else only in --json)
+        console.print(f"  {configured_policy}")
     git_ready = is_git_repo(workdir)
     coordinator = _doctor_coordinator_state(workdir, git_ready)
     console.print(f"  git checkpoints: {'on' if git_ready else '[yellow]off (not a git repo)[/yellow]'}")

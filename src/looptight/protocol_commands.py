@@ -652,6 +652,9 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
             f"verifier quality: {verifier_quality['classification']} — "
             f"{verifier_quality['risk']}"
         )
+        configured_policy = policy_line(config)
+        if configured_policy:  # confirm the safety rails the user set are active (else only in --json)
+            console.print(configured_policy)
         console.print(f"concurrency: {concurrency['status']}")
         console.print("concurrency checks: " + humanized_checks(concurrency["checks"]))
         console.print(f"concurrency next: {concurrency['next_remediation']}")
@@ -906,6 +909,25 @@ def _policy_summary(config) -> dict[str, object]:
         "max_changed_files": config.max_changed_files,
         "allowed_verify_commands": list(config.allowed_verify_commands),
     }
+
+
+def policy_line(config) -> str | None:
+    """A human one-liner naming the active safety rails, or None when all are default. The rails
+    (no_direct_push, max_changed_files, protected_paths, allowed_verify_commands) otherwise show
+    only in ``--json``, so a user cannot confirm a protection they configured actually took hold."""
+    parts: list[str] = []
+    if config.no_direct_push:
+        parts.append("no direct push")
+    if config.max_changed_files is not None:
+        n = config.max_changed_files
+        parts.append(f"max {n} changed file{'s' if n != 1 else ''}")
+    if config.protected_paths:
+        n = len(config.protected_paths)
+        parts.append(f"{n} protected path{'s' if n != 1 else ''}")
+    if config.allowed_verify_commands:
+        n = len(config.allowed_verify_commands)
+        parts.append(f"{n} allowed verify command{'s' if n != 1 else ''}")
+    return "policy: " + " · ".join(parts) if parts else None
 
 
 def cmd_goal(args: argparse.Namespace, console: Console) -> int:

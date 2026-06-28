@@ -1010,6 +1010,38 @@ def test_human_readiness_checks_do_not_leak_snake_case_status(tmp_path, monkeypa
     assert data["workspace"] == "not_git"
 
 
+def test_human_status_and_doctor_surface_configured_policy(tmp_path, monkeypatch, capsys):
+    # Safety rails (no_direct_push, max_changed_files, protected_paths, allowed_verify_commands)
+    # were visible only in --json. A user who configures them must be able to confirm they took
+    # hold in the human status/doctor output.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / ".looptight.toml").write_text(
+        'verify = "true"\nno_direct_push = true\nmax_changed_files = 5\n'
+        'protected_paths = ["src/secrets/**", ".github/**"]\n',
+        encoding="utf-8",
+    )
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("x = 1\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "i"],
+        cwd=tmp_path, check=True,
+    )
+
+    assert main(["status"]) == 0
+    status_out = capsys.readouterr().out
+    assert "policy: no direct push · max 5 changed files · 2 protected paths" in status_out
+
+    assert main(["doctor"]) in (0, 1)
+    assert "policy: no direct push" in capsys.readouterr().out
+
+    # A repo with no policy configured shows no policy line (no noise).
+    (tmp_path / ".looptight.toml").write_text('verify = "true"\n', encoding="utf-8")
+    assert main(["status"]) == 0
+    assert "policy:" not in capsys.readouterr().out
+
+
 def test_status_readiness_reports_ready_repo(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
