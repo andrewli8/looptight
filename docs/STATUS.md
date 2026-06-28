@@ -1570,6 +1570,23 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Integration crash recovery between commit and ref-advance depends on a volatile worktree.
+   Evidence: src/looptight/coordinator.py:62 declares a `committed` integration state that no code
+   ever writes; src/looptight/integration_queue.py:321-327 commits then advances the ref while the
+   record stays `integrating`, so the only durable evidence of the commit is the HEAD of the shared
+   worktree at `looptight/integration/<hash(target_ref)>`. A later integration to the same ref calls
+   `prepare_integration_worktree` → `reset --hard` + `clean` (integration_queue.py:172-175),
+   destroying that commit from the worktree HEAD before `_reconcile_one` (integration_queue.py:337-346)
+   can read it via `_committed_result_in_worktree` — so recovery falls through to a wasteful re-merge.
+   Fix: persist the committed `result_sha` and set state `committed` at the commit boundary (a new
+   `mark_integration_committed`), add `result_sha` to `IntegrationRecord`/`_INTEGRATION_COLUMNS`,
+   include `committed` in `integrating_records`, and have `_reconcile_one` advance the ref from the
+   persisted `result_sha` before falling back to the worktree. Recovery becomes worktree-independent.
+   Acceptance: a failing-then-passing test crashes `after_commit`, resets the shared integration
+   worktree to the base (simulating a later integration), runs `reconcile`, and asserts the record is
+   `committed` with a `result_sha`, the outcome is `complete`, and the ref advanced to that exact
+   `result_sha` (no re-merge); the existing parametrized crash-recovery tests stay green.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
