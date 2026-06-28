@@ -1578,6 +1578,20 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. A headless agent invocation can hang forever waiting on inherited stdin (credential prompt /
+   interactive confirmation).
+   Evidence: src/looptight/adapters/base.py:78-95 — `run_command` runs the agent CLI (both the
+   no-timeout `subprocess.run` and the timeout `Popen` branch) without `stdin=subprocess.DEVNULL`,
+   so the child inherits looptight's stdin. A headless agent takes its prompt via argv (claude `-p`,
+   etc.), never stdin, so any prompt for input (a git credential prompt, an interactive
+   confirmation) blocks indefinitely. The single `run`/`improve --headless` path (commands.py →
+   run_loop) also leaves `worker_timeout_s=None`, so there is no timeout backstop either (the swarm
+   path sets one). Fix: pass `stdin=subprocess.DEVNULL` on both branches of `run_command` so an
+   input request gets EOF and the agent fails fast instead of hanging — a universal headless-safety
+   fix on every path.
+   Acceptance: a failing-then-passing test monkeypatches `adapters.base.subprocess.run` (and the
+   `Popen` branch) and asserts the captured kwargs include `stdin == subprocess.DEVNULL`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
