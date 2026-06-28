@@ -110,13 +110,26 @@ def test_verdict_round_trips_and_degrades(tmp_path):
     assert ui.read_verdict(tmp_path) is None  # corrupt → None, never raises
 
 
-def test_with_session_task_includes_the_verify_verdict(monkeypatch, tmp_path):
+def test_with_session_task_includes_the_verify_verdict_and_freshness(monkeypatch, tmp_path):
     monkeypatch.setattr(
         ui, "_active_session_task", lambda root: {"id": "a", "goal": "g", "source": "", "status": "claimed"}
     )
-    monkeypatch.setattr(ui, "read_verdict", lambda root: "pass")
+    monkeypatch.setattr(
+        ui, "_verdict_record", lambda root: {"status": "pass", "at": "2026-06-20T12:00:00Z"}
+    )
     state = ui._with_session_task(ui.empty_state(), tmp_path)
     assert state["manager"]["verify"] == "pass"
+    assert state["updated_at"] == "2026-06-20T12:00:00Z"  # footer freshness, not UNKNOWN
+
+
+def test_with_session_task_no_verdict_leaves_no_badge_or_timestamp(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        ui, "_active_session_task", lambda root: {"id": "a", "goal": "g", "source": "", "status": "claimed"}
+    )
+    monkeypatch.setattr(ui, "_verdict_record", lambda root: None)
+    state = ui._with_session_task(ui.empty_state(), tmp_path)
+    assert "verify" not in state["manager"]
+    assert state["updated_at"] is None  # degrades to UNKNOWN, never raises
 
 
 def test_page_renders_the_session_verify_verdict():

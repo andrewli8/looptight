@@ -79,13 +79,19 @@ def write_verdict(root: Path, status: str) -> None:
     )
 
 
-def read_verdict(root: Path) -> str | None:
-    """The last recorded verify verdict (``pass``/``fail``/…), or None when absent/corrupt."""
+def _verdict_record(root: Path) -> dict[str, object] | None:
+    """The raw verdict sidecar (``{"status", "at"}``), or None when absent/corrupt."""
     try:
         payload = json.loads(_verdict_path(root).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return None
-    status = payload.get("status") if isinstance(payload, dict) else None
+    return payload if isinstance(payload, dict) else None
+
+
+def read_verdict(root: Path) -> str | None:
+    """The last recorded verify verdict (``pass``/``fail``/…), or None when absent/corrupt."""
+    record = _verdict_record(root)
+    status = record.get("status") if record else None
     return str(status) if isinstance(status, str) else None
 
 
@@ -191,10 +197,13 @@ def _with_session_task(state: dict[str, object], root: Path) -> dict[str, object
     if task is None:
         return state
     manager: dict[str, object] = {"status": "session"}
-    verdict = read_verdict(root)
-    if verdict:
-        manager["verify"] = verdict
-    return {**state, "manager": manager, "tasks": [task], "workers": []}
+    record = _verdict_record(root)
+    if record and isinstance(record.get("status"), str):
+        manager["verify"] = str(record["status"])
+    overlaid: dict[str, object] = {**state, "manager": manager, "tasks": [task], "workers": []}
+    if record and isinstance(record.get("at"), str):
+        overlaid["updated_at"] = str(record["at"])  # footer shows the verify freshness, not UNKNOWN
+    return overlaid
 
 
 #: The status groups the page filters and tallies by, kept here so the server-computed
