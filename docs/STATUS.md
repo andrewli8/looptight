@@ -1176,17 +1176,11 @@ existing CLI session and makes no model or API calls of its own.
   changes" rather than merged as an empty result — the no-op branch no prior adapter
   exercised. No production change.
 
-## Next
-
-1. The swarm serialized-integration merge-conflict path is untested end-to-end.
-   Evidence: src/looptight/swarm.py:372-377 (`_integrate` aborts the merge and marks a
-   worker `conflict` when its verified branch conflicts with an already-merged sibling) is
-   reached via `_integrate_via_queue` (swarm.py:453), but no run_swarm scenario produces two
-   workers whose branches conflict, so the conflict-abort path is unexercised.
-   Acceptance: a test in tests/test_swarm.py sets up two tasks in the same file, uses an
-   adapter that rewrites that whole file per worker (conflicting content), and asserts one
-   worker `merged` and one `conflict`, with the conflicting worktree retained and the base
-   repo left coherent (no broken merge). No production change.
+- The swarm serialized-integration merge-conflict path is covered end-to-end:
+  `test_swarm_marks_a_conflicting_worker_as_conflict` in test_swarm.py runs two workers that
+  rewrite the same file with conflicting content and asserts one `merged`, one `conflict`
+  (worktree retained), with the base tree left coherent — so the conflict-abort path in
+  `_integrate` is exercised, not just the integration-queue unit tests. No production change.
 
 ## Rules
 ## Rules

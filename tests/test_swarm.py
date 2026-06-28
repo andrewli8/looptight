@@ -179,6 +179,45 @@ def test_swarm_refuses_dirty_invoking_worktree(tmp_path):
     assert result.workers == ()
 
 
+class WholeFileRewriteAdapter(EditingAdapter):
+    def run_iteration(self, goal, context, workdir, model=None):
+        # Rewrite the whole shared file with this worker's goal → conflicting content
+        # across workers, forcing a merge conflict on the serialized integration.
+        (workdir / "src" / "a.py").write_text(f"# done: {goal}\n", encoding="utf-8")
+        return IterationResult(transcript="done")
+
+
+def test_swarm_marks_a_conflicting_worker_as_conflict(tmp_path, monkeypatch):
+    # Two workers whose verified branches both rewrite the same file conflict on the
+    # serialized merge: the first integrates, the second aborts and is marked "conflict"
+    # (retained for recovery), never producing a broken merge or a dirty base tree.
+    _git(tmp_path, "init", "-q")
+    _git(tmp_path, "config", "user.name", "Looptight Test")
+    _git(tmp_path, "config", "user.email", "test@looptight.dev")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text(
+        "# TODO: task one in a.py\n# TODO: task two in a.py\n", encoding="utf-8"
+    )
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "fixture")
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: WholeFileRewriteAdapter())
+
+    result = run_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0", max_iterations=1),
+        workers=2,
+    )
+
+    assert sorted(w.status for w in result.workers) == ["conflict", "merged"]
+    conflicted = next(w for w in result.workers if w.status == "conflict")
+    assert conflicted.worktree.exists()  # retained for recovery
+    # The base tree is left coherent (the aborted merge did not dirty it).
+    assert not subprocess.run(
+        ["git", "status", "--porcelain"], cwd=tmp_path, capture_output=True, text=True
+    ).stdout
+
+
 def test_swarm_rejects_a_worker_that_produces_no_changes(tmp_path, monkeypatch):
     # A worker whose run loop succeeds but makes no file changes (HEAD still at base) is a
     # no-op, not a success: it is marked failed rather than merged as an empty result.
