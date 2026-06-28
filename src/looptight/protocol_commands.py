@@ -688,7 +688,7 @@ def _verifier_quality(command: str | None) -> dict[str, str]:
     # A pytest `-m "not integration"` / `not e2e` deselection EXCLUDES those markers,
     # so drop the negated clause before the substring scan — the command is a unit
     # run and must not be read as an integration/e2e verifier off the leftover word.
-    scan = normalized.replace("not integration", "").replace("not e2e", "")
+    scan = normalized.replace("not integration", "").replace("not e2e", "").replace("not playwright", "").replace("not cypress", "")
     # Strongest signal wins. A command that runs tests *and* a linter (e.g.
     # `pytest -q && ruff check`) is classified by its tests, not short-circuited
     # to lint-only — so lint-only is checked last, only when no test runner is present.

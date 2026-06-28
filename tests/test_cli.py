@@ -991,8 +991,11 @@ def test_status_json_ignores_negated_marker_deselection(
     cases = {
         'pytest -m "not integration"': "unit",
         'pytest -m "not e2e"': "unit",
+        'pytest -m "not playwright"': "unit",   # excludes playwright, still a unit run
+        'pytest -m "not cypress"': "unit",      # excludes cypress, still a unit run
         "pytest tests/integration_suite": "integration",  # real integration, unchanged
         "playwright test": "e2e",  # real e2e, unchanged
+        "cypress run": "e2e",      # real e2e, unchanged
     }
     for command, expected in cases.items():
         # single-quoted TOML literal: the commands contain double quotes

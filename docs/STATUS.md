@@ -1513,19 +1513,16 @@ existing CLI session and makes no model or API calls of its own.
   Covered by `test_recent_failures_counts_only_in_window_failures` in test_coordinator.py;
   existing windowed and outside-window tests unchanged.
 
+- `_verifier_quality` no longer misclassifies `pytest -m "not playwright"` / `pytest -m "not
+  cypress"` as `e2e`: `scan` now also strips `not playwright` and `not cypress` before the e2e
+  check, so a command *excluding* those test markers classifies as `unit` instead. Real `playwright
+  test`/`cypress run` commands still classify as `e2e`; behavior of `not integration`/`not e2e`
+  is unchanged. Symmetric fix to the existing `not integration`/`not e2e` case.
+  Covered by the extended `test_status_json_ignores_negated_marker_deselection` in test_cli.py.
+
 ## Next
 
-1. `_verifier_quality` misclassifies `pytest -m "not playwright"` and `pytest -m "not cypress"`
-   as `e2e` instead of `unit`: `scan` strips `not integration`/`not e2e` before the e2e check
-   but not `not playwright`/`not cypress`, so a command that *excludes* playwright/cypress tests
-   is wrongly labeled e2e — the symmetric case of the already-fixed `not integration`/`not e2e`
-   bug. Fix: extend the replace chain in `_verifier_quality` with `.replace("not playwright",
-   "").replace("not cypress", "")`. Evidence: `src/looptight/protocol_commands.py:691`
-   Acceptance: `test_status_json_ignores_negated_marker_deselection` in test_cli.py adds cases
-   `pytest -m "not playwright"` → `unit` and `pytest -m "not cypress"` → `unit`, both pass; real
-   `playwright test` and `cypress run` still map to `e2e`.
-
-2. `_not_ignored` in `discovery.py` passes no `env` to its `git check-ignore` subprocess
+1. `_not_ignored` in `discovery.py` passes no `env` to its `git check-ignore` subprocess
    (`discovery.py:101`), unlike every other git call in the codebase (`checkpoint.py:33`,
    `integration_queue.py:69`, `experience.py:29`, `swarm.py:210`) which all set
    `GIT_TERMINAL_PROMPT=0` so a headless run can never block on a credential prompt. Fix: add
