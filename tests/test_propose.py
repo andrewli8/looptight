@@ -270,6 +270,27 @@ def test_from_todos_skips_malformed_python_file(tmp_path):
     assert from_todos(tmp_path) == []
 
 
+def test_js_skip_inside_multiline_block_comment_is_ignored(tmp_path):
+    # An it.skip(...) on a CONTINUATION line of a multi-line /* */ block comment is
+    # commented-out example code, not a real skip → not surfaced; a real it.skip outside
+    # the comment still is.
+    from looptight.discovery import from_skipped_tests
+
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "a.test.js").write_text(
+        'describe("s", () => {\n'
+        "  /* example:\n"
+        '     it.skip("not real", () => {});\n'
+        "  */\n"
+        '  it.skip("real one", () => {});\n'
+        "});\n"
+    )
+    candidates = from_skipped_tests(tmp_path)
+    assert len(candidates) == 1  # only the real it.skip, not the commented example
+    assert candidates[0].location == "tests/a.test.js:5"
+
+
 def test_from_lint_skips_unparseable_output_lines(tmp_path, monkeypatch):
     # ruff (quiet+concise) emits only `loc:col: CODE msg` lines, but from_lint must ignore
     # any line that does not match (a future format change or a stray warning) rather than
