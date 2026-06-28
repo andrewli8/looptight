@@ -1780,6 +1780,17 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `doctor` prints `readiness: <tier> (exit N)` in `src/looptight/commands.py:431` but discards
+   the `readiness["checks"]` reasons it already computed, so the diagnostic says "unsafe" with no
+   explanation while `status` shows the full breakdown (`src/looptight/protocol_commands.py:589`)
+   — confirmed by dogfooding: a fresh repo shows `readiness: unsafe (exit 1)` and the user must
+   run `status` to learn it is `git dirty · task_sources missing`. Print the readiness checks line
+   in `doctor`'s human output (same `key value · …` format as status) so the diagnostic explains
+   its own verdict.
+   Evidence: src/looptight/commands.py:431
+   Acceptance: a new test in tests/test_cli.py asserts `doctor`'s human output includes a
+   `readiness checks:` line listing the reasons (e.g. the git state), not only the tier.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
