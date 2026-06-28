@@ -404,6 +404,19 @@ def test_goal_next_human_output_reports_no_goal(tmp_path, monkeypatch, capsys):
     assert "no active goal" in out
 
 
+def test_goal_status_no_goal_guides_user_like_goal_next(tmp_path, monkeypatch, capsys):
+    # `goal status` (and bare `goal`) before any goal is set must guide the user to set one,
+    # consistent with `goal next`/`goal check` — not dead-end with a bare "no active goal".
+    from looptight.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    _repo(tmp_path)
+    assert main(["goal", "status"]) == 0
+    out = capsys.readouterr().out
+    assert "no active goal" in out.lower()
+    assert 'looptight goal "<vision>"' in out  # the same actionable hint `goal next` gives
+
+
 def test_goal_next_human_output_includes_iteration_number(tmp_path, monkeypatch, capsys):
     from looptight.cli import main
 

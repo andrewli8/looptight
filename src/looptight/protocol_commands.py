@@ -895,7 +895,8 @@ def cmd_goal(args: argparse.Namespace, console: Console) -> int:
                 payload.update(goal.as_dict())
             print(json.dumps(payload, sort_keys=True))
         elif goal is None:
-            console.print("no active goal")
+            # Guide the user out of the dead-end, consistent with `goal next`/`goal check`.
+            console.print("no active goal; set one with `looptight goal \"<vision>\"`")
         else:
             console.write(  # user vision — preserve any tokens
                 f"goal: {goal.vision} (iteration {goal.iteration}"

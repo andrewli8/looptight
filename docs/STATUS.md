@@ -1994,6 +1994,11 @@ existing CLI session and makes no model or API calls of its own.
   joins. The JSON contract is unchanged — machine consumers still see `not_git`. Found by
   dogfooding `doctor`/`status` in a non-git directory. Covered by a no-leak test.
 
+- `goal status` (and bare `goal`) with no active goal now guides the user to set one
+  (`no active goal; set one with looptight goal "<vision>"`), consistent with `goal next`
+  and `goal check` — it was the lone sibling action that dead-ended with a bare `no active
+  goal`. Found by dogfooding the goal-mode journey. Covered by a guidance-parity test.
+
 ## Next
 
 ## Rules
