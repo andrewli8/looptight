@@ -1603,6 +1603,17 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The `ui` task node hides the task's `source` (provenance) and shows its internal id instead.
+   Evidence: src/looptight/swarm.py:166-172 writes each task with a `source` field
+   (todo/lint/status-next/skipped-test/task-file), but src/looptight/ui.py render() builds a task
+   node as `node('task', t.goal||t.id, t.status, t.id, ...)` — the detail line is the opaque id, and
+   `source` is never shown anywhere in the graph or inspector. The provenance ("this task came from a
+   lint finding vs the status Next list") is meaningful context the data representation drops. Fix:
+   show the task `source` as the node detail (falling back to the id when absent), so the node and
+   the inspector surface where each task came from; the wire ids (`task-${id}`) are unchanged.
+   Acceptance: a `test_ui.py` assertion that the page's render() uses `t.source` for the task detail;
+   verified visually that a task node shows its source.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
