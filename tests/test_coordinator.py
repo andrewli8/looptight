@@ -69,6 +69,18 @@ def test_coordinator_path_is_none_when_git_is_not_installed(tmp_path, monkeypatc
     assert coordinator_path(repo) is None
 
 
+def test_coordinator_unknown_id_lookups_are_safe_no_ops(tmp_path):
+    # A stale or mistaken id must be a safe no-op, not a crash: lease_for returns None
+    # when no lease matches, and finish_integration returns without effect on an
+    # unknown integration id.
+    coordinator = Coordinator.open(_repo(tmp_path / "repo"))
+    assert coordinator is not None
+    assert coordinator.lease_for("no-such-fingerprint", "no-such-run") is None
+    # Unknown integration id: early return, no raise, nothing changed.
+    coordinator.finish_integration("no-such-id", IntegrationOutcome("no-such-id", "complete"))
+    assert coordinator.lease_for("no-such-fingerprint", "no-such-run") is None
+
+
 def test_schema_rejects_duplicate_task_fingerprints(tmp_path):
     coordinator = Coordinator.open(_repo(tmp_path / "repo"))
     assert coordinator is not None
