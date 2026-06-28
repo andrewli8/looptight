@@ -90,6 +90,15 @@ def test_read_goal_returns_none_on_non_utf8_file(tmp_path):
     assert read_goal(repo) is None
 
 
+def test_read_goal_returns_none_when_json_is_not_a_dict(tmp_path):
+    # Valid JSON that is not a dict (e.g. a list) must yield None, not raise.
+    repo = _repo(tmp_path)
+    path = goal_path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("[]", encoding="utf-8")
+    assert read_goal(repo) is None
+
+
 def test_goal_next_without_a_goal_reports_no_goal(tmp_path):
     from looptight.goal import goal_next
 

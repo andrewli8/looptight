@@ -934,18 +934,14 @@ existing CLI session and makes no model or API calls of its own.
   `experience`; `import os` added. A new test monkeypatches `subprocess.run` directly and
   asserts the env dict contains `GIT_TERMINAL_PROMPT` equal to `"0"`. Covered by
   `test_checkpoint_git_sets_git_terminal_prompt_env` in test_checkpoint.py.
+- `read_goal`'s `not isinstance(data, dict)` branch (`goal.py:60`) is now covered:
+  `test_read_goal_returns_none_when_json_is_not_a_dict` in test_goal.py writes `[]` to
+  `goal_path(repo)` and asserts `read_goal(repo)` returns `None` without raising — the path
+  where valid JSON that is not a dict is silently discarded rather than crashing.
 
 ## Next
 
-1. `read_goal`'s `not isinstance(data, dict)` branch is untested: `src/looptight/goal.py:60`
-   returns `None` when the goal file holds valid JSON that is not a dict (e.g. `[]` or `"str"`),
-   but the existing tests only cover absent/non-UTF-8 files and a dict with the wrong
-   `schema_version` — never a file whose JSON parses but is not a dict.
-   Evidence: src/looptight/goal.py:60;
-   Acceptance: a new test writes `[]` to `goal_path(repo)` and asserts `read_goal(repo)` returns
-   `None` without raising.
-
-3. `_has_dirty_git_worktree`'s non-zero-returncode path is untested: `src/looptight/tasks.py:90`
+1. `_has_dirty_git_worktree`'s non-zero-returncode path is untested: `src/looptight/tasks.py:90`
    returns `False` when `result.returncode != 0` (e.g., `git status` exits 128 in a non-repo
    directory), but the only test covers the `OSError` branch — the exit-128 path
    (False via the `returncode == 0` short-circuit) is never exercised.
