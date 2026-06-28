@@ -1920,17 +1920,15 @@ existing CLI session and makes no model or API calls of its own.
   the full driver recipe. Found by dogfooding the goal-mode journey. Covered by a goal-set
   guidance test.
 
+- `_changed_files`'s OSError and nonzero-exit branches (`hook.py:54-57`) have direct unit
+  coverage: `test_changed_files_returns_empty_on_oserror` monkeypatches `subprocess.run` to
+  raise `OSError` and `test_changed_files_returns_empty_on_nonzero_returncode` returns exit 128,
+  both asserting `[]` — so a regression removing either defensive `return []` is caught; the
+  drift-detection path that relies on this function never produces false positives on git errors.
+
 ## Next
 
-1. `_changed_files`'s OSError and nonzero-exit branches (hook.py:54-57) are not directly
-   unit-tested: the function is only reached indirectly through `_drift_directive` integration
-   tests, so a regression silently dropping the defensive `return []` would not be caught.
-   Evidence: src/looptight/hook.py:54
-   Acceptance: `test_changed_files_returns_empty_on_oserror` and
-   `test_changed_files_returns_empty_on_nonzero_returncode` in tests/test_hook.py pass, each
-   monkeypatching `subprocess.run` to inject the respective failure; no production-code change.
-
-2. `_has_grounded_work`'s `except Exception: return False` branch (hook.py:128) is not
+1. `_has_grounded_work`'s `except Exception: return False` branch (hook.py:128) is not
    directly tested: if `propose` raises an unexpected error the hook must never trap the session
    in a forced loop, but a regression removing the guard would go undetected.
    Evidence: src/looptight/hook.py:128
@@ -1938,9 +1936,9 @@ existing CLI session and makes no model or API calls of its own.
    monkeypatching `propose` to raise and asserting `_has_grounded_work` returns `False` without
    raising; no production-code change.
 
-3. `_active_session_task`'s and `_active_goal_view`'s `except Exception: return None` branches
+2. `_active_session_task`'s and `_active_goal_view`'s `except Exception: return None` branches
    (ui.py:205, ui.py:224) are not directly tested: both functions must degrade gracefully when
-   the coordinator or goal reader raises, but a regression replacing either guard would not be caught.
+   the coordinator or goal reader raises, but a regression removing either guard would not be caught.
    Evidence: src/looptight/ui.py:205
    Acceptance: `test_active_session_task_returns_none_on_exception` and
    `test_active_goal_view_returns_none_on_exception` in tests/test_ui.py pass, each
