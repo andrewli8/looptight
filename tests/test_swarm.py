@@ -187,6 +187,20 @@ class WholeFileRewriteAdapter(EditingAdapter):
         return IterationResult(transcript="done")
 
 
+def test_swarm_cli_prints_error_and_no_work_results(tmp_path, monkeypatch, capsys):
+    # The human swarm output surfaces a top-level error and a NO_WORK result.
+    monkeypatch.chdir(tmp_path)
+
+    monkeypatch.setattr("looptight.swarm.run_swarm", lambda *a, **k: SwarmResult((), "boom"))
+    main(["swarm", "--headless", "--agent", "codex", "--verify", "exit 0"])
+    out = capsys.readouterr().out
+    assert "swarm error:" in out and "boom" in out
+
+    monkeypatch.setattr("looptight.swarm.run_swarm", lambda *a, **k: SwarmResult(()))
+    assert main(["swarm", "--headless", "--agent", "codex", "--verify", "exit 0"]) == 0
+    assert "NO_WORK" in capsys.readouterr().out
+
+
 def test_swarm_marks_a_conflicting_worker_as_conflict(tmp_path, monkeypatch):
     # Two workers whose verified branches both rewrite the same file conflict on the
     # serialized merge: the first integrates, the second aborts and is marked "conflict"
