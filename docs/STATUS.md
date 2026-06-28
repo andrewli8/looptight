@@ -1240,7 +1240,15 @@ existing CLI session and makes no model or API calls of its own.
   adapter that edits a non-STATUS file and asserts `plan_next_tasks` returns `status="failed"`
   — so the planner may only refresh docs/STATUS.md. No production change.
 
-## Rules
+## Next
+
+1. `plan_next_tasks`'s planner-no_work path is untested.
+   Evidence: src/looptight/swarm.py:552-554 — when the planner makes no changes and succeeds,
+   `plan_next_tasks` removes the planner worktree and returns `PlanningResult("no_work")`, the
+   signal the continuous swarm uses to stop. Untested.
+   Acceptance: a test in tests/test_swarm.py uses a planner adapter that edits nothing
+   (`ok=True`) and asserts `plan_next_tasks` returns `status="no_work"`. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
