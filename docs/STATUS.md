@@ -1740,6 +1740,16 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The statusline shows the session task but not the last verify verdict — the at-a-glance signal.
+   Evidence: src/looptight/ui.py `statusline` returns "looptight: <task>" in session mode, but the
+   verify verdict (now shown in the browser ui and the `--watch` panel) is the signal you most want
+   in the always-visible Claude Code status bar — whether your last gate passed. The overlaid state
+   already carries `manager.verify`. Fix: append the verdict to the session statusline when present,
+   "looptight: <task> · pass" / "· fail". No verdict (or no overlay) is unchanged; swarm mode (worker
+   tally) is unchanged.
+   Acceptance: a `test_ui.py` test asserts `statusline` on a session state with `manager.verify`
+   appends the verdict; without it the line is unchanged; swarm-worker state still returns the tally.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
