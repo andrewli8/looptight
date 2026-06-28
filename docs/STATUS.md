@@ -1109,6 +1109,17 @@ existing CLI session and makes no model or API calls of its own.
   — so discovery degrades quietly rather than crashing the loop on bad repo content.
   No production change.
 
+## Next
+
+1. `goal next`'s human no-goal message is untested.
+   Evidence: src/looptight/protocol_commands.py:825-826 — when `looptight goal next` runs
+   (human, not `--json`) with no active goal, it prints "no active goal; set one with
+   `looptight goal "<vision>"`". The `goal check` no-goal message is tested (test_goal.py:295)
+   but the `goal next` one is not, so a regression that dropped or broke the guidance for a
+   user who runs `goal next` before setting a goal would go unnoticed.
+   Acceptance: a test in tests/test_goal.py runs `main(["goal", "next"])` in a repo with no
+   goal set and asserts exit 0 and "no active goal" in the output. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
