@@ -1879,6 +1879,15 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The three graph lanes (`manager` / `tasks` / `workers`) are plain `<div class="lane">`s whose
+   `<div class="lane-title">` labels are read as loose text, giving screen-reader users no group
+   structure to navigate (`src/looptight/ui.py:340`). Give each lane `role="group"` and tie it to
+   its title via `aria-labelledby` (add an id to each lane-title), so the orchestration columns
+   announce as labeled regions. Purely additive markup; no visual change.
+   Evidence: src/looptight/ui.py:340
+   Acceptance: a new test in tests/test_ui.py asserts each lane (manager/tasks/workers) carries
+   `role="group"` and an `aria-labelledby` pointing at its titled element.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
