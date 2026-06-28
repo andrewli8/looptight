@@ -1496,9 +1496,10 @@ existing CLI session and makes no model or API calls of its own.
 
 1. `score_status_next` scores the grounding-filtered subset, so `groundedness` is a useless
    constant and `size`/`bounded` undercount — crippling the idea-generation feedback signal.
-   Evidence: idea_eval.py:105 calls `from_status_next(root, cap=None)`, which hardcodes
-   `enforce_truthful_evidence=True` (discovery.py:609-614), dropping ungrounded items before
-   `score_batch` runs. Since `score_batch` (idea_eval.py:85) independently computes
+   Evidence: src/looptight/idea_eval.py:105 calls `from_status_next(root, cap=None)`, which
+   hardcodes `enforce_truthful_evidence=True` (src/looptight/discovery.py:609-614), dropping
+   ungrounded items before `score_batch` runs. Since `score_batch` (src/looptight/idea_eval.py:85)
+   independently computes
    `grounded = sum(is_grounded(...))`, pre-filtering forces `grounded == size` (groundedness always
    1.0) and hides over-generation when items have fabricated evidence. The `current_quality`
    feedback in the `generate_ideas` directive (tasks.py `_idea_directive`) then misreports how the
@@ -1511,18 +1512,19 @@ existing CLI session and makes no model or API calls of its own.
 
 2. Python skipped-test candidates in one file collide to a single `idea_id`, so cooldown suppresses
    sibling tests and outcome stats merge distinct tasks.
-   Evidence: discovery.py:491 titles every Python skip `f"un-skip / fix skipped test in
-   {path.name}"` (basename only), and idea_identity.py:45-46 keys `skipped-test` on the normalized
-   title alone (location dropped) — so two skips in one file share an `idea_id`. The JS path
-   (discovery.py:452-454) puts the test name in the title and stays distinct, and the claim id
-   (tasks.py:143-146) keeps full location, confirming the collision is unintended. Fix: include the
+   Evidence: src/looptight/discovery.py:491 titles every Python skip `f"un-skip / fix skipped test
+   in {path.name}"` (basename only), and src/looptight/idea_identity.py:45-46 keys `skipped-test` on
+   the normalized title alone (location dropped) — so two skips in one file share an `idea_id`. The
+   JS path (src/looptight/discovery.py:452-454) puts the test name in the title and stays distinct,
+   and the claim id (src/looptight/tasks.py:143-146) keeps full location, confirming the collision
+   is unintended. Fix: include the
    enclosing test's identity in the Python skip title (extract the nearest `def test_*`, like JS uses
    the test name), falling back to the basename for a module-level skip with no enclosing function.
    Acceptance: a failing-then-passing test with two skipped tests in one file asserts their
    `idea_id`s differ; a single skip is unchanged.
 
 3. The cooldown failure count is all-time, not windowed, so an idea with old failures over-suppresses.
-   Evidence: coordinator.py:833-837 (`recent_failures`) runs `SELECT idea_id, COUNT(*),
+   Evidence: src/looptight/coordinator.py:833-837 (`recent_failures`) runs `SELECT idea_id, COUNT(*),
    MAX(created_at) ... WHERE outcome='failed' GROUP BY idea_id` and filters rows only by
    `MAX(created_at) >= cutoff` — so `COUNT(*)` counts every failure ever, not just those in the
    window. With `_MAX_FAILURES=2`/`_COOLDOWN_S=24h`, an idea that failed once long ago and once
