@@ -1487,6 +1487,65 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Setting a goal outside a Git repo crashes with an uncaught traceback, even with `--json`.
+   Evidence: src/looptight/goal.py:75 (`write_goal` raises `RuntimeError("cannot store a goal
+   outside a Git repository")`), called unguarded at protocol_commands.py:885 in `cmd_goal`'s
+   set-goal branch. Reproduced: `looptight goal "x" --json` in a non-git dir dumps a traceback at
+   exit 1. Every sibling path handles non-git cleanly (`next` → `not_git` error; `goal status`/
+   `next`/`clear` degrade), so setting a goal is the lone outlier. Fix: guard the set-goal branch
+   with `is_git_repo` and return a clean error (JSON envelope under `--json`, message otherwise,
+   exit 2), like `cmd_next`.
+   Acceptance: a failing-then-passing test asserts `main(["goal", "x", "--json"])` in a non-git dir
+   returns 2 with a parseable error envelope (no traceback) and the human form prints a clean message.
+
+2. `goal` accepts an empty/whitespace vision, persisting a vacuous goal and a meaningless directive.
+   Evidence: protocol_commands.py:878-885 constructs `Goal(vision=arg, ...)` and writes it with no
+   non-empty check, so `looptight goal "   "` stores `vision="   "` and `goal next` emits a
+   `build_increment` directive with an empty vision block. Violates "validate at system boundaries"
+   and SPEC "grounded tasks only". Fix: reject an empty/whitespace vision with a clear error before
+   writing (same error path as task 1's guard).
+   Acceptance: a failing-then-passing test asserts `main(["goal", "   "])` returns nonzero with a
+   clear message and writes no goal; a real vision still sets a goal.
+
+3. `score_status_next` scores the grounding-filtered subset, so `groundedness` is a useless
+   constant and `size`/`bounded` undercount — crippling the idea-generation feedback signal.
+   Evidence: idea_eval.py:105 calls `from_status_next(root, cap=None)`, which hardcodes
+   `enforce_truthful_evidence=True` (discovery.py:609-614), dropping ungrounded items before
+   `score_batch` runs. Since `score_batch` (idea_eval.py:85) independently computes
+   `grounded = sum(is_grounded(...))`, pre-filtering forces `grounded == size` (groundedness always
+   1.0) and hides over-generation when items have fabricated evidence. The `current_quality`
+   feedback in the `generate_ideas` directive (tasks.py `_idea_directive`) then misreports how the
+   host's batch landed. Fix: give `from_status_next` an `enforce_truthful_evidence` param (default
+   True for the next/propose path) and have `score_status_next` pass `False`, so `score_batch`'s own
+   grounding check measures the raw batch.
+   Acceptance: a failing-then-passing test writes a `## Next` with N>6 items, some with
+   non-resolving Evidence, and asserts `score_status_next` reports `size == N`, `bounded == False`,
+   and `groundedness < 1.0`; the normal `next`/`propose` claim path still drops ungrounded items.
+
+4. Python skipped-test candidates in one file collide to a single `idea_id`, so cooldown suppresses
+   sibling tests and outcome stats merge distinct tasks.
+   Evidence: discovery.py:491 titles every Python skip `f"un-skip / fix skipped test in
+   {path.name}"` (basename only), and idea_identity.py:45-46 keys `skipped-test` on the normalized
+   title alone (location dropped) — so two skips in one file share an `idea_id`. The JS path
+   (discovery.py:452-454) puts the test name in the title and stays distinct, and the claim id
+   (tasks.py:143-146) keeps full location, confirming the collision is unintended. Fix: include the
+   enclosing test's identity in the Python skip title (extract the nearest `def test_*`, like JS uses
+   the test name), falling back to the basename for a module-level skip with no enclosing function.
+   Acceptance: a failing-then-passing test with two skipped tests in one file asserts their
+   `idea_id`s differ; a single skip is unchanged.
+
+5. The cooldown failure count is all-time, not windowed, so an idea with old failures over-suppresses.
+   Evidence: coordinator.py:833-837 (`recent_failures`) runs `SELECT idea_id, COUNT(*),
+   MAX(created_at) ... WHERE outcome='failed' GROUP BY idea_id` and filters rows only by
+   `MAX(created_at) >= cutoff` — so `COUNT(*)` counts every failure ever, not just those in the
+   window. With `_MAX_FAILURES=2`/`_COOLDOWN_S=24h`, an idea that failed once long ago and once
+   today is suppressed though only one failure is recent, contradicting `suppressed`'s "recent
+   failures reached the threshold" (experience.py). Fix: count only in-window failures by adding
+   `AND created_at >= :cutoff` to the query (bind the cutoff), so the count and the recency gate agree.
+   Acceptance: a failing-then-passing test records one failure outside the window and one inside for
+   the same idea and asserts `recent_failures(window_s=...)` reports count 1 (not 2); recovery and
+   the two-recent-failures suppression are unchanged.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
