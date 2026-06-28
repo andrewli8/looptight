@@ -1195,6 +1195,17 @@ existing CLI session and makes no model or API calls of its own.
   with an error and the return code — so a regression in either provider's error handling is
   caught even when they are not on PATH. No production change.
 
+## Next
+
+1. `stop_active_processes` interrupt cleanup is untested.
+   Evidence: src/looptight/adapters/base.py:65-70 terminates every registered provider
+   process tree (used on KeyboardInterrupt so an aborted swarm leaves no orphan
+   subscription-consuming worker), but no test exercises it with a registered process.
+   Acceptance: a test in tests/test_adapters.py registers a real long-running process in
+   `_ACTIVE_PROCESSES`, calls `stop_active_processes`, and asserts the process is terminated
+   (and cleans up the registry). No production change.
+
+## Rules
 ## Rules
 ## Rules
 ## Rules
