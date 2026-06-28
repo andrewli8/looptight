@@ -1120,6 +1120,17 @@ existing CLI session and makes no model or API calls of its own.
   `None`, so the coordinator is gracefully unavailable (the loop falls back to file claims)
   when git is not on PATH — distinct from the covered not-a-repo path. No production change.
 
+## Next
+
+1. Two coordinator "unknown id → safe no-op" guards are untested.
+   Evidence: src/looptight/coordinator.py:577-578 (`lease_for` returns `None` when no lease
+   row matches the fingerprint/run) and coordinator.py:646-647 (`finish_integration` returns
+   early when the integration id is unknown). Both make a stale or mistaken id a safe no-op
+   rather than a crash, but neither branch is tested.
+   Acceptance: a test in tests/test_coordinator.py asserts `lease_for("nope", "run")` is
+   `None` on a fresh coordinator, and `finish_integration("nope", IntegrationOutcome(id="nope",
+   status="complete"))` returns without raising and changes nothing. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
