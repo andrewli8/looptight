@@ -2532,6 +2532,28 @@ def test_status_keeps_readiness_next_when_it_differs_from_next(tmp_path, monkeyp
     assert "readiness next:" in out  # a distinct readiness step is still surfaced
 
 
+def test_status_goal_mode_human_next_drops_the_redundant_building_parenthetical(
+    tmp_path, monkeypatch, capsys
+):
+    # The vision is on the dedicated goal: line, so the human next: line should not repeat it in a
+    # (building: …) parenthetical. The JSON next_action keeps naming the vision (tested contract).
+    monkeypatch.chdir(tmp_path)
+    _commit_repo_with_verify(tmp_path)
+    assert main(["goal", "ship the awwwards landing page"]) == 0
+    capsys.readouterr()
+
+    assert main(["status"]) == 0
+    out = capsys.readouterr().out
+    next_line = next(ln for ln in out.splitlines() if ln.startswith("next:"))
+    assert "building:" not in next_line  # the vision is not repeated in the next: line
+    assert "ship the awwwards landing page" not in next_line
+    assert "goal next" in next_line  # the command is still shown
+
+    assert main(["status", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert "ship the awwwards landing page" in data["next_action"]  # JSON contract unchanged
+
+
 def test_status_goal_mode_names_the_vision_once_with_its_verdict(tmp_path, monkeypatch, capsys):
     # Goal-mode static status printed the vision on a dedicated `goal:` line AND again via the
     # overlay panel. The dedicated line is the single source, and it carries the build verdict.

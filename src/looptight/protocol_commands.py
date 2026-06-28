@@ -642,7 +642,11 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
                 f"areas {idea_quality['flexibility']} · "
                 f"bounded {'yes' if idea_quality['bounded'] else 'no'}"
             )
-        console.print(f"next: {action}")
+        # In goal mode the dedicated goal line above already names the vision, so drop the
+        # redundant "(building: <vision>)" annotation from the human next: line. The action
+        # string (and the JSON next_action contract) keeps the vision for opaque-id-free machines.
+        human_action = action.split(" (building:", 1)[0] if active_goal is not None else action
+        console.print(f"next: {human_action}")
         # The dedicated goal line above is the single source in goal mode; the overlay panel
         # would just repeat the vision, so render it only for swarm/session loops.
         if active_goal is None:
