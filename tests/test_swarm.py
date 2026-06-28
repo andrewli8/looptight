@@ -466,7 +466,7 @@ def test_swarm_cli_continuous_prints_round_summary(tmp_path, monkeypatch, capsys
         "--continuous", "--max-rounds", "5",
     ])
     out = capsys.readouterr().out
-    assert "continuous" in out and "3 rounds" in out and "1 plans" in out
+    assert "continuous" in out and "3 rounds" in out and "1 plan" in out and "1 plans" not in out
 
 
 def test_swarm_cli_prints_error_and_no_work_results(tmp_path, monkeypatch, capsys):
@@ -712,7 +712,7 @@ def test_swarm_human_output_ends_with_outcome_tally(tmp_path, monkeypatch, capsy
 
     assert exit_code == 0
     lines = capsys.readouterr().out.splitlines()
-    assert lines[-1] == "2 workers · merged 2"
+    assert lines[-1] == "2 workers · 2 merged"
 
 
 def test_swarm_human_output_explains_integration_and_next_action(
@@ -730,7 +730,7 @@ def test_swarm_human_output_explains_integration_and_next_action(
     assert "explanation: verified workers integrate one at a time" in out
     assert "integration: merged 1" in out
     assert "next: inspect retained worktrees for failures or continue with `looptight next --json`" in out
-    assert out.splitlines()[-1] == "1 workers · merged 1"
+    assert out.splitlines()[-1] == "1 worker · 1 merged"
 
 
 def test_swarm_human_output_explains_recovery_guarantees(
@@ -792,7 +792,7 @@ def test_swarm_tally_counts_each_terminal_status_once():
         Worker(4, {"id": "d"}, "b4", Path("w4"), "base", status="timeout"),
     ]
 
-    assert swarm._swarm_tally(workers) == "4 workers · merged 2 · failed 1 · timeout 1"
+    assert swarm._swarm_tally(workers) == "4 workers · 2 merged · 1 failed · 1 timeout"
 
 
 def test_swarm_json_output_omits_tally(tmp_path, monkeypatch, capsys):

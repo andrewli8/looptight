@@ -889,7 +889,8 @@ def cmd_swarm(args, console: Console) -> int:
         console.print(f"[red]swarm error:[/red] {result.error}")
     if args.continuous:
         console.print(
-            f"continuous · {result.rounds} rounds · {result.plans} plans · {result.resumes} resumes"
+            f"continuous · {_plural(result.rounds, 'round')} · "
+            f"{_plural(result.plans, 'plan')} · {_plural(result.resumes, 'resume')}"
         )
     if not result.workers and not result.error:
         console.print("NO_WORK")
@@ -917,12 +918,21 @@ def _swarm_banner(workers, agent, verify, continuous, max_rounds, resume_on_limi
     if continuous:
         # max_rounds == 0 means run until no work/failure/interruption (cli.py), so
         # naming a "max 0 rounds" cap is misleading — the run is unbounded.
-        plan = "continuous · unbounded rounds" if max_rounds == 0 else f"continuous · max {max_rounds} rounds"
+        plan = (
+            "continuous · unbounded rounds"
+            if max_rounds == 0
+            else f"continuous · max {_plural(max_rounds, 'round')}"
+        )
     else:
         plan = "single round"
     if resume_on_limit:
         plan += " · resume-on-limit"
-    return f"swarm · {workers} workers · agent {agent} · verify {verify} · {plan}"
+    return f"swarm · {_plural(workers, 'worker')} · agent {agent} · verify {verify} · {plan}"
+
+
+def _plural(n: int, word: str) -> str:
+    """``"1 worker"`` / ``"2 workers"`` — proper agreement, never the lazy ``(s)``."""
+    return f"{n} {word}{'s' if n != 1 else ''}"
 
 
 def _swarm_tally(workers) -> str:
@@ -930,5 +940,6 @@ def _swarm_tally(workers) -> str:
     counts = Counter(worker.status for worker in workers)
     preferred = ["merged", "failed", "timeout", "conflict"]
     ordered = preferred + sorted(set(counts) - set(preferred))
-    parts = [f"{status} {counts[status]}" for status in ordered if counts[status]]
-    return f"{len(workers)} workers · " + " · ".join(parts)
+    # count-status order, matching the ui panel and statusline tallies
+    parts = [f"{counts[status]} {status}" for status in ordered if counts[status]]
+    return f"{_plural(len(workers), 'worker')} · " + " · ".join(parts)

@@ -1891,19 +1891,13 @@ existing CLI session and makes no model or API calls of its own.
   the status idea-quality line ("1 task" / "2 tasks"). Consistent with the codebase's existing
   pluralization (propose). Covered by idea-quality and uninstall plural tests.
 
-## Next
+- The swarm command output now reads correctly: a `_plural(n, word)` helper gives proper
+  agreement ("1 worker" / "2 workers", "1 plan", "max 1 round") across the banner, tally, and
+  continuous summary, and `_swarm_tally` uses the count-status order ("1 merged") matching the
+  ui panel and statusline — completing that consistency across every tally surface. Covered by
+  the updated swarm tally/banner/continuous tests.
 
-1. The swarm command's human output has the same plural/order issues fixed elsewhere: `_swarm_tally`
-   (`src/looptight/swarm.py:928`) emits "1 workers" (lazy plural) AND "merged 1" (status-count
-   order, inconsistent with the panel/statusline's standardized count-status "1 merged"); the
-   `_swarm_banner` (`src/looptight/swarm.py`) emits "1 workers" / "max 1 rounds"; and the continuous
-   summary (`src/looptight/swarm.py:892`) emits "1 plans" / "1 resumes". Add a `_plural(n, word)`
-   helper and use it so the swarm output reads "1 worker · 1 merged", proper round/plan/resume
-   plurals, and the tally matches the count-status order of the other surfaces.
-   Evidence: src/looptight/swarm.py:928
-   Acceptance: tests assert `_swarm_tally` for one worker is "1 worker · 1 merged" (singular,
-   count-status) and for four is "4 workers · 2 merged · 1 failed · 1 timeout", and the continuous
-   summary says "1 plan" not "1 plans".
+## Next
 
 ## Rules
 
