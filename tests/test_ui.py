@@ -298,3 +298,14 @@ def test_render_state_panel_truncates_goal_and_shows_error():
     panel = render_state_panel(state)
     assert "..." in panel  # the long goal is truncated
     assert "[boom" in panel  # the worker error is shown in brackets
+
+
+def test_read_state_returns_empty_on_wrong_schema_version(tmp_path):
+    import json
+
+    from looptight.ui import _state_path, empty_state, read_state
+
+    path = _state_path(tmp_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"schema_version": 99, "workers": []}), encoding="utf-8")
+    assert read_state(tmp_path) == empty_state()
