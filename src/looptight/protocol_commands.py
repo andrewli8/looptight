@@ -209,7 +209,7 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
         payload: dict[str, object] | list[dict[str, object]] = [c.__dict__ for c in candidates]
         if evaluation is not None:
             payload = {"candidates": [c.__dict__ for c in candidates], "eval": evaluation.as_dict()}
-        print(json.dumps(payload, indent=2))
+        print(json.dumps(payload, sort_keys=True))  # compact, consistent with every other --json command
         return 0
 
     if not candidates and source:

@@ -1733,9 +1733,12 @@ def test_propose_json_output(tmp_path, monkeypatch, capsys):
     (tmp_path / "src").mkdir()
     (tmp_path / "src" / "a.py").write_text("# TODO: fix the timeout\n")
     assert main(["propose", "--json"]) == 0
-    data = json.loads(capsys.readouterr().out)
+    out = capsys.readouterr().out
+    data = json.loads(out)
     assert isinstance(data, list)
     assert any("fix the timeout" in c["title"] for c in data)
+    # compact output, consistent with every other --json command (no indent newlines)
+    assert out.strip().count("\n") == 0
 
 
 def test_propose_rejects_negative_cli_limit():

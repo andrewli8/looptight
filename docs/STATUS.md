@@ -1897,17 +1897,12 @@ existing CLI session and makes no model or API calls of its own.
   ui panel and statusline — completing that consistency across every tally surface. Covered by
   the updated swarm tally/banner/continuous tests.
 
-## Next
+- `propose --json` now emits compact `sort_keys=True` output like every other `--json`
+  command (was the lone `indent=2` outlier), so tooling gets uniform machine output across
+  commands. The data structure and ranking order are unchanged; the parsing tests still pass.
+  Covered by a single-line assertion on the propose JSON test.
 
-1. `propose --json` emits pretty-printed `indent=2` output (`src/looptight/protocol_commands.py:212`)
-   while every other `--json` command emits compact `sort_keys=True` — the lone formatting outlier,
-   with no rationale comment and no test pinning the whitespace (the propose JSON tests parse with
-   `json.loads`). Make it compact `sort_keys=True` so tooling gets uniform machine output across all
-   commands; the data structure (a candidates list / `{candidates, eval}`) and ranking order are
-   unchanged.
-   Evidence: src/looptight/protocol_commands.py:212
-   Acceptance: a new test asserts `propose --json` output is a single line (no `indent` newlines)
-   and still parses to the same candidate list.
+## Next
 
 ## Rules
 
