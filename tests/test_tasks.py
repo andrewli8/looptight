@@ -3,9 +3,28 @@
 from __future__ import annotations
 
 import subprocess
+from unittest.mock import patch
 
 from looptight.propose import Candidate
 from looptight.tasks import _has_dirty_git_worktree, _summary_and_evidence, next_task
+
+
+def test_has_dirty_git_worktree_sets_terminal_prompt_env(tmp_path):
+    # _has_dirty_git_worktree's `git status` must pass GIT_TERMINAL_PROMPT=0 so a headless
+    # `looptight next` can never block waiting on a git credential prompt.
+    import looptight.tasks as tasks_mod
+
+    captured: dict = {}
+
+    def fake_run(cmd, **kwargs):
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    with patch.object(tasks_mod.subprocess, "run", fake_run):
+        _has_dirty_git_worktree(tmp_path)
+
+    assert "env" in captured, "_has_dirty_git_worktree must pass an explicit env"
+    assert captured["env"].get("GIT_TERMINAL_PROMPT") == "0"
 
 
 def _candidate(title: str, detail: str) -> Candidate:

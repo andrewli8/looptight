@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -81,6 +82,7 @@ def _has_dirty_git_worktree(workdir: Path) -> bool:
         result = subprocess.run(
             ["git", "status", "--porcelain"],
             cwd=workdir,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
             capture_output=True,
             text=True,
             check=False,

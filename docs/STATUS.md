@@ -1525,20 +1525,13 @@ existing CLI session and makes no model or API calls of its own.
   is unchanged. Symmetric fix to the existing `not integration`/`not e2e` case.
   Covered by the extended `test_status_json_ignores_negated_marker_deselection` in test_cli.py.
 
+- `_has_dirty_git_worktree` (tasks.py) passes `GIT_TERMINAL_PROMPT=0` to its `git status`
+  call, so a headless `looptight next` can't block on a git credential prompt — part of the
+  uniform non-interactive-git invariant. Covered by a test_tasks.py env assertion.
+
 ## Next
 
-1. `_has_dirty_git_worktree` in `tasks.py:81` calls `subprocess.run(["git", "status",
-   "--porcelain"], ...)` with no `env`, unlike every other git call in the codebase
-   (`checkpoint.py`, `integration_queue.py`, `experience.py`, `swarm.py`, and now
-   `discovery.py` after the recent fix) which all pass `GIT_TERMINAL_PROMPT=0`.
-   A headless `looptight next` call can block waiting for git credentials.
-   Fix: add `import os` to `tasks.py` and pass `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}`
-   to the `subprocess.run` call. Evidence: `src/looptight/tasks.py:81`
-   Acceptance: a new test in test_tasks.py monkeypatches `tasks.subprocess.run` and
-   asserts the captured kwargs contain `env` with `GIT_TERMINAL_PROMPT == "0"` — sibling
-   of `test_not_ignored_git_sets_terminal_prompt_env` in test_propose.py.
-
-2. `_changed_entries` in `protocol_commands.py:307` calls `subprocess.run(["git",
+1. `_changed_entries` in `protocol_commands.py:307` calls `subprocess.run(["git",
    "status", "--short"], ...)` with no `env`. `_git_common_dir` at `protocol_commands.py:638`
    has the same gap. Both are in the `looptight status` path. Fix: add `import os` and pass
    `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}` to each call.
@@ -1547,7 +1540,7 @@ existing CLI session and makes no model or API calls of its own.
    function, each monkeypatching `protocol_commands.subprocess.run` and asserting
    `env["GIT_TERMINAL_PROMPT"] == "0"`.
 
-3. `coordinator_path` in `coordinator.py:294` calls `subprocess.run(["git", "rev-parse",
+2. `coordinator_path` in `coordinator.py:294` calls `subprocess.run(["git", "rev-parse",
    "--git-common-dir"], ...)` with no `env` — the same headless-blocking risk as the
    other git calls. Fix: add `import os` and pass
    `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}`.
