@@ -331,6 +331,18 @@ def test_tally_total_cell_is_neutral_not_the_active_color():
     assert ".stat.complete{border-top-color:var(--cyan)}" in css
 
 
+def test_unknown_status_gets_a_neutral_badge_not_a_green_one():
+    # Safe-by-default: a task/worker status outside the known set (corrupt state or a future
+    # status not yet added to the groups) must not render the green "healthy" badge. It is tagged
+    # via the existing groups (no new status list) and given a muted badge; the manager is exempt.
+    page = ui.PAGE
+    assert "unknown-status" in page
+    assert ".unknown-status .status{background:var(--muted)}" in page  # neutral, not acid
+    node_fn = page[page.index("function node(kind"):page.index("function fill(")]
+    assert "groups.active.has" in node_fn  # reuses the existing group knowledge
+    assert "kind==='manager'" in node_fn  # the manager's mode status is never flagged unknown
+
+
 def test_node_border_colors_match_the_tally_legend():
     # The graph must use the same color legend as the tally: acid=active, red=attention,
     # cyan=complete. Otherwise an active task (cyan default) looks identical to a complete one

@@ -1832,21 +1832,15 @@ existing CLI session and makes no model or API calls of its own.
   message — the operator can tell the cause was clipped. Short errors are shown verbatim.
   Found by the edge-state representation audit. Covered by a truncation-signal test.
 
-## Next
+- Safe-by-default badges: a task/worker whose status is outside the known set now renders a
+  neutral (muted) badge instead of the green "healthy" one. `node()` tags an out-of-group,
+  non-manager status with `unknown-status` (reusing the existing JS `groups`, no new status
+  list) and a `.unknown-status .status` rule mutes it. Guards against a corrupt state or a
+  future status added to the swarm but not the groups looking successful. Confirmed by
+  dogfooding (a `frobnicate` status computes a muted badge; `running` stays acid). Found by
+  the edge-state audit. Covered by a page test.
 
-1. In the browser UI a task/worker whose status is outside the known set renders a bright-green
-   ("healthy/success") badge, because `.status` defaults to `background:var(--acid)` and only the
-   fixed attention set is overridden (`src/looptight/ui.py:327`). A corrupt state or a future
-   status added to the swarm but not to the groups would look successful — the opposite of
-   safe-by-default. In `node()` (`src/looptight/ui.py:347`) tag a non-manager node whose status is
-   in none of the existing JS `groups` (active/attention/complete) with an `unknown-status` class,
-   and add a CSS rule giving that badge a neutral (muted) background. Reuse `groups` so no new copy
-   of status knowledge is introduced; the manager (whose status is a mode, not a task status) is
-   exempt.
-   Evidence: src/looptight/ui.py:347
-   Acceptance: a new test in tests/test_ui.py asserts the page `node()` flags an out-of-group,
-   non-manager status with `unknown-status` and that a `.unknown-status .status` rule sets a
-   non-acid (muted) badge background.
+## Next
 
 ## Rules
 
