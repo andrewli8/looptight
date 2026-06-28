@@ -1291,6 +1291,24 @@ def test_malformed_config_exits_cleanly_not_traceback(tmp_path, monkeypatch):
     assert main(["doctor"]) == 2
 
 
+def test_json_commands_emit_a_json_envelope_on_config_error(tmp_path, monkeypatch, capsys):
+    # A malformed config must not break the --json contract: a --json command emits a
+    # parseable error envelope, not a plain-text "config error" line that no JSON consumer
+    # can read. The human path still prints the readable detail.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".looptight.toml").write_text('verify = "pytest\n')  # unterminated string
+
+    for command in ("status", "doctor"):
+        assert main([command, "--json"]) == 2
+        data = json.loads(capsys.readouterr().out)
+        assert data["command"] == command
+        assert data["status"] == "error"
+        assert data["error"] == "config_error"
+
+    assert main(["status"]) == 2  # human path keeps the readable message
+    assert "config error:" in capsys.readouterr().out
+
+
 def test_version_exits_zero(capsys):
     try:
         main(["--version"])

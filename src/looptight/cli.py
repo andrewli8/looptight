@@ -413,28 +413,37 @@ def main(argv: list[str] | None = None) -> int:
         "ui": cmd_ui,
         "goal": cmd_goal,
     }[args.command]
+    def _emit_json_error(code: str) -> None:
+        # A --json caller must get a parseable error envelope, never plain text or a
+        # traceback. Mirror the per-command error shapes (status + machine-stable code);
+        # the human detail stays in the Rich message on the non-json path.
+        import json
+
+        print(
+            json.dumps(
+                {
+                    "command": args.command,
+                    "schema_version": 1,
+                    "status": "error",
+                    "error": code,
+                },
+                sort_keys=True,
+            )
+        )
+
     try:
         return handler(args, console)
     except ConfigError as exc:
-        console.print(f"[red]config error:[/red] {exc}")
+        if getattr(args, "json", False):
+            _emit_json_error("config_error")
+        else:
+            console.print(f"[red]config error:[/red] {exc}")
         return 2
     except CoordinatorUnavailable as exc:
         # An unusable coordinator DB must not crash with a traceback or break the --json
         # contract. Emit a structured error for machine callers, a clean message otherwise.
         if getattr(args, "json", False):
-            import json
-
-            print(
-                json.dumps(
-                    {
-                        "command": args.command,
-                        "schema_version": 1,
-                        "status": "error",
-                        "error": "coordinator_unavailable",
-                    },
-                    sort_keys=True,
-                )
-            )
+            _emit_json_error("coordinator_unavailable")
         else:
             console.print(f"[red]coordinator error:[/red] {exc}")
         return 2

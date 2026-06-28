@@ -1468,21 +1468,13 @@ existing CLI session and makes no model or API calls of its own.
   untouched. `_bound` now takes a `limit` param (default unchanged). Covered by a `test_propose.py`
   test.
 
-## Next
+- The top-level `ConfigError` handler honors `--json`: a malformed `.looptight.toml` now yields a
+  parseable `{"status":"error","error":"config_error"}` envelope on machine-facing commands
+  (status/doctor/next/propose) instead of a plain-text `config error:` line that broke JSON
+  consumers, and the human path still prints the readable message. Shares a `_emit_json_error`
+  helper with the `coordinator_unavailable` handler so both contracts match. Covered by a CLI test.
 
-1. `--json` commands break their contract on a config error: they print a plain-text
-   `config error: ...` line to stdout instead of a JSON envelope.
-   Evidence: src/looptight/cli.py top-level `except ConfigError` calls `console.print(...)`
-   unconditionally, ignoring `args.json`, so `next`/`status`/`doctor`/`propose --json` emit
-   non-JSON on a malformed `.looptight.toml` (exit 2). `cmd_verify` already catches `ConfigError`
-   itself and emits a JSON envelope (protocol_commands.py:27), and the adjacent
-   `CoordinatorUnavailable` handler now emits JSON under `--json` — so the contract is
-   inconsistent. Fix: in the top-level `ConfigError` handler, emit a structured JSON error
-   (e.g. `{"command", "schema_version": 1, "status": "error", "error": "config_error"}`, mirroring
-   the coordinator handler) when `args.json` is set, the Rich message otherwise; exit 2 unchanged.
-   Acceptance: a failing-then-passing test runs `main(["next", "--json"])` (and one other
-   `--json` command) against a malformed `.looptight.toml` and asserts stdout parses as JSON with
-   `status == "error"`; the human path still prints `config error:` and exits 2.
+## Next
 
 ## Rules
 
