@@ -194,6 +194,27 @@ class FailingPlannerAdapter(EditingAdapter):
         return IterationResult(transcript="", ok=False, error="planner provider crashed")
 
 
+def test_swarm_fails_worker_when_commit_fails(tmp_path, monkeypatch):
+    # A worker whose git commit of its in-scope changes fails is marked failed, not integrated.
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+
+    real_git = swarm._git
+
+    def selective_git(root, *args):
+        if args[:1] == ("commit",) and len(args) > 2 and str(args[2]).startswith("looptight:"):
+            return subprocess.CompletedProcess(["git"], 1, "", "worker commit broke")
+        return real_git(root, *args)
+
+    monkeypatch.setattr("looptight.swarm._git", selective_git)
+    result = run_swarm(
+        tmp_path, agent="fake", config=Config(verify="exit 0", max_iterations=1), workers=1
+    )
+
+    assert result.workers[0].status == "failed"
+    assert "worker commit broke" in (result.workers[0].error or "")
+
+
 def test_swarm_fails_worker_when_change_detection_fails(tmp_path, monkeypatch):
     # If the worker's changed-file set cannot be determined, the worker is failed rather
     # than integrating an unknown change set.
