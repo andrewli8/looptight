@@ -57,6 +57,19 @@ def _hold_lock(common, entered, release):
         release.wait(3)
 
 
+def test_trailer_lookups_return_none_on_git_failure(tmp_path, monkeypatch):
+    # Crash recovery must not blow up on a transient git error: both trailer lookups
+    # degrade to None when their git command fails.
+    from looptight import integration_queue as iq
+
+    repo = _repo(tmp_path / "r")
+    monkeypatch.setattr(
+        iq, "_git", lambda *a, **k: subprocess.CompletedProcess(["git"], 1, "", "boom")
+    )
+    assert iq._trailer_commit_on_ref(repo, "main", "some-id") is None
+    assert iq._committed_result_in_worktree(repo, "some-id") is None
+
+
 def test_prepare_integration_worktree_rejects_an_unresolvable_ref(tmp_path):
     # The integrator must not prepare a worktree for a target ref that does not exist:
     # rev-parse --verify fails and it raises a clear IntegrationError.
