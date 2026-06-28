@@ -1797,21 +1797,14 @@ existing CLI session and makes no model or API calls of its own.
   and `--watch` (panel-only) was never affected. Found by dogfooding. Covered by a test
   asserting one goal line carrying the verdict.
 
-## Next
+- `status` no longer prints the same next-step under two labels: the human `readiness next:`
+  line is suppressed when its remediation equals the authoritative `next:` action (the ready
+  and dirty-worktree states, where both resolved to the identical string). It is still shown
+  when readiness needs a distinct step (e.g. goal mode: `add grounded tasks` vs `run goal
+  next`). JSON `next_remediation` is unchanged. Found by the data-representation audit and
+  confirmed by dogfooding. Covered by a dedup test and a distinct-step test.
 
-1. `status` prints the same next-step instruction twice under two labels. `_readiness_remediation`
-   (`src/looptight/protocol_commands.py:738`) returns its `fallback_action` (wired to the same
-   `action` the bottom `next:` line prints, `src/looptight/protocol_commands.py:542`) whenever
-   readiness has no distinct blocker, and in the dirty-worktree case both branches independently
-   produce the identical "review changes and run `looptight verify --json`" string — so in the two
-   most common states (fully ready, and dirty mid-work) the user sees `readiness next: <X>` then
-   `next: <X>`, the same line twice. Suppress the human `readiness next:` line
-   (`src/looptight/protocol_commands.py:600`) when its remediation equals the `next:` action;
-   keep it only when it adds a distinct readiness-specific step. JSON `next_remediation` unchanged.
-   Evidence: src/looptight/protocol_commands.py:600
-   Acceptance: a new test in tests/test_cli.py asserts a ready/dirty repo's `status` human output
-   contains the next-step string once (no `readiness next:` duplicate), and a repo whose readiness
-   remediation differs from the next action still prints both.
+## Next
 
 ## Rules
 

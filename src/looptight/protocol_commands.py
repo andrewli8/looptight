@@ -597,7 +597,11 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
                 f"{key} {value}" for key, value in readiness["checks"].items()
             )
         )
-        console.print(f"readiness next: {readiness['next_remediation']}")
+        # Only surface a readiness step when it differs from the authoritative `next:` action
+        # below — otherwise (ready, or dirty) the remediation is the same string and would print
+        # the identical instruction twice under two labels.
+        if readiness["next_remediation"] != action:
+            console.print(f"readiness next: {readiness['next_remediation']}")
         console.print(f"validation: {payload['validation']}")
         if verify:
             console.print(f"verify: {verify}")

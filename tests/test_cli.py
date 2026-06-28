@@ -2497,6 +2497,41 @@ def test_status_is_goal_aware(tmp_path, monkeypatch, capsys):
     assert "goal: build a cli todo app" in out
 
 
+def _commit_repo_with_verify(tmp_path):
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "true"\n', encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "x"],
+        cwd=tmp_path, check=True,
+    )
+
+
+def test_status_does_not_repeat_the_next_step_under_two_labels(tmp_path, monkeypatch, capsys):
+    # In the dirty/ready states the readiness remediation equals the bottom `next:` action, so
+    # status printed the same instruction twice. The `readiness next:` line is suppressed when it
+    # would duplicate `next:`.
+    monkeypatch.chdir(tmp_path)
+    _commit_repo_with_verify(tmp_path)
+    (tmp_path / "dirty.txt").write_text("change\n")  # uncommitted → dirty, action == remediation
+    assert main(["status"]) == 0
+    out = capsys.readouterr().out
+    nstep = "review changes and run `looptight verify --json`"
+    assert out.count(nstep) == 1, "the next-step instruction is printed twice"
+    assert "next: " + nstep in out  # the authoritative next: line is kept
+    assert "readiness next: " + nstep not in out  # the duplicate readiness-next line is gone
+
+
+def test_status_keeps_readiness_next_when_it_differs_from_next(tmp_path, monkeypatch, capsys):
+    # A clean repo with no grounded task source has a readiness remediation distinct from the
+    # next action, so both lines stay.
+    monkeypatch.chdir(tmp_path)
+    _commit_repo_with_verify(tmp_path)
+    assert main(["status"]) == 0
+    out = capsys.readouterr().out
+    assert "readiness next:" in out  # a distinct readiness step is still surfaced
+
+
 def test_status_goal_mode_names_the_vision_once_with_its_verdict(tmp_path, monkeypatch, capsys):
     # Goal-mode static status printed the vision on a dedicated `goal:` line AND again via the
     # overlay panel. The dedicated line is the single source, and it carries the build verdict.
