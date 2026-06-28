@@ -1854,6 +1854,18 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Four more human lines interpolate pure user content with no looptight markup yet print via
+   `console.print`, so a token like `[red]` in the text is eaten: the propose candidate title
+   (`src/looptight/protocol_commands.py:242`), the status goal line
+   (`src/looptight/protocol_commands.py:635`), and the `goal status` / `goal set` echoes
+   (`src/looptight/protocol_commands.py:889` and `:983`). A STATUS.md task title like "Fix the
+   [red] badge" or a vision naming a `[dim]` section is plausible, not contrived. Switch these
+   four to the verbatim `Console.write()` (added for the panel) so the user text survives; the
+   markup-bearing lines stay on `console.print`.
+   Evidence: src/looptight/protocol_commands.py:242
+   Acceptance: new tests assert a propose candidate title containing `[red]` and a status goal
+   vision containing `[dim]` both survive in the human output.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
