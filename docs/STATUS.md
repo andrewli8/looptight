@@ -1006,7 +1006,34 @@ existing CLI session and makes no model or API calls of its own.
   being wrongly blocked. Found by the audit; covered by
   `test_max_changed_files_counts_a_rename_as_one_file` in test_cli.py.
 
+- The daemon no longer backs off mid-progress: `_outcome` treats a round that
+  merged work but had a worker fail its grounded task (`reason=REASON_ERROR` with
+  NO top-level error — the normal case) as `progress` (loop on immediately, delay 0),
+  per the daemon's own contract. A genuine fault (a top-level error message — failed
+  push, broken verify) still backs off even with merged work. Found by the audit;
+  covered by `test_daemon_treats_a_merged_round_as_progress_despite_reason_error`
+  and `test_daemon_backs_off_on_a_genuine_error_even_with_merged_work` in test_daemon.py
+  (and the corrected `test_outcome_genuine_fault_with_merged_workers`).
+
 ## Next
+
+1. Continuous-swarm start banner prints "max 0 rounds" when 0 means unbounded.
+   Evidence: src/looptight/swarm.py:909 (`plan = f"continuous · max {max_rounds} rounds"`)
+   reached from cmd_swarm at swarm.py:866-875; `--max-rounds` 0 = unbounded per
+   cli.py:213. So `looptight swarm --headless --continuous` prints
+   "continuous · max 0 rounds", asserting a 0-round cap on an unbounded run.
+   Acceptance: render `max_rounds == 0` as "unbounded" (e.g. "continuous · unbounded
+   rounds"); a test asserts the 0 case does not contain "max 0 rounds".
+
+2. `--model` is silently ignored in `--native` mode.
+   Evidence: src/looptight/loop.py:189 calls `adapter.drive_native_loop(goal,
+   config.verify, config.max_iterations, workdir)` with no model; adapters/claude.py:57-68
+   `drive_native_loop` hardcodes `self._invoke(prompt, workdir, None)`. The supply path
+   threads `config.model` (loop.py:130) but the native path drops it, so
+   `run "<goal>" --headless --native --model opus` discards the requested model.
+   Acceptance: thread `config.model` through `drive_native_loop` (add a `model` param,
+   append `--model` in ClaudeAdapter._invoke) so the native command uses the configured
+   model; a test asserts the native adapter call carries the model.
 
 ## Rules
 

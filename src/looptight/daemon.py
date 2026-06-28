@@ -64,14 +64,20 @@ class DaemonReport:
 def _outcome(result: SwarmResult) -> tuple[str, int]:
     """Classify a swarm result into the daemon's three buckets.
 
-    A fault takes priority over progress: a run that merged work but then failed
-    (e.g. a push or verify error) still needs the back-off, not an eager retry.
+    A *genuine* fault — a top-level swarm error such as a failed push or a broken
+    verify — carries an error message and must back off so a broken state self-heals,
+    even if some work merged. But a round that merged work and only had a worker fail
+    its grounded task sets ``reason=REASON_ERROR`` with NO top-level error (the normal
+    case: agents do not land every task). That is the backlog draining, not a fault,
+    so the daemon loops on immediately per its contract instead of backing off
+    mid-progress. Only when nothing merged does a bare ``REASON_ERROR`` back off.
     """
     merged = sum(1 for worker in result.workers if worker.status == "merged")
+    genuine_fault = result.reason == REASON_ERROR and result.error is not None
+    if not genuine_fault and merged:
+        return "progress", merged
     if result.reason == REASON_ERROR:
         return "fault", merged
-    if merged:
-        return "progress", merged
     return "idle", merged
 
 

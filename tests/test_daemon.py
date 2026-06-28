@@ -140,6 +140,46 @@ def test_daemon_fault_streak_resets_after_progress():
     assert rec.sleeps == [30.0, 60.0, 30.0]
 
 
+def test_daemon_treats_a_merged_round_as_progress_despite_reason_error():
+    # A round that merged work but had a worker fail its grounded task returns
+    # reason=REASON_ERROR with NO top-level error (the normal case — agents do not
+    # land every task). That is the backlog draining, not a fault: the daemon must
+    # loop on immediately (delay 0) per its contract, not back off mid-progress.
+    rec = _Recorder([_result(REASON_ERROR, merged=1, error=None)])
+    report = run_daemon(
+        Path("."),
+        agent="claude",
+        config=_config(),
+        workers=2,
+        max_cycles=1,
+        sleep=rec.sleep,
+        run_cycle=rec.run_cycle,
+        on_cycle=rec.on_cycle,
+    )
+    assert report.progress == 1
+    assert report.faults == 0
+    assert rec.cycles[0].outcome == "progress"
+    assert rec.cycles[0].delay == 0.0
+
+
+def test_daemon_backs_off_on_a_genuine_error_even_with_merged_work():
+    # A genuine top-level fault (a real error message — failed push, broken verify)
+    # still backs off even if some work merged: a broken state must self-heal and
+    # not hot-loop. The distinction from the case above is the present error string.
+    rec = _Recorder([_result(REASON_ERROR, merged=1, error="push rejected")])
+    run_daemon(
+        Path("."),
+        agent="claude",
+        config=_config(),
+        workers=2,
+        max_cycles=1,
+        sleep=rec.sleep,
+        run_cycle=rec.run_cycle,
+        on_cycle=rec.on_cycle,
+    )
+    assert rec.cycles[0].outcome == "fault"
+
+
 def test_daemon_treats_limit_as_idle_not_fault():
     rec = _Recorder([_result(REASON_LIMIT, error="usage limit persisted")])
     report = run_daemon(
@@ -271,10 +311,12 @@ def test_daemon_survives_a_failing_on_fault_hook():
     assert report.faults == 2  # the daemon kept going despite the hook raising
 
 
-def test_outcome_fault_with_merged_workers():
-    # _outcome() returns ("fault", merged>0) when a run errors but some workers
-    # merged before the fault — the "fault" branch at daemon.py:71-72.
-    result = _result(REASON_ERROR, merged=1)
+def test_outcome_genuine_fault_with_merged_workers():
+    # _outcome() returns ("fault", merged>0) for a GENUINE fault — a top-level error
+    # message is present (a failed push, a broken verify) — even if some workers
+    # merged before it: a broken state must back off. A merged round with NO
+    # top-level error is progress, not a fault (covered separately).
+    result = _result(REASON_ERROR, merged=1, error="push rejected")
     outcome, merged = _outcome(result)
     assert outcome == "fault"
     assert merged == 1
