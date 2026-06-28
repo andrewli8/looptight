@@ -173,6 +173,35 @@ def test_with_session_task_overlays_an_active_goal(monkeypatch, tmp_path):
     assert state["tasks"][0]["goal"] == "ship the landing page"
 
 
+def test_with_session_task_goal_includes_the_verify_verdict_and_freshness(monkeypatch, tmp_path):
+    # Goal-mode increments are verify-gated too, so the goal overlay carries the verdict like
+    # the session overlay does — pass/fail is the goal's build-health signal.
+    monkeypatch.setattr(ui, "_active_session_task", lambda root: None)
+    monkeypatch.setattr(
+        ui,
+        "_active_goal_view",
+        lambda root: {"id": "goal", "goal": "ship the landing page", "source": "goal · iteration 3", "status": "running"},
+    )
+    monkeypatch.setattr(ui, "_verdict_record", lambda root: {"status": "pass", "at": "2026-06-20T12:00:00Z"})
+    state = ui._with_session_task(ui.empty_state(), tmp_path)
+    assert state["manager"]["status"] == "goal"
+    assert state["manager"]["verify"] == "pass"
+    assert state["updated_at"] == "2026-06-20T12:00:00Z"  # footer freshness, not UNKNOWN
+
+
+def test_with_session_task_goal_no_verdict_leaves_no_badge(monkeypatch, tmp_path):
+    monkeypatch.setattr(ui, "_active_session_task", lambda root: None)
+    monkeypatch.setattr(
+        ui,
+        "_active_goal_view",
+        lambda root: {"id": "goal", "goal": "v", "source": "", "status": "running"},
+    )
+    monkeypatch.setattr(ui, "_verdict_record", lambda root: None)
+    state = ui._with_session_task(ui.empty_state(), tmp_path)
+    assert "verify" not in state["manager"]
+    assert state["updated_at"] is None  # degrades to UNKNOWN, never raises
+
+
 def test_session_claim_takes_precedence_over_a_goal(monkeypatch, tmp_path):
     monkeypatch.setattr(
         ui, "_active_session_task", lambda root: {"id": "t", "goal": "a claimed task", "source": "", "status": "claimed"}
@@ -186,6 +215,14 @@ def test_session_claim_takes_precedence_over_a_goal(monkeypatch, tmp_path):
 def test_page_renders_goal_mode():
     assert "mode==='goal'" in ui.PAGE
     assert "your goal build loop" in ui.PAGE
+
+
+def test_page_goal_detail_shows_the_verify_verdict():
+    # The goal-mode manager detail appends the last verdict when present, like session mode.
+    page = ui.PAGE
+    detail = page[page.index("mgrDetail="):]
+    goal_branch = detail[: detail.index(":mode==='session'")]  # the goal-mode arm of mgrDetail
+    assert "manager.verify" in goal_branch and "verify:" in goal_branch
 
 
 def test_with_session_task_overlays_the_claim_when_no_swarm(monkeypatch, tmp_path):

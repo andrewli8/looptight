@@ -1744,18 +1744,14 @@ existing CLI session and makes no model or API calls of its own.
   No verdict / no overlay is unchanged; swarm worker tally is unchanged. Covered by a statusline
   test.
 
-## Next
+- The goal-mode overlay now carries the verify verdict and freshness like the session
+  overlay, through one shared `_solo_overlay` helper (ui.py); the browser ui goal-mode
+  manager detail appends "· verify: pass"/"· fail" when a verdict exists. Goal-mode build
+  increments are verify-gated, so this is the goal's build-health signal — the verdict is
+  now consistent across both solo modes on every surface. No verdict / swarm mode unchanged.
+  Covered by goal-overlay and goal-detail tests.
 
-1. The goal-mode overlay in `src/looptight/ui.py:251` omits the verify verdict and
-   freshness that the session-mode branch (`src/looptight/ui.py:241`) carries, even though
-   goal-mode build increments are verify-gated — so the browser ui, statusline, and panel
-   show pass/fail in session mode but not in goal mode. Factor both solo overlays through one
-   `_solo_overlay` helper so the goal view also carries `manager.verify` and the verdict
-   freshness, and surface it in the goal-mode `mgrDetail` of the `render()` script.
-   Evidence: src/looptight/ui.py:251
-   Acceptance: a new test in tests/test_ui.py asserts `_with_session_task` over a goal claim
-   sets `manager["verify"]` from the verdict sidecar (and leaves it absent when no verdict
-   exists); the goal-mode `mgrDetail` includes `verify:` when a verdict is present.
+## Next
 
 ## Rules
 
