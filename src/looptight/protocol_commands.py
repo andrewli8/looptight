@@ -282,7 +282,11 @@ def _changed_files(workdir: Path) -> str:
     return ", ".join(files) if files else "none"
 
 
-def _changed_file_list(workdir: Path) -> list[str] | None:
+def _changed_entries(workdir: Path) -> list[list[str]] | None:
+    """One entry per `git status --short` line. A rename/copy entry carries both
+    sides (`old -> new`); every other entry is a single path. The *count* of changed
+    files is the number of entries (a rename is one file), while protected-path
+    checks must scan every side — so the two concerns read this, not a flat list."""
     result = subprocess.run(
         ["git", "status", "--short"],
         cwd=workdir,
@@ -292,7 +296,7 @@ def _changed_file_list(workdir: Path) -> list[str] | None:
     )
     if result.returncode != 0:
         return None
-    files: list[str] = []
+    entries: list[list[str]] = []
     for line in result.stdout.splitlines():
         if len(line) <= 3:
             continue
@@ -301,8 +305,17 @@ def _changed_file_list(workdir: Path) -> list[str] | None:
         # rename of a protected file cannot slip past the policy. Git C-quotes paths
         # with special characters in `--short` output, so strip surrounding quotes.
         sides = rest.split(" -> ", 1) if " -> " in rest else [rest]
-        files.extend(_unquote_git_path(side) for side in sides)
-    return files
+        entries.append([_unquote_git_path(side) for side in sides])
+    return entries
+
+
+def _changed_file_list(workdir: Path) -> list[str] | None:
+    """Flat list of every changed path (both sides of a rename) — for the
+    protected-path scan and human display. A rename contributes two paths here."""
+    entries = _changed_entries(workdir)
+    if entries is None:
+        return None
+    return [side for entry in entries for side in entry]
 
 
 def _unquote_git_path(path: str) -> str:
@@ -315,12 +328,16 @@ def _unquote_git_path(path: str) -> str:
 def _verify_policy_error(command: str, config, workdir: Path) -> str | None:
     if config.allowed_verify_commands and command not in config.allowed_verify_commands:
         return f"verify command not allowed by policy: {command}"
-    files = _changed_file_list(workdir) or []
-    if config.max_changed_files is not None and len(files) > config.max_changed_files:
+    entries = _changed_entries(workdir) or []
+    # Count changed files, not paths: a rename is one file (one entry), so renaming
+    # a single file is not double-counted against max_changed_files.
+    changed_count = len(entries)
+    if config.max_changed_files is not None and changed_count > config.max_changed_files:
         return (
             f"changed file count exceeds policy max_changed_files="
-            f"{config.max_changed_files}: {len(files)}"
+            f"{config.max_changed_files}: {changed_count}"
         )
+    files = [side for entry in entries for side in entry]
     for changed in files:
         for protected in config.protected_paths:
             prefix = protected.rstrip("/")

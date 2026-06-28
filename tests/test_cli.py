@@ -1420,6 +1420,32 @@ def test_verify_json_refuses_command_not_in_allowlist(tmp_path, monkeypatch, cap
     assert "exit 0" in payload["output"]
 
 
+def test_max_changed_files_counts_a_rename_as_one_file(tmp_path, monkeypatch):
+    # A staged rename is `R  old -> new`: one changed file, two paths. The
+    # protected-path scan needs both paths, but the max_changed_files COUNT must
+    # treat the rename as a single file — otherwise renaming one file under
+    # max_changed_files=1 is wrongly blocked.
+    from types import SimpleNamespace
+
+    from looptight import protocol_commands
+
+    def fake_run(*args, **kwargs):
+        class R:
+            returncode = 0
+            stdout = "R  src/a.py -> src/b.py\n"
+
+        return R()
+
+    monkeypatch.setattr(protocol_commands.subprocess, "run", fake_run)
+    config = SimpleNamespace(
+        allowed_verify_commands=None,
+        max_changed_files=1,
+        protected_paths=[],
+    )
+    # One rename = one changed file, so the count gate must pass (return None).
+    assert protocol_commands._verify_policy_error("exit 0", config, tmp_path) is None
+
+
 def test_verify_json_refuses_when_changed_file_count_exceeds_policy(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)

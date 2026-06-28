@@ -998,19 +998,15 @@ existing CLI session and makes no model or API calls of its own.
   e2e commands are unchanged. Found by the audit; covered by
   `test_status_json_ignores_negated_marker_deselection` in test_cli.py.
 
-## Next
+- `max_changed_files` counts a rename as one file, not two: a new `_changed_entries`
+  helper yields one entry per `git status` line (a rename carries both sides), the
+  count gate uses `len(entries)`, and `_changed_file_list` flattens entries for the
+  protected-path scan and human display (both-sides contract unchanged). So renaming
+  one tracked file under `max_changed_files = 1` passes the count gate instead of
+  being wrongly blocked. Found by the audit; covered by
+  `test_max_changed_files_counts_a_rename_as_one_file` in test_cli.py.
 
-1. `max_changed_files` policy double-counts a renamed file.
-   Evidence: src/looptight/protocol_commands.py:304 (`_changed_file_list` emits both
-   sides of a `old -> new` rename — correct, and needed for the protected-path scan)
-   feeding the count check at :319 (`len(files) > config.max_changed_files`). A single
-   rename counts as 2, so with `max_changed_files = 1` renaming one file is wrongly
-   blocked. The protected-path loop needs both sides; the count should treat a rename
-   as one file.
-   Acceptance: count distinct changed files for the `max_changed_files` comparison
-   (dedupe, or count a rename once) while keeping both sides for the protected-path
-   loop; a test that renames one tracked file with `max_changed_files = 1` goes from
-   a policy error to passing the count gate.
+## Next
 
 ## Rules
 
