@@ -1584,6 +1584,18 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The `ui` loopback server has no `Host`-header validation, so DNS rebinding can read `/api/state`.
+   Evidence: src/looptight/ui.py:183-202 — `do_GET` serves `/` and `/api/state` to any request
+   regardless of the `Host` header. The server binds loopback (ui.py:211), but a remote page that
+   rebinds its domain to 127.0.0.1 makes a same-origin request through the victim's browser and can
+   read the read-only repo task/worker state. Standard hardening for a loopback server is to reject
+   requests whose `Host` is not a loopback name. Fix: add a pure `_host_is_loopback(host_header)`
+   (accepting `127.0.0.1`/`localhost`/`::1`, with or without a port, and an absent Host) and return
+   403 from `do_GET` when it fails.
+   Acceptance: a failing-then-passing test asserts `_host_is_loopback` accepts `127.0.0.1:8765`,
+   `localhost`, `[::1]:8765`, and `None`, and rejects `evil.example.com`; a `do_GET` with a
+   non-loopback `Host` returns 403 while a loopback `Host` still serves 200.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
