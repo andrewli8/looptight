@@ -1877,16 +1877,12 @@ existing CLI session and makes no model or API calls of its own.
   perceive where cards begin. Found by the accessibility audit. Covered by a test that computes
   the WCAG contrast ratio from the page's hex values.
 
-## Next
+- The three graph lanes now announce as labeled regions: each `.lane` has `role=group` and
+  `aria-labelledby` pointing at its (now id'd) title, so screen-reader users get the
+  manager/tasks/workers structure to navigate. Purely additive markup, no visual change.
+  Found by the accessibility audit. Covered by a lane-labeling test.
 
-1. The three graph lanes (`manager` / `tasks` / `workers`) are plain `<div class="lane">`s whose
-   `<div class="lane-title">` labels are read as loose text, giving screen-reader users no group
-   structure to navigate (`src/looptight/ui.py:340`). Give each lane `role="group"` and tie it to
-   its title via `aria-labelledby` (add an id to each lane-title), so the orchestration columns
-   announce as labeled regions. Purely additive markup; no visual change.
-   Evidence: src/looptight/ui.py:340
-   Acceptance: a new test in tests/test_ui.py asserts each lane (manager/tasks/workers) carries
-   `role="group"` and an `aria-labelledby` pointing at its titled element.
+## Next
 
 ## Rules
 

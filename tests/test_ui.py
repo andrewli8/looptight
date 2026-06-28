@@ -369,6 +369,14 @@ def test_accessibility_semantics_connection_label_and_focus():
     assert ".filter:focus-visible{" in page
 
 
+def test_lanes_are_labeled_groups():
+    # Each orchestration lane should announce as a labeled region for screen-reader navigation.
+    page = ui.PAGE
+    for lane in ("manager", "tasks", "workers"):
+        assert f'id="{lane}" role="group" aria-labelledby="{lane}-title"' in page
+        assert f'class="lane-title" id="{lane}-title"' in page
+
+
 def test_live_regions_skip_unchanged_updates():
     # The tally and inspector are aria-live="polite" regions; they must not rebuild the DOM on
     # every 1.5s poll when nothing changed, or a screen reader re-announces them continuously.
