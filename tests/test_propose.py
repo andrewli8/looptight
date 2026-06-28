@@ -270,6 +270,37 @@ def test_from_todos_skips_malformed_python_file(tmp_path):
     assert from_todos(tmp_path) == []
 
 
+def test_conditional_skip_with_blank_line_in_block_is_suppressed(tmp_path):
+    # A pytest.skip() under an `if` guard is conditional (intentional infrastructure), even
+    # with a blank line between the `if` and the skip — the backward scan skips blanks to
+    # find the enclosing block. So it is not surfaced as rot.
+    from looptight.discovery import from_skipped_tests
+
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_g.py").write_text(
+        "def test_x():\n    if True:\n\n        import pytest; pytest.skip('gated')\n"
+    )
+    assert from_skipped_tests(tmp_path) == []
+
+
+def test_adjacent_numbered_items_without_blank_line_parse_separately(tmp_path):
+    # The numbered-item continuation parser breaks at the next numbered item, so two
+    # adjacent `## Next` items with no blank line between them are two tasks, not one.
+    from looptight.discovery import from_task_file
+
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "T.md").write_text(
+        "## Next\n\n"
+        "1. One. Evidence: docs/T.md:1; Acceptance: a\n"
+        "2. Two. Evidence: docs/T.md:1; Acceptance: b\n"
+    )
+    candidates = from_task_file(tmp_path, "docs/T.md", next_section_only=True)
+    assert len(candidates) == 2
+    assert candidates[0].title.startswith("One") and candidates[1].title.startswith("Two")
+
+
 def test_js_skip_inside_multiline_block_comment_is_ignored(tmp_path):
     # An it.skip(...) on a CONTINUATION line of a multi-line /* */ block comment is
     # commented-out example code, not a real skip → not surfaced; a real it.skip outside
