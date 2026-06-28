@@ -99,3 +99,11 @@ def test_record_write_is_atomic(tmp_path, monkeypatch):
     # The prior store is intact (one entry, not corrupted).
     data = json.loads(trajectory._path(repo).read_text(encoding="utf-8"))
     assert len(data["entries"]) == 1
+
+
+def test_trajectory_read_returns_none_for_wrong_schema_version(tmp_path):
+    # Valid JSON but an unrecognised schema_version is treated as no prior attempt,
+    # so a forward-incompatible file cannot poison value-aware stopping.
+    path = tmp_path / "traj.json"
+    path.write_text(json.dumps({"schema_version": 99, "entries": []}), encoding="utf-8")
+    assert trajectory._read(path) is None

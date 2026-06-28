@@ -1262,16 +1262,12 @@ existing CLI session and makes no model or API calls of its own.
   dir, `_claim()` rejects a falsy task id, and `_read()` degrades a corrupt JSON file to `{}`.
   No production change.
 
-## Next
+- `trajectory._read()`'s wrong-schema_version guard is covered:
+  `test_trajectory_read_returns_none_for_wrong_schema_version` in test_trajectory.py writes a
+  well-formed JSON file with `schema_version: 99` and asserts `_read` returns None, so a
+  forward-incompatible trajectory file cannot poison value-aware stopping. No production change.
 
-1. `trajectory._read()` returns None for a wrong schema_version (trajectory.py:50)
-   — the branch reached when the file is valid JSON but carries an unrecognised
-   `schema_version` — is uncovered; existing tests only hit the OSError/corrupt-JSON
-   and happy paths.
-   Evidence: src/looptight/trajectory.py:49-50
-   Acceptance: `test_trajectory_read_returns_none_for_wrong_schema_version` in
-   tests/test_trajectory.py writes a well-formed JSON file with `schema_version: 99`
-   and asserts `trajectory._read(path)` returns None without raising; verify passes.
+## Next
 
 3. `settings.py` path helpers and absent-file `uninstall` (lines 22, 26, 95) are
    uncovered: `user_settings_path()`, `project_settings_path(root)`, and
