@@ -596,7 +596,7 @@ def test_render_state_panel_summarizes_workers():
         "updated_at": "2026-06-23T00:00:00Z",
     }
     panel = render_state_panel(state)
-    assert "running 1" in panel and "merged 1" in panel  # status tally
+    assert "(1 running, 1 merged)" in panel  # tally in count-status order, matching the statusline
     assert "#1" in panel and "#2" in panel  # per-worker lines
     assert "Fix the timeout path" in panel  # task goal joined by task_id
 

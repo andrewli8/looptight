@@ -138,7 +138,7 @@ def render_state_panel(state: dict[str, object]) -> str:
         counts[str(worker.get("status", "?"))] = counts.get(str(worker.get("status", "?")), 0) + 1
     ordered = [s for s in _WORKER_STATUS_ORDER if s in counts]
     ordered += [s for s in counts if s not in _WORKER_STATUS_ORDER]
-    tally = ", ".join(f"{status} {counts[status]}" for status in ordered)
+    tally = ", ".join(f"{counts[status]} {status}" for status in ordered)  # count-status, like statusline
     manager = str((state.get("manager") or {}).get("status", "?"))
     lines = [f"swarm: manager {manager} · workers: {len(workers)} ({tally})"]
     for worker in workers:

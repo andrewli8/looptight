@@ -2351,7 +2351,7 @@ def test_watch_status_renders_one_tick_without_sleeping(tmp_path, capsys):
     assert ticks == 1
     assert slept == []  # a bounded run does not sleep after its final tick
     out = capsys.readouterr().out
-    assert "running 1" in out and "#1" in out
+    assert "1 running" in out and "#1" in out  # count-status tally, matching the statusline
 
 
 def test_statusline_command_reads_stdin_and_prints_one_line(tmp_path, monkeypatch, capsys):
