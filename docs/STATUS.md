@@ -1102,6 +1102,20 @@ existing CLI session and makes no model or API calls of its own.
   containing "unsupported coordinator schema", so opening a DB written by a newer
   looptight (after a downgrade) fails clearly instead of misbehaving. No production change.
 
+## Next
+
+1. Two skip-discovery boundary guards on bad files are untested.
+   Evidence: src/looptight/discovery.py:202 (`_multiline_string_lines`'s
+   `except (tokenize.TokenError, SyntaxError, OSError, UnicodeDecodeError): return set()`)
+   and discovery.py:250 (`_js_comments`'s `except OSError: return`) keep skip-discovery
+   from crashing on a malformed Python file or an unreadable JS/TS file, but neither is
+   tested — a regression dropping a guard would crash the loop on a user's bad repo
+   content. (The sibling `_comments` malformed-file guard is already covered.)
+   Acceptance: a test in tests/test_propose.py asserts `_multiline_string_lines` returns
+   `set()` on a malformed Python file (e.g. a lone `\x00` byte) and `_js_comments`
+   yields nothing on an unreadable path (a directory, which raises OSError on read),
+   both without raising. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
