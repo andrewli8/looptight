@@ -1330,15 +1330,11 @@ existing CLI session and makes no model or API calls of its own.
   dir (isolating the write from the user's real `~/.claude`) and asserts `install-skill` prints
   "installed" then "already up to date", each exit 0. No production change.
 
-## Next
-
-1. `_doctor_next_setup_command` branches and `cmd_revert`'s not-a-repo guard are untested.
-   Evidence: src/looptight/commands.py:460-469 (`_doctor_next_setup_command` maps verify/git/agent
-   readiness to the next setup command) and :474-476 (`cmd_revert` reports "nothing to revert" with
-   exit 1 outside a git repo).
-   Acceptance: a test in tests/test_cli.py asserts each `_doctor_next_setup_command` branch (no
-   verify → init, no git → repo, no agent → install, all ready → next) and that `revert` in a
-   non-git dir exits 1 with a "not a git repo" message. No production change.
+- `_doctor_next_setup_command` branches and `cmd_revert`'s not-a-repo guard are covered:
+  `test_doctor_next_setup_command_branches` asserts each readiness→command mapping (no verify→init,
+  no git→repo, no agent→install, all ready→next) and `test_revert_in_non_git_dir_reports_nothing`
+  asserts `revert` outside a git repo exits 1 with a "not a git repo" message — both in test_cli.py.
+  No production change.
 
 ## Rules
 

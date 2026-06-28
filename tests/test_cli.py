@@ -1922,6 +1922,21 @@ def test_daemon_cli_paths_do_not_require_agent_on_path(tmp_path, monkeypatch):
     assert main(["daemon", "--headless", "--verify", "true"]) == 2
 
 
+def test_doctor_next_setup_command_branches():
+    from looptight.commands import _doctor_next_setup_command
+
+    assert "init" in _doctor_next_setup_command(None, "claude", True)  # no verify
+    assert "Git repository" in _doctor_next_setup_command("pytest", "claude", False)  # no git
+    assert "agent CLI" in _doctor_next_setup_command("pytest", None, True)  # no agent
+    assert "next" in _doctor_next_setup_command("pytest", "claude", True)  # all ready
+
+
+def test_revert_in_non_git_dir_reports_nothing(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)  # not a git repo
+    assert main(["revert"]) == 1
+    assert "not a git repo" in capsys.readouterr().out.lower()
+
+
 def test_install_skill_command_install_and_already_current(tmp_path, monkeypatch, capsys):
     # Isolate the write to a tmp HOME so the user's real ~/.claude is never touched.
     monkeypatch.setenv("HOME", str(tmp_path))
