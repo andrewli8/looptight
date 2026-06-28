@@ -17,6 +17,14 @@ def test_readme_does_not_overclaim_json_support():
     assert "take `--json`" in text  # it does name the machine-facing commands
 
 
+def test_readme_documents_the_revert_recovery_command():
+    # revert is a user-facing safety command (undo the agent's uncommitted edits);
+    # its peers (init/next/verify/status/propose/goal/doctor) are all in the README
+    # Commands list, so revert must be too or a stuck user cannot find their undo.
+    text = _README.read_text(encoding="utf-8")
+    assert "looptight revert" in text, "README Commands list omits the revert command"
+
+
 def test_daemon_doc_documents_on_fault_hook():
     text = _DAEMON_DOC.read_text(encoding="utf-8")
     assert "--on-fault" in text

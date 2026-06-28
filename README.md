@@ -78,6 +78,7 @@ looptight status    # show readiness and the next safe action, change nothing
 looptight propose   # show the ranked task queue without claiming anything
 looptight goal      # set or run a vision-driven build goal
 looptight doctor    # show the detected agent, verify command, and adapters
+looptight revert    # undo the agent's uncommitted edits, restoring to HEAD
 ```
 
 The machine-facing commands — `next`, `verify`, `status`, `doctor`, `propose`,

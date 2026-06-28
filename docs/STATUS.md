@@ -1060,15 +1060,10 @@ existing CLI session and makes no model or API calls of its own.
   Found by the docs audit; locked by `test_usage_doc_describes_the_coordinator_claim_model_accurately`
   in test_docs.py. Consistent with the Fix-B coordinator reporting decision.
 
-## Next
-
-1. `looptight revert` is undocumented in the README command list.
-   Evidence: src/looptight/cli.py:126 defines `revert` (a user-facing "undo the agent's
-   uncommitted edits" safety command with `--yes`), but it is absent from the README
-   Commands block (README.md:73-81) where its peers (init/next/verify/status/propose/
-   goal/doctor) are all listed; only a SPEC parenthetical mentions it.
-   Acceptance: add `looptight revert` with a one-line description to the README Commands
-   block; a test_docs.py assertion that `"revert"` appears in README.md.
+- The README Commands list documents `looptight revert` (undo the agent's uncommitted
+  edits, restoring to HEAD), so a stuck user can find their undo alongside its peers;
+  it was previously only named in a SPEC parenthetical. Found by the docs audit; locked
+  by `test_readme_documents_the_revert_recovery_command` in test_docs.py.
 
 ## Rules
 
