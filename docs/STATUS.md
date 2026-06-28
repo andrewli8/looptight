@@ -1284,6 +1284,13 @@ existing CLI session and makes no model or API calls of its own.
    tests/test_settings.py asserts the returned paths match the expected layout and
    `uninstall` on a non-existent path returns 0; verify passes.
 
+4. The swarm worker change-detection-failure path is untested.
+   Evidence: src/looptight/swarm.py:332-335 — when `_worker_changed_paths` cannot determine a
+   worker's changed files it marks the worker `failed` with the error, rather than integrating
+   an unknown change set. Untested.
+   Acceptance: a test in tests/test_swarm.py monkeypatches `_worker_changed_paths` to return
+   `(None, "...")` and asserts the worker is `failed` with that error. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
