@@ -492,16 +492,19 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
     coordinator_counts: dict[str, object] | None = None
     if coordinator is not None:
         snapshot = coordinator.status(current_run_id())
-        claimed_task = snapshot["claimed_task"]
         active_claims = snapshot["active_claims"]
         coordinator_counts = {
             key: snapshot[key]
             for key in ("queued_tasks", "queued_integrations", "pending_publications")
         }
-        if claimed_task:
-            # Name the claim by what it is, not its opaque fingerprint: pull the goal from the lease.
-            lease = coordinator.active_lease_for_owner(owner_id(workdir))
-            claimed_goal = str(lease.payload.get("goal") or "") if lease else ""
+        # Recognize the claim by OWNER (this worktree), not the run-id-scoped snapshot: a claim
+        # made by a prior `next` invocation has a different run id, so run-id scoping would report
+        # "no claim → run looptight next" while the owner-scoped session panel shows the task. Use
+        # the owner lease so the next-action ("continue your claimed task") and the panel agree.
+        lease = coordinator.active_lease_for_owner(owner_id(workdir))
+        if lease is not None:
+            claimed_task = lease.task_id  # the machine-stable fingerprint
+            claimed_goal = str(lease.payload.get("goal") or "")
         coordinator.close()
     else:
         private_dir = claim_dir(workdir)

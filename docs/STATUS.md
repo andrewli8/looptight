@@ -1910,6 +1910,12 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+- `status` now recognizes the worktree's claimed task by OWNER, not the run-id-scoped
+  snapshot: a claim made by a prior `next` invocation (a different run id, as in real shell
+  usage) is now reported as "continue your claimed task: <goal>" instead of the contradictory
+  "run `looptight next`" that disagreed with the session panel right below it. Found by
+  dogfooding the new-user journey. Covered by a separate-invocation test.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

@@ -838,6 +838,32 @@ def test_status_next_action_names_the_claimed_task_goal(tmp_path, monkeypatch, c
     assert "continue" in data["next_action"].lower()
 
 
+def test_status_recognizes_a_claim_from_a_separate_invocation(tmp_path, monkeypatch, capsys):
+    # A claim made by `next` in one invocation must be recognized by `status` in a SEPARATE
+    # invocation (different run id, as in real shell usage) — the next-action should say
+    # "continue your claimed task", not "run looptight next", matching the owner-scoped panel.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "true"\n', encoding="utf-8")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# TODO: handle the empty input case\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "i"], check=True
+    )
+
+    monkeypatch.setenv("LOOPTIGHT_RUN_ID", "run-claim")  # the `next` invocation claims the task
+    assert main(["next", "--json"]) == 0
+    capsys.readouterr()
+
+    monkeypatch.setenv("LOOPTIGHT_RUN_ID", "run-status")  # a DIFFERENT later `status` invocation
+    assert main(["status", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["claimed_task"] is not None  # the worktree's claim is recognized (owner-scoped)
+    assert "continue" in data["next_action"].lower()  # not "run looptight next"
+    assert "empty input" in data["next_action"]  # names the claimed goal
+
+
 def test_next_no_work_clears_claim_when_task_disappears(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
