@@ -8,6 +8,7 @@ emit the file by hand so the comments survive).
 
 from __future__ import annotations
 
+import difflib
 import json
 import tomllib
 from dataclasses import dataclass, replace
@@ -82,6 +83,7 @@ def load_config(path: Path | None = None) -> Config:
     except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError) as exc:
         raise ConfigError(f"{resolved} is not valid TOML: {exc}") from exc
     _reject_misplaced_keys(resolved, data)
+    _reject_typo_keys(resolved, data)
     try:
         return Config(
             verify=_optional_string(data, "verify"),
@@ -114,6 +116,24 @@ _KNOWN_FIELDS = frozenset(
         "allowed_verify_commands",
     }
 )
+
+
+def _reject_typo_keys(resolved: Path, data: dict[str, object]) -> None:
+    """Fail fast on a top-level scalar key that is a near-miss of a recognized field.
+
+    A typo like ``verfy = "true"`` for ``verify`` would otherwise be silently dropped, leaving
+    the user believing they set a value that never took effect — the same footgun as a misplaced
+    key. A genuinely-unrelated unknown key (not close to any field) is left alone so a newer
+    config key does not break an older binary (forward-compatible).
+    """
+    for key, value in data.items():
+        if key in _KNOWN_FIELDS or isinstance(value, dict):
+            continue  # recognized, or a table (handled by _reject_misplaced_keys)
+        close = difflib.get_close_matches(key, _KNOWN_FIELDS, n=1, cutoff=0.75)
+        if close:
+            raise ConfigError(
+                f"{resolved}: unknown config key '{key}' — did you mean '{close[0]}'?"
+            )
 
 
 def _reject_misplaced_keys(resolved: Path, data: dict[str, object]) -> None:

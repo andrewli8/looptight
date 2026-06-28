@@ -17,6 +17,24 @@ from looptight.config import (
 )
 
 
+def test_config_rejects_a_typo_of_a_known_key(tmp_path):
+    # A near-miss of a real key (verfy -> verify) is silently dropped today, so the user thinks
+    # they set a value that never took effect — the same footgun as a misplaced key.
+    path = tmp_path / ".looptight.toml"
+    path.write_text('verfy = "true"\n', encoding="utf-8")
+    with pytest.raises(ConfigError) as exc:
+        load_config(path)
+    msg = str(exc.value)
+    assert "verfy" in msg and "verify" in msg  # names the typo and the suggestion
+
+
+def test_config_tolerates_an_unrelated_unknown_key(tmp_path):
+    # Forward-compatible: an unknown key that is not a near-match of any field is left alone.
+    path = tmp_path / ".looptight.toml"
+    path.write_text('verify = "true"\nfuture_capability_xyz = 1\n', encoding="utf-8")
+    assert load_config(path).verify == "true"
+
+
 def test_config_is_frozen_with_each_field_declared_once():
     field_names = [field.name for field in dataclasses.fields(Config)]
 
