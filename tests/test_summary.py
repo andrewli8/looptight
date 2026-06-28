@@ -35,6 +35,23 @@ def test_summary_shows_stop_reasons():
     assert "human" in summary.render(_result(StopReason.ESCALATED))
 
 
+def test_zero_iteration_summary_has_no_double_blank():
+    # A run that fails before any iteration (e.g. the agent crashes) must not print two blank
+    # lines between the header/banner and the conclusion.
+    result = RunResult(
+        goal="fix", agent="claude", mode="supply", stop_reason=StopReason.ERROR, error="claude exited 3"
+    )
+    assert "\n\n\n" not in summary.render(result)  # plain artifact
+    out = StringIO()
+    summary.render_rich(result, Console(file=out))
+    assert "\n\n\n" not in out.getvalue()  # standalone rich
+    out2 = StringIO()
+    summary.render_rich(result, Console(file=out2), include_progress=False)
+    assert "\n\n\n" not in out2.getvalue()  # cmd_run conclusion-only
+    # A multi-iteration summary still separates the iterations from the conclusion.
+    assert "✓ done · 2 iterations" in summary.render(_result(StopReason.SUCCESS))
+
+
 def test_summary_surfaces_error_message():
     result = RunResult(
         goal="fix",

@@ -58,7 +58,8 @@ def render(result: RunResult) -> str:
 
     mark = "✓" if result.passed else "✗"
     tail = _tail(result)
-    lines.append("")
+    if result.iterations:  # separate the iterations from the conclusion; none → no double blank
+        lines.append("")
     lines.append(f"{mark} {tail} · {_iterations(result.iteration_count)}")
     evidence = _escalation_lines(result)
     if evidence:
@@ -91,7 +92,8 @@ def render_rich(result: RunResult, console, *, include_progress: bool = True) ->
     passed = result.passed
     mark = "✓" if passed else "✗"
     tail = _tail(result)
-    console.print()
+    if result.iterations:  # separate the iterations (live or above) from the conclusion
+        console.print()
     console.print(
         f"{mark} {tail} · {_iterations(result.iteration_count)}",
         style="bold green" if passed else "bold red",
