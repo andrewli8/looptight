@@ -185,6 +185,17 @@ def test_short_includes_score_when_present():
     assert VerifyResult(passed=False, exit_code=1, score=0.0).short() == "FAIL (score 0)"
 
 
+def test_short_distinguishes_timeout_and_error_from_a_plain_fail():
+    # short() drives the headline above `verifier result:`; it must not mislabel an execution
+    # timeout/error as a test FAIL (which contradicts the status line and misleads the user).
+    assert VerifyResult(passed=False, exit_code=2, error="timeout").short() == "TIMEOUT"
+    assert VerifyResult(passed=False, exit_code=1, error="boom").short() == "ERROR"
+    assert VerifyResult(passed=False, exit_code=1).short() == "FAIL"  # plain fail unchanged
+    assert VerifyResult(passed=True, exit_code=0).short() == "PASS"
+    # the score suffix is preserved on the real status
+    assert VerifyResult(passed=False, exit_code=2, error="timeout", score=0.5).short() == "TIMEOUT (score 0.5)"
+
+
 def test_popen_oserror_is_launch_error(tmp_path, monkeypatch):
     # The except OSError branch at verify.py:90 catches OS-level launch failures
     # (e.g. PermissionError) that the shell-127 path never exercises.  Injecting

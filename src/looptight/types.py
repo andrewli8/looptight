@@ -51,8 +51,12 @@ class VerifyResult:
         return "fail"
 
     def short(self) -> str:
-        """A compact, gif-able status fragment, e.g. ``PASS`` or ``FAIL``."""
-        label = "PASS" if self.passed else "FAIL"
+        """A compact, gif-able status fragment: ``PASS``, ``FAIL``, ``TIMEOUT``, or ``ERROR``.
+
+        Reflects the real verdict (not just pass/fail) so a timeout/error is never mislabelled
+        as a test failure on the surfaces that show this fragment.
+        """
+        label = self.status.upper()
         if self.score is not None:
             return f"{label} (score {self.score:g})"
         return label
