@@ -943,6 +943,31 @@ def test_planner_accepts_provider_committed_status_change(tmp_path, monkeypatch)
     assert "Cover the source task" in (tmp_path / "docs" / "STATUS.md").read_text()
 
 
+def test_continuous_swarm_planner_limit_persists_to_terminal(tmp_path, monkeypatch):
+    # When the planning round hits a provider limit and the resume cap is reached, the
+    # continuous swarm returns reason limit.
+    from looptight.swarm import REASON_LIMIT
+
+    _repo(tmp_path)
+    (tmp_path / "src" / "a.py").write_text("# done\n", encoding="utf-8")
+    (tmp_path / "src" / "b.py").write_text("# done\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "done")
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+    monkeypatch.setattr(
+        "looptight.swarm.plan_next_tasks",
+        lambda *a, **k: PlanningResult("failed", "provider rate limit reached; retry after 5s", None),
+    )
+
+    result = run_continuous_swarm(
+        tmp_path, agent="fake", config=Config(verify="exit 0"),
+        workers=1, max_rounds=0, generate_ideas=True,
+        resume_on_limit=True, limit_max_resumes=1, sleep=lambda s: None,
+    )
+
+    assert result.reason == REASON_LIMIT
+
+
 def test_continuous_swarm_returns_on_planner_failure(tmp_path, monkeypatch):
     # Work exhausted, then the planning round itself fails: the continuous swarm ends with reason
     # error carrying the planner error.

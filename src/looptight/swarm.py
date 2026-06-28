@@ -762,8 +762,12 @@ def run_continuous_swarm(
                 rounds=rounds, plans=plans, resumes=resumes, reason=REASON_ERROR,
             )
         completed.extend(result.workers)
-        limit_attempt = 0
         if result.workers:
+            # Only a productive round resets the limit-resume counter. Resetting it
+            # unconditionally let a *persistent planner* usage-limit loop forever: each
+            # no-work round cleared the counter before the planner-limit cap below could
+            # ever trip, so --limit-max-resumes was ineffective for the planning path.
+            limit_attempt = 0
             idle_rounds = 0  # merged work this round resets the no-progress counter
             continue
         if max_rounds and rounds >= max_rounds:
