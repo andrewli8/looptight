@@ -264,6 +264,22 @@ def test_plan_next_tasks_rejects_changes_outside_status_md(tmp_path, monkeypatch
     assert "docs/STATUS.md" in (result.error or "")
 
 
+def test_plan_next_tasks_fails_when_plan_verify_fails(tmp_path, monkeypatch):
+    # A grounded plan that breaks the build is rejected: the planner runs verify in its
+    # worktree and fails the plan when it does not pass.
+    _repo(tmp_path)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "docs")
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: PlanningAdapter())
+
+    result = plan_next_tasks(tmp_path, agent="fake", verify="exit 1")
+
+    assert result.status == "failed"
+    assert "planner verify" in (result.error or "")
+
+
 def test_plan_next_tasks_fails_when_planner_provider_fails(tmp_path, monkeypatch):
     # A planner provider that returns ok=False is a clean planning failure carrying the
     # provider error, not an accepted plan.
