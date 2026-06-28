@@ -1931,15 +1931,14 @@ existing CLI session and makes no model or API calls of its own.
   to raise `RuntimeError` and asserts `False` is returned without propagating, so the hook's
   safety-net — never trapping a session in a forced loop on `propose` failure — is regression-tested.
 
-## Next
+- `_active_session_task`'s and `_active_goal_view`'s `except Exception: return None` branches
+  (`ui.py:205`, `ui.py:224`) have direct unit coverage: `test_active_session_task_returns_none_on_exception`
+  monkeypatches `Coordinator.open` to raise and `test_active_goal_view_returns_none_on_exception`
+  monkeypatches `read_goal` to raise, both asserting `None` without propagating — so a regression
+  removing either defensive guard is caught; the overlay path always degrades to idle rather than
+  crashing `looptight status` / `looptight ui`.
 
-1. `_active_session_task`'s and `_active_goal_view`'s `except Exception: return None` branches
-   (ui.py:205, ui.py:224) are not directly tested: both functions must degrade gracefully when
-   the coordinator or goal reader raises, but a regression removing either guard would not be caught.
-   Evidence: src/looptight/ui.py:205
-   Acceptance: `test_active_session_task_returns_none_on_exception` and
-   `test_active_goal_view_returns_none_on_exception` in tests/test_ui.py pass, each
-   monkeypatching the respective import to raise; no production-code change.
+## Next
 
 ## Rules
 

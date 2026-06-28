@@ -826,3 +826,25 @@ def test_state_path_in_git_repo_uses_common_dir(tmp_path):
     assert path.name == STATE_FILE
     assert "looptight" in str(path)
     assert ".git" in str(path)  # under the Git common dir, not the .looptight fallback
+
+
+def test_active_session_task_returns_none_on_exception(tmp_path, monkeypatch):
+    import looptight.coordinator as _coord
+
+    def _fail(*a, **kw):
+        raise RuntimeError("coordinator exploded")
+
+    monkeypatch.setattr(_coord.Coordinator, "open", staticmethod(_fail))
+    result = ui._active_session_task(tmp_path)
+    assert result is None
+
+
+def test_active_goal_view_returns_none_on_exception(tmp_path, monkeypatch):
+    import looptight.goal as _goal
+
+    def _fail(*a, **kw):
+        raise RuntimeError("goal reader exploded")
+
+    monkeypatch.setattr(_goal, "read_goal", _fail)
+    result = ui._active_goal_view(tmp_path)
+    assert result is None
