@@ -404,6 +404,28 @@ def test_goal_next_human_output_reports_no_goal(tmp_path, monkeypatch, capsys):
     assert "no active goal" in out
 
 
+def test_goal_set_normalizes_vision_whitespace(tmp_path, monkeypatch, capsys):
+    # A vision is a one-line descriptor rendered on a single line everywhere. An embedded newline
+    # broke the goal line across two lines (orphaning "(iteration 0)") and trailing/leading space
+    # produced a double space. Normalize whitespace at the boundary so the line stays clean.
+    from looptight.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    _repo(tmp_path)
+    assert main(["goal", "  ship the\n  dashboard   now  "]) == 0
+    capsys.readouterr()
+
+    assert main(["goal", "status"]) == 0
+    out = capsys.readouterr().out
+    goal_lines = [ln for ln in out.splitlines() if ln.startswith("goal:")]
+    assert len(goal_lines) == 1  # not broken across lines by the newline
+    assert goal_lines[0] == "goal: ship the dashboard now (iteration 0)"  # collapsed + stripped
+
+    # The stored (and JSON) vision is the normalized one-liner too.
+    assert main(["goal", "status", "--json"]) == 0
+    assert json.loads(capsys.readouterr().out)["vision"] == "ship the dashboard now"
+
+
 def test_goal_status_no_goal_guides_user_like_goal_next(tmp_path, monkeypatch, capsys):
     # `goal status` (and bare `goal`) before any goal is set must guide the user to set one,
     # consistent with `goal next`/`goal check` — not dead-end with a bare "no active goal".

@@ -992,13 +992,17 @@ def cmd_goal(args: argparse.Namespace, console: Console) -> int:
             "not_git",
             "run `looptight goal` inside a Git repository; it stores the goal in Git.",
         )
-    if not arg.strip():
+    # Normalize to a single line: the vision is rendered on one line everywhere (goal:, statusline,
+    # the build prompt), so collapse embedded newlines/whitespace runs and strip — otherwise a
+    # newline breaks the goal line across two and trailing space prints a double space.
+    vision = " ".join(arg.split())
+    if not vision:
         return _set_error(
             "empty_vision",
             'a goal needs a non-empty vision; set one with `looptight goal "<vision>"`.',
         )
     goal = Goal(
-        vision=arg,
+        vision=vision,
         done_check=args.done_check,
         continuous=args.continuous,
         max_iterations=args.max_iterations,
@@ -1009,7 +1013,7 @@ def cmd_goal(args: argparse.Namespace, console: Console) -> int:
         payload.update(goal.as_dict())
         print(json.dumps(payload, sort_keys=True))
         return 0
-    console.write(f"goal set: {arg}")  # user vision — preserve any tokens
+    console.write(f"goal set: {vision}")  # normalized user vision — preserve any markup tokens
     if args.continuous:
         console.print(_goal_driver_recipe(workdir))
     else:

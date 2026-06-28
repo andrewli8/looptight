@@ -2023,6 +2023,12 @@ existing CLI session and makes no model or API calls of its own.
   but `short()` now reports those directly, so it is pure duplication. Found by dogfooding the
   `verify` human output. Test updated to assert the headline and the echo's absence.
 
+- `goal set` normalizes the vision to a single line (`" ".join(arg.split())`): an embedded
+  newline previously broke the `goal:` line across two lines (orphaning `(iteration 0)`) and
+  trailing/leading whitespace printed a double space, since the vision is rendered on one line
+  everywhere (goal line, statusline, build prompt). Unicode/emoji are preserved. Found by
+  dogfooding `goal` with newline/whitespace/unicode input. Covered by a normalization test.
+
 ## Next
 
 ## Rules
