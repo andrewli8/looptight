@@ -144,3 +144,29 @@ def test_console_summary_includes_diffstat():
     text = output.getvalue()
     assert "changes:" in text
     assert "src/a.py" in text
+
+
+def test_render_rich_shows_escalation_evidence_in_rich_output():
+    from looptight.types import Escalation
+
+    esc = Escalation(
+        kind="escalated",
+        iterations=2,
+        trajectory=(-3.0, -3.0),
+        failures=("FAILED tests/test_auth.py::test_login",),
+        summary="No progress across 2 tries. 1 failure never cleared.",
+        persisted=True,
+    )
+    output = StringIO()
+    result = RunResult(
+        goal="fix auth",
+        agent="claude",
+        mode="supply",
+        stop_reason=StopReason.ESCALATED,
+        iterations=(IterationRecord(1, VerifyResult(passed=False, exit_code=1)),),
+        escalation=esc,
+    )
+    summary.render_rich(result, Console(file=output))
+    text = output.getvalue()
+    assert "No progress across 2 tries. 1 failure never cleared." in text
+    assert "tests/test_auth.py::test_login" in text

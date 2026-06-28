@@ -1250,18 +1250,15 @@ existing CLI session and makes no model or API calls of its own.
   returning a rate-limit error and asserts the worker is `limited` (not `failed`), so the
   continuous swarm can wait it out. No production change.
 
+- `render_rich`'s escalation evidence path (summary.py:91-93) now has direct coverage:
+  `test_render_rich_shows_escalation_evidence_in_rich_output` in tests/test_summary.py
+  builds a `RunResult` with a populated `Escalation`, calls `render_rich`, and asserts
+  the summary text and failure line appear in the captured output — the `if evidence:`
+  branch was previously dead in the suite. No production change.
+
 ## Next
 
-1. `render_rich` escalation evidence path (summary.py:91-93) is uncovered: no test
-   calls `render_rich` with a `RunResult` carrying a non-empty escalation, so the
-   `if evidence: … for line in evidence` branch is dead in the suite.
-   Evidence: src/looptight/summary.py:89-93
-   Acceptance: `test_render_rich_shows_escalation_evidence_in_rich_output` in
-   tests/test_summary.py builds a `RunResult` with a populated `Escalation` (failure
-   text), calls `render_rich`, and asserts the escalation summary appears in the
-   captured output; `ruff check` and `looptight verify` both pass.
-
-2. Five `ClaimStore` boundary guards in claims.py are uncovered (lines 41, 103, 111,
+1. Five `ClaimStore` boundary guards in claims.py are uncovered (lines 41, 103, 111,
    124, 145-146): `has_live_claim` false-return when claims are expired, `select()`
    returning None when all tasks are already claimed, `summary()` when root dir is
    absent, `_claim()` with a falsy task_id, and `_read()`'s OSError handler.
@@ -1269,7 +1266,7 @@ existing CLI session and makes no model or API calls of its own.
    Acceptance: four new tests in tests/test_claims.py cover each uncovered branch;
    `looptight verify` passes and none of the six lines remain as missed-coverage.
 
-3. `trajectory._read()` returns None for a wrong schema_version (trajectory.py:50)
+2. `trajectory._read()` returns None for a wrong schema_version (trajectory.py:50)
    — the branch reached when the file is valid JSON but carries an unrecognised
    `schema_version` — is uncovered; existing tests only hit the OSError/corrupt-JSON
    and happy paths.
@@ -1278,7 +1275,7 @@ existing CLI session and makes no model or API calls of its own.
    tests/test_trajectory.py writes a well-formed JSON file with `schema_version: 99`
    and asserts `trajectory._read(path)` returns None without raising; verify passes.
 
-4. `settings.py` path helpers and absent-file `uninstall` (lines 22, 26, 95) are
+3. `settings.py` path helpers and absent-file `uninstall` (lines 22, 26, 95) are
    uncovered: `user_settings_path()`, `project_settings_path(root)`, and
    `uninstall(nonexistent)` (returns 0 early) each lack direct unit tests; sibling
    functions `install`/`_load` are covered but these simple helpers are not.
