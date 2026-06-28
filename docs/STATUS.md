@@ -1926,17 +1926,14 @@ existing CLI session and makes no model or API calls of its own.
   both asserting `[]` — so a regression removing either defensive `return []` is caught; the
   drift-detection path that relies on this function never produces false positives on git errors.
 
+- `_has_grounded_work`'s `except Exception: return False` branch (`hook.py:128`) has direct
+  unit coverage: `test_has_grounded_work_returns_false_on_exception` monkeypatches `propose`
+  to raise `RuntimeError` and asserts `False` is returned without propagating, so the hook's
+  safety-net — never trapping a session in a forced loop on `propose` failure — is regression-tested.
+
 ## Next
 
-1. `_has_grounded_work`'s `except Exception: return False` branch (hook.py:128) is not
-   directly tested: if `propose` raises an unexpected error the hook must never trap the session
-   in a forced loop, but a regression removing the guard would go undetected.
-   Evidence: src/looptight/hook.py:128
-   Acceptance: `test_has_grounded_work_returns_false_on_exception` in tests/test_hook.py passes,
-   monkeypatching `propose` to raise and asserting `_has_grounded_work` returns `False` without
-   raising; no production-code change.
-
-2. `_active_session_task`'s and `_active_goal_view`'s `except Exception: return None` branches
+1. `_active_session_task`'s and `_active_goal_view`'s `except Exception: return None` branches
    (ui.py:205, ui.py:224) are not directly tested: both functions must degrade gracefully when
    the coordinator or goal reader raises, but a regression removing either guard would not be caught.
    Evidence: src/looptight/ui.py:205

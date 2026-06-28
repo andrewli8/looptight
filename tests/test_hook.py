@@ -285,3 +285,14 @@ def test_changed_files_returns_empty_on_nonzero_returncode(tmp_path, monkeypatch
         lambda *a, **kw: subprocess.CompletedProcess(a, returncode=128, stdout="", stderr=""),
     )
     assert _hook._changed_files(tmp_path) == []
+
+
+def test_has_grounded_work_returns_false_on_exception(tmp_path, monkeypatch):
+    import looptight.hook as _hook
+    import looptight.propose as _propose
+
+    def _raise(*a, **kw):
+        raise RuntimeError("propose exploded")
+
+    monkeypatch.setattr(_propose, "propose", _raise)
+    assert _hook._has_grounded_work(tmp_path) is False
