@@ -2507,6 +2507,29 @@ def _commit_repo_with_verify(tmp_path):
     )
 
 
+def test_status_panel_preserves_bracket_tokens_in_a_worker_error(tmp_path, monkeypatch, capsys):
+    # The panel is rendered plain text carrying user content; a worker error with a "[red]"-style
+    # token must not be silently eaten by markup stripping when status prints the panel.
+    from looptight import ui
+
+    monkeypatch.chdir(tmp_path)
+    _commit_repo_with_verify(tmp_path)
+    ui.write_state(
+        tmp_path,
+        {
+            "schema_version": ui.STATE_SCHEMA_VERSION,
+            "manager": {"status": "running"},
+            "tasks": [{"id": "t1", "goal": "fix", "status": "failed", "source": "x"}],
+            "workers": [{"number": 1, "status": "failed", "task_id": "t1", "error": "tool said [red] then died"}],
+            "updated_at": "2026-06-28T00:00:00Z",
+        },
+    )
+    capsys.readouterr()
+    assert main(["status"]) == 0
+    out = capsys.readouterr().out
+    assert "[red]" in out  # the worker error's bracket-token is preserved, not stripped
+
+
 def test_status_does_not_repeat_the_next_step_under_two_labels(tmp_path, monkeypatch, capsys):
     # In the dirty/ready states the readiness remediation equals the bottom `next:` action, so
     # status printed the same instruction twice. The `readiness next:` line is suppressed when it

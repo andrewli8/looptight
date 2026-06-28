@@ -450,7 +450,7 @@ def _watch_status(
             )
             if clear:
                 console.print("\033[2J\033[H", end="")  # clear screen, cursor home
-            console.print(panel)
+            console.write(panel)  # rendered content — preserve user tokens, do not strip
             ticks += 1
             if max_ticks and ticks >= max_ticks:
                 break
@@ -652,7 +652,7 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         if active_goal is None:
             panel = render_state_panel(_with_session_task(read_state(workdir), workdir))
             if panel:
-                console.print(panel)
+                console.write(panel)  # rendered content — preserve user tokens, do not strip
     return 0
 
 

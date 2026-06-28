@@ -26,3 +26,11 @@ class Console:
         del style
         text = _MARKUP.sub("", sep.join(str(value) for value in objects))
         print(text, end=end, file=self.file or sys.stdout)
+
+    def write(self, text: object, *, end: str = "\n") -> None:
+        """Print already-rendered content verbatim — no markup stripping.
+
+        Use for content that is not a markup template (e.g. the status panel), so user strings
+        it carries (a worker error or goal containing ``[red]``) are not mistaken for style tags.
+        """
+        print(str(text), end=end, file=self.file or sys.stdout)
