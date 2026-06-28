@@ -1046,19 +1046,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `claim()`'s stale-task sweep revokes another live run's unexpired lease.
-   Evidence: src/looptight/coordinator.py:381-385; the `fingerprint NOT IN (...)` sweep
-   deletes the lease and marks `complete` every task absent from the *caller's*
-   candidate set, unconditionally — but the DB is shared across a repo's worktrees
-   (coordinator_path keys on git-common-dir) and worktrees at different commits/branches
-   see divergent sets. So run B's `claim([Y])` completes and un-leases run A's in-flight
-   task X, which A can then neither renew nor complete though it was never integrated.
-   Acceptance: a test where run A claims X (long TTL) and run B claims [Y] asserts
-   `renew(leaseX)` is still True and X stays `leased` (not `complete`). Fix by skipping,
-   in the sweep loop, any task with a live (unexpired) lease — `SELECT 1 FROM leases
-   WHERE task_id=? AND expires_at > ?` → `continue`. Idle/expired tasks still retire.
-
-2. Two drifted copies of the trailing-position-suffix regex (latent drift).
+1. Two drifted copies of the trailing-position-suffix regex (latent drift).
    Evidence: src/looptight/grounding.py:60 (`(:\d+(?:-\d+)?)+$`, range-aware) vs
    src/looptight/idea_identity.py:22 (`(:\d+)+$`, not range-aware). Same conceptual
    operation (strip a trailing `:line`/`:start-end` so a path is position-stable), drifted
