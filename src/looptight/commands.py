@@ -429,6 +429,14 @@ def cmd_doctor(args: argparse.Namespace, console: Console) -> int:
     # The readiness tier matches the exit code: `unsafe` exits non-zero, `partial`
     # and `ready` exit zero (looping is possible even if setup is not fully complete).
     console.print(f"  readiness: {readiness['tier']} (exit {1 if unsafe else 0})")
+    # Explain the verdict inline so the diagnostic is self-contained — the same reasons
+    # `status` shows, rather than making the operator run a second command to learn why.
+    checks = readiness.get("checks")
+    if isinstance(checks, dict) and checks:
+        console.print(
+            "  readiness checks: "
+            + " · ".join(f"{key} {value}" for key, value in checks.items())
+        )
     console.print(
         f"  setup next: {_doctor_next_setup_command(verify, agent, git_ready)}"
     )

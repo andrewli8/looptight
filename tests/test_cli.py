@@ -378,7 +378,18 @@ def test_doctor_human_output_shows_readiness_tier_matching_exit(tmp_path, monkey
     assert f"exit {code}" in out  # and it matches the real exit code
 
 
-def test_status_surfaces_generated_queue_quality(tmp_path, monkeypatch, capsys):
+def test_doctor_explains_readiness_with_the_checks(tmp_path, monkeypatch, capsys):
+    # The diagnostic must explain its readiness verdict, not just label it: a dirty worktree
+    # should surface as a `readiness checks:` line (the same reasons `status` shows), so the
+    # user does not have to run a second command to learn why readiness is unsafe/partial.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "true"\n', encoding="utf-8")  # uncommitted → dirty
+    code = main(["doctor"])
+    out = capsys.readouterr().out
+    assert "readiness checks:" in out, "doctor labels readiness but never explains it"
+    assert "git " in out  # the git state (the reason) is named inline
+    assert code == 1  # dirty → unsafe → non-zero, unchanged
     # `status` reports the groundedness of the generated `## Next` batch as a
     # self-improvement signal, without disturbing its existing keys.
     monkeypatch.chdir(tmp_path)

@@ -1778,18 +1778,13 @@ existing CLI session and makes no model or API calls of its own.
   shows the appended `· pass`/`· fail` suffix. Keeps the docs honest about what each surface
   shows. Covered by a strengthened test_docs assertion.
 
-## Next
+- `doctor` now explains its readiness verdict inline: after `readiness: <tier> (exit N)` it
+  prints a `readiness checks:` line with the reasons (verify/git/coordinator/task_sources/
+  agent), the same breakdown `status` shows, so the diagnostic is self-contained instead of
+  labelling readiness `unsafe` with no explanation. Found by dogfooding a fresh repo. Covered
+  by a test_cli assertion.
 
-1. `doctor` prints `readiness: <tier> (exit N)` in `src/looptight/commands.py:431` but discards
-   the `readiness["checks"]` reasons it already computed, so the diagnostic says "unsafe" with no
-   explanation while `status` shows the full breakdown (`src/looptight/protocol_commands.py:589`)
-   — confirmed by dogfooding: a fresh repo shows `readiness: unsafe (exit 1)` and the user must
-   run `status` to learn it is `git dirty · task_sources missing`. Print the readiness checks line
-   in `doctor`'s human output (same `key value · …` format as status) so the diagnostic explains
-   its own verdict.
-   Evidence: src/looptight/commands.py:431
-   Acceptance: a new test in tests/test_cli.py asserts `doctor`'s human output includes a
-   `readiness checks:` line listing the reasons (e.g. the git state), not only the tier.
+## Next
 
 ## Rules
 
