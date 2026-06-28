@@ -1320,6 +1320,15 @@ existing CLI session and makes no model or API calls of its own.
   monkeypatches `read_state` to raise, and asserts `statusline` exits 0 printing "looptight: idle".
   No production change.
 
+## Next
+
+1. The `hook` command wrapper is untested at the CLI level.
+   Evidence: src/looptight/commands.py:564-573 (`cmd_hook`) reads the Stop-hook event on stdin,
+   runs `run_hook`, prints any decision output, and returns its code. `run_hook` is unit-tested
+   but the command wrapper is not.
+   Acceptance: a test in tests/test_cli.py feeds a JSON event on stdin (in a repo with no verify,
+   so the hook is dormant) and asserts `main(["hook"])` returns 0 without raising. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
