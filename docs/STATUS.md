@@ -1038,6 +1038,18 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `summary_text`'s "paid off" planner note feeds opaque idea_id hashes, not actionable sources.
+   Evidence: src/looptight/experience.py:121-123 builds the line from `model.landed`
+   (12-hex idea_id → count), so the planner reads "Recently-landed idea kinds that paid
+   off: a3f2c1..., b1c9..." — hashes it has no mapping for and cannot steer toward. The
+   model already tracks `category_landed` (per-source landed counts, experience.py:75,86),
+   which IS actionable ("favor status-next"). The negative `category_failure_reasons`
+   line (experience.py:124-129) already names sources; the positive line should too.
+   Acceptance: change the paid-off line to name the top task sources from
+   `model.category_landed` (descending by count) instead of `model.landed` ids, and
+   update the empty-guard accordingly; a test asserts the line names sources
+   (e.g. `status-next`) and not opaque ids. Keep the line bounded to `k`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
