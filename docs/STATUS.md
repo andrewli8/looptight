@@ -1182,6 +1182,19 @@ existing CLI session and makes no model or API calls of its own.
   (worktree retained), with the base tree left coherent — so the conflict-abort path in
   `_integrate` is exercised, not just the integration-queue unit tests. No production change.
 
+## Next
+
+1. `cmd_swarm`'s human error and NO_WORK output branches are untested.
+   Evidence: src/looptight/swarm.py:880-881 (`if result.error: print "swarm error: ..."`)
+   and :886-888 (`if not result.workers and not result.error: print "NO_WORK"`) are the
+   human-output branches when a swarm returns an error or finds nothing; `runner` resolves
+   to `run_swarm` (swarm.py:851, monkeypatchable), but no test drives these CLI branches.
+   Acceptance: tests in tests/test_swarm.py monkeypatch `run_swarm` to return a canned
+   `SwarmResult` with an error (assert "swarm error:" printed) and an empty no-work result
+   (assert "NO_WORK" printed), via `main(["swarm", "--headless", "--agent", "fake", ...])`.
+   No production change.
+
+## Rules
 ## Rules
 ## Rules
 
