@@ -1977,6 +1977,15 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The run summary prints a double blank line for a 0-iteration run (agent failed before any
+   iteration): both `render` (`src/looptight/summary.py:61`) and `render_rich`
+   (`src/looptight/summary.py:84`) emit a blank to separate the iterations from the conclusion even
+   when there are no iterations, so the banner is followed by two blanks. Make that separator
+   conditional on `result.iterations` so a 0-iteration run shows a single blank.
+   Evidence: src/looptight/summary.py:61
+   Acceptance: a test asserts `render` and `render_rich` of a 0-iteration result contain no
+   `\n\n\n` (triple newline / double blank), while a multi-iteration result is unchanged.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
