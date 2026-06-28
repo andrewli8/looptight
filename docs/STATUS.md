@@ -1543,6 +1543,22 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The integration reconcile re-apply path skips the lease fence, so a superseded lease can commit.
+   Evidence: src/looptight/integration_queue.py:347-352 — `_reconcile_one`'s nothing-committed
+   branch fetches `current_lease` only for idea/source, then calls `_apply` directly, unlike `_run`
+   (src/looptight/integration_queue.py:268-270) which finishes `superseded` when the lease is None or
+   its run_id/generation no longer matches the record. After a mid-merge crash, `reap_abandoned`
+   frees the lease and a new owner reclaims the task at a new generation; reconcile then re-merges,
+   verifies, commits, and CAS-advances the stale candidate under a lease it no longer owns —
+   violating the durable-integration invariant ("a superseded lease must not commit") and letting
+   the same task's work double-apply. Fix: apply the `_run` fence (factor it into a shared
+   `_superseded(record, lease)` helper) to the nothing-committed branch before preparing the
+   worktree or applying.
+   Acceptance: a failing-then-passing test in test_integration_queue.py puts a record in
+   `integrating`, reaps+reclaims its task to a new lease generation, runs `Integrator.reconcile`,
+   and asserts the outcome is `superseded` with the new owner's lease intact and the target ref
+   unchanged (no commit); single-session crash recovery (lease still owned) still re-applies.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
