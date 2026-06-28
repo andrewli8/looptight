@@ -1829,6 +1829,16 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The worker error in the terminal panel is truncated at 50 chars with NO ellipsis
+   (`src/looptight/ui.py:152`, `f"  [{str(error)[:50]}]"`), so a long error reads as complete when
+   it is actually cut — the operator never sees the real cause, and a 50-char cut can land mid-path.
+   The sibling goal truncation right above (`src/looptight/ui.py:146-147`) adds `...`. Add the same
+   `...` signal when the error is truncated, matching the panel's existing style.
+   Evidence: src/looptight/ui.py:152
+   Acceptance: a new test in tests/test_ui.py asserts that a worker error longer than the limit
+   renders with a trailing `...` in `render_state_panel` (truncation is signaled), and a short
+   error is shown verbatim with no ellipsis.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
