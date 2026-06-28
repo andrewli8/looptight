@@ -969,20 +969,15 @@ existing CLI session and makes no model or API calls of its own.
   (not `ProcessLookupError`) and asserts the final `process.kill()` runs and the
   call returns `None`, so a killpg EPERM-style failure cannot orphan the child.
 
-## Next
+- `_verifier_quality` classifies by the strongest signal, not the first match:
+  the `lint-only` check now runs last (after e2e/integration/unit), so a command
+  that runs tests *and* a linter (`uv run pytest -q && uv run ruff check`, this
+  repo's own verify) reports `unit` instead of short-circuiting to `lint-only`.
+  Found by dogfooding `looptight status`. A pure-lint command still classifies
+  as `lint-only`. Covered by
+  `test_status_json_classifies_tests_plus_lint_as_unit_not_lint_only` in test_cli.py.
 
-1. `_verifier_quality` misclassifies a tests+lint command as `lint-only`.
-   Evidence: src/looptight/protocol_commands.py:654-658; the `ruff/flake8/eslint/
-   prettier` lint check returns `lint-only` and short-circuits before the unit/
-   integration/e2e checks below it, so `uv run pytest -q && uv run ruff check`
-   (this repo's own verify) reports `lint-only` even though it runs pytest —
-   understating verifier strength. Reproduce: `looptight status` prints
-   "verifier quality: lint-only".
-   Acceptance: a new test in tests/test_protocol_commands.py (or test_commands.py)
-   asserts `_verifier_quality("uv run pytest -q && uv run ruff check")["classification"]
-   == "unit"`, and that a pure-lint command (`"ruff check"`) still classifies as
-   `lint-only`; the fix reorders so `lint-only` applies only when no test/e2e/
-   integration runner is present.
+## Next
 
 ## Rules
 

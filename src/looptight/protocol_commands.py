@@ -651,11 +651,9 @@ def _verifier_quality(command: str | None) -> dict[str, str]:
             "risk": "No verifier is configured, so Looptight cannot gate changes.",
         }
     normalized = command.lower()
-    if any(tool in normalized for tool in ("ruff", "flake8", "eslint", "prettier")):
-        return {
-            "classification": "lint-only",
-            "risk": "This only protects style/static checks; behavior can still break.",
-        }
+    # Strongest signal wins. A command that runs tests *and* a linter (e.g.
+    # `pytest -q && ruff check`) is classified by its tests, not short-circuited
+    # to lint-only — so lint-only is checked last, only when no test runner is present.
     if any(tool in normalized for tool in ("playwright", "cypress")) or "e2e" in normalized:
         return {
             "classification": "e2e",
@@ -673,6 +671,11 @@ def _verifier_quality(command: str | None) -> dict[str, str]:
         return {
             "classification": "unit",
             "risk": "Unit tests protect covered behavior, but integration and user-flow regressions can remain.",
+        }
+    if any(tool in normalized for tool in ("ruff", "flake8", "eslint", "prettier")):
+        return {
+            "classification": "lint-only",
+            "risk": "This only protects style/static checks; behavior can still break.",
         }
     return {
         "classification": "custom/unknown",

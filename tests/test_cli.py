@@ -835,6 +835,28 @@ def test_status_json_classifies_common_verifier_quality(
         assert data["verifier_quality"]["risk"]
 
 
+def test_status_json_classifies_tests_plus_lint_as_unit_not_lint_only(
+    tmp_path, monkeypatch, capsys
+):
+    # A verify command that runs tests AND a linter must classify by the stronger
+    # signal (the tests), not short-circuit to lint-only. Regression: the lint
+    # check ran before the unit check, so this repo's own
+    # `pytest && ruff check` reported lint-only despite running pytest.
+    monkeypatch.chdir(tmp_path)
+    cases = {
+        "uv run pytest -q && uv run ruff check": "unit",
+        "ruff check": "lint-only",  # pure lint still lint-only
+    }
+    for command, expected in cases.items():
+        (tmp_path / ".looptight.toml").write_text(f'verify = "{command}"\n')
+        assert main(["status", "--json"]) == 0
+        data = json.loads(capsys.readouterr().out)
+        assert data["verifier_quality"]["classification"] == expected, (
+            f"expected {expected!r} for {command!r}, "
+            f"got {data['verifier_quality']['classification']!r}"
+        )
+
+
 def test_status_json_classifies_e2e_and_integration_verifier_quality(
     tmp_path, monkeypatch, capsys
 ):
