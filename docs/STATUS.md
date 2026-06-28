@@ -1089,18 +1089,12 @@ existing CLI session and makes no model or API calls of its own.
   updated `test_summarize_no_progress_persisted_failures` in test_metacog.py; the
   `escalated` line and StopReason/advice are unchanged.
 
-## Next
-
-1. The coordinator v3→v4 migration upgrade path is untested.
-   Evidence: src/looptight/coordinator.py `_migrate_3_to_4` (adds `runs.owner`) has no
-   migration test, while its siblings do — `test_migration_v1_to_v2_adds_experience_table`
-   and `test_migration_v2_to_v3_adds_reason_column` in tests/test_coordinator.py each
-   build a prior-version DB and assert the upgrade. A migration with no upgrade-path test
-   can silently break a real user's existing DB on a future edit.
-   Acceptance: add `test_migration_v3_to_v4_adds_owner_column` that builds a v3 DB (runs
-   table without `owner`, `PRAGMA user_version = 3`), opens it via `Coordinator.open`,
-   and asserts `runs` now has an `owner` column and `PRAGMA user_version == 4` (and a
-   `claim` with an owner works). Mirrors the existing migration tests; no production change.
+- The coordinator v3→v4 migration upgrade path is covered:
+  `test_migration_v3_to_v4_adds_owner_column` in test_coordinator.py builds a v3 DB
+  (runs table without `owner`, `user_version = 3`), opens it, and asserts the migration
+  added `runs.owner`, bumped `user_version` to 4, and an owner-scoped `claim` works —
+  matching the existing v1→v2 and v2→v3 migration tests, so the new owner migration
+  cannot silently break a real user's existing DB on a future edit.
 
 ## Rules
 

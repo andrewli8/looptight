@@ -376,6 +376,44 @@ def test_migration_v1_to_v2_adds_experience_table(tmp_path):
     coord.close()
 
 
+def test_migration_v3_to_v4_adds_owner_column(tmp_path):
+    repo = _repo(tmp_path / "repo")
+    path = coordinator_path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    raw = sqlite3.connect(path)
+    raw.executescript(
+        """CREATE TABLE runs (
+            id TEXT PRIMARY KEY, kind TEXT NOT NULL,
+            state TEXT NOT NULL CHECK (state IN ('active','complete','failed','abandoned')),
+            pid INTEGER NOT NULL, heartbeat REAL NOT NULL
+        );
+        CREATE TABLE tasks (
+            id INTEGER PRIMARY KEY, fingerprint TEXT NOT NULL UNIQUE, payload TEXT NOT NULL,
+            state TEXT NOT NULL CHECK (state IN ('queued','leased','complete','failed')),
+            attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0)
+        );
+        CREATE TABLE leases (
+            task_id INTEGER PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
+            run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+            generation INTEGER NOT NULL CHECK (generation > 0), expires_at REAL NOT NULL
+        );
+        PRAGMA user_version = 3;"""  # a v3 runs table has no owner column
+    )
+    raw.close()
+
+    coord = Coordinator.open(repo)
+    assert coord is not None
+    # The v3->v4 migration added runs.owner and bumped the version.
+    columns = {row[1] for row in coord.connection.execute("PRAGMA table_info(runs)")}
+    assert "owner" in columns, "v3->v4 migration did not add runs.owner"
+    assert coord.connection.execute("PRAGMA user_version").fetchone()[0] == 4
+    # An owner-scoped claim works on the upgraded DB.
+    run = coord.start_run("s", owner="W")
+    lease = coord.claim([{"id": "t", "goal": "g"}], run.id, ttl_s=60, owner="W")
+    assert lease is not None
+    coord.close()
+
+
 def test_coordination_scope_reports_three_states(tmp_path):
     from looptight.claims import MARKER_NAME
     from looptight.coordinator import coordination_scope, coordinator_path
