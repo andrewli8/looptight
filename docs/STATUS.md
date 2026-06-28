@@ -1644,6 +1644,21 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `looptight ui` shows a misleading "idle" during the default session-native loop.
+   Evidence: only the swarm publishes UI state (src/looptight/swarm.py `_publish_state`), so when
+   you run the default `next`/`verify` session loop the state file stays empty and src/looptight/ui.py
+   render() shows the idle guide — even while you actively hold a claimed task. The claim is already
+   in the coordinator (reachable via the `active_lease_for_owner` added for the drift directive).
+   Fix (read-side only, no change to the session-native path): in the `/api/state` handler, when the
+   published state has no tasks and no workers, overlay the owner's active claim as a single task
+   node (manager status "session", the claimed task with its goal/source, status "claimed" — which
+   the existing `active` group already covers). Any coordinator error degrades to the current idle
+   view. Evidence: src/looptight/coordinator.py `active_lease_for_owner`, src/looptight/claims.py:64
+   (`owner_id`).
+   Acceptance: a `test_ui.py` test asserts `_with_session_task(empty_state(), root)` (with a stubbed
+   active claim) yields `manager.status == "session"` and the claimed task in `tasks`, that
+   `summarize` counts it as 1 active, and that a live swarm state is left unchanged (no overlay).
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
