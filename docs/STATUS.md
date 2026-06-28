@@ -977,18 +977,13 @@ existing CLI session and makes no model or API calls of its own.
   as `lint-only`. Covered by
   `test_status_json_classifies_tests_plus_lint_as_unit_not_lint_only` in test_cli.py.
 
-## Next
+- SPEC's Output contract no longer overclaims `propose --json`: it names the
+  deliberate exception — a bare ranked candidate list with no schema-version
+  envelope, preserved byte-for-byte (and `--eval` wrapping it as
+  `{candidates, eval}`) — matching `protocol_commands.py:181`. Locked by
+  `test_spec_output_contract_documents_propose_json_bare_list` in test_docs.py.
 
-1. SPEC overclaims that `propose --json` has a schema version.
-   Evidence: docs/SPEC.md:255-258 groups `propose` with the machine-facing
-   commands whose "JSON has a schema version", but src/looptight/protocol_commands.py:181
-   emits a bare list (`[c.__dict__ for c in candidates]`) with no `schema_version`
-   envelope — and the Validated history repeatedly guarantees `propose --json` is
-   byte-for-byte unchanged, so the bare list is intentional. The SPEC is inaccurate.
-   Acceptance: edit docs/SPEC.md's Output contract to note `propose --json` is the
-   exception — a bare ranked candidate list (no schema-version envelope), preserved
-   byte-for-byte — and add a test in tests/test_docs.py asserting the Output
-   contract mentions `propose --json` and its bare-list shape. No code change.
+## Next
 
 ## Rules
 

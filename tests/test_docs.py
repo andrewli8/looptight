@@ -132,6 +132,16 @@ def test_spec_output_contract_documents_run_json_and_escalation():
     assert "escalation" in output_contract
 
 
+def test_spec_output_contract_documents_propose_json_bare_list():
+    # propose --json is the one machine-facing command that emits a bare ranked
+    # candidate list (no schema-version envelope), preserved byte-for-byte. The
+    # Output contract must name this exception so it does not read as an oversight.
+    spec = (_ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
+    output_contract = spec.split("## Output contract", 1)[1].split("## ", 1)[0]
+    assert "propose --json" in output_contract
+    assert "bare ranked candidate list" in output_contract
+
+
 def test_spec_output_contract_documents_verify_patience_stall():
     # The session-native value-aware stopping signal must be documented: verify
     # --patience and the additive stall object, with the default contract unchanged.

@@ -255,7 +255,10 @@ resuming. This honors that authority rather than modeling it.
 The machine-facing commands (`next`, `verify`, `status`, `doctor`, `propose`,
 `goal`, `migrate`, `run`, `swarm`) support human-readable output and `--json`;
 setup commands like `init` and `revert` are human-only and reject `--json`. JSON
-has a schema version and stable result codes. At minimum, `next` returns a task ID,
+has a schema version and stable result codes, with one deliberate exception:
+`propose --json` emits a bare ranked candidate list (no schema-version envelope),
+preserved byte-for-byte so existing consumers do not break; `propose --json --eval`
+wraps it as `{candidates, eval}`. At minimum, `next` returns a task ID,
 source, location, goal, and acceptance evidence; it also carries `idea_id` (a
 stable dedup identity for the candidate) and `suggested_verify` (a per-task verify
 hint such as `ruff check` for a lint finding, or `null`). `verify` returns status,
