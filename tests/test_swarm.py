@@ -194,6 +194,23 @@ class FailingPlannerAdapter(EditingAdapter):
         return IterationResult(transcript="", ok=False, error="planner provider crashed")
 
 
+def test_swarm_fails_worker_when_change_detection_fails(tmp_path, monkeypatch):
+    # If the worker's changed-file set cannot be determined, the worker is failed rather
+    # than integrating an unknown change set.
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+    monkeypatch.setattr(
+        "looptight.swarm._worker_changed_paths", lambda worker: (None, "cannot inspect changes")
+    )
+
+    result = run_swarm(
+        tmp_path, agent="fake", config=Config(verify="exit 0", max_iterations=1), workers=1
+    )
+
+    assert result.workers[0].status == "failed"
+    assert result.workers[0].error == "cannot inspect changes"
+
+
 class RateLimitedAdapter(EditingAdapter):
     def run_iteration(self, goal, context, workdir, model=None):
         return IterationResult(

@@ -1272,12 +1272,12 @@ existing CLI session and makes no model or API calls of its own.
   `user_settings_path()`/`project_settings_path(root)` return the expected `.claude/settings.json`
   layout and `uninstall` on a non-existent path returns 0 without raising. No production change.
 
-4. The swarm worker change-detection-failure path is untested.
-   Evidence: src/looptight/swarm.py:332-335 — when `_worker_changed_paths` cannot determine a
-   worker's changed files it marks the worker `failed` with the error, rather than integrating
-   an unknown change set. Untested.
-   Acceptance: a test in tests/test_swarm.py monkeypatches `_worker_changed_paths` to return
-   `(None, "...")` and asserts the worker is `failed` with that error. No production change.
+- The swarm worker change-detection-failure path is covered:
+  `test_swarm_fails_worker_when_change_detection_fails` in test_swarm.py monkeypatches
+  `_worker_changed_paths` to return `(None, error)` and asserts the worker is `failed` with that
+  error, so an undeterminable change set is not integrated. No production change.
+
+## Next
 
 ## Rules
 
