@@ -771,6 +771,29 @@ def test_same_worktree_run_ids_claim_distinct_tasks_and_status_tracks_owner(
     assert status["active_claims"] == 2
 
 
+def test_status_next_action_names_the_claimed_task_goal(tmp_path, monkeypatch, capsys):
+    # status should say what you're working on, not the opaque claim fingerprint.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "true"\n', encoding="utf-8")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# TODO: handle the empty input case\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "i"], check=True
+    )
+    monkeypatch.setenv("LOOPTIGHT_RUN_ID", "run-x")  # one session id across next + status
+
+    assert main(["next", "--json"]) == 0  # claim the TODO task
+    capsys.readouterr()
+
+    assert main(["status", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["claimed_task"] is not None  # the machine-stable fingerprint is unchanged
+    assert "empty input" in data["next_action"]  # the human action names the goal
+    assert "continue" in data["next_action"].lower()
+
+
 def test_next_no_work_clears_claim_when_task_disappears(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)

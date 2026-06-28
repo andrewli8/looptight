@@ -452,6 +452,7 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
 
     coordinator = Coordinator.open(workdir)
     claimed_task = None
+    claimed_goal = ""
     active_claims = 0
     coordinator_counts: dict[str, object] | None = None
     if coordinator is not None:
@@ -462,6 +463,10 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
             key: snapshot[key]
             for key in ("queued_tasks", "queued_integrations", "pending_publications")
         }
+        if claimed_task:
+            # Name the claim by what it is, not its opaque fingerprint: pull the goal from the lease.
+            lease = coordinator.active_lease_for_owner(owner_id(workdir))
+            claimed_goal = str(lease.payload.get("goal") or "") if lease else ""
         coordinator.close()
     else:
         private_dir = claim_dir(workdir)
@@ -477,7 +482,11 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
     elif workspace == "dirty":
         action = "review changes and run `looptight verify --json`"
     elif claimed_task:
-        action = f"continue claimed task {claimed_task}"
+        action = (
+            f"continue your claimed task: {claimed_goal}"
+            if claimed_goal
+            else f"continue claimed task {claimed_task}"
+        )
     elif active_goal is not None:
         action = "run `looptight goal next` (a build goal is active)"
     else:
