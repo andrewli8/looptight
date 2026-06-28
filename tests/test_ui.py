@@ -47,6 +47,12 @@ def test_do_get_rejects_a_non_loopback_host(tmp_path):
     assert errors["code"] == 403
 
 
+def test_task_node_surfaces_source_provenance():
+    # The swarm writes a `source` per task (todo/lint/status-next/...); the graph should show
+    # that provenance as the task node's detail, not the opaque internal id.
+    assert "t.source?`source" in ui.PAGE
+
+
 def test_summarize_is_a_coherent_task_centric_partition():
     # The tally's four cells must describe ONE population: total = tasks, with
     # active/attention/complete as subsets of those tasks. A worker's status must not
