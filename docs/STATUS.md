@@ -1356,6 +1356,16 @@ existing CLI session and makes no model or API calls of its own.
   dir the state path is under the Git common dir and named `STATE_FILE` (not the outside-Git
   `.looptight` fallback). No production change.
 
+## Next
+
+1. `plan_next_tasks`'s plan-verify-failure branch is untested.
+   Evidence: src/looptight/swarm.py:570-574 — after a valid grounded plan, the planner runs the
+   verify command in the planner worktree and returns `PlanningResult("failed", "planner verify:
+   ...")` if it fails, so a plan that breaks the build is rejected. Untested.
+   Acceptance: a test in tests/test_swarm.py uses the existing `PlanningAdapter` (writes a valid
+   plan) with `verify="exit 1"` and asserts `plan_next_tasks` returns `status="failed"` mentioning
+   planner verify. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
