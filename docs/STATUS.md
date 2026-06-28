@@ -1871,19 +1871,13 @@ existing CLI session and makes no model or API calls of its own.
   emitting the literal `undefined`; and the `.filter` buttons get a visible `:focus-visible`
   outline matching the nodes. Found by the accessibility audit. Covered by a semantics test.
 
-## Next
+- Card/stat/filter/node borders now meet WCAG 1.4.11: `--line` was lightened from `#405047`
+  (2.13:1 on `--panel`) to `#5a6f63` (3.37:1), and the wire arrow-marker fill tracks it. The
+  border is the sole boundary cue (fill/shadow are imperceptible), so low-vision users can now
+  perceive where cards begin. Found by the accessibility audit. Covered by a test that computes
+  the WCAG contrast ratio from the page's hex values.
 
-1. The card/stat/filter/node border color `--line:#405047` (`src/looptight/ui.py:329`) computes to
-   2.13:1 on `--panel:#101713`, below the WCAG 1.4.11 3:1 threshold for UI component boundaries —
-   and the a11y audit verified the border is the SOLE boundary cue (panel-vs-body fill is 1.06:1
-   and the drop-shadow is darker than the body, both invisible). Low-vision users can't perceive
-   where cards/tiles begin. Lighten `--line` to clear 3:1 (e.g. `#5a6f63` ≈ 3.37:1) and update the
-   matching hardcoded arrow-marker fill `#405047` (`src/looptight/ui.py:340`) so the wire arrowhead
-   stays consistent.
-   Evidence: src/looptight/ui.py:329
-   Acceptance: a new test in tests/test_ui.py computes the WCAG contrast ratio of `--line` on
-   `--panel` from the page's hex values and asserts it is >= 3.0, and asserts the arrow-marker fill
-   matches `--line`.
+## Next
 
 ## Rules
 

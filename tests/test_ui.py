@@ -317,6 +317,31 @@ def test_page_filter_groups_match_the_python_status_groups():
     assert parsed == {k: set(v) for k, v in ui._STATUS_GROUPS.items()}
 
 
+def test_card_border_meets_non_text_contrast():
+    # The --line border is the sole boundary cue for cards/stats/filters/nodes (the panel fill and
+    # shadow are imperceptible), so it must meet WCAG 1.4.11 (3:1) against --panel. Compute it.
+    import re
+
+    page = ui.PAGE
+
+    def rgb(name):
+        h = re.search(rf"--{name}:(#[0-9a-fA-F]{{6}})", page).group(1)[1:]
+        return tuple(int(h[i : i + 2], 16) for i in (0, 2, 4))
+
+    def lum(c):
+        chan = [(x / 255) for x in c]
+        chan = [v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4 for v in chan]
+        return 0.2126 * chan[0] + 0.7152 * chan[1] + 0.0722 * chan[2]
+
+    line_l, panel_l = lum(rgb("line")), lum(rgb("panel"))
+    hi, lo = max(line_l, panel_l), min(line_l, panel_l)
+    ratio = (hi + 0.05) / (lo + 0.05)
+    assert ratio >= 3.0, f"--line on --panel is {ratio:.2f}:1, below WCAG 1.4.11 3:1"
+    # the hardcoded wire-arrow fill must track --line so the arrowhead stays consistent
+    line_hex = re.search(r"--line:(#[0-9a-fA-F]{6})", page).group(1)
+    assert f'fill="{line_hex}"' in page
+
+
 def test_tally_total_cell_is_neutral_not_the_active_color():
     # The four tally cells are a legend: total=neutral, active=acid, attention=red, complete=cyan.
     # total (no class) must NOT default to the acid border that marks active, or it reads as one.
