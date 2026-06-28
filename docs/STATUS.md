@@ -1414,6 +1414,17 @@ existing CLI session and makes no model or API calls of its own.
   planner's `merge --no-commit` fails and asserts `plan_next_tasks` returns `status="failed"`
   carrying the conflict error, never leaving a half-merged tree. No production change.
 
+## Next
+
+1. The swarm worker git-commit-failure path is untested.
+   Evidence: src/looptight/swarm.py:355-358 — if a worker's `git commit` of its in-scope changes
+   fails, `_run_worker` marks the worker `failed` rather than integrating an uncommitted change.
+   Untested.
+   Acceptance: a test in tests/test_swarm.py wraps `_git` so the worker's `commit` (message prefixed
+   `looptight:`) fails and asserts the worker's status is `failed` with the commit error. No
+   production change.
+
+## Rules
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
