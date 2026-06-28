@@ -950,6 +950,40 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `claim_dir`'s `OSError` branch at `claims.py:54` is untested: when `subprocess.run`
+   raises `OSError` (e.g., git not on PATH), the function returns `None`, but no test
+   exercises this path — a regression widening the except to swallow more would go
+   undetected.
+   Evidence: src/looptight/claims.py:54;
+   Acceptance: a new test monkeypatches `claims.subprocess.run` to raise `OSError` and
+   asserts `claim_dir(tmp_path)` returns `None` without propagating the exception.
+
+2. `_not_ignored`'s `ValueError` branch at `discovery.py:98` is untested: when a path
+   in the input list cannot be made relative to `root` (e.g., the path is on a different
+   drive or outside the root), `_not_ignored` returns the original list unchanged, but
+   no test exercises this fallback.
+   Evidence: src/looptight/discovery.py:98;
+   Acceptance: a new test calls `_not_ignored(root, [Path("/other/abs/file.py")])` where
+   `/other/abs/file.py` is not under `root` and asserts the return value equals the
+   input list (all paths pass through).
+
+3. `_rel`'s `ValueError` branch at `discovery.py:176` is untested: when `path.relative_to(root)`
+   raises `ValueError` (path outside root), `_rel` returns the absolute string form, but
+   this fallback path has no direct test.
+   Evidence: src/looptight/discovery.py:176;
+   Acceptance: a new test calls `_rel(Path("/a"), Path("/b/c.py"))` and asserts the
+   result equals `"/b/c.py"` (the absolute path string, not relative).
+
+4. `verify.py`'s `OSError` branch at `verify.py:90` is untested by a true `OSError`
+   injection: the existing test covers shell exit 127 (binary not found on PATH), but
+   the `except OSError` clause (e.g., a `PermissionError` on the binary) is never
+   reached through monkeypatching — a regression narrowing the except would go
+   undetected.
+   Evidence: src/looptight/verify.py:90;
+   Acceptance: a new test monkeypatches `subprocess.Popen` to raise `OSError` and
+   asserts `run_verify(...)` returns a `VerifyResult` with `error="launch_error"` and
+   `exit_code==127`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
