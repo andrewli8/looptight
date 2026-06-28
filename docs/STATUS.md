@@ -1315,13 +1315,10 @@ existing CLI session and makes no model or API calls of its own.
   `install-hook --project` (isolated to cwd/.claude, never the user's real settings) and asserts
   "installed", then "already installed", then `--uninstall` "removed", each exit 0. No production change.
 
-## Next
-
-1. `cmd_statusline`'s never-break-the-editor fallback is untested.
-   Evidence: src/looptight/commands.py:557-560 — `statusline` prints "looptight: idle" if
-   anything raises while rendering, so a status line never breaks the host editor. Untested.
-   Acceptance: a test in tests/test_cli.py feeds `{}` on stdin, monkeypatches `read_state` to
-   raise, and asserts `statusline` exits 0 printing "looptight: idle". No production change.
+- `cmd_statusline`'s never-break-the-editor fallback is covered:
+  `test_statusline_command_falls_back_to_idle_on_error` in test_cli.py feeds `{}` on stdin,
+  monkeypatches `read_state` to raise, and asserts `statusline` exits 0 printing "looptight: idle".
+  No production change.
 
 ## Rules
 

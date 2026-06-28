@@ -1922,6 +1922,20 @@ def test_daemon_cli_paths_do_not_require_agent_on_path(tmp_path, monkeypatch):
     assert main(["daemon", "--headless", "--verify", "true"]) == 2
 
 
+def test_statusline_command_falls_back_to_idle_on_error(monkeypatch, capsys):
+    # A status line must never break the host editor: if rendering raises, print idle.
+    import io
+
+    monkeypatch.setattr("sys.stdin", io.StringIO("{}"))
+
+    def boom(repo):
+        raise RuntimeError("state read blew up")
+
+    monkeypatch.setattr("looptight.commands.read_state", boom)
+    assert main(["statusline"]) == 0
+    assert "looptight: idle" in capsys.readouterr().out
+
+
 def test_install_hook_command_install_already_and_uninstall(tmp_path, monkeypatch, capsys):
     # Drive install-hook against the PROJECT settings (cwd/.claude), never the user's real
     # ~/.claude, exercising the install, already-installed, and uninstall output paths.
