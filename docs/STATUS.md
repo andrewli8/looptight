@@ -1132,17 +1132,10 @@ existing CLI session and makes no model or API calls of its own.
   supported agent CLI" — the lone remediation branch the status integration tests do not
   reach. No production change.
 
-## Next
-
-1. Module-level `pytestmark = pytest.mark.skip` skip detection is untested.
-   Evidence: src/looptight/discovery.py:327-328 (`_is_skip_line` matches a
-   `name = pytest.mark.(skip|skipif|xfail)` assignment) detects the idiomatic
-   whole-module skip `pytestmark = pytest.mark.skip(reason=...)`, but no test covers it,
-   though the decorator/imperative skip forms are tested. Verified surfaced: a module with
-   that line yields one skipped-test candidate.
-   Acceptance: a test in tests/test_propose.py writes a test file with a module-level
-   `pytestmark = pytest.mark.skip(reason="...")` and asserts `from_skipped_tests` surfaces
-   one candidate; a `skipif` env-gated assignment stays suppressed. No production change.
+- Module-level `pytestmark = pytest.mark.skip` skip detection is covered:
+  `test_module_level_pytestmark_skip_is_surfaced` in test_propose.py asserts the
+  whole-module skip assignment form is surfaced as one candidate, while an env-gated
+  `skipif` assignment stays suppressed as intentional infrastructure. No production change.
 
 ## Rules
 

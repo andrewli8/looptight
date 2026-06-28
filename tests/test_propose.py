@@ -270,6 +270,32 @@ def test_from_todos_skips_malformed_python_file(tmp_path):
     assert from_todos(tmp_path) == []
 
 
+def test_module_level_pytestmark_skip_is_surfaced(tmp_path):
+    # `pytestmark = pytest.mark.skip(...)` skips a whole test module, so the assignment
+    # form is detected like the decorator form. An env-gated skipif assignment stays
+    # suppressed as intentional infrastructure.
+    from looptight.discovery import from_skipped_tests
+
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_mod.py").write_text(
+        'import pytest\npytestmark = pytest.mark.skip(reason="whole module disabled")\n\n'
+        "def test_x():\n    assert True\n"
+    )
+    candidates = from_skipped_tests(tmp_path)
+    assert len(candidates) == 1
+    assert candidates[0].location == "tests/test_mod.py:2"
+
+    # An env-gated skipif assignment is intentional infrastructure, not rot → suppressed.
+    (tests / "test_env.py").write_text(
+        'import os, pytest\n'
+        'pytestmark = pytest.mark.skipif(not os.environ.get("RUN_IT"), reason="opt-in")\n\n'
+        "def test_y():\n    assert True\n"
+    )
+    locations = {c.location for c in from_skipped_tests(tmp_path)}
+    assert "tests/test_env.py:2" not in locations
+
+
 def test_skip_discovery_tolerates_bad_files(tmp_path):
     # The skip-discovery boundary guards must never crash the loop on bad repo content:
     # `_multiline_string_lines` on a malformed Python file and `_js_comments` on an
