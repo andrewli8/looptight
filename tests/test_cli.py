@@ -834,6 +834,36 @@ def test_same_worktree_run_ids_claim_distinct_tasks_and_status_tracks_owner(
     assert status["active_claims"] == 2
 
 
+def test_status_human_does_not_print_claimed_directive_twice(tmp_path, monkeypatch, capsys):
+    # With a live claim the human status printed the full multi-sentence directive twice: once on
+    # `next: continue your claimed task: <directive>` and again on the `session:` panel line. The
+    # panel carries the directive (like the goal line in goal mode), so the human next: line stays
+    # terse. The JSON next_action keeps the full directive for machines.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "true"\n', encoding="utf-8")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# TODO: handle the empty input case\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "i"], check=True
+    )
+    monkeypatch.setenv("LOOPTIGHT_RUN_ID", "run-z")
+    assert main(["next", "--json"]) == 0
+    capsys.readouterr()
+
+    assert main(["status"]) == 0
+    out = capsys.readouterr().out
+    next_line = [ln for ln in out.splitlines() if ln.startswith("next:")][0]
+    session_line = [ln for ln in out.splitlines() if ln.startswith("session:")][0]
+    assert "continue your claimed task" in next_line
+    assert "empty input" not in next_line  # the directive is not repeated on the next: line
+    assert "empty input" in session_line  # the panel carries it once
+
+    assert main(["status", "--json"]) == 0
+    assert "empty input" in json.loads(capsys.readouterr().out)["next_action"]  # JSON unchanged
+
+
 def test_status_next_action_names_the_claimed_task_goal(tmp_path, monkeypatch, capsys):
     # status should say what you're working on, not the opaque claim fingerprint.
     monkeypatch.chdir(tmp_path)

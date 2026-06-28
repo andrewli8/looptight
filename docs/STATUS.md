@@ -2010,6 +2010,13 @@ existing CLI session and makes no model or API calls of its own.
   so a prose title flowing into a path no longer reads ambiguously at the boundary. Found by
   dogfooding `propose` over real TODO/FIXME markers. Covered by a separator test.
 
+- Human `status` with a live claim no longer prints the full multi-sentence task directive
+  twice (once on `next: continue your claimed task: <directive>` and again on the `session:`
+  panel). The panel carries the directive — like the goal line in goal mode — so the human
+  `next:` line stays terse (`continue your claimed task`); the JSON `next_action` keeps the
+  full directive for machines. Found by dogfooding `status` with a claimed session task.
+  Covered by a no-double-print test.
+
 ## Next
 
 ## Rules

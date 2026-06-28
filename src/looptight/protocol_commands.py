@@ -667,7 +667,15 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         # In goal mode the dedicated goal line above already names the vision, so drop the
         # redundant "(building: <vision>)" annotation from the human next: line. The action
         # string (and the JSON next_action contract) keeps the vision for opaque-id-free machines.
-        human_action = action.split(" (building:", 1)[0] if active_goal is not None else action
+        if active_goal is not None:
+            human_action = action.split(" (building:", 1)[0]
+        elif claimed_task and claimed_goal:
+            # The session panel below carries the full directive (like the goal line in goal mode),
+            # so keep the human next: line terse instead of printing the multi-sentence directive
+            # twice. The JSON next_action keeps the full action for opaque-id-free machines.
+            human_action = "continue your claimed task"
+        else:
+            human_action = action
         console.print(f"next: {human_action}")
         # The dedicated goal line above is the single source in goal mode; the overlay panel
         # would just repeat the vision, so render it only for swarm/session loops.
