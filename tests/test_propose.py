@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import shutil
+import subprocess
+from unittest.mock import patch
 
 from looptight.discovery import (
     Candidate,
@@ -1429,3 +1431,24 @@ def test_from_todos_ignores_marker_prefixed_compound_words(tmp_path):
     assert any("fix this" in t for t in titles)  # marker + space kept
     assert not any("style naming" in t for t in titles)  # compound-word prose dropped
     assert not any("rendering helper" in t for t in titles)
+
+
+def test_not_ignored_git_sets_terminal_prompt_env(tmp_path):
+    # _not_ignored() in discovery.py must pass GIT_TERMINAL_PROMPT=0 so a
+    # headless git check-ignore call cannot hang waiting for a credential prompt.
+    import looptight.discovery as disc
+
+    captured_kwargs: dict = {}
+
+    def fake_run(cmd, **kwargs):
+        captured_kwargs.update(kwargs)
+        return subprocess.CompletedProcess(cmd, 1, "", "")  # returncode 1 = none ignored
+
+    path = tmp_path / "a.py"
+    path.write_text("x = 1\n", encoding="utf-8")
+
+    with patch.object(disc.subprocess, "run", fake_run):
+        disc._not_ignored(tmp_path, [path])
+
+    assert "env" in captured_kwargs, "_not_ignored must pass an explicit env"
+    assert captured_kwargs["env"].get("GIT_TERMINAL_PROMPT") == "0"

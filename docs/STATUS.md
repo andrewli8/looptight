@@ -955,6 +955,11 @@ existing CLI session and makes no model or API calls of its own.
   `test_not_ignored_falls_through_when_path_outside_root` in test_propose.py passes a
   path outside `root`, triggering `relative_to` to raise `ValueError`, and asserts
   all input paths are returned unchanged.
+- `_not_ignored` in `discovery.py` now passes `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}`
+  to its `git check-ignore` subprocess, matching every other git call in the codebase
+  (`checkpoint.py`, `integration_queue.py`, `experience.py`, `swarm.py`) so a headless run
+  cannot block on a credential prompt. Covered by
+  `test_not_ignored_git_sets_terminal_prompt_env` in test_propose.py.
 - `_rel`'s `ValueError` branch (`discovery.py:176`) is covered:
   `test_rel_returns_absolute_string_when_path_outside_root` in test_propose.py calls
   `_rel(Path("/a"), Path("/b/c.py"))` and asserts the result is `"/b/c.py"`.
@@ -1521,16 +1526,6 @@ existing CLI session and makes no model or API calls of its own.
   Covered by the extended `test_status_json_ignores_negated_marker_deselection` in test_cli.py.
 
 ## Next
-
-1. `_not_ignored` in `discovery.py` passes no `env` to its `git check-ignore` subprocess
-   (`discovery.py:101`), unlike every other git call in the codebase (`checkpoint.py:33`,
-   `integration_queue.py:69`, `experience.py:29`, `swarm.py:210`) which all set
-   `GIT_TERMINAL_PROMPT=0` so a headless run can never block on a credential prompt. Fix: add
-   `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}` to the `subprocess.run` call in
-   `_not_ignored`. Evidence: `src/looptight/discovery.py:101`
-   Acceptance: a new test in test_propose.py monkeypatches `discovery.subprocess.run` and asserts
-   the captured kwargs contain `env` with `GIT_TERMINAL_PROMPT == "0"` — sibling of
-   `test_experience_git_sets_terminal_prompt_env` in test_experience.py.
 
 ## Rules
 

@@ -102,6 +102,7 @@ def _not_ignored(root: Path, paths: list[Path]) -> list[Path]:
             ["git", "check-ignore", "--stdin"],
             input="\n".join(rels), cwd=str(root),
             capture_output=True, text=True, timeout=30,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
         )
     except (OSError, subprocess.TimeoutExpired):
         return paths
