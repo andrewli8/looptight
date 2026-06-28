@@ -60,6 +60,35 @@ def test_task_node_surfaces_source_provenance():
     assert "t.source?`source" in ui.PAGE
 
 
+def test_with_session_task_overlays_the_claim_when_no_swarm(monkeypatch, tmp_path):
+    # On the default loop the state file is empty; the view should surface the session's claimed
+    # task (manager "session", one task) instead of a bare idle screen.
+    monkeypatch.setattr(
+        ui,
+        "_active_session_task",
+        lambda root: {"id": "abc", "goal": "fix the parser", "source": "todo", "status": "claimed"},
+    )
+    state = ui._with_session_task(ui.empty_state(), tmp_path)
+    assert state["manager"]["status"] == "session"
+    assert state["tasks"][0]["goal"] == "fix the parser"
+    assert ui.summarize(state) == {"total": 1, "active": 1, "attention": 0, "complete": 0}
+
+
+def test_with_session_task_leaves_live_swarm_state_unchanged(monkeypatch, tmp_path):
+    # A running swarm publishes real state; the session overlay must not clobber it.
+    monkeypatch.setattr(
+        ui, "_active_session_task", lambda root: {"id": "x", "goal": "y", "source": "", "status": "claimed"}
+    )
+    swarm = {**ui.empty_state(), "tasks": [{"id": "w1", "goal": "swarm task", "status": "running"}]}
+    state = ui._with_session_task(swarm, tmp_path)
+    assert state["tasks"][0]["goal"] == "swarm task"  # unchanged; no overlay
+
+
+def test_with_session_task_idle_when_no_claim(monkeypatch, tmp_path):
+    monkeypatch.setattr(ui, "_active_session_task", lambda root: None)
+    assert ui._with_session_task(ui.empty_state(), tmp_path) == ui.empty_state()
+
+
 def test_summarize_is_a_coherent_task_centric_partition():
     # The tally's four cells must describe ONE population: total = tasks, with
     # active/attention/complete as subsets of those tasks. A worker's status must not

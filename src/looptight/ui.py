@@ -119,6 +119,51 @@ def statusline(state: dict[str, object]) -> str:
     return "looptight: " + " · ".join(f"{counts[s]} {s}" for s in ordered)
 
 
+def _active_session_task(root: Path) -> dict[str, object] | None:
+    """The task this worktree's session currently holds, as a UI task record, or None.
+
+    Read-only: opens the coordinator, reads the owner's live lease, and degrades to None on any
+    error. Lets the view show the session-native loop's claimed task instead of a bare "idle".
+    """
+    try:
+        from .claims import owner_id
+        from .coordinator import Coordinator
+
+        coordinator = Coordinator.open(root)
+        if coordinator is None:
+            return None
+        try:
+            lease = coordinator.active_lease_for_owner(owner_id(root))
+        finally:
+            coordinator.close()
+    except Exception:
+        return None
+    if lease is None:
+        return None
+    payload = lease.payload
+    return {
+        "id": str(payload.get("id") or lease.task_id),
+        "goal": str(payload.get("goal") or ""),
+        "source": str(payload.get("source") or ""),
+        "status": "claimed",  # in the `active` group, so it tallies and colors like live work
+    }
+
+
+def _with_session_task(state: dict[str, object], root: Path) -> dict[str, object]:
+    """Overlay the session-native claimed task when no swarm state is live.
+
+    When the published state has tasks or workers (a swarm/daemon is running) the state is
+    returned unchanged. Otherwise, if the session holds a claim, surface it as a single task so
+    `looptight ui` represents the default loop instead of showing a misleading idle screen.
+    """
+    if (state.get("tasks") or []) or (state.get("workers") or []):
+        return state
+    task = _active_session_task(root)
+    if task is None:
+        return state
+    return {**state, "manager": {"status": "session"}, "tasks": [task], "workers": []}
+
+
 #: The status groups the page filters and tallies by, kept here so the server-computed
 #: summary and the client's filter use one definition.
 _STATUS_GROUPS = {
@@ -257,7 +302,7 @@ def _handler(root: Path) -> type[BaseHTTPRequestHandler]:
                 body = PAGE.encode()
                 content_type = "text/html; charset=utf-8"
             elif self.path == "/api/state":
-                state = read_state(root)
+                state = _with_session_task(read_state(root), root)
                 payload = {**state, "summary": summarize(state)}
                 body = json.dumps(payload, sort_keys=True).encode()
                 content_type = "application/json"

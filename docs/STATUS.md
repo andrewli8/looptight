@@ -1642,23 +1642,15 @@ existing CLI session and makes no model or API calls of its own.
   through the grounded backlog, honest stop at NO_WORK) and links to the usage.md section, so the
   capability appears on the project front page like the other modes. Locked by a test_docs assertion.
 
-## Next
+- `looptight ui` now represents the default session-native loop, not just the swarm: when no
+  swarm state is published, the `/api/state` handler overlays the owner's active coordinator
+  claim (`_with_session_task` → `active_lease_for_owner`) as a single `claimed` task with
+  manager status "session", so the page shows what you're working on instead of a misleading
+  "idle". A live swarm state is left untouched; any coordinator error degrades to idle. Read-side
+  only — the session-native path is unchanged. Verified live; covered by overlay/no-overlay/idle
+  unit tests.
 
-1. `looptight ui` shows a misleading "idle" during the default session-native loop.
-   Evidence: src/looptight/ui.py render() shows the idle guide whenever the published state has no
-   tasks or workers, and src/looptight/swarm.py (`_publish_state`) is the only writer of that state —
-   so the default `next`/`verify` session loop leaves the file empty and the page reads "idle" even
-   while you actively hold a claimed task. The claim is already
-   in the coordinator (reachable via the `active_lease_for_owner` added for the drift directive).
-   Fix (read-side only, no change to the session-native path): in the `/api/state` handler, when the
-   published state has no tasks and no workers, overlay the owner's active claim as a single task
-   node (manager status "session", the claimed task with its goal/source, status "claimed" — which
-   the existing `active` group already covers). Any coordinator error degrades to the current idle
-   view. Evidence: src/looptight/coordinator.py `active_lease_for_owner`, src/looptight/claims.py:64
-   (`owner_id`).
-   Acceptance: a `test_ui.py` test asserts `_with_session_task(empty_state(), root)` (with a stubbed
-   active claim) yields `manager.status == "session"` and the claimed task in `tasks`, that
-   `summarize` counts it as 1 active, and that a live swarm state is left unchanged (no overlay).
+## Next
 
 ## Rules
 
