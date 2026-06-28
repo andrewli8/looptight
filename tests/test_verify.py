@@ -183,3 +183,21 @@ def test_context_output_passthrough_and_truncation_marker():
 def test_short_includes_score_when_present():
     assert VerifyResult(passed=True, exit_code=0, score=0.85).short() == "PASS (score 0.85)"
     assert VerifyResult(passed=False, exit_code=1, score=0.0).short() == "FAIL (score 0)"
+
+
+def test_popen_oserror_is_launch_error(tmp_path, monkeypatch):
+    # The except OSError branch at verify.py:90 catches OS-level launch failures
+    # (e.g. PermissionError) that the shell-127 path never exercises.  Injecting
+    # OSError directly into Popen proves the branch returns error="launch_error"
+    # with exit_code 127 instead of propagating the exception.
+    import looptight.verify as verify_mod
+
+    monkeypatch.setattr(
+        verify_mod.subprocess,
+        "Popen",
+        lambda *a, **kw: (_ for _ in ()).throw(OSError("permission denied")),
+    )
+    result = run_verify("pytest -q", tmp_path)
+    assert result.error == "launch_error"
+    assert result.exit_code == 127
+    assert not result.passed

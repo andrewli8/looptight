@@ -958,18 +958,12 @@ existing CLI session and makes no model or API calls of its own.
 - `_rel`'s `ValueError` branch (`discovery.py:176`) is covered:
   `test_rel_returns_absolute_string_when_path_outside_root` in test_propose.py calls
   `_rel(Path("/a"), Path("/b/c.py"))` and asserts the result is `"/b/c.py"`.
+- `verify.py`'s `except OSError` branch (`verify.py:90`) is covered by a true
+  `OSError` injection: `test_popen_oserror_is_launch_error` in test_verify.py
+  monkeypatches `subprocess.Popen` to raise `OSError` and asserts `error="launch_error"`
+  with `exit_code==127` — distinct from the shell-127 path.
 
 ## Next
-
-1. `verify.py`'s `OSError` branch at `verify.py:90` is untested by a true `OSError`
-   injection: the existing test covers shell exit 127 (binary not found on PATH), but
-   the `except OSError` clause (e.g., a `PermissionError` on the binary) is never
-   reached through monkeypatching — a regression narrowing the except would go
-   undetected.
-   Evidence: src/looptight/verify.py:90;
-   Acceptance: a new test monkeypatches `subprocess.Popen` to raise `OSError` and
-   asserts `run_verify(...)` returns a `VerifyResult` with `error="launch_error"` and
-   `exit_code==127`.
 
 ## Rules
 
