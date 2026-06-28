@@ -2395,6 +2395,25 @@ def test_status_human_output_shows_idea_quality_line(tmp_path, monkeypatch, caps
     assert "idea quality" in out and "groundedness" in out
 
 
+def test_status_names_an_active_goals_vision(tmp_path, monkeypatch, capsys):
+    # In goal mode, status should name the vision (like it names a claimed task), not just say
+    # "a build goal is active".
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "true"\n', encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "i"], check=True
+    )
+    assert main(["goal", "ship the awwwards landing page"]) == 0
+    capsys.readouterr()
+
+    assert main(["status", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert "goal next" in data["next_action"]
+    assert "awwwards landing page" in data["next_action"]  # names the vision
+
+
 def test_propose_source_filter_respects_limit_after_filtering(tmp_path, monkeypatch, capsys):
     # `--source X --limit N` should show up to N of source X, not only the X items that
     # survive the overall top-N ranking cut.

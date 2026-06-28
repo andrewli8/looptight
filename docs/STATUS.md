@@ -1697,17 +1697,12 @@ existing CLI session and makes no model or API calls of its own.
   read-only (reuses `read_goal`), degrades to idle on any error. Verified live; covered by
   `_active_goal_view`, overlay-precedence, and page tests.
 
-## Next
+- `looptight status` names an active goal by its vision: the next-action reads "run `looptight
+  goal next` (building: <vision>)" (truncated) instead of the generic "a build goal is active",
+  reusing the goal it already reads. Completes the show-the-goal thread across status / statusline
+  / ui for all three loop modes (claimed task, swarm worker, goal vision). Covered by a CLI test.
 
-1. `looptight status` names an active goal generically, not by its vision.
-   Evidence: src/looptight/protocol_commands.py:498 sets the next-action to "run `looptight goal
-   next` (a build goal is active)" when `active_goal` is set — but it already holds the goal
-   (`active_goal = read_goal(workdir)`, line ~473), so it could name the vision, the same
-   show-the-goal treatment now applied to the claimed task and the ui. Fix: include the vision in the
-   action (e.g. "run `looptight goal next` (building: <vision>)", truncated), completing the
-   show-the-goal thread across status/statusline/ui for all three loop modes.
-   Acceptance: a `test_cli.py` test with an active goal asserts `status --json`'s `next_action`
-   contains both `goal next` and the goal's vision text.
+## Next
 
 ## Rules
 

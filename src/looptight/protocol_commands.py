@@ -495,7 +495,13 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
             else f"continue claimed task {claimed_task}"
         )
     elif active_goal is not None:
-        action = "run `looptight goal next` (a build goal is active)"
+        vision = active_goal.vision.strip()
+        short = (vision[:60] + "…") if len(vision) > 60 else vision
+        action = (
+            f"run `looptight goal next` (building: {short})"
+            if short
+            else "run `looptight goal next` (a build goal is active)"
+        )
     else:
         action = "run `looptight next --json`"
 
