@@ -1847,6 +1847,18 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The terminal status panel is printed via `console.print` (`src/looptight/protocol_commands.py:655`
+   and `:453`), which strips Rich-style markup tokens (`[red]`/`[dim]`/…) from the WHOLE line — but
+   the panel is already-rendered plain text carrying user content (worker errors, goals), so an
+   error containing such a token is silently eaten (`tool said [red] then died` → `tool said  then
+   died`). The panel has no looptight markup of its own. Add a `Console.write(text)` primitive that
+   prints rendered content verbatim (no markup stripping) and use it for the panel at both sites.
+   This protects the realistic carrier (error/goal text); the markup-template paths are unchanged.
+   Evidence: src/looptight/protocol_commands.py:655
+   Acceptance: a new test runs `status` over a swarm state whose worker error contains `[red]` and
+   asserts the token survives in the output; a `Console.write` unit check prints verbatim without
+   stripping.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
