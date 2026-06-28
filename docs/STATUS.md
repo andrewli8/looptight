@@ -1371,14 +1371,10 @@ existing CLI session and makes no model or API calls of its own.
   to return a result with rounds/plans and runs `swarm --headless --continuous`, asserting the
   "continuous · N rounds · M plans" summary is printed. No production change.
 
-## Next
-
-1. `run_continuous_swarm`'s max-rounds-with-no-work exit is untested.
-   Evidence: src/looptight/swarm.py:769-770 — when a round finds no work and `max_rounds` is
-   reached, the continuous swarm returns rather than planning. Untested.
-   Acceptance: a test in tests/test_swarm.py runs `run_continuous_swarm` with `max_rounds=1` in a
-   repo with all tasks already done and asserts it returns after the single empty round
-   (`rounds == 1`). No production change.
+- `run_continuous_swarm`'s max-rounds-with-no-work exit is covered:
+  `test_continuous_swarm_returns_at_max_rounds_with_no_work` in test_swarm.py runs it with
+  `max_rounds=1` in a repo with all tasks done and asserts it returns after the single empty round
+  (`rounds == 1`) rather than planning. No production change.
 
 ## Rules
 

@@ -943,6 +943,23 @@ def test_planner_accepts_provider_committed_status_change(tmp_path, monkeypatch)
     assert "Cover the source task" in (tmp_path / "docs" / "STATUS.md").read_text()
 
 
+def test_continuous_swarm_returns_at_max_rounds_with_no_work(tmp_path, monkeypatch):
+    # All tasks already done: with max_rounds=1 the continuous swarm returns after the single
+    # empty round rather than planning.
+    _repo(tmp_path)
+    (tmp_path / "src" / "a.py").write_text("# done\n", encoding="utf-8")
+    (tmp_path / "src" / "b.py").write_text("# done\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "done")
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+
+    result = run_continuous_swarm(
+        tmp_path, agent="fake", config=Config(verify="exit 0"), workers=1, max_rounds=1
+    )
+
+    assert result.rounds == 1
+
+
 def test_continuous_swarm_replans_and_repeats_rounds(tmp_path, monkeypatch):
     worker = Worker(
         1,
