@@ -1114,15 +1114,11 @@ existing CLI session and makes no model or API calls of its own.
   with no goal set and asserts exit 0 with "no active goal" in the output, so a user who
   runs `goal next` before setting a goal is still guided to set one. No production change.
 
-## Next
-
-1. `coordinator_path`'s git-not-installed (OSError) fallback is untested.
-   Evidence: src/looptight/coordinator.py:280-281 (`except OSError: return None`) makes the
-   coordinator gracefully unavailable when `git` is not on PATH, so the loop falls back
-   rather than crashing. The not-a-repo path (returncode != 0) is covered
-   (`test_coordinator_path_is_none_outside_git`) but the OSError path is not.
-   Acceptance: a test in tests/test_coordinator.py monkeypatches `coordinator.subprocess.run`
-   to raise `OSError` and asserts `coordinator_path(tmp_path)` is `None`. No production change.
+- `coordinator_path`'s git-not-installed (OSError) fallback is covered:
+  `test_coordinator_path_is_none_when_git_is_not_installed` in test_coordinator.py
+  monkeypatches `subprocess.run` to raise `OSError` and asserts `coordinator_path` returns
+  `None`, so the coordinator is gracefully unavailable (the loop falls back to file claims)
+  when git is not on PATH — distinct from the covered not-a-repo path. No production change.
 
 ## Rules
 

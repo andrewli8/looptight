@@ -54,6 +54,21 @@ def test_coordinator_path_is_none_outside_git(tmp_path):
     assert Coordinator.open(tmp_path) is None
 
 
+def test_coordinator_path_is_none_when_git_is_not_installed(tmp_path, monkeypatch):
+    # git not on PATH (OSError on spawn) must make the coordinator gracefully
+    # unavailable — the loop falls back to file claims rather than crashing. Distinct
+    # from the not-a-repo path (git present, returncode != 0).
+    import looptight.coordinator as coord_mod
+
+    repo = _repo(tmp_path / "repo")  # build the repo first, before git "disappears"
+
+    def raise_oserror(*args, **kwargs):
+        raise OSError("git not found")
+
+    monkeypatch.setattr(coord_mod.subprocess, "run", raise_oserror)
+    assert coordinator_path(repo) is None
+
+
 def test_schema_rejects_duplicate_task_fingerprints(tmp_path):
     coordinator = Coordinator.open(_repo(tmp_path / "repo"))
     assert coordinator is not None
