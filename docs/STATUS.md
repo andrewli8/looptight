@@ -1076,18 +1076,11 @@ existing CLI session and makes no model or API calls of its own.
   `test_claim_still_completes_a_same_owner_out_of_set_task` in test_coordinator.py;
   backward compatible (existing owner-less coordinator tests unchanged).
 
-## Next
-
-1. The CHANGELOG `[Unreleased]` still says the solo loop "runs on file claims".
-   Evidence: CHANGELOG.md `[Unreleased] → Changed` ("A solo loop runs on file claims,
-   so doctor now reports setup: ready ... even when the coordinator is inactive") vs
-   src/looptight/tasks.py:161-177 (the coordinator is the claim store in any Git repo)
-   and the corrected docs/usage.md / docs/architecture.md (Fix-B model). Same stale
-   mental model just fixed in usage.md, still present in the CHANGELOG.
-   Acceptance: rewrite that `[Unreleased]` entry so it does not claim the solo loop runs
-   on file claims (the readiness change stands: the coordinator is no longer a readiness
-   *requirement*, but it is the store); a test_docs.py assertion that the CHANGELOG
-   `[Unreleased]` block does not contain "runs on file claims".
+- The CHANGELOG `[Unreleased]` no longer carries the stale "solo loop runs on file
+  claims" model: the readiness-change entry now states the coordinator is the claim
+  store in any Git repo whether or not `migrate` has run (which fences legacy file
+  claims), matching tasks.py and the corrected usage.md/architecture.md. Locked by
+  `test_changelog_unreleased_does_not_claim_solo_loop_runs_on_file_claims` in test_docs.py.
 
 ## Rules
 

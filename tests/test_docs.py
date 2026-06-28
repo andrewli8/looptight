@@ -172,6 +172,20 @@ def test_spec_output_contract_documents_verify_patience_stall():
     assert "stall" in output_contract
 
 
+def test_changelog_unreleased_does_not_claim_solo_loop_runs_on_file_claims():
+    # The coordinator is the claim store in any Git repo (tasks.py), per the Fix-B
+    # model now in usage.md/architecture.md. The CHANGELOG [Unreleased] must not carry
+    # the stale "runs on file claims" mental model the other docs were corrected away
+    # from, or the release notes contradict the code.
+    changelog = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    _, _, after = changelog.partition("## [Unreleased]")
+    unreleased, _, _ = after.partition("## [0.1.0]")
+    assert "runs on file claims" not in unreleased, (
+        "CHANGELOG [Unreleased] still claims the solo loop runs on file claims; the "
+        "coordinator is the store in any git repo"
+    )
+
+
 def test_unattended_doc_documents_patience_and_escalation():
     # The value-aware stopping control is off by default; the unattended guide must
     # document --patience and what the escalation report surfaces, or the feature

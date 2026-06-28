@@ -31,11 +31,11 @@ All notable changes to looptight are recorded here. The format follows
 - The human `next` output is now goal-aware: when a build goal is active it notes
   that `looptight goal next` drives the goal and `next` runs evidence discovery,
   matching `status`'s goal-awareness. `next --json` is unchanged.
-- The coordinator is no longer a readiness requirement. A solo loop runs on file
-  claims, so `doctor` now reports `setup: ready` and `readiness: ready` for a
-  repo with verify + git + agent + a task source even when the coordinator is
-  inactive; `migrate` is offered as an optional hint (cross-session sharing)
-  rather than a blocking `setup next`. The coordinator is still a reported check.
+- The coordinator is no longer a readiness requirement. `doctor` reports
+  `setup: ready` and `readiness: ready` for a repo with verify + git + agent + a
+  task source; `migrate` is offered as an optional hint (it fences legacy file
+  claims) rather than a blocking `setup next`. The coordinator is the claim store
+  in any Git repo whether or not `migrate` has run, so it is still a reported check.
 - `status` is goal-aware: it points at `goal next`, surfaces the active goal, and
   reports the generated queue's groundedness as a self-improvement signal.
 - `next` and `propose` human output guide a new contributor through implement →
