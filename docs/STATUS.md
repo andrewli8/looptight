@@ -1218,16 +1218,11 @@ existing CLI session and makes no model or API calls of its own.
   return `None`, so idempotent crash recovery does not blow up on a transient git error. No
   production change.
 
-## Next
-
-1. `cmd_verify`'s config-error and policy-error human/JSON output branches are untested.
-   Evidence: src/looptight/protocol_commands.py:27-32 (`verify` reports a `ConfigError` from a
-   malformed `.looptight.toml` as a config error, json and human) and :44-45 (the policy-error
-   human output `policy error: ...`). The policy-error JSON path is tested, but the verify
-   config-error path and the policy-error human path are not.
-   Acceptance: tests in tests/test_cli.py run `verify` (and `verify --json`) with a malformed
-   config and assert a config error with exit 2, and `verify` (human) with a protected-path
-   change and assert "policy error:" with exit 2. No production change.
+- `cmd_verify`'s config-error and policy-error output branches are covered:
+  `test_verify_reports_config_and_policy_errors` in test_cli.py asserts `verify` (human and
+  `--json`) reports a config error on a malformed `.looptight.toml` (exit 2) and a "policy
+  error:" on a protected-path change (exit 2) — the verify config-error path and the
+  policy-error human path that the JSON-only policy tests did not reach. No production change.
 
 ## Rules
 

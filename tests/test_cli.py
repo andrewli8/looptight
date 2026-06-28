@@ -754,6 +754,26 @@ def test_status_readiness_reports_ready_repo(tmp_path, monkeypatch, capsys):
     }
 
 
+def test_verify_reports_config_and_policy_errors(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+
+    # A malformed config makes `verify` report a config error and exit 2 (human + json).
+    (tmp_path / ".looptight.toml").write_text('verify = ["bad"]\n', encoding="utf-8")
+    assert main(["verify"]) == 2
+    assert "config error:" in capsys.readouterr().out
+    assert main(["verify", "--json"]) == 2
+    assert json.loads(capsys.readouterr().out)["status"] == "error"
+
+    # A protected-path change makes `verify` report a policy error and exit 2 (human).
+    (tmp_path / ".looptight.toml").write_text(
+        'verify = "exit 0"\nprotected_paths = ["secret.py"]\n', encoding="utf-8"
+    )
+    (tmp_path / "secret.py").write_text("x\n", encoding="utf-8")
+    assert main(["verify"]) == 2
+    assert "policy error:" in capsys.readouterr().out
+
+
 def test_readiness_remediation_for_missing_agent():
     # When verify/git/task_sources are healthy but no agent CLI is installed, readiness
     # guidance must point the user at installing an agent — the lone remediation branch
