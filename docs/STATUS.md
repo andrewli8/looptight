@@ -1784,19 +1784,13 @@ existing CLI session and makes no model or API calls of its own.
   labelling readiness `unsafe` with no explanation. Found by dogfooding a fresh repo. Covered
   by a test_cli assertion.
 
-## Next
+- The `next` human output no longer doubles the evidence label: it prints the bare parsed
+  anchors under a single `evidence:` label (`evidence: src/m.py:1`), matching the clean
+  `acceptance:` line, instead of repeating the stored marker. Render-only via `evidence_refs`
+  with a raw fallback for ad-hoc (markerless) evidence; the stored field and the parsers are
+  untouched. Found by dogfooding `next`. Covered by a stutter test and a fallback test.
 
-1. The `next` human output stutters the evidence label, printing the marker word twice in a row
-   before the path, because the stored evidence field keeps its leading marker (required by
-   `evidence_refs`, `src/looptight/grounding.py:47`) while the renderer adds its own `evidence:`
-   label (`src/looptight/protocol_commands.py:315`). The `acceptance:` line has no such stutter.
-   Found by dogfooding `next`. Display the parsed anchors instead: when `evidence_refs` finds
-   anchors, show the joined bare paths; otherwise fall back to the raw value (ad-hoc todo/lint
-   evidence has no marker). Render-only — the stored field is unchanged so the parsers are
-   untouched.
-   Evidence: src/looptight/protocol_commands.py:315
-   Acceptance: a new test in tests/test_cli.py asserts the `next` human output shows the evidence
-   path without a duplicated label, and the ad-hoc fallback still shows its raw evidence line.
+## Next
 
 ## Rules
 

@@ -312,7 +312,12 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
         print(f"why: {result.task['source']}{where}")
         evidence = result.task.get("evidence")
         if evidence:
-            print(f"evidence: {evidence}")
+            # The stored field keeps its `Evidence:` marker for the parsers; show the bare
+            # parsed anchors so the human line reads `evidence: path`, not a doubled label.
+            from .grounding import evidence_refs
+
+            refs = evidence_refs(str(evidence))
+            print(f"evidence: {', '.join(refs) if refs else evidence}")
         acceptance = result.task.get("acceptance")
         if acceptance:
             print(f"acceptance: {acceptance}")

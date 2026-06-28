@@ -378,6 +378,38 @@ def test_doctor_human_output_shows_readiness_tier_matching_exit(tmp_path, monkey
     assert f"exit {code}" in out  # and it matches the real exit code
 
 
+def test_next_human_output_does_not_stutter_the_evidence_label(tmp_path, monkeypatch, capsys):
+    # A curated task carries its evidence marker inline; the stored field keeps the marker for
+    # the parsers, but the human line must show one label and the bare path, not the marker twice.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("def f():\n    return 1\n")
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    docs.joinpath("STATUS.md").write_text(
+        "## Next\n\n1. Harden f. Evidence: src/a.py:1; Acceptance: a test covers it.\n\n## Rules\n"
+    )
+    _commit_fixture()
+    assert main(["next"]) == 0
+    human = capsys.readouterr().out
+    assert "evidence: src/a.py:1" in human  # single label, bare path
+    assert "Evidence: src/a.py" not in human  # the marker word is not repeated after the label
+
+
+def test_next_human_output_falls_back_to_raw_evidence_without_a_marker(tmp_path, monkeypatch, capsys):
+    # Ad-hoc signals (a TODO) have no evidence marker; the evidence line still shows the raw
+    # detail so the fallback is not silently blanked.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# TODO: fix the timeout\n")
+    _commit_fixture()
+    assert main(["next"]) == 0
+    human = capsys.readouterr().out
+    assert "evidence:" in human and "fix the timeout" in human
+
+
 def test_doctor_explains_readiness_with_the_checks(tmp_path, monkeypatch, capsys):
     # The diagnostic must explain its readiness verdict, not just label it: a dirty worktree
     # should surface as a `readiness checks:` line (the same reasons `status` shows), so the
@@ -568,7 +600,8 @@ def test_next_human_explains_task_selection(tmp_path, monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "selected task:" in out
     assert "why: status-next from docs/STATUS.md" in out
-    assert "evidence: Evidence: src/thing.py:1" in out
+    assert "evidence: src/thing.py:1" in out  # single label, bare parsed path (no doubled marker)
+    assert "Evidence: src/thing.py" not in out
     assert "acceptance: a test imports thing and passes." in out
     assert "next: implement the task, run `looptight verify`, and commit only if it passes" in out
 
