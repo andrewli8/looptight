@@ -965,6 +965,16 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Cover `stop_process_tree`'s POSIX OSError fallback to `process.kill()`.
+   Evidence: src/looptight/proctree.py:37-38; the `except OSError: pass` after
+   `os.killpg` falls through to the final `process.kill()`, and that path
+   (a killpg failure that is not `ProcessLookupError`) has no test — only the
+   already-reaped `ProcessLookupError` path is covered.
+   Acceptance: a new test in tests/test_proctree.py makes `os.killpg` raise a
+   generic `OSError` (not `ProcessLookupError`) via monkeypatch and asserts
+   `stop_process_tree` then calls `process.kill()` and returns `None` without
+   raising; the test fails if the OSError fallthrough is removed.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
