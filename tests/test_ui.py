@@ -282,3 +282,19 @@ def test_ui_handler_404_for_unknown_path(tmp_path):
     handler.do_GET()
 
     assert errors == [404]
+
+
+def test_render_state_panel_truncates_goal_and_shows_error():
+    from looptight.ui import render_state_panel
+
+    state = {
+        "manager": {"status": "running"},
+        "tasks": [{"id": "t1", "goal": "x" * 100}],  # long goal → truncated
+        "workers": [
+            {"number": 1, "status": "running", "task_id": "t1"},
+            {"number": 2, "status": "failed", "task_id": "t2", "error": "boom " * 30},
+        ],
+    }
+    panel = render_state_panel(state)
+    assert "..." in panel  # the long goal is truncated
+    assert "[boom" in panel  # the worker error is shown in brackets
