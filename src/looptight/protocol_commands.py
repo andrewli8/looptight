@@ -46,6 +46,13 @@ def cmd_verify(args: argparse.Namespace, console: Console) -> int:
             console.print(f"[red]policy error:[/red] {policy_error}")
         return 2
     result = run_verify(command, workdir)
+    try:
+        # Record the verdict so `looptight ui`'s session view can show the loop's key signal.
+        from .ui import write_verdict
+
+        write_verdict(workdir, result.status)
+    except Exception:
+        pass  # UI bookkeeping must never break verify
     stall = _stall_signal(workdir, command, result, getattr(args, "patience", 0) or 0)
     if args.json:
         _print_verify_json(

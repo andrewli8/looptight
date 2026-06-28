@@ -100,6 +100,29 @@ def test_statusline_idle_when_truly_empty():
     assert ui.statusline({"workers": [], "tasks": []}) == "looptight: idle"
 
 
+def test_verdict_round_trips_and_degrades(tmp_path):
+    assert ui.read_verdict(tmp_path) is None  # absent
+    ui.write_verdict(tmp_path, "pass")
+    assert ui.read_verdict(tmp_path) == "pass"
+    ui.write_verdict(tmp_path, "fail")  # latest wins
+    assert ui.read_verdict(tmp_path) == "fail"
+    ui._verdict_path(tmp_path).write_text("not json", encoding="utf-8")
+    assert ui.read_verdict(tmp_path) is None  # corrupt → None, never raises
+
+
+def test_with_session_task_includes_the_verify_verdict(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        ui, "_active_session_task", lambda root: {"id": "a", "goal": "g", "source": "", "status": "claimed"}
+    )
+    monkeypatch.setattr(ui, "read_verdict", lambda root: "pass")
+    state = ui._with_session_task(ui.empty_state(), tmp_path)
+    assert state["manager"]["verify"] == "pass"
+
+
+def test_page_renders_the_session_verify_verdict():
+    assert "manager.verify" in ui.PAGE  # the session manager detail shows the last verdict
+
+
 def test_with_session_task_overlays_the_claim_when_no_swarm(monkeypatch, tmp_path):
     # On the default loop the state file is empty; the view should surface the session's claimed
     # task (manager "session", one task) instead of a bare idle screen.

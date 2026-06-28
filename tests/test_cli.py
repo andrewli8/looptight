@@ -1378,6 +1378,17 @@ def test_version_exits_zero(capsys):
         assert exc.code == 0
 
 
+def test_verify_records_the_verdict_for_the_session_view(tmp_path, monkeypatch):
+    # verify writes its verdict so `looptight ui`'s session view can show the loop's key signal.
+    from looptight.ui import read_verdict
+
+    monkeypatch.chdir(tmp_path)
+    assert main(["verify", "--verify", "exit 0"]) == 0
+    assert read_verdict(tmp_path) == "pass"
+    assert main(["verify", "--verify", "exit 1"]) == 1
+    assert read_verdict(tmp_path) == "fail"  # latest verdict wins
+
+
 def test_verify_passing_command(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert main(["verify", "--verify", "exit 0"]) == 0
