@@ -1424,17 +1424,14 @@ existing CLI session and makes no model or API calls of its own.
   worker's `status --porcelain` (only in the worker worktree, not the invoking-worktree cleanliness
   check) and asserts the worker is `failed` with the inspection error. No production change.
 
-## Next
+- `swarm._integrate` (the no-coordinator direct-merge fallback) is marked `# pragma: no cover`
+  with a comment, consistent with its sole caller (the `if coordinator is None` branch, already
+  no-cover). A swarm requires a clean Git worktree so the coordinator is never None and the durable
+  Integrator path is always taken; the fallback body is unreachable in normal runs. The misleading
+  coverage signal that pointed at unreachable code is gone (swarm.py coverage now reads honestly),
+  the defensive fallback is kept, and the swarm tests stay green. No behavior change.
 
-1. `swarm._integrate` (the direct-merge integration) is the no-coordinator fallback only.
-   Evidence: src/looptight/swarm.py:450 (`if coordinator is None` — `# pragma: no cover`, "swarm
-   always runs inside Git") is the sole caller of `_integrate` (449-453); a coordinated swarm
-   integrates through the durable `Integrator` instead. So `_integrate`'s 369-391 body (merge,
-   integration-verify, commit, abort) is unreachable in normal runs, which is why coverage flags it
-   and a `run_swarm`-driven test cannot hit it. Decide: drop the dead fallback, or mark it
-   `pragma: no cover` like its caller, so the coverage signal stops pointing at unreachable code.
-   Acceptance: a one-file change to swarm.py that either removes `_integrate` (if truly dead) or
-   marks it no-cover with a comment; no behavior change; the swarm tests stay green.
+## Next
 
 ## Rules
 ## Rules

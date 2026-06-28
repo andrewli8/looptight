@@ -366,7 +366,11 @@ def _run_worker(worker: Worker, agent: str, config: Config, worker_timeout: floa
     return worker
 
 
-def _integrate(root: Path, worker: Worker, verify: str) -> None:
+def _integrate(root: Path, worker: Worker, verify: str) -> None:  # pragma: no cover
+    # The locked direct-merge fallback, used only when no coordinator is available. A swarm
+    # requires a clean Git worktree, so `Coordinator.open` is never None here and the durable
+    # Integrator path is always taken; this body is unreachable in normal runs (its sole caller
+    # at `_integrate_via_queue` is likewise `# pragma: no cover`). Kept as a defensive fallback.
     if worker.status != "verified":
         return
     merged = _git(root, "merge", "--no-commit", "--no-ff", worker.branch)
