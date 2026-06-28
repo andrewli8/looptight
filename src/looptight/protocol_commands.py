@@ -239,7 +239,7 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
                 )
                 last_source = candidate.source
             where = f" [dim]{candidate.location}[/dim]" if candidate.location else ""
-            console.print(f"  {i}. {candidate.title}{where}")
+            console.write(f"  {i}. {candidate.title}{where}")  # user title — preserve any tokens
         console.print()
         console.print(
             "[dim]Ranking is a source-priority heuristic. The operating agent selects the "
@@ -631,7 +631,7 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
             # health stays visible once the redundant overlay panel is suppressed below.
             verdict = read_verdict(workdir)
             verdict_suffix = f" · verify: {verdict}" if verdict else ""
-            console.print(
+            console.write(  # user vision — preserve any tokens (no looptight markup here)
                 f"goal: {active_goal.vision} (iteration {active_goal.iteration}"
                 f"{', continuous' if active_goal.continuous else ''}){verdict_suffix}"
             )
@@ -885,7 +885,7 @@ def cmd_goal(args: argparse.Namespace, console: Console) -> int:
         elif goal is None:
             console.print("no active goal")
         else:
-            console.print(
+            console.write(  # user vision — preserve any tokens
                 f"goal: {goal.vision} (iteration {goal.iteration}"
                 f"{', continuous' if goal.continuous else ''}"
                 f"{f', max {goal.max_iterations}' if goal.max_iterations else ''})"
@@ -980,7 +980,7 @@ def cmd_goal(args: argparse.Namespace, console: Console) -> int:
         payload.update(goal.as_dict())
         print(json.dumps(payload, sort_keys=True))
         return 0
-    console.print(f"goal set: {arg}")
+    console.write(f"goal set: {arg}")  # user vision — preserve any tokens
     if args.continuous:
         console.print(_goal_driver_recipe(workdir))
     return 0

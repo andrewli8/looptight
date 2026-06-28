@@ -2507,6 +2507,29 @@ def _commit_repo_with_verify(tmp_path):
     )
 
 
+def test_propose_human_output_preserves_bracket_tokens_in_a_title(tmp_path, monkeypatch, capsys):
+    # A STATUS.md task title like "Fix the [red] badge" is plausible; its token must not be eaten.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "x.py").write_text("# x\n")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text(
+        "## Next\n\n1. Fix the [red] badge. Evidence: src/x.py:1; Acceptance: passes.\n"
+    )
+    assert main(["propose"]) == 0
+    assert "[red]" in capsys.readouterr().out  # the candidate title's token survives
+
+
+def test_status_goal_line_preserves_bracket_tokens_in_the_vision(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    _commit_repo_with_verify(tmp_path)
+    assert main(["goal", "ship the [dim] sections"]) == 0
+    capsys.readouterr()
+    assert main(["status"]) == 0
+    assert "[dim]" in capsys.readouterr().out  # the vision's token survives on the goal line
+
+
 def test_status_panel_preserves_bracket_tokens_in_a_worker_error(tmp_path, monkeypatch, capsys):
     # The panel is rendered plain text carrying user content; a worker error with a "[red]"-style
     # token must not be silently eaten by markup stripping when status prints the panel.
