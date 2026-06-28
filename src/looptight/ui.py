@@ -149,7 +149,11 @@ def render_state_panel(state: dict[str, object]) -> str:
                f"{worker.get('task_id', '')}  {goal}".rstrip()
         error = worker.get("error")
         if error:
-            line += f"  [{str(error)[:50]}]"
+            text = str(error)
+            # Signal truncation like the goal above does, so a cut error is never read as the
+            # whole message (a bare 50-char slice can land mid-path and hide the real cause).
+            text = text[:47] + "..." if len(text) > 50 else text
+            line += f"  [{text}]"
         lines.append(line)
     return "\n".join(lines)
 

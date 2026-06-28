@@ -1827,17 +1827,12 @@ existing CLI session and makes no model or API calls of its own.
   JSON `next_action` contract still carry the vision for machine consumers. Found by the
   data-representation audit. Covered by a human-dedup + JSON-contract test.
 
-## Next
+- The terminal panel's worker error now signals truncation with a trailing `...` (matching the
+  goal truncation), so a long error is no longer cut mid-string and read as the complete
+  message — the operator can tell the cause was clipped. Short errors are shown verbatim.
+  Found by the edge-state representation audit. Covered by a truncation-signal test.
 
-1. The worker error in the terminal panel is truncated at 50 chars with NO ellipsis
-   (`src/looptight/ui.py:152`, `f"  [{str(error)[:50]}]"`), so a long error reads as complete when
-   it is actually cut — the operator never sees the real cause, and a 50-char cut can land mid-path.
-   The sibling goal truncation right above (`src/looptight/ui.py:146-147`) adds `...`. Add the same
-   `...` signal when the error is truncated, matching the panel's existing style.
-   Evidence: src/looptight/ui.py:152
-   Acceptance: a new test in tests/test_ui.py asserts that a worker error longer than the limit
-   renders with a trailing `...` in `render_state_panel` (truncation is signaled), and a short
-   error is shown verbatim with no ellipsis.
+## Next
 
 ## Rules
 

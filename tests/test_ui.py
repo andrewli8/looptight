@@ -679,6 +679,23 @@ def test_ui_handler_404_for_unknown_path(tmp_path):
     assert errors == [404]
 
 
+def test_render_state_panel_signals_a_truncated_worker_error():
+    from looptight.ui import render_state_panel
+
+    long_error = "merge conflict in src/looptight/coordinator.py at line 412 cannot auto-resolve"
+    state = {
+        "manager": {"status": "running"},
+        "tasks": [{"id": "t1", "goal": "fix"}],  # short goal → not truncated, so any … is the error
+        "workers": [{"number": 1, "status": "failed", "task_id": "t1", "error": long_error}],
+    }
+    panel = render_state_panel(state)
+    assert "...]" in panel  # the bracketed error signals truncation instead of reading complete
+    assert long_error not in panel  # the full error is not shown verbatim (it was cut)
+    # a short error is shown verbatim with no ellipsis
+    short = {**state, "workers": [{"number": 1, "status": "failed", "task_id": "t1", "error": "boom"}]}
+    assert "[boom]" in render_state_panel(short)
+
+
 def test_render_state_panel_truncates_goal_and_shows_error():
     from looptight.ui import render_state_panel
 
