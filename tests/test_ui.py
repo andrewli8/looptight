@@ -22,6 +22,31 @@ def _expected_inline_hash(page: str, tag: str) -> str:
     return "'sha256-" + base64.b64encode(digest).decode() + "'"
 
 
+def test_host_is_loopback_accepts_loopback_and_rejects_remote():
+    assert ui._host_is_loopback("127.0.0.1:8765")
+    assert ui._host_is_loopback("localhost")
+    assert ui._host_is_loopback("[::1]:8765")
+    assert ui._host_is_loopback(None)  # HTTP/1.0 / direct tool: no rebinding vector
+    assert ui._host_is_loopback("")
+    assert not ui._host_is_loopback("evil.example.com")
+    assert not ui._host_is_loopback("attacker.test:8765")
+
+
+def test_do_get_rejects_a_non_loopback_host(tmp_path):
+    # DNS-rebinding hardening: a request whose Host is a remote domain (rebound to 127.0.0.1)
+    # must be refused, even though it reached the loopback socket.
+    ui.write_state(tmp_path, {"schema_version": 1, "manager": {}, "tasks": [], "workers": []})
+    handler = object.__new__(ui._handler(tmp_path))
+    handler.path = "/api/state"
+    handler.headers = {"Host": "evil.example.com"}
+    errors: dict = {}
+    handler.send_error = MethodType(lambda self, code, *a: errors.update(code=code), handler)
+
+    handler.do_GET()
+
+    assert errors["code"] == 403
+
+
 def test_server_binds_loopback_and_serves_versioned_state(tmp_path, monkeypatch):
     state = {
         "schema_version": 1,
@@ -34,6 +59,7 @@ def test_server_binds_loopback_and_serves_versioned_state(tmp_path, monkeypatch)
     handler_type = ui._handler(tmp_path)
     handler = object.__new__(handler_type)
     handler.path = "/api/state"
+    handler.headers = {}
     handler.wfile = BytesIO()
     response = {"headers": {}}
     handler.send_response = MethodType(lambda self, status: response.update(status=status), handler)
@@ -78,6 +104,7 @@ def test_csp_uses_inline_hashes_not_unsafe_inline(tmp_path):
     ui.write_state(tmp_path, {"schema_version": 1, "manager": {}, "tasks": [], "workers": []})
     handler = object.__new__(ui._handler(tmp_path))
     handler.path = "/"
+    handler.headers = {}
     handler.wfile = BytesIO()
     headers: dict[str, str] = {}
     handler.send_response = MethodType(lambda self, status: None, handler)
@@ -131,6 +158,7 @@ def test_page_serves_status_tally_strip_under_csp(tmp_path):
     ui.write_state(tmp_path, {"schema_version": 1, "manager": {}, "tasks": [], "workers": []})
     handler = object.__new__(ui._handler(tmp_path))
     handler.path = "/"
+    handler.headers = {}
     handler.wfile = BytesIO()
     headers: dict[str, str] = {}
     response: dict[str, int] = {}
@@ -157,6 +185,7 @@ def test_page_serves_idle_empty_state_guidance(tmp_path):
     ui.write_state(tmp_path, {"schema_version": 1, "manager": {"status": "idle"}, "tasks": [], "workers": []})
     handler = object.__new__(ui._handler(tmp_path))
     handler.path = "/"
+    handler.headers = {}
     handler.wfile = BytesIO()
     headers: dict[str, str] = {}
     handler.send_response = MethodType(lambda self, status: None, handler)
@@ -275,6 +304,7 @@ def test_statusline_summarizes_workers_or_idle():
 def test_ui_handler_404_for_unknown_path(tmp_path):
     handler = object.__new__(ui._handler(tmp_path))
     handler.path = "/unknown/path"
+    handler.headers = {}
     errors: list[int] = []
     handler.send_error = MethodType(lambda self, code: errors.append(code), handler)
     handler.send_response = MethodType(lambda self, code: (_ for _ in ()).throw(AssertionError("send_response must not be called on 404")), handler)

@@ -178,9 +178,36 @@ CONTENT_SECURITY_POLICY = (
 )
 
 
+_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
+
+
+def _host_is_loopback(host_header: str | None) -> bool:
+    """True when the request ``Host`` is a loopback name (or absent).
+
+    The server binds 127.0.0.1, but DNS rebinding lets a remote page reach it through a
+    victim's browser as a same-origin request. Rejecting a non-loopback ``Host`` blocks that
+    while still allowing direct tools (which send a loopback Host or, for HTTP/1.0, none).
+    """
+    if not host_header:
+        return True
+    raw = host_header.strip().lower()
+    if raw.startswith("["):  # bracketed IPv6, optional :port
+        host = raw[1:].split("]", 1)[0]
+    elif raw.count(":") == 1:  # host:port (a bare IPv6 has several colons)
+        host = raw.rsplit(":", 1)[0]
+    else:
+        host = raw
+    return host in _LOOPBACK_HOSTS
+
+
 def _handler(root: Path) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802 - stdlib handler API
+            if not _host_is_loopback(self.headers.get("Host")):
+                # Reject DNS-rebinding requests: a non-loopback Host means the request was
+                # routed via a remote origin, not a local client on 127.0.0.1.
+                self.send_error(403)
+                return
             if self.path == "/":
                 body = PAGE.encode()
                 content_type = "text/html; charset=utf-8"
