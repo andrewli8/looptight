@@ -1163,8 +1163,18 @@ existing CLI session and makes no model or API calls of its own.
   the gate that stops the continuous swarm acting on fabricated or out-of-range planned
   tasks is fully exercised. No production change.
 
-## Rules
-## Rules
+## Next
+
+1. The swarm's "never merge unverified work" guarantee is untested.
+   Evidence: src/looptight/swarm.py:321-328 (`_run_worker` marks a worker `failed` when its
+   run loop ends non-success, e.g. verify failed) — but every swarm test uses
+   `verify="exit 0"`, so no scenario exercises a worker whose verify fails, the core safety
+   path that keeps unverified edits off the base ref.
+   Acceptance: a test in tests/test_swarm.py runs `run_swarm` with `verify="exit 1"` and the
+   editing fake adapter, and asserts the result is not passed, every worker is `failed`, the
+   base repo's files are unchanged (no merge), and failed worktrees are retained. No
+   production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
