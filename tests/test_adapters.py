@@ -186,6 +186,23 @@ def test_provider_usage_limit_is_surfaced_with_stable_marker(name, monkeypatch, 
     assert result.error == "provider rate limit reached; retry after 60s"
 
 
+def test_codex_and_opencode_surface_nonzero_exit_as_failure(monkeypatch, tmp_path):
+    # The parametrized failure test runs over available_adapter_names(), which skips
+    # codex/opencode when not on PATH, leaving their non-zero-exit failure path uncovered.
+    # Drive them directly so a regression in their error handling is caught regardless.
+    from looptight.adapters.codex import CodexAdapter
+    from looptight.adapters.opencode import OpencodeAdapter
+
+    def fake_run_command(cmd, workdir, *, timeout_s=None):
+        return subprocess.CompletedProcess(cmd, 2, "", "AssertionError: boom")
+
+    for name, adapter in (("codex", CodexAdapter()), ("opencode", OpencodeAdapter())):
+        monkeypatch.setattr(f"looptight.adapters.{name}.run_command", fake_run_command)
+        result = adapter.run_iteration("fix it", "", tmp_path)
+        assert result.ok is False
+        assert result.error and result.returncode == 2
+
+
 @pytest.mark.parametrize("name", available_adapter_names())
 def test_plain_nonzero_exit_is_not_mistaken_for_a_limit(name, monkeypatch, tmp_path):
     def fake_run_command(cmd, workdir, *, timeout_s=None):
