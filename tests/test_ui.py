@@ -360,8 +360,8 @@ def test_page_serves_status_tally_strip_under_csp(tmp_path):
 
 def test_page_serves_idle_empty_state_guidance(tmp_path):
     page = ui.PAGE
-    # An idle, empty dashboard explains its own next step instead of bare "no" lanes.
-    assert "looptight swarm --headless" in page
+    # An idle, empty dashboard explains its own next step (the primary loop) instead of bare lanes.
+    assert "looptight next" in page
     assert "function guide(" in page
     # Guidance only replaces the lanes when the manager is idle and nothing is queued.
     assert "const idle=(manager.status||'').toLowerCase()==='idle'" in page
@@ -379,7 +379,7 @@ def test_page_serves_idle_empty_state_guidance(tmp_path):
 
     handler.do_GET()
 
-    assert b"looptight swarm --headless" in handler.wfile.getvalue()
+    assert b"looptight next" in handler.wfile.getvalue()  # the idle guide leads with the primary loop
     assert headers["Content-Security-Policy"] == ui.CONTENT_SECURITY_POLICY
 
 

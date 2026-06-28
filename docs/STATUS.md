@@ -1719,18 +1719,12 @@ existing CLI session and makes no model or API calls of its own.
   untouched. Covered by a changed-task reset test. (Design choice — scope by claim idea id —
   documented for review.)
 
-## Next
+- The `ui` idle guide now leads with the primary loop: "Idle — claim a task with `looptight
+  next`" instead of "start a swarm", aligning the empty-state guidance with the default loop the
+  view now represents (and with the README, which leads with `next`). Swarm stays discoverable in
+  the docs. Covered by the idle-state guidance test.
 
-1. The `ui` idle guide points to the swarm, not the primary loop the view now represents.
-   Evidence: src/looptight/ui.py render()'s idle branch calls
-   `guide('tasks','Idle — start a swarm with','looptight swarm --headless')` — but the page now
-   represents the default `next`/`verify` session loop (and goal mode), and the README leads with
-   `next`, so on a truly-idle screen the guide steers a newcomer to a secondary mode instead of the
-   primary one the UI itself now shows. Fix: have the idle guide lead with the default loop —
-   "Idle — claim a task with `looptight next`" — aligning the guidance with the multi-mode
-   representation. Swarm remains discoverable via the docs/README.
-   Acceptance: a `test_ui.py` assertion that the page's idle guide references `looptight next` (the
-   primary loop), not only `swarm`.
+## Next
 
 ## Rules
 
