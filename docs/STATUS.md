@@ -1201,16 +1201,11 @@ existing CLI session and makes no model or API calls of its own.
   asserts it is terminated (cleaning up the registry) — so an aborted swarm tearing down its
   provider processes is exercised. No production change.
 
-## Next
-
-1. The integration queue's git-failure robustness is untested.
-   Evidence: src/looptight/integration_queue.py:71-72 (`_git`'s `except OSError` returns code
-   127 instead of crashing when git is not on PATH) and :78-79 (`git_common_dir` raises a
-   clear `IntegrationError` when `rev-parse` fails outside a repo). Neither is exercised, so a
-   regression that let a git failure crash the durable integrator would go unnoticed.
-   Acceptance: a test in tests/test_integration_queue.py asserts `git_common_dir` raises
-   `IntegrationError` outside a repo and `_git` returns returncode 127 when `subprocess.run`
-   raises `OSError`. No production change.
+- The integration queue's git-failure robustness is covered:
+  `test_integration_queue_handles_git_failures` in test_integration_queue.py asserts
+  `git_common_dir` raises `IntegrationError` outside a repo and `_git` returns returncode 127
+  when `subprocess.run` raises `OSError` — so a git failure cannot crash the durable
+  integrator. No production change.
 
 ## Rules
 ## Rules

@@ -57,6 +57,23 @@ def _hold_lock(common, entered, release):
         release.wait(3)
 
 
+def test_integration_queue_handles_git_failures(tmp_path, monkeypatch):
+    # The durable integrator must not crash on a git failure: git_common_dir raises a clear
+    # IntegrationError outside a repo, and _git returns code 127 when git is not on PATH.
+    from looptight import integration_queue as iq
+
+    with pytest.raises(iq.IntegrationError):
+        iq.git_common_dir(tmp_path)  # tmp_path is not a git repository
+
+    def raise_oserror(*args, **kwargs):
+        raise OSError("git not found")
+
+    monkeypatch.setattr(iq.subprocess, "run", raise_oserror)
+    result = iq._git(tmp_path, "status")
+    assert result.returncode == 127
+    assert "git not found" in result.stderr
+
+
 def test_second_process_cannot_enter_integration_lock(tmp_path):
     repo = _repo(tmp_path / "r")
     common = git_common_dir(repo)
