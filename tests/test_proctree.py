@@ -31,6 +31,27 @@ def test_stop_process_tree_tolerates_an_already_finished_process():
     assert process.poll() is not None  # still reaped, not resurrected
 
 
+def test_stop_process_tree_falls_back_to_kill_when_killpg_raises_oserror(monkeypatch):
+    # A killpg failure that is not ProcessLookupError (e.g. EPERM) must fall
+    # through to process.kill() rather than give up — only the already-reaped
+    # ProcessLookupError path returns early; a generic OSError should still kill.
+    class FakeProcess:
+        pid = 456
+        killed = False
+
+        def kill(self):
+            self.killed = True
+
+    def raise_oserror(pid, sig):
+        raise OSError("operation not permitted")
+
+    monkeypatch.setattr("looptight.proctree.os.name", "posix")
+    monkeypatch.setattr("looptight.proctree.os.killpg", raise_oserror)
+    process = FakeProcess()
+    assert stop_process_tree(process) is None  # type: ignore[arg-type]
+    assert process.killed  # fell through to the final process.kill()
+
+
 def test_stop_process_tree_uses_taskkill_when_os_is_nt(monkeypatch):
     # The Windows branch shells out to taskkill /F /T; exercise it on any OS by
     # faking os.name so the nt path is covered, not only on a Windows runner.

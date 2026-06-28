@@ -963,17 +963,13 @@ existing CLI session and makes no model or API calls of its own.
   monkeypatches `subprocess.Popen` to raise `OSError` and asserts `error="launch_error"`
   with `exit_code==127` — distinct from the shell-127 path.
 
-## Next
+- `stop_process_tree`'s POSIX OSError fallback to `process.kill()` is covered:
+  `test_stop_process_tree_falls_back_to_kill_when_killpg_raises_oserror` in
+  tests/test_proctree.py monkeypatches `os.killpg` to raise a generic `OSError`
+  (not `ProcessLookupError`) and asserts the final `process.kill()` runs and the
+  call returns `None`, so a killpg EPERM-style failure cannot orphan the child.
 
-1. Cover `stop_process_tree`'s POSIX OSError fallback to `process.kill()`.
-   Evidence: src/looptight/proctree.py:37-38; the `except OSError: pass` after
-   `os.killpg` falls through to the final `process.kill()`, and that path
-   (a killpg failure that is not `ProcessLookupError`) has no test — only the
-   already-reaped `ProcessLookupError` path is covered.
-   Acceptance: a new test in tests/test_proctree.py makes `os.killpg` raise a
-   generic `OSError` (not `ProcessLookupError`) via monkeypatch and asserts
-   `stop_process_tree` then calls `process.kill()` and returns `None` without
-   raising; the test fails if the OSError fallthrough is removed.
+## Next
 
 ## Rules
 
