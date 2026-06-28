@@ -1945,6 +1945,16 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `install-hook` prints "The hook fires in any repo that has a verify command configured"
+   unconditionally (`src/looptight/commands.py:655`), but with `--project` the hook is written to
+   the repo's `.claude/settings.json` and fires only in THIS repo's Claude Code sessions, not "any
+   repo" (that's the user-install behavior). A user who chose `--project` to scope the hook is
+   misled. Make the message mode-aware: name "this repo" for `--project` and keep "any repo" for
+   the default user install.
+   Evidence: src/looptight/commands.py:655
+   Acceptance: a test asserts `install-hook --project` output says it fires in this repo (not "any
+   repo"), while the default (user) install still says "any repo".
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
