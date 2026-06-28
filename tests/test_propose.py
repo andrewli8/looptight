@@ -612,6 +612,19 @@ def test_not_ignored_falls_through_on_timeout(tmp_path, monkeypatch):
     assert disc._not_ignored(tmp_path, paths) == paths
 
 
+def test_not_ignored_falls_through_when_path_outside_root(tmp_path):
+    # When a path cannot be made relative to root (e.g. on a different drive or
+    # outside the tree), _not_ignored returns the original list unchanged rather
+    # than raising ValueError — the documented fallback at discovery.py:98.
+    from pathlib import Path
+    import looptight.discovery as disc
+
+    outside = Path("/other/absolute/file.py")
+    paths = [outside]
+    result = disc._not_ignored(tmp_path, paths)
+    assert result == paths
+
+
 def test_from_task_file_rejects_paths_outside_the_repo(tmp_path):
     # A configured task_file must stay within the repo: an absolute path or a `..`
     # traversal is rejected even when the target exists with valid tasks.
