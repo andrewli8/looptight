@@ -17,6 +17,13 @@ def test_readme_does_not_overclaim_json_support():
     assert "take `--json`" in text  # it does name the machine-facing commands
 
 
+def test_readme_surfaces_the_hands_off_stop_hook_loop():
+    # install-hook / the hands-off Stop-hook loop is a real capability; the README's "What it
+    # can do" should surface it like the other modes.
+    text = _README.read_text(encoding="utf-8")
+    assert "install-hook" in text, "README does not surface the hands-off Stop-hook loop"
+
+
 def test_readme_documents_the_revert_recovery_command():
     # revert is a user-facing safety command (undo the agent's uncommitted edits);
     # its peers (init/next/verify/status/propose/goal/doctor) are all in the README

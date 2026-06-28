@@ -99,6 +99,10 @@ never looks like failing code.
   safely. See [docs/architecture.md](docs/architecture.md).
 - **Watch it work** (`status` / `status --watch` / `ui` / `statusline`): a live,
   loopback-only view of the loop. See [docs/usage.md](docs/usage.md#local-view).
+- **Hands-off in your session** (`install-hook`): a Stop hook re-runs your tests
+  until they pass, and — with `continue_through_backlog` — carries the session
+  through the grounded backlog, stopping honestly at NO_WORK. See
+  [docs/usage.md](docs/usage.md#hands-off-loop-stop-hook).
 
 ## Safety
 

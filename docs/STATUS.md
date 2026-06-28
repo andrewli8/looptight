@@ -1637,18 +1637,12 @@ existing CLI session and makes no model or API calls of its own.
   more tracing the wire to the task node to see what a worker is doing. Verified live; guarded by
   a render() page assertion.
 
-## Next
+- The README's "What it can do" surfaces the hands-off Stop-hook loop (`install-hook`): a
+  bullet covers verify-until-green and the `continue_through_backlog` opt-in (carry the session
+  through the grounded backlog, honest stop at NO_WORK) and links to the usage.md section, so the
+  capability appears on the project front page like the other modes. Locked by a test_docs assertion.
 
-1. The README's "What it can do" omits the hands-off Stop-hook loop, a real capability.
-   Evidence: README.md:90-101 lists capabilities (backlog burndown, goal, unattended, shared repo,
-   watch it work) but not the `install-hook` hands-off loop — the Stop hook that runs
-   verify-until-green and, with `continue_through_backlog`, carries the session through the backlog
-   (src/looptight/hook.py, src/looptight/commands.py `cmd_install_hook`, now documented in
-   docs/usage.md). Fix: add a concise "Hands-off in your session" bullet to README.md's "What it can
-   do" pointing at the usage.md Stop-hook section, so the feature is surfaced on the project's front
-   page like the others.
-   Acceptance: a `test_docs.py` assertion that README.md mentions `install-hook`; the bullet links to
-   the usage.md hands-off-loop section.
+## Next
 
 ## Rules
 
