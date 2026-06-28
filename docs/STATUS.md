@@ -1065,6 +1065,26 @@ existing CLI session and makes no model or API calls of its own.
   it was previously only named in a SPEC parenthetical. Found by the docs audit; locked
   by `test_readme_documents_the_revert_recovery_command` in test_docs.py.
 
+## Next
+
+1. `claim()`'s stale-task sweep can complete a peer worktree's live lease (HIGH).
+   Evidence: src/looptight/coordinator.py:373-385; the `fingerprint NOT IN (...)` sweep
+   unconditionally marks `complete` and un-leases every task absent from the caller's
+   candidate set, but the DB is shared across a repo's worktrees (coordinator_path keys
+   on git-common-dir) which at different commits see divergent sets — so worktree B's
+   `next` completes worktree A's in-flight task. A naive "spare any live lease" guard
+   breaks the documented single-writer reconcile (test_next_no_work_clears_claim_when_task_disappears)
+   because both cases present as "out-of-set live lease". The clean discriminator is
+   the per-worktree `owner_id` (src/looptight/claims.py:64), which the `runs` table does
+   not currently record.
+   Acceptance: record each run's owner (schema v4: add `runs.owner`, migrate 3→4;
+   `start_run(..., owner=)`; tasks.py passes `owner_id(workdir)`), and in the sweep spare
+   a live-leased out-of-set task only when BOTH its lease-run owner and the caller owner
+   are known and DIFFERENT. Reconcile (same worktree → same owner, and the existing
+   owner-less tests → NULL owner) still clears; a new test with two distinct owners
+   asserts run A's live lease survives run B's `claim`, and A can still renew. Backward
+   compatible: existing coordinator tests (owner-less runs) are unchanged.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
