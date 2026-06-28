@@ -29,3 +29,6 @@ REVIEW-QUEUE.md
 .vscode/
 assets/logo/*.png
 !assets/logo/wordmark.png
+
+# Playwright MCP dogfooding artifacts (screenshots/logs; keep out of the repo)
+.playwright-mcp/
