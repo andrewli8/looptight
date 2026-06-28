@@ -21,7 +21,7 @@ from pathlib import Path
 
 __all__ = [
     "evidence_refs", "ref_resolves", "is_grounded", "evidence_is_truthful",
-    "strip_anchor_decoration",
+    "strip_anchor_decoration", "strip_position_suffix",
 ]
 
 # One path token per ``Evidence:`` marker. After the marker, skip whitespace and
@@ -60,12 +60,20 @@ def evidence_refs(text: str) -> list[str]:
 _POSITION_SUFFIX = re.compile(r"(:\d+(?:-\d+)?)+$")
 
 
+def strip_position_suffix(path: str) -> str:
+    """Drop a trailing ``:line`` / ``:line:col`` / ``:start-end`` position from a path
+    so it is position-stable. One definition so every position-stable consumer (the
+    grounding resolver and the idea identity) shares the same range-aware rule and the
+    two cannot drift."""
+    return _POSITION_SUFFIX.sub("", path)
+
+
 def ref_resolves(root: Path, ref: str) -> bool:
     """True when an evidence ref points at a real file inside the repository."""
     # Strip idiomatic decoration, then drop a trailing position suffix so `path`,
     # `path:line`, `path:line:col` (a lint location), and `path:start-end` (a line
     # range) all resolve to the same file.
-    path_text = _POSITION_SUFFIX.sub("", strip_anchor_decoration(ref))
+    path_text = strip_position_suffix(strip_anchor_decoration(ref))
     relative = Path(path_text)
     if not path_text or relative.is_absolute() or ".." in relative.parts:
         return False

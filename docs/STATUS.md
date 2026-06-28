@@ -1044,17 +1044,13 @@ existing CLI session and makes no model or API calls of its own.
   audit; covered by `test_summary_text_names_paid_off_sources_not_opaque_ids` in
   test_experience.py.
 
-## Next
-
-1. Two drifted copies of the trailing-position-suffix regex (latent drift).
-   Evidence: src/looptight/grounding.py:60 (`(:\d+(?:-\d+)?)+$`, range-aware) vs
-   src/looptight/idea_identity.py:22 (`(:\d+)+$`, not range-aware). Same conceptual
-   operation (strip a trailing `:line`/`:start-end` so a path is position-stable), drifted
-   behavior. Latent today (no `candidate.location` source emits a line range), but
-   idea_identity's docstring claims write/read "cannot drift" while it can vs grounding.
-   Acceptance: export one `strip_position_suffix` (range-aware) from grounding.py and have
-   idea_identity use it; a test asserts `idea_id` is identical for a `path:10` and
-   `path:10-14` location. Two-file change, no behavior change for current inputs.
+- The trailing-position-suffix stripper is unified: `grounding.py` exports one
+  range-aware `strip_position_suffix` (used by `ref_resolves`), and `idea_identity._path`
+  imports it instead of its own non-range-aware `(:\d+)+$` regex. The two had drifted
+  (grounding tolerated `:start-end`, idea_identity did not), so a future `path:start-end`
+  location would have minted a fresh `idea_id` per line shift, breaking the cooldown/
+  self-model keying. Found by the audit; covered by
+  `test_identity_is_stable_across_a_line_range_location` in test_idea_identity.py.
 
 ## Rules
 

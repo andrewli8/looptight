@@ -23,6 +23,16 @@ def test_lint_identity_is_line_stable_for_real_path_line_col_locations():
     assert idea_id(a) == idea_id(b)
 
 
+def test_identity_is_stable_across_a_line_range_location():
+    # idea_identity shares grounding's range-aware position stripper, so a
+    # `path:start-end` line-range location strips to the same path as `path:line` and
+    # mints the same idea_id. Locks the two strippers against re-drifting (idea
+    # identity once used a non-range regex, which would split a range location apart).
+    a = _c("todo", "src/foo.py:10", "handle edge case")
+    b = _c("todo", "src/foo.py:10-14", "handle edge case")
+    assert idea_id(a) == idea_id(b)
+
+
 def test_lint_identity_differs_by_rule():
     a = _c("lint", "src/looptight/foo.py:10", "fix E501: line too long")
     b = _c("lint", "src/looptight/foo.py:10", "fix F401: unused import")
