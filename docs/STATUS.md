@@ -1753,6 +1753,19 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The tally's `_STATUS_GROUPS` in `src/looptight/ui.py:269` omits three real swarm worker/task
+   statuses — `verified` (`src/looptight/swarm.py:365`, passed verify, awaiting merge),
+   `limited` (`src/looptight/swarm.py:324`, hit a usage cap), and `interrupted`
+   (`src/looptight/swarm.py:673`) — so a task in any of those states counts toward `total` but
+   no bucket, making `active + attention + complete` silently less than `total`. Add `verified`
+   to `active` and `limited`/`interrupted` to `attention` (in both the Python `_STATUS_GROUPS`
+   and the mirrored JS `groups` set in the page so the filter buttons agree with the tally).
+   Evidence: src/looptight/ui.py:269
+   Acceptance: a new test in tests/test_ui.py builds a state whose tasks cover every real worker
+   status (including verified/limited/interrupted) and asserts `summarize` returns
+   `active + attention + complete == total`; another asserts the page `groups` set matches
+   `_STATUS_GROUPS`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
