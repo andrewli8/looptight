@@ -1684,6 +1684,19 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The `ui` session view's footer reads "LAST EVENT UNKNOWN" even though the verify verdict carries
+   a timestamp.
+   Evidence: src/looptight/ui.py `_with_session_task` synthesizes the session state from
+   `empty_state()` (whose `updated_at` is None), so the page footer's "LAST EVENT" age is UNKNOWN in
+   session mode — yet the verdict sidecar already stores an `at` time. Fix: factor a
+   `_verdict_record(root)` (so `read_verdict` and the overlay share one read), and have
+   `_with_session_task` set the synthesized state's `updated_at` to the verdict's `at` when present,
+   so the footer shows the verify freshness ("LAST EVENT 2M AGO") instead of UNKNOWN. No new write;
+   swarm mode unchanged.
+   Acceptance: a `test_ui.py` test asserts `_with_session_task` sets `updated_at` from the verdict
+   record's `at`; `read_verdict` still returns the status; missing/corrupt verdict degrades to no
+   timestamp (UNKNOWN), never raising.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
