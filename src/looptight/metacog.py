@@ -160,7 +160,10 @@ def _summarize(kind: str, total: int, persisted: bool, iterations: int) -> str:
     shape = (
         f"No progress across {tries}."
         if kind == "escalated"
-        else f"Improved, then stalled across {tries}."
+        # NO_PROGRESS: beat the start, but the recent window did not improve on the
+        # best — covers both a stall (held flat) and a regress (lost ground). "Made no
+        # further progress" is honest for both; "stalled" alone would misreport a regress.
+        else f"Improved earlier, then made no further progress across {tries}."
     )
     if total == 0:
         return f"{shape} No specific failures parsed; check the final output."

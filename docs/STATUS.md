@@ -1082,19 +1082,12 @@ existing CLI session and makes no model or API calls of its own.
   claims), matching tasks.py and the corrected usage.md/architecture.md. Locked by
   `test_changelog_unreleased_does_not_claim_solo_loop_runs_on_file_claims` in test_docs.py.
 
-## Next
-
-1. The early-stop NO_PROGRESS summary says "stalled" even when the run regressed.
-   Evidence: src/looptight/metacog.py:163 (`else f"Improved, then stalled across {tries}."`)
-   is the NO_PROGRESS branch, reached when the run beat the start but the recent window
-   did not improve on the best — which includes an improve-then-*regress* trajectory
-   (e.g. progress signals `[-2,-1,-3,-3]`). Calling that "stalled" (implies flat) is a
-   dishonest signal, against the SPEC's honest-signals principle; the user reading why a
-   headless `run` stopped gets a wrong picture.
-   Acceptance: reword the NO_PROGRESS line to an honest umbrella covering stall and
-   regress (e.g. "Improved earlier, then made no further progress across {tries}.");
-   update the test asserting the old wording (test_metacog.py:298). The `escalated`
-   ("No progress across …") line and the StopReason/advice are unchanged.
+- The early-stop NO_PROGRESS summary is honest about a regress: it reads "Improved
+  earlier, then made no further progress across N tries" instead of "Improved, then
+  stalled", which misreported an improve-then-regress trajectory (the branch fires for
+  both stall and regress). Upholds the SPEC honest-signals principle. Covered by the
+  updated `test_summarize_no_progress_persisted_failures` in test_metacog.py; the
+  `escalated` line and StopReason/advice are unchanged.
 
 ## Rules
 

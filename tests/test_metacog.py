@@ -292,10 +292,13 @@ def test_summarize_non_persistent_failures_branch():
 
 
 def test_summarize_no_progress_persisted_failures():
-    # no_progress + total > 0 + persisted=True: "Improved, then stalled ... N failure(s) never cleared."
+    # no_progress + total > 0 + persisted=True: an honest umbrella that covers both a
+    # stall and a regress (the branch fires for improve-then-regress too), plus the
+    # persisted-failure tail.
     from looptight.metacog import _summarize
     text = _summarize("no_progress", total=2, persisted=True, iterations=3)
-    assert "Improved, then stalled" in text
+    assert "made no further progress" in text
+    assert "stalled" not in text  # "stalled" alone would misreport a regress
     assert "never cleared" in text
 
 
