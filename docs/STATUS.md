@@ -938,19 +938,14 @@ existing CLI session and makes no model or API calls of its own.
   `test_read_goal_returns_none_when_json_is_not_a_dict` in test_goal.py writes `[]` to
   `goal_path(repo)` and asserts `read_goal(repo)` returns `None` without raising — the path
   where valid JSON that is not a dict is silently discarded rather than crashing.
+- `_has_dirty_git_worktree`'s non-zero-returncode path (`tasks.py:90`) is now covered:
+  `test_has_dirty_git_worktree_returns_false_on_nonzero_returncode` in test_tasks.py
+  monkeypatches `subprocess.run` to return `CompletedProcess` with `returncode=128` and
+  asserts `_has_dirty_git_worktree` returns `False` via the `returncode == 0` short-circuit.
 
 ## Next
 
-1. `_has_dirty_git_worktree`'s non-zero-returncode path is untested: `src/looptight/tasks.py:90`
-   returns `False` when `result.returncode != 0` (e.g., `git status` exits 128 in a non-repo
-   directory), but the only test covers the `OSError` branch — the exit-128 path
-   (False via the `returncode == 0` short-circuit) is never exercised.
-   Evidence: src/looptight/tasks.py:90;
-   Acceptance: a new test monkeypatches `subprocess.run` to return
-   `CompletedProcess(..., returncode=128, stdout="", stderr="not a git repo")` and asserts
-   `_has_dirty_git_worktree` returns `False`.
-
-4. `cmd_statusline`'s `project_dir` fallback is untested: `src/looptight/commands.py:551`
+1. `cmd_statusline`'s `project_dir` fallback is untested: `src/looptight/commands.py:551`
    uses `workspace.get("project_dir")` when `current_dir` is absent, but the only existing
    test passes `{"workspace": {"current_dir": ...}}` — the `project_dir` branch is never
    exercised, so a regression removing it would go undetected.

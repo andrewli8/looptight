@@ -243,3 +243,18 @@ def test_has_dirty_git_worktree_returns_false_on_oserror(tmp_path, monkeypatch):
         lambda *a, **kw: (_ for _ in ()).throw(OSError("git not found")),
     )
     assert _has_dirty_git_worktree(tmp_path) is False
+
+
+def test_has_dirty_git_worktree_returns_false_on_nonzero_returncode(tmp_path, monkeypatch):
+    # When git status exits non-zero (e.g. 128 outside a repo), the function
+    # must return False via the `returncode == 0` short-circuit at tasks.py:90.
+    import looptight.tasks as tasks_module
+
+    monkeypatch.setattr(
+        tasks_module.subprocess,
+        "run",
+        lambda *a, **kw: __import__("subprocess").CompletedProcess(
+            a[0], 128, stdout="", stderr="not a git repo"
+        ),
+    )
+    assert _has_dirty_git_worktree(tmp_path) is False
