@@ -194,6 +194,17 @@ def test_persistent_failures_empty_when_nothing_parses():
     assert persistent_failures([_rec(1, "kaboom"), _rec(2, "kaboom")]) == ((), True)
 
 
+def test_persistent_from_sets_ignores_an_unparseable_middle_iteration():
+    # A noise iteration (timeout / unrecognized output) yields an empty set; it must not
+    # erase a failure that held across every *meaningful* try. Evidence-only — never the
+    # stop/escalate decision.
+    from looptight.metacog import persistent_from_sets
+
+    failures, persisted = persistent_from_sets([{"FAILED a::x"}, set(), {"FAILED a::x"}])
+    assert persisted is True
+    assert failures == ("FAILED a::x",)
+
+
 def test_build_escalation_distinguishes_kind_and_carries_evidence():
     from looptight.metacog import build_escalation
 

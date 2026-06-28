@@ -134,12 +134,19 @@ def persistent_from_sets(failure_sets: list[set[str]]) -> tuple[tuple[str, ...],
     ``persisted`` is True when the lines appeared in *every* iteration (a real
     "never cleared"). When no failure held across all iterations, fall back to the
     final iteration's failures with ``persisted=False``. Empty when nothing parses.
+
+    Iterations whose output yields no parseable failures are ignored in the intersection:
+    in an escalation every attempt already failed, so an empty set is missing information
+    (a timeout or an unrecognized format), not evidence that a failure was fixed — it must
+    not erase a failure that held across every *meaningful* try.
     """
     if not failure_sets:
         return (), True
-    common = set.intersection(*failure_sets)
-    if common:
-        return tuple(sorted(common)), True
+    meaningful = [failures for failures in failure_sets if failures]
+    if meaningful:
+        common = set.intersection(*meaningful)
+        if common:
+            return tuple(sorted(common)), True
     final = failure_sets[-1]
     if final:
         return tuple(sorted(final)), False
