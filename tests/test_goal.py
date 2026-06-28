@@ -392,6 +392,18 @@ def test_goal_driver_recipe_omits_loop_hint_when_agent_unknown(tmp_path, monkeyp
     assert "/loop until: looptight goal check" not in recipe
 
 
+def test_goal_next_human_output_reports_no_goal(tmp_path, monkeypatch, capsys):
+    # `goal next` (human) before any goal is set must guide the user to set one, not
+    # fail silently. The goal-check no-goal message is tested; the goal-next one was not.
+    from looptight.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    _repo(tmp_path)
+    assert main(["goal", "next"]) == 0
+    out = capsys.readouterr().out.lower()
+    assert "no active goal" in out
+
+
 def test_goal_next_human_output_includes_iteration_number(tmp_path, monkeypatch, capsys):
     from looptight.cli import main
 
