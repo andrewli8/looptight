@@ -671,6 +671,11 @@ def test_goal_set_refuses_outside_a_git_repo(tmp_path, monkeypatch, capsys):
 def test_goal_set_guides_to_the_first_increment(tmp_path, monkeypatch, capsys):
     # Plain `goal set` should not leave the user wondering "now what?" — it names the next step
     # (like init/next do), while `--continuous` still prints the full hands-off driver recipe.
+    # Force claude detection so the Claude-Code-specific recipe line is deterministic: it is gated
+    # on `detect_agent() == "claude"`, which otherwise depends on whether `claude` is on PATH (true
+    # in a Claude Code session, false in CI) — the difference that made this test pass locally but
+    # fail in CI.
+    monkeypatch.setattr("looptight.protocol_commands.detect_agent", lambda *a, **k: "claude")
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     subprocess.run(

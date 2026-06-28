@@ -2054,6 +2054,12 @@ existing CLI session and makes no model or API calls of its own.
   setup). Omitted entirely when all rails are default. Found by dogfooding `status`/`doctor` with a
   policy configured. Covered by a policy-line test.
 
+- `test_goal_set_guides_to_the_first_increment` is no longer environment-dependent: it asserted
+  the `--continuous` recipe's Claude-Code line (`/loop until: looptight goal check`), which the
+  recipe gates on `detect_agent() == "claude"` — true in a Claude Code session (`claude` on PATH)
+  but false in CI, so the test passed locally and failed CI. It now forces claude detection via
+  monkeypatch. The full suite passes under an agent-free PATH (986 passed), matching CI.
+
 ## Next
 
 ## Rules
