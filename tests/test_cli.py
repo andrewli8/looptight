@@ -1922,6 +1922,17 @@ def test_daemon_cli_paths_do_not_require_agent_on_path(tmp_path, monkeypatch):
     assert main(["daemon", "--headless", "--verify", "true"]) == 2
 
 
+def test_install_skill_command_install_and_already_current(tmp_path, monkeypatch, capsys):
+    # Isolate the write to a tmp HOME so the user's real ~/.claude is never touched.
+    monkeypatch.setenv("HOME", str(tmp_path))
+
+    assert main(["install-skill"]) == 0
+    assert "installed" in capsys.readouterr().out.lower()
+
+    assert main(["install-skill"]) == 0
+    assert "already up to date" in capsys.readouterr().out.lower()
+
+
 def test_hook_command_runs_run_hook_and_returns_a_code(tmp_path, monkeypatch, capsys):
     # The hook command reads the Stop-hook event on stdin and returns run_hook's code.
     # With no verify configured the hook is dormant: it allows the stop (exit 0) cleanly.

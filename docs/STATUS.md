@@ -1325,14 +1325,10 @@ existing CLI session and makes no model or API calls of its own.
   on stdin (in a repo with no verify, so the hook is dormant) and asserts `main(["hook"])` returns
   0 without raising. No production change.
 
-## Next
-
-1. The `install-skill` command's install/already-up-to-date paths are untested.
-   Evidence: src/looptight/commands.py:588-593 (`cmd_install_skill`) writes the skill and prints
-   "installed" or "already up to date", but no command-level test exercises it.
-   Acceptance: a test in tests/test_cli.py sets `$HOME` to a tmp dir (isolating the write from the
-   user's real `~/.claude`) and asserts `install-skill` prints "installed", then a second run
-   prints "already up to date", each exit 0. No production change.
+- The `install-skill` command's install/already-up-to-date paths are covered:
+  `test_install_skill_command_install_and_already_current` in test_cli.py sets `$HOME` to a tmp
+  dir (isolating the write from the user's real `~/.claude`) and asserts `install-skill` prints
+  "installed" then "already up to date", each exit 0. No production change.
 
 ## Rules
 
