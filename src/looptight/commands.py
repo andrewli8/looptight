@@ -561,7 +561,7 @@ def cmd_revert(args: argparse.Namespace, console: Console) -> int:
         leftovers = []
     if leftovers:
         console.print(
-            f"[yellow]{len(leftovers)} untracked file(s) left in place[/yellow] — revert only "
+            f"[yellow]{len(leftovers)} untracked file{'s' if len(leftovers) != 1 else ''} left in place[/yellow] — revert only "
             "touches tracked files; remove them with `git clean -fd` if unwanted."
         )
     return 0
@@ -640,7 +640,7 @@ def cmd_install_hook(args: argparse.Namespace, console: Console) -> int:
     try:
         if args.uninstall:
             removed = uninstall(path)
-            console.print(f"removed {removed} looptight hook(s) from {path}")
+            console.print(f"removed {removed} looptight hook{'s' if removed != 1 else ''} from {path}")
             return 0
         added = install(path)
     except ValueError as exc:

@@ -2248,7 +2248,8 @@ def test_install_hook_command_install_already_and_uninstall(tmp_path, monkeypatc
     assert "already installed" in capsys.readouterr().out.lower()
 
     assert main(["install-hook", "--project", "--uninstall"]) == 0
-    assert "removed" in capsys.readouterr().out.lower()
+    out = capsys.readouterr().out
+    assert "1 looptight hook " in out and "hook(s)" not in out  # proper singular, not lazy (s)
 
 
 def test_run_guard_fails_without_agent_or_verify(tmp_path, monkeypatch, capsys):
@@ -2437,6 +2438,17 @@ def test_status_human_output_shows_idea_quality_line(tmp_path, monkeypatch, caps
     assert main(["status"]) == 0
     out = capsys.readouterr().out.lower()
     assert "idea quality" in out and "groundedness" in out
+    assert "1 task " in out and "task(s)" not in out  # proper singular, not the lazy (s)
+
+    # two grounded tasks → proper plural "2 tasks"
+    (tmp_path / "src" / "b.py").write_text("# b\n", encoding="utf-8")
+    (tmp_path / "docs" / "STATUS.md").write_text(
+        "## Next\n\n1. Harden a. Evidence: src/a.py:1; Acceptance: passes.\n"
+        "2. Harden b. Evidence: src/b.py:1; Acceptance: passes.\n",
+        encoding="utf-8",
+    )
+    assert main(["status"]) == 0
+    assert "2 tasks " in capsys.readouterr().out.lower()
 
 
 def test_status_names_an_active_goals_vision(tmp_path, monkeypatch, capsys):

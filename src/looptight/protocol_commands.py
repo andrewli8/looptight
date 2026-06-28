@@ -637,7 +637,7 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
             )
         if idea_quality is not None:
             console.print(
-                f"idea quality: {idea_quality['size']} task(s) · "
+                f"idea quality: {idea_quality['size']} task{'s' if idea_quality['size'] != 1 else ''} · "
                 f"groundedness {idea_quality['groundedness']} · "
                 f"areas {idea_quality['flexibility']} · "
                 f"bounded {'yes' if idea_quality['bounded'] else 'no'}"
