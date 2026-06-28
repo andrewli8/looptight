@@ -147,11 +147,28 @@ def summarize(state: dict[str, object]) -> dict[str, int]:
     return counts
 
 
+#: On-brand SVG favicon: the wordmark's loop-ring + cycle-arrow + verify-check glyph in acid
+#: green on the dark panel, served from /favicon.ico (same-origin, CSP-clean). Declaring it in
+#: <head> also stops the browser's implicit /favicon.ico probe from 404-ing on every load.
+FAVICON = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" '
+    'role="img" aria-label="looptight">'
+    '<rect width="32" height="32" rx="7" fill="#0b130d"/>'
+    '<g fill="none" stroke="#c6ff3d" stroke-width="3" stroke-linecap="round" '
+    'stroke-linejoin="round">'
+    '<path d="M22 11 A8 8 0 1 1 18 9.5"/>'
+    '<path d="M17.5 6 L18.8 10 L14.7 11.2" fill="#c6ff3d" stroke="none"/>'
+    '<path d="M11 17 l3.2 3.2 l6.2 -7.4"/>'
+    "</g></svg>"
+)
+
+
 PAGE = r"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="/favicon.ico" type="image/svg+xml">
 <title>Looptight / Swarm Signal</title>
 <style>
 :root{--ink:#dce7df;--muted:#829087;--panel:#101713;--line:#405047;--acid:#c6ff3d;--amber:#ffbd59;--red:#ff6b5f;--cyan:#63e6df}
@@ -244,6 +261,9 @@ def _handler(root: Path) -> type[BaseHTTPRequestHandler]:
                 payload = {**state, "summary": summarize(state)}
                 body = json.dumps(payload, sort_keys=True).encode()
                 content_type = "application/json"
+            elif self.path == "/favicon.ico":
+                body = FAVICON.encode()
+                content_type = "image/svg+xml"
             else:
                 self.send_error(404)
                 return

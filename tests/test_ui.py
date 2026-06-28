@@ -329,6 +329,32 @@ def test_statusline_summarizes_workers_or_idle():
     assert "2 running" in line and "1 merged" in line
 
 
+def test_ui_serves_favicon_instead_of_404(tmp_path):
+    # The browser auto-requests /favicon.ico on every load; serving an on-brand SVG (declared
+    # in <head>) stops the per-load 404 and gives the tab a mark.
+    assert '<link rel="icon" href="/favicon.ico"' in ui.PAGE
+
+    handler = object.__new__(ui._handler(tmp_path))
+    handler.path = "/favicon.ico"
+    handler.headers = {}
+    handler.wfile = BytesIO()
+    response = {"headers": {}}
+    handler.send_response = MethodType(lambda self, code: response.update(status=code), handler)
+    handler.send_header = MethodType(
+        lambda self, name, value: response["headers"].update({name: value}), handler
+    )
+    handler.end_headers = MethodType(lambda self: None, handler)
+    handler.send_error = MethodType(
+        lambda self, code: (_ for _ in ()).throw(AssertionError("favicon must not 404")), handler
+    )
+
+    handler.do_GET()
+
+    assert response["status"] == 200
+    assert response["headers"]["Content-Type"] == "image/svg+xml"
+    assert handler.wfile.getvalue().startswith(b"<svg")
+
+
 def test_ui_handler_404_for_unknown_path(tmp_path):
     handler = object.__new__(ui._handler(tmp_path))
     handler.path = "/unknown/path"

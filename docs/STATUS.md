@@ -1595,17 +1595,13 @@ existing CLI session and makes no model or API calls of its own.
   beside 2/2/2 over 7 nodes). The strip now reads e.g. 4 / 1 / 1 / 1. Covered by summarize unit
   tests + the /api/state contract test; workers stay visible in the graph.
 
-## Next
+- The `ui` page serves an on-brand SVG `/favicon.ico` (the wordmark's loop-ring + cycle-arrow +
+  verify-check glyph in acid green) and declares `<link rel="icon">` in <head>, so the browser's
+  implicit favicon probe no longer 404s on every load (the page now renders with zero console
+  errors) and the tab carries a looptight mark. Same-origin, CSP-clean. Covered by a do_GET
+  favicon test.
 
-1. The `ui` page 404s on `/favicon.ico` every load and declares no tab icon.
-   Evidence: src/looptight/ui.py:183-202 — `do_GET` matches only `/` and `/api/state`, so the
-   browser's automatic `/favicon.ico` request falls through to `send_error(404)` (observed in the
-   served page's console on every load), and the `<head>` declares no icon. Fix: serve `/favicon.ico`
-   as a small on-brand inline SVG (`image/svg+xml`, CSP-clean `'self'`) and declare
-   `<link rel="icon" href="/favicon.ico">` in the page head, eliminating the per-load 404 and giving
-   the tab a looptight mark.
-   Acceptance: a `test_ui.py` test asserts `do_GET` on `/favicon.ico` returns 200 with an
-   `image/svg+xml` content type (not 404) and that the page `<head>` contains the icon link.
+## Next
 
 ## Rules
 
