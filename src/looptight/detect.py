@@ -107,6 +107,20 @@ def detect_verify(root: Path | None = None) -> str | None:
                 return runner
             break
 
+    # Last resort: a plain Python project may ship pytest tests without any config file
+    # (no pyproject/setup.cfg/pytest.ini/tox.ini). Detect pytest from the test files
+    # themselves — in the root or a conventional tests/ dir — so `init` reports a real
+    # detection instead of falling back to the bare default with "no test command detected".
+    for directory in (base, base / "tests", base / "test"):
+        if not directory.is_dir():
+            continue
+        if (
+            (directory / "conftest.py").is_file()
+            or any(directory.glob("test_*.py"))
+            or any(directory.glob("*_test.py"))
+        ):
+            return "pytest -q"
+
     return None
 
 

@@ -1902,18 +1902,13 @@ existing CLI session and makes no model or API calls of its own.
   commands. The data structure and ranking order are unchanged; the parsing tests still pass.
   Covered by a single-line assertion on the propose JSON test.
 
-## Next
+- `detect_verify` now detects pytest from test files (`test_*.py`/`*_test.py`/`conftest.py` in
+  the root or a `tests`/`test` dir) as a last resort, so a plain Python project without a
+  config file is correctly detected — `init` reports "Detected: pytest -q" instead of "No
+  test command detected". Found by dogfooding the new-user journey. Covered by detect tests
+  (test-file root, tests/ dir, and a no-tests-no-config repo still returning None).
 
-1. `detect_verify` (`src/looptight/detect.py:40`) recognizes pytest only from config files
-   (pyproject.toml/setup.cfg/pytest.ini/tox.ini), not from the presence of pytest test files — so
-   a plain Python project with `test_*.py`/`conftest.py` but no config is NOT detected, and `init`
-   reports "No test command detected" and falls back to the bare default even though pytest is
-   clearly right. Found by dogfooding the new-user journey (a repo with `test_calc.py`). Add a
-   last-resort rule: if `test_*.py`/`*_test.py`/`conftest.py` exist (root or a `tests`/`test` dir)
-   and nothing more specific matched, detect `pytest -q`, so init reports a real detection.
-   Evidence: src/looptight/detect.py:40
-   Acceptance: a new test asserts `detect_verify` returns "pytest -q" for a repo containing only a
-   `test_*.py` file (no config), and still returns None for a Python-less repo with no test files.
+## Next
 
 ## Rules
 

@@ -12,6 +12,26 @@ def test_detect_verify_python_pyproject(tmp_path):
     assert detect.detect_verify(tmp_path) == "pytest -q"
 
 
+def test_detect_verify_pytest_from_test_files_without_config(tmp_path):
+    # A plain pytest project (test files, no pyproject/setup.cfg/etc.) should be detected as
+    # pytest rather than reported as "no test command detected".
+    (tmp_path / "test_calc.py").write_text("def test_x():\n    assert True\n")
+    assert detect.detect_verify(tmp_path) == "pytest -q"
+
+
+def test_detect_verify_pytest_from_tests_dir(tmp_path):
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "conftest.py").write_text("")
+    (tests / "test_thing.py").write_text("def test_x():\n    assert True\n")
+    assert detect.detect_verify(tmp_path) == "pytest -q"
+
+
+def test_detect_verify_none_for_repo_without_tests_or_config(tmp_path):
+    (tmp_path / "main.py").write_text("print('hi')\n")  # code, but no tests and no config
+    assert detect.detect_verify(tmp_path) is None
+
+
 def test_detect_verify_go(tmp_path):
     (tmp_path / "go.mod").write_text("module x\n")
     assert detect.detect_verify(tmp_path) == "go test ./..."
