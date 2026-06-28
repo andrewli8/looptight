@@ -1299,15 +1299,13 @@ existing CLI session and makes no model or API calls of its own.
   `run_hook`'s valid-JSON-non-dict guard (`hook.py:120`) is covered by
   `test_run_hook_tolerates_valid_json_non_dict_event`; `hook.py` is now 100%. No production change.
 
-## Next
 
-1. `cmd_run`'s no-agent and no-verify guard-fails are untested.
-   Evidence: src/looptight/commands.py:154-159 (`run --headless` fails when no coding agent is
-   found) and :162-169 (fails when no verify command is configured or detectable). The
-   primary-worktree guard is tested but these two are not.
-   Acceptance: tests in tests/test_cli.py (with `direct_main=true`) assert `run --headless` exits
-   non-zero with a "no coding agent" message when `detect_agent` returns None, and with a "no
-   verify" message when no verify is configured/detectable. No production change.
+- `cmd_run`'s no-agent and no-verify guard-fails are covered:
+  `test_run_guard_fails_without_agent_or_verify` in test_cli.py asserts `run --headless`
+  (with `direct_main=true`) exits 2 with a "no coding agent" message when `detect_agent` returns
+  None and with a "verify" message when no verify is configured or detectable. No production change.
+
+## Next
 
 ## Rules
 
