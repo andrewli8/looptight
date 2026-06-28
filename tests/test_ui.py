@@ -307,6 +307,35 @@ def test_page_filter_groups_match_the_python_status_groups():
     assert parsed == {k: set(v) for k, v in ui._STATUS_GROUPS.items()}
 
 
+def test_node_border_colors_match_the_tally_legend():
+    # The graph must use the same color legend as the tally: acid=active, red=attention,
+    # cyan=complete. Otherwise an active task (cyan default) looks identical to a complete one
+    # and contradicts the acid manager. Extract the status tokens from each border-color rule.
+    import re
+
+    css = ui.PAGE
+
+    def statuses_for(color):
+        found = set()
+        for m in re.finditer(r"([^{}]*)\{border-left-color:var\(--%s\)\}" % color, css):
+            found |= set(re.findall(r"\.(?:node|task)\.(\w+)", m.group(1)))
+        return found
+
+    assert ui._STATUS_GROUPS["active"] <= statuses_for("acid")  # active tasks read acid, not cyan
+    assert ui._STATUS_GROUPS["attention"] <= statuses_for("red")  # incl. limited/interrupted
+    assert ui._STATUS_GROUPS["complete"] <= statuses_for("cyan")
+
+
+def test_attention_badge_covers_limited_and_interrupted():
+    # The status badge background goes red for every attention status, including the two that
+    # were previously unstyled (limited/interrupted).
+    css = ui.PAGE
+    badge_rule = css[css.index(".status{"):]
+    badge_rule = badge_rule[: badge_rule.index("{background:var(--red)}") + len("{background:var(--red)}")]
+    for status in ui._STATUS_GROUPS["attention"]:
+        assert f".{status} .status" in badge_rule
+
+
 def test_summarize_tolerates_empty_and_malformed_state():
     assert ui.summarize({}) == {"total": 0, "active": 0, "attention": 0, "complete": 0}
     assert ui.summarize({"tasks": [None, "x", {"status": "running"}]})["total"] == 1
