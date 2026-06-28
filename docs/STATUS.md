@@ -1386,6 +1386,16 @@ existing CLI session and makes no model or API calls of its own.
   generate_ideas) stubs `plan_next_tasks` to fail and asserts `run_continuous_swarm` returns
   `reason == REASON_ERROR` carrying the planner error. No production change.
 
+## Next
+
+1. `run_continuous_swarm`'s planner-limit-persisted terminal exit is untested.
+   Evidence: src/looptight/swarm.py:800-808 — when planning hits a provider limit and the resume
+   cap is reached, the continuous swarm returns `reason=REASON_LIMIT`. The planner-limit resume
+   path is exercised but the terminal cap is not.
+   Acceptance: a test in tests/test_swarm.py (work exhausted) stubs `plan_next_tasks` to return a
+   limit-error `PlanningResult` with `limit_max_resumes=1` and an injected no-op sleep, asserting
+   `run_continuous_swarm` returns `reason == REASON_LIMIT`. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
