@@ -54,6 +54,34 @@ def test_init_writes_config(tmp_path, monkeypatch):
     assert 'verify = "pytest -q"' in text
 
 
+def test_init_creates_gitignore_for_pycache_on_python_loop(tmp_path, monkeypatch, capsys):
+    # A pytest verify leaves untracked __pycache__/; without a .gitignore the first
+    # `next` after `verify` refuses the dirty worktree and stalls the shipped loop. init
+    # must create a one-line .gitignore so the out-of-box Python loop runs.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n")
+
+    assert main(["init"]) == 0
+    gitignore = tmp_path / ".gitignore"
+    assert gitignore.exists(), "init did not create a .gitignore for the Python loop"
+    assert "__pycache__/" in gitignore.read_text()
+    assert "__pycache__" in capsys.readouterr().out  # init reports the write
+
+
+def test_init_never_rewrites_an_existing_gitignore(tmp_path, monkeypatch):
+    # init owns only files it creates: an existing user .gitignore stays byte-for-byte,
+    # even if it does not mention __pycache__.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n")
+    original = "node_modules/\n"
+    (tmp_path / ".gitignore").write_text(original)
+
+    assert main(["init"]) == 0
+    assert (tmp_path / ".gitignore").read_text() == original
+
+
 def test_init_guides_committing_the_config_before_next(tmp_path, monkeypatch, capsys):
     # init writes an untracked .looptight.toml; the documented next step `next`
     # refuses a dirty worktree, so a first-run user who runs init then next hits a

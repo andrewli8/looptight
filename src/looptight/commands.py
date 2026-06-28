@@ -17,6 +17,7 @@ from .console import Console
 from .coordinator import coordination_scope
 from .daemon import run_daemon
 from .detect import KNOWN_AGENTS, detect_agent, detect_verify
+from .fsutil import atomic_write_text
 from .integration import install_goal_instructions, install_session_instructions
 from .loop import run_loop
 from .protocol_commands import (
@@ -53,6 +54,30 @@ __all__ = [
 ]
 
 
+def _is_python_verify(command: str) -> bool:
+    """True when the verify command runs Python tests, which create __pycache__/."""
+    lowered = command.lower()
+    return "pytest" in lowered or "py.test" in lowered or "python -m" in lowered
+
+
+def _ensure_pycache_ignored(workdir: Path, console: Console) -> None:
+    """Create a one-line .gitignore for __pycache__/ when none exists.
+
+    A Python verify command leaves untracked __pycache__/ behind; without a .gitignore
+    the next `looptight next` then refuses the now-dirty worktree, stalling the shipped
+    loop on its first iteration. Only create the file when absent — never rewrite a
+    .gitignore the user already maintains.
+    """
+    gitignore = workdir / ".gitignore"
+    if gitignore.exists():
+        return
+    atomic_write_text(gitignore, "__pycache__/\n")
+    console.print(
+        "[green]wrote[/green] .gitignore (__pycache__/) so test runs don't dirty the "
+        "worktree and stall [bold]looptight next[/bold]."
+    )
+
+
 def cmd_init(args: argparse.Namespace, console: Console) -> int:
     workdir = Path.cwd()
     config_exists = (workdir / CONFIG_NAME).is_file()
@@ -87,6 +112,10 @@ def cmd_init(args: argparse.Namespace, console: Console) -> int:
                 f"[cyan]{DEFAULT_VERIFY}[/cyan] — replace it in {path.name} with your "
                 "project's test command."
             )
+        # The effective verify is pytest even when none is detected (config falls back to
+        # DEFAULT_VERIFY), so guard the Python happy path against the __pycache__ stall.
+        if _is_python_verify(verify or DEFAULT_VERIFY):
+            _ensure_pycache_ignored(workdir, console)
         if agent:
             source = "from --agent" if args.agent else "auto-detected"
             console.print(f"Agent: [cyan]{agent}[/cyan] ({source}).")
