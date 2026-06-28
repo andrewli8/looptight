@@ -193,14 +193,17 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
     from .propose import propose
 
     source = getattr(args, "source", None)
+    # Discover the full ranked list once (propose ranks then truncates, so the top N of the full
+    # list equals propose(limit=N)). Keeping the total lets the human header report honestly how
+    # many --limit hid, instead of silently truncating. The --source path already needed it.
+    ranked = propose(Path.cwd(), limit=0)
     if source:
         # Filter before limiting, so `--source X --limit N` shows up to N of source X
         # rather than only those that survive the overall top-N ranking cut.
-        candidates = [c for c in propose(Path.cwd(), limit=0) if c.source == source]
-        if args.limit and args.limit > 0:
-            candidates = candidates[: args.limit]
-    else:
-        candidates = propose(Path.cwd(), limit=args.limit)
+        ranked = [c for c in ranked if c.source == source]
+    total = len(ranked)
+    limit = args.limit if (args.limit and args.limit > 0) else 0
+    candidates = ranked[:limit] if limit else ranked
     evaluation = None
     if getattr(args, "eval_batch", False):
         from .idea_eval import score_status_next
@@ -226,9 +229,13 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
             "[bold]looptight goal \"<vision>\"[/bold] to build toward a goal."
         )
     else:
-        noun = "task" if len(candidates) == 1 else "tasks"
+        noun = "task" if total == 1 else "tasks"
+        # Report the truncation rather than silently capping: "10 of 31" tells the user the
+        # other 21 exist (and the hint below says how to see them), so they don't read the
+        # shown set as the whole backlog.
+        of_total = f" of {total}" if total > len(candidates) else ""
         console.print(
-            f"[bold]{len(candidates)} candidate {noun}[/bold] "
+            f"[bold]{len(candidates)}{of_total} candidate {noun}[/bold] "
             "(grouped by source priority; pick what to run):"
         )
         console.print()
@@ -245,6 +252,11 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
             # separator (used tool-wide) marks where the free-form title ends and provenance begins.
             where = f" · {candidate.location}" if candidate.location else ""
             console.write(f"  {i}. {candidate.title}{where}")  # user title — preserve any tokens
+        if total > len(candidates):
+            console.print(
+                f"[dim]… {total - len(candidates)} more not shown — pass [/dim]"
+                "[bold]--limit 0[/bold][dim] to see all of them.[/dim]"
+            )
         console.print()
         console.print(
             "[dim]Ranking is a source-priority heuristic. The operating agent selects the "

@@ -2041,6 +2041,12 @@ existing CLI session and makes no model or API calls of its own.
   and tabs from the task file — same one-line class as the title beside it. Found by
   dogfooding a STATUS.md acceptance with tabs/extra spaces. Covered by an acceptance test.
 
+- `propose` no longer silently caps its candidate list: when `--limit` (default 10) hides
+  candidates, the human header reads `10 of 31 candidate tasks` and a `… 21 more not shown —
+  pass --limit 0 to see all of them.` line points the way, so the shown set is never mistaken
+  for the whole backlog. `--limit 0` shows all with no notice. Found by dogfooding `propose`
+  over 30 markers. Covered by a truncation-notice test.
+
 ## Next
 
 ## Rules

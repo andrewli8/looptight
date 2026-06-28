@@ -340,6 +340,28 @@ def test_propose_header_pluralizes_on_count(tmp_path, monkeypatch, capsys):
     assert "task(s)" not in two
 
 
+def test_propose_reports_truncation_instead_of_silently_capping(tmp_path, monkeypatch, capsys):
+    # With more candidates than the default --limit, the header must say "10 of N" and point at
+    # --limit 0, not silently show 10 as if that were the whole backlog.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    src = tmp_path / "src"
+    src.mkdir()
+    body = "\n".join(f"def f{i}():  # TODO: task {i} needs attention" for i in range(25))
+    (src / "a.py").write_text(body + "\n", encoding="utf-8")
+
+    assert main(["propose"]) == 0  # default limit 10
+    out = capsys.readouterr().out
+    assert "10 of " in out  # honest "N of M" header
+    assert "more not shown" in out
+    assert "--limit 0" in out
+
+    assert main(["propose", "--limit", "0"]) == 0  # unlimited: no truncation notice
+    full = capsys.readouterr().out
+    assert " of " not in full.splitlines()[0]  # header has no "N of M"
+    assert "more not shown" not in full
+
+
 def test_init_warns_when_verify_is_lint_only(tmp_path, monkeypatch, capsys):
     # A linter as the verify command passes even with broken logic; warn the new dev.
     from looptight import commands
