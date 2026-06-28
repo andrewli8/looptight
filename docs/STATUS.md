@@ -2029,6 +2029,13 @@ existing CLI session and makes no model or API calls of its own.
   everywhere (goal line, statusline, build prompt). Unicode/emoji are preserved. Found by
   dogfooding `goal` with newline/whitespace/unicode input. Covered by a normalization test.
 
+- Discovered task titles (TODO/FIXME markers, STATUS.md `## Next` entries, skipped-test and
+  lint candidates) collapse internal whitespace runs and tabs to single spaces via a shared
+  `_one_line` helper, so a title rendered on one line (propose, next, the panel's fixed-width
+  columns) never reads messy or risks a tab breaking column alignment. The same one-line class
+  as the goal-vision fix. Found by dogfooding a TODO/STATUS.md title with tabs and extra
+  spaces. Covered by a title-normalization test.
+
 ## Next
 
 ## Rules

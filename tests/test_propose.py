@@ -106,6 +106,15 @@ def test_from_todos_finds_markers_with_location(tmp_path):
     assert all(c.location and ":" in c.location for c in cands)
 
 
+def test_todo_title_normalizes_internal_whitespace(tmp_path):
+    # A candidate title renders on one line (propose, next, the panel). Internal runs of spaces
+    # and tabs in the marker text must collapse to single spaces so the title never reads messy
+    # or breaks the panel's fixed-width columns.
+    _write(tmp_path, "src/a.py", "x = 1  # TODO:   handle    the\tempty   case  \n")
+    title = from_todos(tmp_path)[0].title
+    assert title == "handle the empty case"
+
+
 def test_from_todos_finds_marker_in_jsdoc_block_comment(tmp_path):
     # A TODO on a continuation line of a multi-line block comment keeps its JSDoc
     # ` * ` prefix; that prefix must be stripped before marker matching, or the

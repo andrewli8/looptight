@@ -283,6 +283,13 @@ def _bound(text: str, limit: int = _MAX_MARKER_TEXT) -> str:
     return text if len(text) <= limit else text[:limit].rstrip() + "…"
 
 
+def _one_line(text: str) -> str:
+    """Collapse whitespace runs (incl. tabs/newlines) to single spaces and strip. A candidate
+    title is a one-line descriptor (propose, next, the panel's fixed-width columns), so messy
+    inner whitespace from a marker or STATUS.md entry must not survive into it."""
+    return " ".join(text.split())
+
+
 def _todo_candidate(root: Path, path: Path, lineno: int, body: str, detail: str) -> Candidate | None:
     """Build a `todo` candidate from a comment body, or None if it is not a marker."""
     match = _TODO_RE.match(body.strip())
@@ -291,7 +298,7 @@ def _todo_candidate(root: Path, path: Path, lineno: int, body: str, detail: str)
     text = match.group("text").strip() or match.group(1).upper()
     location = f"{_rel(root, path)}:{lineno}"
     return Candidate(
-        title=_bound(text),
+        title=_bound(_one_line(text)),
         source="todo",
         location=location,
         suggested_verify=None,
@@ -455,7 +462,7 @@ def _js_skip_candidate(root: Path, path: Path, lineno: int, line: str) -> Candid
     name = (name_match.group("name").strip() if name_match else "") or "skipped test"
     location = f"{_rel(root, path)}:{lineno}"
     return Candidate(
-        title=_bound(f"un-skip / fix skipped test: {name}"),
+        title=_bound(_one_line(f"un-skip / fix skipped test: {name}")),
         source="skipped-test",
         location=location,
         suggested_verify=None,
@@ -517,7 +524,7 @@ def from_skipped_tests(root: Path) -> list[Candidate]:
             where = f"{test_name} in {path.name}" if test_name else f"in {path.name}"
             out.append(
                 Candidate(
-                    title=f"un-skip / fix skipped test {where}",
+                    title=_one_line(f"un-skip / fix skipped test {where}"),
                     source="skipped-test",
                     location=f"{_rel(root, path)}:{idx + 1}",
                     suggested_verify=None,
@@ -613,7 +620,7 @@ def from_task_file(
             continue  # claims evidence that does not resolve: a grounding-gate drop
         out.append(
             Candidate(
-                title=_bound(task_text.strip().rstrip(".;"), _MAX_TASK_TEXT),
+                title=_bound(_one_line(task_text).rstrip(".;"), _MAX_TASK_TEXT),
                 source="status-next" if next_section_only else "task-file",
                 location=f"{relative.as_posix()}:{item_lineno}",
                 suggested_verify=None,
@@ -671,7 +678,7 @@ def from_lint(root: Path) -> list[Candidate]:
         seen.add(key)
         out.append(
             Candidate(
-                title=f"fix {match.group('code')}: {match.group('msg')}",
+                title=_one_line(f"fix {match.group('code')}: {match.group('msg')}"),
                 source="lint",
                 location=match.group("loc"),
                 suggested_verify="ruff check",
