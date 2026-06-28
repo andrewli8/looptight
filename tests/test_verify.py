@@ -186,8 +186,8 @@ def test_short_includes_score_when_present():
 
 
 def test_short_distinguishes_timeout_and_error_from_a_plain_fail():
-    # short() drives the headline above `verifier result:`; it must not mislabel an execution
-    # timeout/error as a test FAIL (which contradicts the status line and misleads the user).
+    # short() drives the verify headline; it must not mislabel an execution timeout/error as a
+    # test FAIL (which would mislead the user — and is why a redundant status echo is unneeded).
     assert VerifyResult(passed=False, exit_code=2, error="timeout").short() == "TIMEOUT"
     assert VerifyResult(passed=False, exit_code=1, error="boom").short() == "ERROR"
     assert VerifyResult(passed=False, exit_code=1).short() == "FAIL"  # plain fail unchanged

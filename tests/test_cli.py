@@ -1559,7 +1559,8 @@ def test_verify_human_explains_result_and_changed_files(tmp_path, monkeypatch, c
     assert main(["verify", "--verify", "exit 0"]) == 0
 
     out = capsys.readouterr().out
-    assert "verifier result: pass" in out
+    assert "verify: PASS (exit 0)" in out  # the headline carries the verdict (no redundant echo)
+    assert "verifier result:" not in out  # the duplicate lowercase verdict line is gone
     assert "changed files: tracked.txt" in out
     assert "next: review the diff, update status, then commit" in out
 

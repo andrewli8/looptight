@@ -2017,6 +2017,12 @@ existing CLI session and makes no model or API calls of its own.
   full directive for machines. Found by dogfooding `status` with a claimed session task.
   Covered by a no-double-print test.
 
+- The human `verify` output drops the redundant `verifier result: <status>` line: the headline
+  `verify: PASS (exit 0)` already carries the true verdict (`PASS/FAIL/TIMEOUT/ERROR` + any
+  score) and the exit code. The echo once disambiguated a timeout/error from a plain `FAIL`,
+  but `short()` now reports those directly, so it is pure duplication. Found by dogfooding the
+  `verify` human output. Test updated to assert the headline and the echo's absence.
+
 ## Next
 
 ## Rules

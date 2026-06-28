@@ -66,8 +66,10 @@ def cmd_verify(args: argparse.Namespace, console: Console) -> int:
         )
         return _verify_exit_code(result.status)
     style = "green" if result.passed else "red"
+    # The headline carries the true verdict (PASS/FAIL/TIMEOUT/ERROR, plus any score) and the exit
+    # code, so a separate lowercase `verifier result:` line would just echo it. (It once
+    # disambiguated a timeout/error from a plain FAIL, before short() reported those directly.)
     console.print(f"verify: [{style}]{result.short()}[/{style}] (exit {result.exit_code})")
-    console.print(f"verifier result: {result.status}")
     console.print(f"changed files: {_changed_files(workdir)}")
     if stall and stall.get("escalation"):
         console.print(f"[yellow]stalled:[/yellow] {stall['escalation']['summary']}")
