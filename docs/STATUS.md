@@ -1689,20 +1689,15 @@ existing CLI session and makes no model or API calls of its own.
   swarm mode unchanged. The session view now fully represents the default loop: task, mode,
   verdict, and freshness.
 
-## Next
+- `looptight ui` now represents goal mode too, completing all three loop modes (swarm, session,
+  goal): when no swarm state and no session claim exist but a build goal is active,
+  `_with_session_task` overlays it (manager status "goal", a node showing the vision with
+  "goal · iteration N"), and render() frames the "goal" manager mode ("your goal build loop")
+  with the same two-lane layout as session mode. A session claim takes precedence over a goal;
+  read-only (reuses `read_goal`), degrades to idle on any error. Verified live; covered by
+  `_active_goal_view`, overlay-precedence, and page tests.
 
-1. `looptight ui` does not represent goal mode — the one loop mode with no live view.
-   Evidence: src/looptight/ui.py `_with_session_task` overlays the swarm state or the session claim,
-   but a vision-driven build (`looptight goal "<vision>"`, driven by `goal next`) has no claimed
-   `next` task, so the page shows "idle" while a goal build is active. The goal state is available
-   read-only via `read_goal` (src/looptight/goal.py:49 → `Goal.vision`, `Goal.iteration`). Fix
-   (parallel to the session overlay, read-side): after the session-claim check, if a goal is active
-   overlay a goal view — manager status "goal", and a node showing the vision with source
-   "goal · iteration N" — and make render() handle the "goal" manager mode (its own label/detail,
-   the two-lane framing already used for session mode).
-   Acceptance: a `test_ui.py` test asserts `_with_session_task` (stubbed `read_goal`, no swarm state,
-   no claim) yields `manager.status == "goal"` and a node carrying the vision; a session claim still
-   takes precedence over a goal; and the page renders the goal manager mode.
+## Next
 
 ## Rules
 

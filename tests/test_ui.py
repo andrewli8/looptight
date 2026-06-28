@@ -50,14 +50,14 @@ def test_do_get_rejects_a_non_loopback_host(tmp_path):
 def test_session_view_is_two_lane_not_three():
     # In session mode the swarm workers lane is dropped so the view is structurally a session
     # (manager → task), not a 3-lane swarm.
-    assert "classList.toggle('session',sessionMode)" in ui.PAGE
+    assert "classList.toggle('session',soloMode)" in ui.PAGE  # 2-lane for session and goal modes
     assert ".graph.session #workers{display:none}" in ui.PAGE
 
 
 def test_manager_node_is_mode_aware():
-    # In session mode the manager node must not claim to be a swarm orchestrator running an
-    # integration gate; render() picks the label/detail by mode.
-    assert "sessionMode" in ui.PAGE
+    # The manager node must not claim to be a swarm orchestrator in session/goal mode; render()
+    # picks the label/detail by mode.
+    assert "mode==='session'" in ui.PAGE or "mgrTitle" in ui.PAGE
     assert "your next / verify loop" in ui.PAGE  # session-mode detail
     assert "deterministic integration gate" in ui.PAGE  # swarm-mode detail still present
 
@@ -134,6 +134,45 @@ def test_with_session_task_no_verdict_leaves_no_badge_or_timestamp(monkeypatch, 
 
 def test_page_renders_the_session_verify_verdict():
     assert "manager.verify" in ui.PAGE  # the session manager detail shows the last verdict
+
+
+def test_active_goal_view_renders_the_vision_and_iteration(monkeypatch, tmp_path):
+    from looptight.goal import Goal
+
+    monkeypatch.setattr("looptight.goal.read_goal", lambda root: Goal(vision="ship the landing page", iteration=3))
+    view = ui._active_goal_view(tmp_path)
+    assert view["goal"] == "ship the landing page"
+    assert "iteration 3" in view["source"]
+    monkeypatch.setattr("looptight.goal.read_goal", lambda root: None)
+    assert ui._active_goal_view(tmp_path) is None
+
+
+def test_with_session_task_overlays_an_active_goal(monkeypatch, tmp_path):
+    # No swarm, no session claim, but a build goal is active → represent it (manager "goal").
+    monkeypatch.setattr(ui, "_active_session_task", lambda root: None)
+    monkeypatch.setattr(
+        ui,
+        "_active_goal_view",
+        lambda root: {"id": "goal", "goal": "ship the landing page", "source": "goal · iteration 3", "status": "running"},
+    )
+    state = ui._with_session_task(ui.empty_state(), tmp_path)
+    assert state["manager"]["status"] == "goal"
+    assert state["tasks"][0]["goal"] == "ship the landing page"
+
+
+def test_session_claim_takes_precedence_over_a_goal(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        ui, "_active_session_task", lambda root: {"id": "t", "goal": "a claimed task", "source": "", "status": "claimed"}
+    )
+    monkeypatch.setattr(ui, "_active_goal_view", lambda root: {"id": "goal", "goal": "v", "source": "", "status": "running"})
+    state = ui._with_session_task(ui.empty_state(), tmp_path)
+    assert state["manager"]["status"] == "session"
+    assert state["tasks"][0]["goal"] == "a claimed task"
+
+
+def test_page_renders_goal_mode():
+    assert "mode==='goal'" in ui.PAGE
+    assert "your goal build loop" in ui.PAGE
 
 
 def test_with_session_task_overlays_the_claim_when_no_swarm(monkeypatch, tmp_path):
