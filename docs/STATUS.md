@@ -1588,23 +1588,16 @@ existing CLI session and makes no model or API calls of its own.
   page rebinds its domain to 127.0.0.1 and reads the read-only repo state through a victim's
   browser. Covered by `_host_is_loopback` unit cases and a non-loopback `do_GET` 403 test.
 
+- The `ui` tally is a coherent task-centric partition: a tested server-side `summarize(state)`
+  computes `total` = number of tasks with active/attention/complete as subsets of those tasks,
+  exposed on `/api/state`, and the page renders `state.summary` instead of recomputing it
+  inconsistently (it had mixed tasks-for-total with tasks+workers-for-breakdown, so 4 total sat
+  beside 2/2/2 over 7 nodes). The strip now reads e.g. 4 / 1 / 1 / 1. Covered by summarize unit
+  tests + the /api/state contract test; workers stay visible in the graph.
+
 ## Next
 
-1. The `ui` web view's status tally is incoherent: the four cells describe different populations.
-   Evidence: src/looptight/ui.py:152 — the client `tally()` sets `total` to `(state.tasks||[]).length`
-   (tasks only) but counts `active`/`attention`/`complete` over `[...tasks, ...workers]`, so the
-   numbers never reconcile (rendering the sample state shows `4 total` beside `2 active / 2 attention
-   / 2 complete` over 7 nodes, and a `queued` task falls in no group). The data representation reads
-   as broken. Fix: compute the summary server-side in a tested `summarize(state)` — a coherent
-   task-centric count (total = number of tasks; active/attention/complete as subsets of the tasks,
-   reusing the existing status groups) — expose it on the `/api/state` response, and have the page
-   render `state.summary` instead of recomputing it inconsistently in JS. Workers stay visible in the
-   graph; the tally is now an honest partition of the task queue.
-   Acceptance: a `test_ui.py` test asserts `summarize` reports `total` == number of tasks with
-   `active+attention+complete <= total` (a subset, not a different population), that a worker's status
-   does not inflate the task counts, and that `/api/state`'s JSON includes the `summary` object.
-
-2. The `ui` page 404s on `/favicon.ico` every load and declares no tab icon.
+1. The `ui` page 404s on `/favicon.ico` every load and declares no tab icon.
    Evidence: src/looptight/ui.py:183-202 — `do_GET` matches only `/` and `/api/state`, so the
    browser's automatic `/favicon.ico` request falls through to `send_error(404)` (observed in the
    served page's console on every load), and the `<head>` declares no icon. Fix: serve `/favicon.ico`

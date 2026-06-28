@@ -47,6 +47,33 @@ def test_do_get_rejects_a_non_loopback_host(tmp_path):
     assert errors["code"] == 403
 
 
+def test_summarize_is_a_coherent_task_centric_partition():
+    # The tally's four cells must describe ONE population: total = tasks, with
+    # active/attention/complete as subsets of those tasks. A worker's status must not
+    # inflate the task counts (the old client tally mixed tasks+workers into the breakdown).
+    state = {
+        "tasks": [
+            {"id": "a", "status": "running"},  # active
+            {"id": "b", "status": "merged"},  # complete
+            {"id": "c", "status": "failed"},  # attention
+            {"id": "d", "status": "queued"},  # pending (no group)
+        ],
+        "workers": [
+            {"number": 1, "status": "conflict"},  # attention status, but a worker
+            {"number": 2, "status": "running"},  # active status, but a worker
+        ],
+    }
+    s = ui.summarize(state)
+    assert s["total"] == 4  # tasks only, not tasks+workers
+    assert s["active"] == 1 and s["attention"] == 1 and s["complete"] == 1
+    assert s["active"] + s["attention"] + s["complete"] <= s["total"]  # a coherent subset
+
+
+def test_summarize_tolerates_empty_and_malformed_state():
+    assert ui.summarize({}) == {"total": 0, "active": 0, "attention": 0, "complete": 0}
+    assert ui.summarize({"tasks": [None, "x", {"status": "running"}]})["total"] == 1
+
+
 def test_server_binds_loopback_and_serves_versioned_state(tmp_path, monkeypatch):
     state = {
         "schema_version": 1,
@@ -77,6 +104,7 @@ def test_server_binds_loopback_and_serves_versioned_state(tmp_path, monkeypatch)
     assert json.loads(handler.wfile.getvalue()) == {
         **state,
         "updated_at": "2026-06-20T12:00:00Z",
+        "summary": ui.summarize({**state, "updated_at": "2026-06-20T12:00:00Z"}),
     }
 
     constructed = {}
@@ -148,12 +176,12 @@ def test_page_reports_event_age_without_health_inference():
 
 def test_page_serves_status_tally_strip_under_csp(tmp_path):
     page = ui.PAGE
-    # The summary strip is part of the served markup and render() fills it from
-    # per-status counts derived from state.tasks and state.workers.
+    # The summary strip is part of the served markup and render() fills it from the
+    # server-computed, coherent `state.summary` (not a separate, inconsistent client tally).
     assert 'id="tally"' in page
     assert "function tally()" in page
     assert "render(){tally();" in page
-    assert "[...(state.tasks||[]),...(state.workers||[])]" in page
+    assert "state.summary" in page
 
     ui.write_state(tmp_path, {"schema_version": 1, "manager": {}, "tasks": [], "workers": []})
     handler = object.__new__(ui._handler(tmp_path))

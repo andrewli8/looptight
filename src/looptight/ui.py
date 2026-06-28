@@ -119,6 +119,34 @@ def statusline(state: dict[str, object]) -> str:
     return "looptight: " + " · ".join(f"{counts[s]} {s}" for s in ordered)
 
 
+#: The status groups the page filters and tallies by, kept here so the server-computed
+#: summary and the client's filter use one definition.
+_STATUS_GROUPS = {
+    "active": frozenset({"ready", "running", "claimed", "integrating"}),
+    "attention": frozenset({"failed", "error", "conflict", "timeout"}),
+    "complete": frozenset({"complete", "completed", "passed", "merged"}),
+}
+
+
+def summarize(state: dict[str, object]) -> dict[str, int]:
+    """Coherent at-a-glance counts for the tally strip.
+
+    ``total`` is the number of tasks, and ``active``/``attention``/``complete`` are subsets
+    of those same tasks (so the four cells are one honest population, not the previous mix of
+    tasks for ``total`` and tasks+workers for the breakdown). Workers stay visible in the
+    graph rather than being folded into these task counts.
+    """
+    tasks = [t for t in (state.get("tasks") or []) if isinstance(t, dict)]
+    counts = {"total": len(tasks), "active": 0, "attention": 0, "complete": 0}
+    for task in tasks:
+        status = str(task.get("status", "")).lower()
+        for group, members in _STATUS_GROUPS.items():
+            if status in members:
+                counts[group] += 1
+                break
+    return counts
+
+
 PAGE = r"""<!doctype html>
 <html lang="en">
 <head>
@@ -149,7 +177,7 @@ function node(kind,title,status,detail,id){const el=document.createElement('arti
 function fill(id,items,make){const lane=$(id);lane.querySelectorAll('.node,.empty').forEach(n=>n.remove());if(!items.length){const empty=document.createElement('div');empty.className='empty';empty.textContent=`no ${id}`;lane.append(empty)}else items.forEach(item=>lane.append(make(item)))}
 function guide(id,lead,command){const lane=$(id);lane.querySelectorAll('.node,.empty').forEach(n=>n.remove());const el=document.createElement('div');el.className='empty guide';el.append(document.createTextNode(`${lead} `));const code=document.createElement('code');code.textContent=command;el.append(code);lane.append(el)}
 function wire(from,to){const a=document.querySelector(`[data-node="${CSS.escape(from)}"]`),b=document.querySelector(`[data-node="${CSS.escape(to)}"]`);if(!a||!b)return;const g=$('graph').getBoundingClientRect(),x1=a.getBoundingClientRect(),x2=b.getBoundingClientRect(),p=document.createElementNS('http://www.w3.org/2000/svg','path');const ax=x1.right-g.left,ay=x1.top+x1.height/2-g.top,bx=x2.left-g.left,by=x2.top+x2.height/2-g.top,m=(ax+bx)/2;p.setAttribute('d',`M${ax},${ay} C${m},${ay} ${m},${by} ${bx},${by}`);p.setAttribute('class','wire');$('wires').append(p)}
-function tally(){const nodes=[...(state.tasks||[]),...(state.workers||[])];const counts={active:0,attention:0,complete:0};nodes.forEach(n=>{const s=(n.status||'').toLowerCase();for(const key in groups)if(groups[key].has(s))counts[key]++});const cells=[['total',(state.tasks||[]).length,''],['active',counts.active,'active'],['attention',counts.attention,'attention'],['complete',counts.complete,'complete']];const strip=$('tally');strip.replaceChildren();cells.forEach(([label,value,cls])=>{const cell=document.createElement('div');cell.className=`stat ${cls}`;const v=document.createElement('strong'),l=document.createElement('span');v.textContent=value;l.textContent=label;cell.append(v,l);strip.append(cell)})}
+function tally(){const s=state.summary||{total:(state.tasks||[]).length,active:0,attention:0,complete:0};const cells=[['total',s.total,''],['active',s.active,'active'],['attention',s.attention,'attention'],['complete',s.complete,'complete']];const strip=$('tally');strip.replaceChildren();cells.forEach(([label,value,cls])=>{const cell=document.createElement('div');cell.className=`stat ${cls}`;const v=document.createElement('strong'),l=document.createElement('span');v.textContent=value;l.textContent=label;cell.append(v,l);strip.append(cell)})}
 function render(){tally();records={};const manager=state.manager||{status:'idle'};$('manager').querySelectorAll('.node').forEach(n=>n.remove());$('manager').append(node('manager','orchestrator',manager.status,'deterministic integration gate','manager'));const tasks=(state.tasks||[]).filter(t=>visible(t.status)),workers=(state.workers||[]).filter(w=>visible(w.status));const idle=(manager.status||'').toLowerCase()==='idle'&&!(state.tasks||[]).length&&!(state.workers||[]).length;if(idle){guide('tasks','Idle — start a swarm with','looptight swarm --headless');$('workers').querySelectorAll('.node,.empty').forEach(n=>n.remove())}else{fill('tasks',tasks,t=>node('task',t.goal||t.id,t.status,t.id,`task-${t.id}`));fill('workers',workers,w=>node('worker',`worker ${w.number}`,w.status,w.error||w.task_id||'',`worker-${w.number}`))}$('schema').textContent=state.schema_version;$('age').textContent=eventAge(state.updated_at);$('wires').replaceChildren();tasks.forEach(t=>wire('manager',`task-${t.id}`));workers.forEach(w=>wire(`task-${w.task_id}`,`worker-${w.number}`));if(selected){const fresh=records[selected.id];if(fresh)select(fresh)}}
 async function update(){try{const r=await fetch('/api/state',{cache:'no-store'});if(!r.ok)throw Error(r.status);state=await r.json();render();$('connection').textContent='live / polling'}catch(e){$('connection').textContent='state unavailable'}}
 document.querySelectorAll('.filter').forEach(button=>button.addEventListener('click',()=>{filter=button.dataset.filter;document.querySelectorAll('.filter').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));render()}));
@@ -212,7 +240,9 @@ def _handler(root: Path) -> type[BaseHTTPRequestHandler]:
                 body = PAGE.encode()
                 content_type = "text/html; charset=utf-8"
             elif self.path == "/api/state":
-                body = json.dumps(read_state(root), sort_keys=True).encode()
+                state = read_state(root)
+                payload = {**state, "summary": summarize(state)}
+                body = json.dumps(payload, sort_keys=True).encode()
                 content_type = "application/json"
             else:
                 self.send_error(404)
