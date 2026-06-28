@@ -1021,17 +1021,14 @@ existing CLI session and makes no model or API calls of its own.
   cap. Found by the audit; covered by `test_swarm_banner_renders_unbounded_for_zero_max_rounds`
   and the updated `test_swarm_banner_notes_resume_on_limit` in test_swarm.py.
 
-## Next
+- `--model` reaches the native (`--native`) delegate loop, not only the supply path:
+  `drive_native_loop` now takes a `model` param (base + claude adapter), loop.py passes
+  `config.model`, and `ClaudeAdapter._invoke` appends `--model`. Previously the native
+  path hardcoded `None`, silently discarding a user's `--model opus` in native mode.
+  Found by the audit; covered by `test_claude_native_loop_threads_the_configured_model`
+  in test_adapters.py (stubs updated to accept the param).
 
-1. `--model` is silently ignored in `--native` mode.
-   Evidence: src/looptight/loop.py:189 calls `adapter.drive_native_loop(goal,
-   config.verify, config.max_iterations, workdir)` with no model; adapters/claude.py:57-68
-   `drive_native_loop` hardcodes `self._invoke(prompt, workdir, None)`. The supply path
-   threads `config.model` (loop.py:130) but the native path drops it, so
-   `run "<goal>" --headless --native --model opus` discards the requested model.
-   Acceptance: thread `config.model` through `drive_native_loop` (add a `model` param,
-   append `--model` in ClaudeAdapter._invoke) so the native command uses the configured
-   model; a test asserts the native adapter call carries the model.
+## Next
 
 ## Rules
 

@@ -102,6 +102,25 @@ def test_claude_builds_goal_prompt_for_native_loop(monkeypatch):
     assert "pytest -q" in captured["prompt"]
 
 
+def test_claude_native_loop_threads_the_configured_model(monkeypatch):
+    # --model must reach the native /goal loop too, not only the supply path.
+    # Previously drive_native_loop hardcoded model=None, silently discarding the
+    # user's requested model in --native mode.
+    captured = {}
+
+    def fake_invoke(self, prompt, workdir, model):
+        captured["model"] = model
+        import subprocess
+
+        return subprocess.CompletedProcess(
+            args=[], returncode=0, stdout='{"result": "ok"}', stderr=""
+        )
+
+    monkeypatch.setattr(ClaudeAdapter, "_invoke", fake_invoke)
+    ClaudeAdapter().drive_native_loop("fix tests", "pytest -q", 4, Path("."), model="opus")
+    assert captured["model"] == "opus"
+
+
 def test_claude_native_loop_surfaces_usage_limit_with_stable_marker(monkeypatch):
     # A usage limit during the native /goal loop must carry the stable marker so
     # the delegate loop's --resume-on-limit can wait it out and retry — the same

@@ -60,12 +60,13 @@ class ClaudeAdapter(Adapter):
         verify: str,
         max_iterations: int,
         workdir: Path,
+        model: str | None = None,
     ) -> IterationResult:
         prompt = (
             f"/goal {goal}. Keep going until the command `{verify}` exits with "
             f"status 0. Stop after at most {max_iterations} attempts."
         )
-        proc = self._invoke(prompt, workdir, None)
+        proc = self._invoke(prompt, workdir, model)
         transcript = _parse_result(proc.stdout)
         if proc.returncode == 0:
             return IterationResult(transcript=transcript, ok=True)

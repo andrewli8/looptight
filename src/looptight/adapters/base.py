@@ -150,6 +150,7 @@ class Adapter(ABC):
         verify: str,
         max_iterations: int,
         workdir: Path,
+        model: str | None = None,
     ) -> IterationResult:
         """Drive the agent's own eval-gated loop to completion (delegate mode).
 

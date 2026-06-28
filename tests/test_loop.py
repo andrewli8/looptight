@@ -98,7 +98,7 @@ class _LimitedThenOkNativeAdapter(FakeAdapter):
         self._limited = limited
         self.native_calls = 0
 
-    def drive_native_loop(self, goal, verify, max_iterations, workdir):
+    def drive_native_loop(self, goal, verify, max_iterations, workdir, model=None):
         self.native_calls += 1
         if self.native_calls <= self._limited:
             return IterationResult(

@@ -51,7 +51,9 @@ class FakeAdapter(Adapter):
             error=None if self.ok else "provider credits exhausted",
         )
 
-    def drive_native_loop(self, goal, verify, max_iterations, workdir) -> IterationResult:
+    def drive_native_loop(
+        self, goal, verify, max_iterations, workdir, model=None
+    ) -> IterationResult:
         self.native_runs += 1
         return IterationResult(
             transcript="native loop done",

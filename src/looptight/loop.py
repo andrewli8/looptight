@@ -186,7 +186,9 @@ def _delegate_loop(
     """Hand off to the agent's native loop, then verify once as the contract."""
     checkpointer.snapshot()
     iteration = _with_limit_resume(
-        lambda: adapter.drive_native_loop(goal, config.verify, config.max_iterations, workdir),
+        lambda: adapter.drive_native_loop(
+            goal, config.verify, config.max_iterations, workdir, config.model
+        ),
         resume_on_limit=resume_on_limit,
         base=limit_backoff_seconds,
         cap=limit_max_wait_seconds,
