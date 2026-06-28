@@ -317,6 +317,16 @@ def test_page_filter_groups_match_the_python_status_groups():
     assert parsed == {k: set(v) for k, v in ui._STATUS_GROUPS.items()}
 
 
+def test_small_text_is_at_least_11px():
+    # The smallest UI text was 10px (below a comfortable readability floor); fonts are now >= 11px.
+    page = ui.PAGE
+    assert "font-size:10px" not in page
+    assert "font:700 10px" not in page
+    assert "font-size:11px" in page  # the bumped small text
+    # 10px spacing values (gap/padding/margin) are unaffected
+    assert "padding:10px 13px" in page
+
+
 def test_card_border_meets_non_text_contrast():
     # The --line border is the sole boundary cue for cards/stats/filters/nodes (the panel fill and
     # shadow are imperceptible), so it must meet WCAG 1.4.11 (3:1) against --panel. Compute it.

@@ -1882,16 +1882,11 @@ existing CLI session and makes no model or API calls of its own.
   manager/tasks/workers structure to navigate. Purely additive markup, no visual change.
   Found by the accessibility audit. Covered by a lane-labeling test.
 
-## Next
+- The smallest UI text (`.eyebrow`, `.stat span`, `.status`, `.filter`) is bumped from 10px to
+  11px for readability, while the 10px spacing values are untouched. A small low-risk
+  improvement the a11y audit flagged. Covered by a font-size test.
 
-1. The smallest UI text is 10px — the a11y audit flagged it as below a comfortable readability
-   floor for low-vision users. Bump the four 10px FONT sizes to 11px (`src/looptight/ui.py:332`:
-   `.eyebrow`, `.stat span`, `.status`, and the `.filter` `font:700 10px`), leaving the 10px
-   SPACING values (margins/gaps/padding) untouched. A small, low-risk readability improvement under
-   the design-improvement mandate.
-   Evidence: src/looptight/ui.py:332
-   Acceptance: a new test in tests/test_ui.py asserts the page contains no `font-size:10px` or
-   `font:700 10px` (the small text is now >= 11px), while the 10px spacing values remain.
+## Next
 
 ## Rules
 
