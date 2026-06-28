@@ -1761,6 +1761,21 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The graph node border colors in `src/looptight/ui.py:327` don't match the tally's color
+   legend, so the graph mis-signals task status. The tally uses acid=active, red=attention,
+   cyan=complete (`src/looptight/ui.py:326`), but a task node defaults to a cyan left border
+   for every non-attention status — confirmed by dogfooding: a `claimed`/`integrating` task
+   renders cyan `rgb(99,230,223)`, the same color the tally uses for `complete`, so an active
+   task is indistinguishable from a merged one and contradicts the acid manager. The red rule
+   also omits `limited`/`interrupted`, which are now attention statuses. Add task border rules
+   so active statuses get the acid border and complete statuses the cyan border, and extend the
+   red border + badge rules to cover `limited`/`interrupted`, keeping the graph legend coherent
+   with the tally and `_STATUS_GROUPS`.
+   Evidence: src/looptight/ui.py:327
+   Acceptance: a new test in tests/test_ui.py asserts every `_STATUS_GROUPS["active"]` status
+   appears in an acid task border rule, every `attention` status (incl. limited/interrupted) in
+   a red border rule, and every `complete` status in a cyan task border rule.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
