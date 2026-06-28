@@ -194,6 +194,22 @@ class FailingPlannerAdapter(EditingAdapter):
         return IterationResult(transcript="", ok=False, error="planner provider crashed")
 
 
+class IdlePlannerAdapter(EditingAdapter):
+    def run_iteration(self, goal, context, workdir, model=None):
+        return IterationResult(transcript="nothing to plan")  # ok=True, no changes
+
+
+def test_plan_next_tasks_returns_no_work_when_planner_makes_no_changes(tmp_path, monkeypatch):
+    # A planner that succeeds but makes no changes signals no_work (the continuous swarm's
+    # stop condition); the planner worktree is removed.
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: IdlePlannerAdapter())
+
+    result = plan_next_tasks(tmp_path, agent="fake", verify="exit 0")
+
+    assert result.status == "no_work"
+
+
 class OffScopePlannerAdapter(EditingAdapter):
     def run_iteration(self, goal, context, workdir, model=None):
         (workdir / "src" / "x.py").write_text("# planner went off-scope\n", encoding="utf-8")
