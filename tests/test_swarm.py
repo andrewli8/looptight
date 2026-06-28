@@ -187,6 +187,25 @@ class WholeFileRewriteAdapter(EditingAdapter):
         return IterationResult(transcript="done")
 
 
+class FailingPlannerAdapter(EditingAdapter):
+    def run_iteration(self, goal, context, workdir, model=None):
+        (workdir / "docs").mkdir(exist_ok=True)
+        (workdir / "docs" / "STATUS.md").write_text("## Next\n", encoding="utf-8")
+        return IterationResult(transcript="", ok=False, error="planner provider crashed")
+
+
+def test_plan_next_tasks_fails_when_planner_provider_fails(tmp_path, monkeypatch):
+    # A planner provider that returns ok=False is a clean planning failure carrying the
+    # provider error, not an accepted plan.
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: FailingPlannerAdapter())
+
+    result = plan_next_tasks(tmp_path, agent="fake", verify="exit 0")
+
+    assert result.status == "failed"
+    assert "planner provider crashed" in (result.error or "")
+
+
 def test_plan_next_tasks_fails_gracefully_outside_a_git_repo(tmp_path):
     # The continuous-swarm planner needs a Git repo with a commit; outside one it returns a
     # clear PlanningResult failure rather than crashing (the daemon must keep its footing).
