@@ -1732,6 +1732,19 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `status --watch` and the terminal panel show "swarm: no active workers" in session/goal mode.
+   Evidence: src/looptight/protocol_commands.py:442 (`_watch_status`) and :630 render
+   `render_state_panel(read_state(workdir))`, and src/looptight/ui.py `render_state_panel` returns ""
+   with no workers — so on the default `next` loop (no swarm) the watch view reads "swarm: no active
+   workers" instead of the claimed task, the same multi-mode gap fixed in the ui/statusline. Fix:
+   make `render_state_panel` show the session/goal line when there are no workers but a task is
+   present (manager `session`/`goal`) — e.g. "session: <goal> · verify: pass" — and have the two
+   `status` panel sites overlay the state with `_with_session_task` first (parallel to
+   `cmd_statusline`). Swarm mode (workers present) is unchanged.
+   Acceptance: a `test_ui.py` test asserts `render_state_panel` on a session overlay (manager
+   "session", one task, no workers, manager.verify) returns a line with the goal and the verdict;
+   workers-present state still returns the worker panel; truly-empty returns "".
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
