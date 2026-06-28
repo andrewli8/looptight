@@ -1279,6 +1279,14 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Two `cmd_daemon` CLI guards are untested.
+   Evidence: src/looptight/commands.py:227-229 (`daemon` rejects more than MAX_WORKERS workers
+   with exit 2) and :243-245 (rejects a missing verify command with exit 2). The not-headless
+   and no-agent guards are tested, but these two are not.
+   Acceptance: a test in tests/test_cli.py asserts `daemon --headless --agent codex --workers 51`
+   exits 2 with a "workers must be" message, and `daemon --headless --agent codex` in a repo with
+   no detectable verify exits 2 with a verify message. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
