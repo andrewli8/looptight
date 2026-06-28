@@ -1922,6 +1922,21 @@ def test_daemon_cli_paths_do_not_require_agent_on_path(tmp_path, monkeypatch):
     assert main(["daemon", "--headless", "--verify", "true"]) == 2
 
 
+def test_install_hook_command_install_already_and_uninstall(tmp_path, monkeypatch, capsys):
+    # Drive install-hook against the PROJECT settings (cwd/.claude), never the user's real
+    # ~/.claude, exercising the install, already-installed, and uninstall output paths.
+    monkeypatch.chdir(tmp_path)
+
+    assert main(["install-hook", "--project"]) == 0
+    assert "installed" in capsys.readouterr().out.lower()
+
+    assert main(["install-hook", "--project"]) == 0
+    assert "already installed" in capsys.readouterr().out.lower()
+
+    assert main(["install-hook", "--project", "--uninstall"]) == 0
+    assert "removed" in capsys.readouterr().out.lower()
+
+
 def test_run_guard_fails_without_agent_or_verify(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
