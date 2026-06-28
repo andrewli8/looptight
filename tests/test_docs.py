@@ -74,6 +74,22 @@ def test_usage_doc_describes_the_coordinator_claim_model_accurately():
     assert "fence" in text.lower(), "usage.md must say migrate fences legacy file claims"
 
 
+def test_usage_doc_empty_queue_example_matches_default_directive_behaviour():
+    # tasks.py returns no_work WITH a generate_ideas directive by default (idea_generation
+    # on); a bare {"status": "no_work", "task": null} is only emitted under --no-ideas. The
+    # worked example must show the command whose output it prints, or it teaches a contract
+    # the default never produces.
+    text = (_DOCS / "usage.md").read_text(encoding="utf-8")
+    bare = '{"command": "next", "schema_version": 1, "status": "no_work", "task": null}'
+    if bare in text:
+        before = text.split(bare, 1)[0]
+        command_line = before.rsplit("looptight next", 1)[1].split("\n", 1)[0]
+        assert "--no-ideas" in command_line, (
+            "usage.md prints a bare no_work (no directive) but the command above it omits "
+            "--no-ideas; the default emits a generate_ideas directive (tasks.py)"
+        )
+
+
 def test_goal_doc_documents_the_goal_command():
     text = (_DOCS / "goal.md").read_text(encoding="utf-8")
     assert "looptight goal" in text, "goal.md does not document the goal command"

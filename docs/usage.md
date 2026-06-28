@@ -114,12 +114,13 @@ A pass authorizes the commit. The agent commits the focused change and loops bac
 `next`, which hands over the skipped test next. When both are done:
 
 ```bash
-$ looptight next --json
+$ looptight next --no-ideas --json
 {"command": "next", "schema_version": 1, "status": "no_work", "task": null}
 ```
 
 `NO_WORK` ends the loop. Two real fixes landed, each one gated by your tests, and
-nothing was invented to keep the session busy.
+nothing was invented to keep the session busy. (Without `--no-ideas`, an empty queue
+returns `no_work` carrying a `generate_ideas` directive instead, as described below.)
 
 ### Knowing when to stop (`verify --patience`)
 

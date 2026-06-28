@@ -1431,18 +1431,23 @@ existing CLI session and makes no model or API calls of its own.
   coverage signal that pointed at unreachable code is gone (swarm.py coverage now reads honestly),
   the defensive fallback is kept, and the swarm tests stay green. No behavior change.
 
+- The usage.md empty-queue example shows `looptight next --no-ideas --json` so its bare
+  `{"status": "no_work", "task": null}` output matches the command: the default (`idea_generation`
+  on, tasks.py:190-192) carries a `generate_ideas` directive, which the snippet would otherwise
+  contradict. A `test_docs.py` assertion locks that any bare-`no_work` example uses `--no-ideas`.
+
 ## Next
 
-1. The usage.md empty-queue example shows a bare `no_work` that the default never emits.
-   Evidence: docs/usage.md:117-118 shows `looptight next --json` returning
-   `{"command": "next", "schema_version": 1, "status": "no_work", "task": null}` with no
-   `directive`, but tasks.py:190-192 returns `_idea_directive(workdir)` whenever
-   `idea_generation` is on (the default), so `as_dict` always includes a `directive` object on
-   an empty queue. The same file's prose at usage.md:182-188 and SPEC document the directive as
-   the default. Doc fix, not code: the SPEC contract is what the code emits.
-   Acceptance: diff docs/usage.md so the bare-`no_work` snippet either shows the `next --no-ideas`
-   command (whose output genuinely omits the directive) or includes the `directive` object; the
-   snippet's command and output agree. No code change.
+1. `next` silently treats a non-git directory as an empty clean repo, unlike every sibling command.
+   Evidence: src/looptight/tasks.py:78-90 — `_has_dirty_git_worktree` returns `False` when
+   `git status` fails (which includes "not a repo"), and `next_task` (tasks.py:116-130) has no
+   git-repo guard, so outside a repo `next` returns `no_work` + a `generate_ideas` directive at
+   exit 0. `doctor`, `status`, and `verify` all refuse with a not-a-git-repo error. Per CLAUDE.md
+   the `no_work`+`generate_ideas` result would drive a host session to start writing tasks into a
+   non-repo with no coordinator. `next` should refuse outside Git like its siblings.
+   Acceptance: a failing-then-passing test in tests/ asserts `next_task` on a non-git dir returns
+   an error result (machine-readable, CLI exit 2), matching the dirty-worktree guard's shape; the
+   existing in-Git behavior is unchanged.
 
 2. The usage.md `next --json` task example omits two always-present task keys.
    Evidence: docs/usage.md:95-102 shows a complete-looking `task` object (no trailing `...`)
