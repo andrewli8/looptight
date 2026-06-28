@@ -1188,6 +1188,19 @@ existing CLI session and makes no model or API calls of its own.
   empty no-work result (asserts "NO_WORK" printed, exit 0), via the `swarm --headless` CLI.
   No production change.
 
+## Next
+
+1. The codex/opencode adapter non-zero-exit failure paths are untested.
+   Evidence: src/looptight/adapters/codex.py:52 and src/looptight/adapters/opencode.py:49
+   (`if proc.returncode != 0: return failure_iteration(...)`) handle a provider exiting
+   non-zero, but the parametrized adapter failure test runs over `available_adapter_names()`,
+   which skips codex/opencode when they are not on PATH — so only the claude path is exercised.
+   Acceptance: a test in tests/test_adapters.py instantiates the codex and opencode adapters
+   directly, monkeypatches their `run_command` to return a non-zero exit, and asserts
+   `run_iteration` returns `ok=False` with an error — independent of provider availability.
+   No production change.
+
+## Rules
 ## Rules
 ## Rules
 ## Rules
