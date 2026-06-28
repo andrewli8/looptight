@@ -36,6 +36,14 @@ _README = Path(__file__).resolve().parent.parent / "README.md"
 _DOCS = Path(__file__).resolve().parent.parent / "docs"
 
 
+def test_usage_doc_documents_the_stop_hook_loop():
+    # install-hook + the continue_through_backlog opt-in are real user-facing features; usage.md
+    # must document them (they had no docs at all before).
+    text = (_DOCS / "usage.md").read_text(encoding="utf-8")
+    assert "install-hook" in text, "usage.md does not document the Stop hook (install-hook)"
+    assert "continue_through_backlog" in text, "usage.md does not document the backlog opt-in"
+
+
 def test_usage_doc_documents_polyglot_discovery():
     text = (_DOCS / "usage.md").read_text(encoding="utf-8")
     assert "__tests__" in text, "usage.md does not mention colocated JS/TS test discovery"

@@ -29,6 +29,7 @@ no per-repo setup.
 verify = "pytest -q"        # exit 0 is the only passing verdict
 tasks = ["docs/STATUS.md"]  # optional: files that list grounded work
 direct_main = false         # require a worktree for unattended runs
+continue_through_backlog = false  # opt-in: Stop hook keeps going while grounded tasks remain
 ```
 
 Then, in your agent session, ask it to improve the repo. It will run `next`,
@@ -133,6 +134,24 @@ whose `decision` is `stop_no_progress` (it improved, then plateaued) or `escalat
 (it never moved the needle), with the failures that never cleared. A `/loop`
 wrapper or the host agent can watch that field and stop instead of grinding. A
 passing verify resets the count. Without `--patience` the verifier is unchanged.
+
+### Hands-off loop (Stop hook)
+
+`looptight install-hook` registers a Claude Code Stop hook so the session keeps
+itself honest without you re-prompting. After every turn it runs `verify`; while
+the check fails it feeds the failures back and tells Claude to keep going, up to
+the iteration cap, so you never ship a red change. It makes no model call — the
+host session does the work — and it stays dormant unless a `verify` command is
+configured. Uninstall any time from the same `settings.json` it edits.
+
+By default the hook stops once `verify` is green. Set `continue_through_backlog =
+true` to let it carry the session through the grounded backlog too: on a green
+change it checks `propose` (read-only — it claims nothing) and, while grounded
+tasks remain, tells the session to run `looptight next` and continue, with an
+honest stop the moment nothing real is left. It does **not** force idea generation
+(that never empties), so it cannot trap you in busywork. With the opt-in on it also
+watches for drift: if your changes have wholly left the claimed task's evidence, it
+asks you to refocus on that task before stopping.
 
 ## How work is found
 
