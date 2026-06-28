@@ -309,3 +309,15 @@ def test_read_state_returns_empty_on_wrong_schema_version(tmp_path):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({"schema_version": 99, "workers": []}), encoding="utf-8")
     assert read_state(tmp_path) == empty_state()
+
+
+def test_state_path_in_git_repo_uses_common_dir(tmp_path):
+    import subprocess
+
+    from looptight.ui import STATE_FILE, _state_path
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    path = _state_path(tmp_path)
+    assert path.name == STATE_FILE
+    assert "looptight" in str(path)
+    assert ".git" in str(path)  # under the Git common dir, not the .looptight fallback
