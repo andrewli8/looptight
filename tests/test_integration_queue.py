@@ -308,7 +308,7 @@ def test_publication_pushes_exact_result_when_remote_behind(tmp_path):
     assert db.publication(publication_id).state == "complete"
 
 
-def test_publication_push_rejection_fails_without_force(tmp_path):
+def test_publication_push_rejection_retries_bounded_then_fails_without_force(tmp_path):
     repo, db, integration_id, result_sha = _repo_with_remote(tmp_path)
     publication_id = db.enqueue_publication(integration_id, "origin", "refs/heads/main")
 
@@ -316,12 +316,32 @@ def test_publication_push_rejection_fails_without_force(tmp_path):
 
     def rejecting_push(root, remote, sha, ref):
         attempts.append((sha, ref))
-        return 1  # remote rejects (non-fast-forward); no force is ever used
+        return 1  # remote keeps rejecting (non-fast-forward); no force is ever used
 
     Publisher(db, push=rejecting_push).run_next(repo)
 
-    assert attempts == [(result_sha, "refs/heads/main")]  # exact SHA attempted once, no replay
+    # Bounded re-fetch+retry of the exact SHA — never a force flag, never the candidate — then fail.
+    assert attempts == [(result_sha, "refs/heads/main")] * 3
     assert db.publication(publication_id).state == "failed"
+
+
+def test_publication_recovers_when_a_transient_rejection_clears(tmp_path):
+    # The common case: the remote moved between fetch and push (CI / another session). A bounded
+    # non-force retry recovers instead of stranding the integrated result for manual reconcile.
+    repo, db, integration_id, result_sha = _repo_with_remote(tmp_path)
+    publication_id = db.enqueue_publication(integration_id, "origin", "refs/heads/main")
+
+    calls = []
+
+    def flaky_push(root, remote, sha, ref):
+        calls.append(sha)
+        return 1 if len(calls) == 1 else 0  # first push rejected, the retry succeeds
+
+    outcome = Publisher(db, push=flaky_push).run_next(repo)
+
+    assert outcome.status == "complete"
+    assert db.publication(publication_id).state == "complete"
+    assert calls == [result_sha, result_sha]  # one reject, one success; exact SHA both times
 
 
 def test_integration_merge_conflict_aborts_and_retains(tmp_path):

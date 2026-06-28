@@ -421,12 +421,23 @@ class Publisher:
         self.coordinator.finish_publication(record.id, outcome)
         return outcome
 
+    #: Bounded re-fetch+retry of the exact-SHA non-force push, so a transient non-fast-forward
+    #: rejection (the remote moved between the fetch and the push) clears itself instead of
+    #: stranding an integrated result for manual reconcile.
+    _MAX_PUSH_ATTEMPTS = 3
+
     def _publish(self, record: PublicationRecord, root: Path) -> PublicationOutcome:
-        _git(root, "fetch", "-q", record.remote, record.remote_ref)
-        remote_tip = _git(root, "rev-parse", "--verify", "-q", "FETCH_HEAD").stdout.strip()
-        self.coordinator.begin_publication(record.id, remote_tip or None)
-        if _is_ancestor(root, record.result_sha, remote_tip):
-            return self._finish(record, "complete")  # remote already has it; no second push
-        if self._push(root, record.remote, record.result_sha, record.remote_ref) != 0:
-            return self._finish(record, "failed", error="push rejected; fetch and reconcile before retry")
-        return self._finish(record, "complete")
+        for attempt in range(self._MAX_PUSH_ATTEMPTS):
+            _git(root, "fetch", "-q", record.remote, record.remote_ref)
+            remote_tip = _git(root, "rev-parse", "--verify", "-q", "FETCH_HEAD").stdout.strip()
+            if attempt == 0:
+                self.coordinator.begin_publication(record.id, remote_tip or None)
+            if _is_ancestor(root, record.result_sha, remote_tip):
+                return self._finish(record, "complete")  # remote already has it; no push
+            if self._push(root, record.remote, record.result_sha, record.remote_ref) == 0:
+                return self._finish(record, "complete")
+            # Non-fast-forward rejection: the remote moved. Re-fetch and retry — never force,
+            # never replay the candidate, only the exact result SHA — until the bound is reached.
+        return self._finish(
+            record, "failed", error="push rejected after retries; fetch and reconcile"
+        )

@@ -1702,21 +1702,14 @@ existing CLI session and makes no model or API calls of its own.
   reusing the goal it already reads. Completes the show-the-goal thread across status / statusline
   / ui for all three loop modes (claimed task, swarm worker, goal vision). Covered by a CLI test.
 
-## Next
+- A publication no longer strands on a transient remote-move: `_publish` re-fetches and retries
+  the exact-SHA, non-force push up to `_MAX_PUSH_ATTEMPTS` (3) — recovering when the remote moved
+  between fetch and push (CI / another session), or when the re-fetch shows the result is now an
+  ancestor — then fails as before if still rejected. Never forces, never replays the candidate;
+  `begin_publication` keeps the first observed tip. Covered by recover-on-transient and
+  bounded-retry-then-fail tests. (Design choice — auto-retry vs strand — documented for review.)
 
-1. A publication strands forever on a transient remote-move; it never retries the non-force push.
-   Evidence: src/looptight/integration_queue.py:424-432 `_publish` pushes the exact result SHA once
-   and, on a non-fast-forward rejection (the remote moved between the fetch and the push — common
-   when CI or another session pushes concurrently), marks the record `failed` with "fetch and
-   reconcile before retry", requiring manual intervention. For a 24/7 daemon this strands an
-   integrated-but-unpublished result. Fix (SPEC-compliant — never force, never replay the candidate,
-   only the exact result SHA): make `_publish` re-fetch and retry a bounded number of times (a
-   transient remote-move clears, or the re-fetch shows the result is now an ancestor), then fail as
-   before if still rejected. Keep `begin_publication` to the first observed tip.
-   Acceptance: a test where the push is rejected on the first attempt and accepted on the retry ends
-   `complete` (two non-force, exact-SHA calls); a persistently-rejecting push ends `failed` after the
-   bounded attempts, all non-force and exact-SHA (no force flag, no candidate replay). Design choice
-   (auto-retry vs strand) documented for review.
+## Next
 
 ## Rules
 
