@@ -186,6 +186,24 @@ def test_provider_usage_limit_is_surfaced_with_stable_marker(name, monkeypatch, 
     assert result.error == "provider rate limit reached; retry after 60s"
 
 
+def test_stop_active_processes_terminates_registered_processes():
+    # On interrupt the swarm calls stop_active_processes so an aborted run leaves no orphan
+    # provider process. Register a real long-running process and assert it is torn down.
+    from looptight.adapters import base
+
+    proc = subprocess.Popen(["sleep", "30"], start_new_session=True)
+    try:
+        with base._ACTIVE_LOCK:
+            base._ACTIVE_PROCESSES.add(proc)
+        base.stop_active_processes()
+        assert proc.wait(timeout=5) is not None  # terminated, not still running
+    finally:
+        with base._ACTIVE_LOCK:
+            base._ACTIVE_PROCESSES.discard(proc)
+        if proc.poll() is None:
+            proc.kill()
+
+
 def test_codex_and_opencode_surface_nonzero_exit_as_failure(monkeypatch, tmp_path):
     # The parametrized failure test runs over available_adapter_names(), which skips
     # codex/opencode when not on PATH, leaving their non-zero-exit failure path uncovered.
