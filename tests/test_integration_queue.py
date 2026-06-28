@@ -231,6 +231,36 @@ def test_recovery_has_one_reachable_result(tmp_path, boundary):
         f"--grep=Looptight-Integration-ID: {integration_id}",
     ).stdout.split()
     assert len(reachable) == 1  # exactly one reachable result regardless of crash point
+
+
+def test_reconcile_recovers_from_persisted_result_sha_when_worktree_is_reset(tmp_path):
+    # After a crash between commit and ref-advance, recovery must not depend on the shared
+    # per-target-ref worktree — a later integration to the same ref resets it. The committed
+    # result_sha is recorded durably, so reconcile advances the ref from it without re-merging.
+    repo, candidate = _repo_with_candidate(tmp_path)
+    db = Coordinator.open(repo)
+    assert db is not None
+    run = db.start_run("worker")
+    lease = db.claim([{"id": "t1"}], run.id, ttl_s=60)
+    integration_id = db.enqueue_integration(lease, "refs/heads/main", candidate)
+
+    with pytest.raises(InjectedCrash):
+        Integrator(db, crash_after="after_commit").run_next(repo, "exit 0")
+
+    rec = db.integration(integration_id)
+    assert rec.state == "committed"  # commit recorded durably, not just in the worktree
+    assert rec.result_sha
+
+    # A later integration to the same ref resets the shared worktree, destroying the crashed
+    # commit from the worktree HEAD before reconcile can read it.
+    wt = integration_worktree(repo, "refs/heads/main")
+    _git(wt, "reset", "--hard", "main")
+
+    outcomes = Integrator(db).reconcile(repo, "exit 0")
+
+    assert [o.status for o in outcomes] == ["complete"]
+    # the ref advanced to the exact persisted result, with no re-merge
+    assert _git(repo, "rev-parse", "refs/heads/main").stdout.strip() == rec.result_sha
     assert db.integration(integration_id).state == "complete"
 
 

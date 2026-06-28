@@ -1437,7 +1437,9 @@ def test_swarm_reconciles_crashed_integration_on_start(tmp_path, monkeypatch):
     integration_id = db.enqueue_integration(lease, "refs/heads/main", candidate)
     with pytest.raises(InjectedCrash):
         Integrator(db, crash_after="after_commit").run_next(tmp_path, "exit 0")
-    assert db.integration(integration_id).state == "integrating"
+    # The commit is recorded durably (state `committed` + result_sha) before the ref advance,
+    # so recovery does not depend on the volatile worktree.
+    assert db.integration(integration_id).state == "committed"
     db.close()
 
     # No grounded tasks, so the round claims nothing — but it must reconcile first.

@@ -222,6 +222,7 @@ class IntegrationRecord:
     candidate_sha: str
     state: str
     observed_sha: str | None = None
+    result_sha: str | None = None
 
 
 @dataclass(frozen=True)
@@ -262,7 +263,8 @@ def _publication_record(row: tuple[object, ...]) -> PublicationRecord:
 
 
 _INTEGRATION_COLUMNS = (
-    "id, run_id, task_id, lease_generation, target_ref, candidate_sha, state, observed_sha"
+    "id, run_id, task_id, lease_generation, target_ref, candidate_sha, state, "
+    "observed_sha, result_sha"
 )
 
 
@@ -276,6 +278,7 @@ def _integration_record(row: tuple[object, ...]) -> IntegrationRecord:
         candidate_sha=str(row[5]),
         state=str(row[6]),
         observed_sha=str(row[7]) if row[7] is not None else None,
+        result_sha=str(row[8]) if row[8] is not None else None,
     )
 
 
@@ -641,10 +644,14 @@ class Coordinator:
         return _integration_record(row) if row else None
 
     def integrating_records(self) -> tuple[IntegrationRecord, ...]:
-        """Return non-terminal integrations left mid-flight (for crash recovery)."""
+        """Return non-terminal integrations left mid-flight (for crash recovery).
+
+        Includes ``committed`` records (commit done, ref not yet advanced) so reconcile can
+        finish them from the durable ``result_sha`` rather than the volatile worktree.
+        """
         rows = self.connection.execute(
-            f"SELECT {_INTEGRATION_COLUMNS} FROM integrations WHERE state = 'integrating' "
-            "ORDER BY sequence"
+            f"SELECT {_INTEGRATION_COLUMNS} FROM integrations "
+            "WHERE state IN ('integrating', 'committed') ORDER BY sequence"
         ).fetchall()
         return tuple(_integration_record(row) for row in rows)
 
@@ -654,6 +661,18 @@ class Coordinator:
             self.connection.execute(
                 "UPDATE integrations SET state = 'integrating', observed_sha = ? WHERE id = ?",
                 (observed_sha, integration_id),
+            )
+
+    def mark_integration_committed(self, integration_id: str, result_sha: str) -> None:
+        """Durably record the merge commit before advancing the target ref.
+
+        Persisting ``result_sha`` + state ``committed`` makes crash recovery independent of the
+        shared per-target-ref worktree, which a later integration may reset before reconcile runs.
+        """
+        with self.transaction(immediate=True):
+            self.connection.execute(
+                "UPDATE integrations SET state = 'committed', result_sha = ? WHERE id = ?",
+                (result_sha, integration_id),
             )
 
     def finish_integration(

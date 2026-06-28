@@ -322,8 +322,11 @@ class Integrator:
         if committed.returncode != 0:
             _git(worktree, "reset", "--hard", observed)
             return self._finish(record, "failed", error=committed.stderr.strip() or "integration commit failed", retained=worktree)
-        self._maybe_crash("after_commit")
         result_sha = _git(worktree, "rev-parse", "HEAD").stdout.strip()
+        # Persist the commit durably *before* the ref advance, so a crash here recovers from the
+        # recorded result_sha rather than the shared worktree (which a later integration may reset).
+        self.coordinator.mark_integration_committed(record.id, result_sha)
+        self._maybe_crash("after_commit")
         updated = _git(root, "update-ref", record.target_ref, result_sha, observed)
         if updated.returncode != 0:
             _git(worktree, "reset", "--hard", observed)
@@ -345,8 +348,12 @@ class Integrator:
             return self._finish(record, "complete", result_sha=on_ref)
         worktree = integration_worktree(root, record.target_ref)
         observed = record.observed_sha or _git(root, "rev-parse", record.target_ref).stdout.strip()
-        # Committed but not yet on the ref (crashed after commit): advance the ref.
-        committed = _committed_result_in_worktree(worktree, record.id) if worktree.exists() else None
+        # Committed but not yet on the ref (crashed after commit): advance the ref. Prefer the
+        # durably-recorded result_sha (state `committed`) so recovery does not depend on the shared
+        # worktree, which a later integration may have reset; fall back to the worktree HEAD.
+        committed = record.result_sha or (
+            _committed_result_in_worktree(worktree, record.id) if worktree.exists() else None
+        )
         if committed:
             updated = _git(root, "update-ref", record.target_ref, committed, observed)
             if updated.returncode == 0:
