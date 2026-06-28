@@ -1506,19 +1506,14 @@ existing CLI session and makes no model or API calls of its own.
   can't suppress an innocent sibling and outcome stats don't merge. A module-level `pytestmark`
   with no enclosing function keeps the file-level title (one idea). Covered by a test_propose test.
 
-## Next
+- `recent_failures` counts only in-window failures: the SQL query now uses `AND created_at >= :cutoff`
+  in the WHERE clause so `COUNT(*)` is bounded to the window — an idea that failed once long ago and
+  once recently reports count 1, not 2, matching the documented "recent failures reached the threshold"
+  contract. The Python-side `MAX(created_at)` filter is superseded by the SQL gate.
+  Covered by `test_recent_failures_counts_only_in_window_failures` in test_coordinator.py;
+  existing windowed and outside-window tests unchanged.
 
-1. The cooldown failure count is all-time, not windowed, so an idea with old failures over-suppresses.
-   Evidence: src/looptight/coordinator.py:833-837 (`recent_failures`) runs `SELECT idea_id, COUNT(*),
-   MAX(created_at) ... WHERE outcome='failed' GROUP BY idea_id` and filters rows only by
-   `MAX(created_at) >= cutoff` — so `COUNT(*)` counts every failure ever, not just those in the
-   window. With `_MAX_FAILURES=2`/`_COOLDOWN_S=24h`, an idea that failed once long ago and once
-   today is suppressed though only one failure is recent, contradicting `suppressed`'s "recent
-   failures reached the threshold" (experience.py). Fix: count only in-window failures by adding
-   `AND created_at >= :cutoff` to the query (bind the cutoff), so the count and the recency gate agree.
-   Acceptance: a failing-then-passing test records one failure outside the window and one inside for
-   the same idea and asserts `recent_failures(window_s=...)` reports count 1 (not 2); recovery and
-   the two-recent-failures suppression are unchanged.
+## Next
 
 ## Rules
 

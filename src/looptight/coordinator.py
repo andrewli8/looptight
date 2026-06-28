@@ -827,14 +827,16 @@ class Coordinator:
         return {category: reason for category, (_n, reason) in best.items()}
 
     def recent_failures(self, *, window_s: float, now: float | None = None) -> dict[str, int]:
-        """Failure counts per idea whose most recent failure is within window_s."""
+        """Failure counts per idea within window_s, counting only in-window failures."""
         timestamp = time.time() if now is None else now
         cutoff = timestamp - window_s
         rows = self.connection.execute(
-            """SELECT idea_id, COUNT(*), MAX(created_at) FROM experience
-               WHERE outcome = 'failed' GROUP BY idea_id"""
+            """SELECT idea_id, COUNT(*) FROM experience
+               WHERE outcome = 'failed' AND created_at >= :cutoff
+               GROUP BY idea_id""",
+            {"cutoff": cutoff},
         ).fetchall()
-        return {str(r[0]): int(r[1]) for r in rows if float(r[2]) >= cutoff}
+        return {str(r[0]): int(r[1]) for r in rows}
 
     def failure_counts(self) -> dict[str, int]:
         """Total failures per category (for yield statistics)."""

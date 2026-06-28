@@ -159,6 +159,18 @@ def test_experience_records_failures_and_cooldown(tmp_path):
     coord.close()
 
 
+def test_recent_failures_counts_only_in_window_failures(tmp_path):
+    """COUNT should be windowed: an old failure + a recent failure → count 1, not 2."""
+    coord = Coordinator.open(_repo(tmp_path / "repo"))
+    assert coord is not None
+    coord.record_failure("idea-a", "lint", now=100.0)   # outside window
+    coord.record_failure("idea-a", "lint", now=1100.0)  # inside window
+    # cutoff = 1200 - 500 = 700; only the failure at 1100 is in-window
+    recent = coord.recent_failures(window_s=500.0, now=1200.0)
+    assert recent == {"idea-a": 1}
+    coord.close()
+
+
 def test_record_failure_captures_reason_and_reports_dominant_per_category(tmp_path):
     coord = Coordinator.open(_repo(tmp_path / "repo"))
     assert coord is not None
