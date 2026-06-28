@@ -47,6 +47,13 @@ def test_do_get_rejects_a_non_loopback_host(tmp_path):
     assert errors["code"] == 403
 
 
+def test_worker_node_shows_the_task_goal_not_just_the_id():
+    # A worker with no error should read as "what it's building", not an opaque task id; render()
+    # looks the goal up from state.tasks by task_id.
+    assert "taskGoals" in ui.PAGE
+    assert "taskGoals[w.task_id]" in ui.PAGE
+
+
 def test_task_node_surfaces_source_provenance():
     # The swarm writes a `source` per task (todo/lint/status-next/...); the graph should show
     # that provenance as the task node's detail, not the opaque internal id.

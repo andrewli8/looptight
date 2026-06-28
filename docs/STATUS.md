@@ -1631,17 +1631,13 @@ existing CLI session and makes no model or API calls of its own.
   grounded backlog, honest stop at NO_WORK, never forcing idea generation, refocus on drift); the
   `.looptight.toml` example carries the flag. A `test_docs.py` assertion locks both into the doc.
 
-## Next
+- A `ui` worker node now reads as what it's building: render() looks the linked task's goal up
+  from `state.tasks` by `task_id`, so a no-error worker shows e.g. "Harden the verifier..."
+  instead of the opaque 12-hex id (error still wins when present, id is the last fallback). No
+  more tracing the wire to the task node to see what a worker is doing. Verified live; guarded by
+  a render() page assertion.
 
-1. A `ui` worker node with no error shows its opaque `task_id`, not what it's working on.
-   Evidence: src/looptight/ui.py render() builds a worker node as
-   `node('worker', \`worker ${w.number}\`, w.status, w.error||w.task_id||'', ...)` — with no error
-   the detail is the raw 12-hex task id, so a viewer must trace the wire to the task node to learn
-   what the worker is doing. The task's goal is already in `state.tasks`. Fix: show the linked task's
-   goal as the worker detail (error first if present, then the task goal, then the id) by looking it
-   up from `state.tasks` by `task_id`, so each worker reads as "worker N · <what it's building>".
-   Acceptance: a `test_ui.py` assertion that render() builds a `task_id`→`goal` lookup for the worker
-   detail; verified visually that a no-error worker shows the task goal.
+## Next
 
 ## Rules
 
