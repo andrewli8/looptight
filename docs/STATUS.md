@@ -1030,6 +1030,18 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `score_status_next().bounded` can never flag an over-budget `## Next` section.
+   Evidence: src/looptight/discovery.py:585 (`if len(out) == 6: return out` truncates
+   `from_task_file`/`from_status_next`) feeding src/looptight/idea_eval.py:94/100
+   (`bounded=_MIN_TASKS <= size <= _MAX_TASKS` over the already-truncated list). So a
+   `## Next` with 8+ tasks is scored `size=6, bounded=True` — the `size <= 6` half of
+   the eval's headline 1-6 guard (idea_eval.py:6-7,65) is dead code, and the
+   misleading value reaches `propose --eval-batch --json`.
+   Acceptance: add `cap: int | None = 6` to `from_task_file`/`from_status_next` (default
+   preserves the capped `next`/`propose` path), have `score_status_next` read the
+   uncapped list, and add a test writing a `## Next` with 8 grounded tasks asserting
+   `score_status_next(root).bounded is False` and `size == 8`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
