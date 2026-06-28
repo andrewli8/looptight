@@ -270,6 +270,24 @@ def test_from_todos_skips_malformed_python_file(tmp_path):
     assert from_todos(tmp_path) == []
 
 
+def test_from_lint_skips_unparseable_output_lines(tmp_path, monkeypatch):
+    # ruff (quiet+concise) emits only `loc:col: CODE msg` lines, but from_lint must ignore
+    # any line that does not match (a future format change or a stray warning) rather than
+    # mis-surface it as a lint task. Inject a non-matching line alongside a real finding.
+    from looptight import discovery
+
+    class _Result:
+        returncode = 1
+        stdout = "warning: something unexpected\nsrc/a.py:1:1: F401 `os` imported but unused\n"
+        stderr = ""
+
+    monkeypatch.setattr(discovery.shutil, "which", lambda name: "/usr/bin/ruff")
+    monkeypatch.setattr(discovery.subprocess, "run", lambda *a, **k: _Result())
+    cands = discovery.from_lint(tmp_path)
+    assert len(cands) == 1  # the stray warning line is skipped
+    assert "F401" in cands[0].title
+
+
 def test_module_level_pytestmark_skip_is_surfaced(tmp_path):
     # `pytestmark = pytest.mark.skip(...)` skips a whole test module, so the assignment
     # form is detected like the decorator form. An env-gated skipif assignment stays
