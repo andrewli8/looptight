@@ -1475,6 +1475,20 @@ existing CLI session and makes no model or API calls of its own.
    asserts the resulting candidate `title`/`detail` are truncated to the cap; a normal
    paragraph-length task is left intact.
 
+2. `--json` commands break their contract on a config error: they print a plain-text
+   `config error: ...` line to stdout instead of a JSON envelope.
+   Evidence: src/looptight/cli.py top-level `except ConfigError` calls `console.print(...)`
+   unconditionally, ignoring `args.json`, so `next`/`status`/`doctor`/`propose --json` emit
+   non-JSON on a malformed `.looptight.toml` (exit 2). `cmd_verify` already catches `ConfigError`
+   itself and emits a JSON envelope (protocol_commands.py:27), and the adjacent
+   `CoordinatorUnavailable` handler now emits JSON under `--json` — so the contract is
+   inconsistent. Fix: in the top-level `ConfigError` handler, emit a structured JSON error
+   (e.g. `{"command", "schema_version": 1, "status": "error", "error": "config_error"}`, mirroring
+   the coordinator handler) when `args.json` is set, the Rich message otherwise; exit 2 unchanged.
+   Acceptance: a failing-then-passing test runs `main(["next", "--json"])` (and one other
+   `--json` command) against a malformed `.looptight.toml` and asserts stdout parses as JSON with
+   `status == "error"`; the human path still prints `config error:` and exits 2.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
