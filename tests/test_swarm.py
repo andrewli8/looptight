@@ -174,6 +174,32 @@ def test_swarm_refuses_dirty_invoking_worktree(tmp_path):
     assert result.workers == ()
 
 
+def test_swarm_does_not_merge_work_that_fails_verify(tmp_path, monkeypatch):
+    # The swarm's core safety guarantee: a worker whose verify fails is not merged. With a
+    # verify that always fails, every worker's run loop ends non-success → failed, the base
+    # repo is untouched, and the failed worktrees are retained for inspection.
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+
+    result = run_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 1", max_iterations=1),
+        workers=2,
+    )
+
+    assert not result.passed
+    assert result.status == "fail"
+    assert [w.status for w in result.workers] == ["failed", "failed"]
+    # Not merged: the base repo still holds the original TODO, not the goal the worker wrote.
+    assert (tmp_path / "src" / "a.py").read_text(encoding="utf-8") == "# TODO: task a\n"
+    # The base worktree is clean and the failed worktrees are retained for inspection.
+    assert not subprocess.run(
+        ["git", "status", "--porcelain"], cwd=tmp_path, capture_output=True, text=True
+    ).stdout
+    assert all(w.worktree.exists() for w in result.workers)
+
+
 def test_swarm_runs_isolated_workers_and_serializes_verified_merges(tmp_path, monkeypatch):
     _repo(tmp_path)
     monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
