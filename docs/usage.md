@@ -94,11 +94,13 @@ $ looptight next --json
   "status": "task",
   "task": {
     "id": "3f9a1c0b7d22",
+    "idea_id": "9c2e4a1f8b30",
     "source": "todo",
     "location": "src/calc/core.py:14",
     "goal": "raise on divide by zero",
     "evidence": "src/calc/core.py:14",
-    "acceptance": "Remove the marker at src/calc/core.py:14 and pass project verification."
+    "acceptance": "Remove the marker at src/calc/core.py:14 and pass project verification.",
+    "suggested_verify": null
   }
 }
 ```

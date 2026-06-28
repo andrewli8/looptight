@@ -1436,6 +1436,10 @@ existing CLI session and makes no model or API calls of its own.
   on, tasks.py:190-192) carries a `generate_ideas` directive, which the snippet would otherwise
   contradict. A `test_docs.py` assertion locks that any bare-`no_work` example uses `--no-ideas`.
 
+- The usage.md `next --json` task example shows the always-present `idea_id` and
+  `suggested_verify` keys (tasks.py:151,157), so it teaches the full task contract rather than a
+  narrower shape. A `test_docs.py` assertion locks both keys into the doc.
+
 ## Next
 
 1. `next` silently treats a non-git directory as an empty clean repo, unlike every sibling command.
@@ -1448,14 +1452,6 @@ existing CLI session and makes no model or API calls of its own.
    Acceptance: a failing-then-passing test in tests/ asserts `next_task` on a non-git dir returns
    an error result (machine-readable, CLI exit 2), matching the dirty-worktree guard's shape; the
    existing in-Git behavior is unchanged.
-
-2. The usage.md `next --json` task example omits two always-present task keys.
-   Evidence: docs/usage.md:95-102 shows a complete-looking `task` object (no trailing `...`)
-   lacking `idea_id` and `suggested_verify`, but tasks.py:151,157 always include both in every
-   task payload (SPEC lists them in the `next` contract). The adjacent verify example
-   (usage.md:110) already uses a trailing `...` to mark elision.
-   Acceptance: diff docs/usage.md so the task example includes `idea_id` and `suggested_verify`
-   (or a trailing `...`), matching the always-present keys. No code change.
 
 ## Rules
 

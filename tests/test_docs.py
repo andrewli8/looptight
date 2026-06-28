@@ -74,6 +74,17 @@ def test_usage_doc_describes_the_coordinator_claim_model_accurately():
     assert "fence" in text.lower(), "usage.md must say migrate fences legacy file claims"
 
 
+def test_usage_doc_task_example_shows_all_contract_keys():
+    # tasks.py always emits idea_id and suggested_verify on every task payload (SPEC lists
+    # them in the next contract). The worked task example must show them, or it teaches a
+    # task shape narrower than the one the code returns.
+    text = (_DOCS / "usage.md").read_text(encoding="utf-8")
+    assert '"idea_id"' in text, "usage.md task example omits the always-present idea_id key"
+    assert '"suggested_verify"' in text, (
+        "usage.md task example omits the always-present suggested_verify key"
+    )
+
+
 def test_usage_doc_empty_queue_example_matches_default_directive_behaviour():
     # tasks.py returns no_work WITH a generate_ideas directive by default (idea_generation
     # on); a bare {"status": "no_work", "task": null} is only emitted under --no-ideas. The
