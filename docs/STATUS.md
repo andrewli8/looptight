@@ -1424,6 +1424,16 @@ existing CLI session and makes no model or API calls of its own.
   worker's `status --porcelain` (only in the worker worktree, not the invoking-worktree cleanliness
   check) and asserts the worker is `failed` with the inspection error. No production change.
 
+## Next
+
+1. The serialized-integration commit-failure path is untested.
+   Evidence: src/looptight/swarm.py:384-389 — when a verified worker's merge commit into the repo
+   fails, `_integrate` aborts the merge and marks the worker `failed` rather than leaving a partial
+   integration. Untested (the worker-side commit failure is covered, this is the integration side).
+   Acceptance: a test in tests/test_swarm.py wraps `_git` so the integration `merge:` commit fails
+   and asserts the worker is `failed` with the integration-commit error. No production change.
+
+## Rules
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
