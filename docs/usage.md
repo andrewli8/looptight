@@ -216,18 +216,21 @@ sessions should use separate worktrees.
 ## Local view
 
 ```bash
-looptight status            # readiness plus a live worker panel, in the terminal
-looptight status --watch    # the same panel, refreshing until you stop it
+looptight status            # readiness plus a live view of your current loop, in the terminal
+looptight status --watch    # the same view, refreshing until you stop it
 looptight ui                # http://127.0.0.1:8765 (read-only browser map)
 ```
 
-`status` shows the swarm/daemon worker panel right in the CLI; `ui` is a
-dependency-free, read-only browser map. Both read the same loopback-only state and
-never open a public listener.
+`status` and `ui` show whatever loop is running. On the default `next`/`verify`
+loop they surface the **claimed task** and the **last verify result** (pass/fail);
+in goal mode they show the **active vision**; and a swarm or daemon shows its
+manager and workers. Both read the same loopback-only state and never open a public
+listener; `ui` is dependency-free.
 
 To see loop state in your Claude Code status bar, point `statusLine` at `looptight
-statusline` (it reads Claude Code's status-line JSON on stdin and prints one line
-like `looptight: 3 running, 1 merged`):
+statusline` (it reads Claude Code's status-line JSON on stdin and prints one line —
+`looptight: <your current task>` on the default loop, or `looptight: 3 running · 1
+merged` for a swarm):
 
 ```json
 { "statusLine": { "type": "command", "command": "looptight statusline" } }

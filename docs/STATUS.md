@@ -1724,19 +1724,13 @@ existing CLI session and makes no model or API calls of its own.
   view now represents (and with the README, which leads with `next`). Swarm stays discoverable in
   the docs. Covered by the idle-state guidance test.
 
-## Next
+- The usage.md "Local view" section reflects the multi-mode views: it now says `status`/`ui`/
+  `statusline` show your current loop — the claimed task and last verify result on the default
+  `next` loop, the vision in goal mode, or the swarm's workers — instead of describing them as
+  swarm-only, and the statusline example shows a session-mode line. Matches the ui/statusline/
+  status session+goal representation shipped this session. Locked by a test_docs assertion.
 
-1. The usage.md "Local view" section describes the UI/statusline as swarm-only, now factually wrong.
-   Evidence: docs/usage.md "## Local view" says "`status` shows the swarm/daemon worker panel",
-   "`ui` is a dependency-free, read-only browser map", and the statusline example is
-   "`looptight: 3 running, 1 merged`" — but `ui`, `status`, and `statusline` now also represent the
-   default session-native loop (the claimed task + last verify verdict, src/looptight/ui.py
-   `_with_session_task`/`statusline`) and goal mode (the vision, `_active_goal_view`). The docs no
-   longer represent what the views show. Fix: update the section so it says the views show your
-   current loop — the claimed task and verify result on the default `next` loop, the vision in goal
-   mode, or the swarm's workers — and update the statusline example to a session-mode line.
-   Acceptance: a `test_docs.py` assertion that usage.md's local-view text mentions the session/claimed
-   task (not only swarm) and references the verify verdict.
+## Next
 
 ## Rules
 

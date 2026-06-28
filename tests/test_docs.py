@@ -43,6 +43,15 @@ _README = Path(__file__).resolve().parent.parent / "README.md"
 _DOCS = Path(__file__).resolve().parent.parent / "docs"
 
 
+def test_usage_doc_local_view_covers_the_session_loop_not_only_swarm():
+    # ui/status/statusline now represent the default session loop (claimed task + verify result)
+    # and goal mode, not only the swarm; the Local view docs must say so.
+    text = (_DOCS / "usage.md").read_text(encoding="utf-8")
+    local = text.split("## Local view", 1)[1].split("\n## ", 1)[0]
+    assert "claimed task" in local, "Local view docs still describe the UI as swarm-only"
+    assert "verify result" in local, "Local view docs do not mention the verify verdict"
+
+
 def test_usage_doc_documents_the_stop_hook_loop():
     # install-hook + the continue_through_backlog opt-in are real user-facing features; usage.md
     # must document them (they had no docs at all before).
