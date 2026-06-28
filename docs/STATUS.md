@@ -1376,15 +1376,10 @@ existing CLI session and makes no model or API calls of its own.
   `max_rounds=1` in a repo with all tasks done and asserts it returns after the single empty round
   (`rounds == 1`) rather than planning. No production change.
 
-## Next
-
-1. `run_continuous_swarm`'s top-level-error exit is untested.
-   Evidence: src/looptight/swarm.py:736-741 — when a round's `run_swarm` returns a top-level error
-   (e.g. an integration coordination timeout), the continuous swarm returns immediately with
-   `reason=REASON_ERROR`. Untested.
-   Acceptance: a test in tests/test_swarm.py stubs `run_swarm` to return an errored `SwarmResult`
-   and asserts `run_continuous_swarm` returns `reason == REASON_ERROR` carrying that error. No
-   production change.
+- `run_continuous_swarm`'s top-level-error exit is covered:
+  `test_continuous_swarm_returns_on_top_level_error` in test_swarm.py stubs `run_swarm` to return
+  an errored `SwarmResult` and asserts `run_continuous_swarm` returns `reason == REASON_ERROR`
+  carrying that error. No production change.
 
 ## Rules
 

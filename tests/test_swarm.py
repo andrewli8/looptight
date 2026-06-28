@@ -943,6 +943,24 @@ def test_planner_accepts_provider_committed_status_change(tmp_path, monkeypatch)
     assert "Cover the source task" in (tmp_path / "docs" / "STATUS.md").read_text()
 
 
+def test_continuous_swarm_returns_on_top_level_error(tmp_path, monkeypatch):
+    # A round whose run_swarm returns a top-level error (e.g. an integration timeout) ends the
+    # continuous swarm immediately with reason error.
+    from looptight.swarm import REASON_ERROR
+
+    _repo(tmp_path)
+    monkeypatch.setattr(
+        "looptight.swarm.run_swarm", lambda *a, **k: SwarmResult((), "integration coordination timeout")
+    )
+
+    result = run_continuous_swarm(
+        tmp_path, agent="fake", config=Config(verify="exit 0"), workers=1, max_rounds=0
+    )
+
+    assert result.reason == REASON_ERROR
+    assert result.error == "integration coordination timeout"
+
+
 def test_continuous_swarm_returns_at_max_rounds_with_no_work(tmp_path, monkeypatch):
     # All tasks already done: with max_rounds=1 the continuous swarm returns after the single
     # empty round rather than planning.
