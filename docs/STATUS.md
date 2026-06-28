@@ -1126,6 +1126,16 @@ existing CLI session and makes no model or API calls of its own.
   returns without raising or changing state on an unknown integration id — so a stale or
   mistaken id cannot crash the coordinator. No production change.
 
+## Next
+
+1. `_readiness_remediation`'s missing-agent branch is untested.
+   Evidence: src/looptight/protocol_commands.py:659-660 — when verify/git/task_sources are
+   fine but no agent CLI is installed, readiness guidance is "install a supported agent
+   CLI". The other remediation branches are exercised by status tests, but this one is not.
+   Acceptance: a unit test on the pure `_readiness_remediation` with a checks dict where
+   `agent == "missing"` (and the earlier checks healthy) asserts it returns "install a
+   supported agent CLI". No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
