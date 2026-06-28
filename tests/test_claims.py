@@ -123,3 +123,38 @@ def test_claim_dir_returns_none_on_oserror(tmp_path, monkeypatch):
 
     monkeypatch.setattr(claims_mod.subprocess, "run", lambda *a, **kw: (_ for _ in ()).throw(OSError("no git")))
     assert claim_dir(tmp_path) is None
+
+
+def test_has_live_claim_false_when_all_claims_expired(tmp_path):
+    from looptight.claims import _STALE_AFTER_S, has_live_claim
+
+    root = tmp_path / "claims"
+    root.mkdir()
+    ClaimStore(root, "owner", now=0.0)._claim("t1")  # claimed at now=0
+    # Past the stale window: the only claim is now expired, so no live claim remains.
+    assert has_live_claim(root, now=_STALE_AFTER_S + 1) is False
+
+
+def test_select_returns_none_when_all_tasks_claimed_by_others(tmp_path):
+    root = tmp_path / "claims"
+    other = ClaimStore(root, "other", now=0.0)
+    tasks = [{"id": "t1"}, {"id": "t2"}]
+    other.select(tasks)
+    other._claim("t2")  # both tasks now held by another owner, unexpired
+    assert ClaimStore(root, "me", now=0.0).select(tasks) is None
+
+
+def test_summary_returns_empty_when_root_absent(tmp_path):
+    store = ClaimStore(tmp_path / "missing", "owner", now=0.0)
+    assert store.summary() == (None, 0)
+
+
+def test_claim_rejects_falsy_id_and_read_tolerates_corrupt_file(tmp_path):
+    root = tmp_path / "claims"
+    root.mkdir()
+    store = ClaimStore(root, "owner", now=0.0)
+    assert store._claim(None) is False
+    assert store._claim("") is False
+    bad = root / "bad.json"
+    bad.write_text("not json{", encoding="utf-8")
+    assert ClaimStore._read(bad) == {}  # corrupt JSON degrades to an empty dict

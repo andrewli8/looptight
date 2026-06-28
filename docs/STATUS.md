@@ -1256,17 +1256,15 @@ existing CLI session and makes no model or API calls of its own.
   the summary text and failure line appear in the captured output — the `if evidence:`
   branch was previously dead in the suite. No production change.
 
+- Five `ClaimStore` boundary guards in claims.py are covered (tests in test_claims.py):
+  `has_live_claim` returns False when the only claim is expired, `select()` returns None when
+  all tasks are claimed by another owner, `summary()` returns `(None, 0)` with an absent root
+  dir, `_claim()` rejects a falsy task id, and `_read()` degrades a corrupt JSON file to `{}`.
+  No production change.
+
 ## Next
 
-1. Five `ClaimStore` boundary guards in claims.py are uncovered (lines 41, 103, 111,
-   124, 145-146): `has_live_claim` false-return when claims are expired, `select()`
-   returning None when all tasks are already claimed, `summary()` when root dir is
-   absent, `_claim()` with a falsy task_id, and `_read()`'s OSError handler.
-   Evidence: src/looptight/claims.py:41
-   Acceptance: four new tests in tests/test_claims.py cover each uncovered branch;
-   `looptight verify` passes and none of the six lines remain as missed-coverage.
-
-2. `trajectory._read()` returns None for a wrong schema_version (trajectory.py:50)
+1. `trajectory._read()` returns None for a wrong schema_version (trajectory.py:50)
    — the branch reached when the file is valid JSON but carries an unrecognised
    `schema_version` — is uncovered; existing tests only hit the OSError/corrupt-JSON
    and happy paths.
