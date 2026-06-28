@@ -1633,6 +1633,16 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. A `ui` worker node with no error shows its opaque `task_id`, not what it's working on.
+   Evidence: src/looptight/ui.py render() builds a worker node as
+   `node('worker', \`worker ${w.number}\`, w.status, w.error||w.task_id||'', ...)` — with no error
+   the detail is the raw 12-hex task id, so a viewer must trace the wire to the task node to learn
+   what the worker is doing. The task's goal is already in `state.tasks`. Fix: show the linked task's
+   goal as the worker detail (error first if present, then the task goal, then the id) by looking it
+   up from `state.tasks` by `task_id`, so each worker reads as "worker N · <what it's building>".
+   Acceptance: a `test_ui.py` assertion that render() builds a `task_id`→`goal` lookup for the worker
+   detail; verified visually that a no-error worker shows the task goal.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
