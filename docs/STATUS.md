@@ -1381,6 +1381,16 @@ existing CLI session and makes no model or API calls of its own.
   an errored `SwarmResult` and asserts `run_continuous_swarm` returns `reason == REASON_ERROR`
   carrying that error. No production change.
 
+## Next
+
+1. `run_continuous_swarm`'s planner-failure exit is untested.
+   Evidence: src/looptight/swarm.py:811-821 — when work is exhausted and the planning round itself
+   fails, the continuous swarm returns `reason=REASON_ERROR` with the planner error (and a retained
+   planner worktree note). Untested.
+   Acceptance: a test in tests/test_swarm.py (all tasks done, generate_ideas) stubs `plan_next_tasks`
+   to return a failed `PlanningResult` and asserts `run_continuous_swarm` returns
+   `reason == REASON_ERROR` carrying the planner error. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
