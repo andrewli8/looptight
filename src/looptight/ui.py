@@ -171,7 +171,11 @@ def statusline(state: dict[str, object]) -> str:
     if isinstance(tasks, list) and tasks and isinstance(tasks[0], dict):
         goal = str(tasks[0].get("goal") or tasks[0].get("id") or "").strip()
         if goal:
-            return "looptight: " + (goal[:48] + "…" if len(goal) > 48 else goal)
+            line = goal[:48] + "…" if len(goal) > 48 else goal
+            verify = (state.get("manager") or {}).get("verify")
+            if isinstance(verify, str) and verify:
+                line += f" · {verify}"  # at-a-glance: did the last gate pass?
+            return "looptight: " + line
     return "looptight: idle"
 
 

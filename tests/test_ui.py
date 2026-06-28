@@ -75,6 +75,19 @@ def test_task_node_surfaces_source_provenance():
     assert "t.source?`source" in ui.PAGE
 
 
+def test_statusline_appends_the_verify_verdict_when_present():
+    # The always-visible status bar should show whether the last gate passed.
+    state = {
+        "manager": {"status": "session", "verify": "pass"},
+        "tasks": [{"id": "t1", "goal": "fix the parser", "status": "claimed"}],
+        "workers": [],
+    }
+    assert ui.statusline(state) == "looptight: fix the parser · pass"
+    # No verdict -> unchanged.
+    no_verify = {"manager": {"status": "session"}, "tasks": [{"id": "t1", "goal": "fix the parser"}], "workers": []}
+    assert ui.statusline(no_verify) == "looptight: fix the parser"
+
+
 def test_statusline_shows_the_current_task_when_no_workers():
     # On the default loop there are no swarm workers; the bar should show what's being worked,
     # not "idle".

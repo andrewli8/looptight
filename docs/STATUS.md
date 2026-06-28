@@ -1738,17 +1738,13 @@ existing CLI session and makes no model or API calls of its own.
   Verified live. This completes the multi-mode representation across all surfaces: browser ui,
   statusline, status, and the --watch panel.
 
-## Next
+- The statusline appends the last verify verdict in session mode ("looptight: <task> · pass" /
+  "· fail"), so the always-visible status bar shows whether your last gate passed — the verdict
+  is now consistent across all four surfaces (browser ui, --watch panel, status, statusline).
+  No verdict / no overlay is unchanged; swarm worker tally is unchanged. Covered by a statusline
+  test.
 
-1. The statusline shows the session task but not the last verify verdict — the at-a-glance signal.
-   Evidence: src/looptight/ui.py `statusline` returns "looptight: <task>" in session mode, but the
-   verify verdict (now shown in the browser ui and the `--watch` panel) is the signal you most want
-   in the always-visible Claude Code status bar — whether your last gate passed. The overlaid state
-   already carries `manager.verify`. Fix: append the verdict to the session statusline when present,
-   "looptight: <task> · pass" / "· fail". No verdict (or no overlay) is unchanged; swarm mode (worker
-   tally) is unchanged.
-   Acceptance: a `test_ui.py` test asserts `statusline` on a session state with `manager.verify`
-   appends the verdict; without it the line is unchanged; swarm-worker state still returns the tally.
+## Next
 
 ## Rules
 
