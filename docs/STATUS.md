@@ -1834,6 +1834,20 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. In the browser UI a task/worker whose status is outside the known set renders a bright-green
+   ("healthy/success") badge, because `.status` defaults to `background:var(--acid)` and only the
+   fixed attention set is overridden (`src/looptight/ui.py:327`). A corrupt state or a future
+   status added to the swarm but not to the groups would look successful — the opposite of
+   safe-by-default. In `node()` (`src/looptight/ui.py:347`) tag a non-manager node whose status is
+   in none of the existing JS `groups` (active/attention/complete) with an `unknown-status` class,
+   and add a CSS rule giving that badge a neutral (muted) background. Reuse `groups` so no new copy
+   of status knowledge is introduced; the manager (whose status is a mode, not a task status) is
+   exempt.
+   Evidence: src/looptight/ui.py:347
+   Acceptance: a new test in tests/test_ui.py asserts the page `node()` flags an out-of-group,
+   non-manager status with `unknown-status` and that a `.unknown-status .status` rule sets a
+   non-acid (muted) badge background.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
