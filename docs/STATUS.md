@@ -1404,14 +1404,10 @@ existing CLI session and makes no model or API calls of its own.
   planner's `diff` call fails and asserts `plan_next_tasks` returns `status="failed"` carrying the
   diff-inspection error. No production change.
 
-## Next
-
-1. The planner's git-commit-failure path is untested.
-   Evidence: src/looptight/swarm.py:576-583 — after a valid plan passes verify, `plan_next_tasks`
-   commits docs/STATUS.md in the planner worktree and returns `PlanningResult("failed", ...)` if the
-   commit fails. The status/diff inspection failures are covered but the commit one is not.
-   Acceptance: a test in tests/test_swarm.py wraps `_git` so the planner's `commit` call fails and
-   asserts `plan_next_tasks` returns `status="failed"` carrying the commit error. No production change.
+- The planner's git-commit-failure path is covered:
+  `test_plan_next_tasks_fails_when_planner_commit_fails` in test_swarm.py wraps `_git` so the
+  planner's `commit` fails after a valid plan and asserts `plan_next_tasks` returns `status="failed"`
+  carrying the commit error. No production change.
 
 ## Rules
 
