@@ -943,6 +943,31 @@ def test_planner_accepts_provider_committed_status_change(tmp_path, monkeypatch)
     assert "Cover the source task" in (tmp_path / "docs" / "STATUS.md").read_text()
 
 
+def test_continuous_swarm_returns_on_planner_failure(tmp_path, monkeypatch):
+    # Work exhausted, then the planning round itself fails: the continuous swarm ends with reason
+    # error carrying the planner error.
+    from looptight.swarm import REASON_ERROR
+
+    _repo(tmp_path)
+    (tmp_path / "src" / "a.py").write_text("# done\n", encoding="utf-8")
+    (tmp_path / "src" / "b.py").write_text("# done\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "done")
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+    monkeypatch.setattr(
+        "looptight.swarm.plan_next_tasks",
+        lambda *a, **k: PlanningResult("failed", "planner crashed", tmp_path / "wt"),
+    )
+
+    result = run_continuous_swarm(
+        tmp_path, agent="fake", config=Config(verify="exit 0"),
+        workers=1, max_rounds=0, generate_ideas=True,
+    )
+
+    assert result.reason == REASON_ERROR
+    assert "planner crashed" in (result.error or "")
+
+
 def test_continuous_swarm_returns_on_top_level_error(tmp_path, monkeypatch):
     # A round whose run_swarm returns a top-level error (e.g. an integration timeout) ends the
     # continuous swarm immediately with reason error.
