@@ -1036,19 +1036,15 @@ existing CLI session and makes no model or API calls of its own.
   value reached `propose --eval-batch --json`. Found by the audit; covered by
   `test_score_status_next_flags_an_over_budget_section_as_unbounded` in test_idea_eval.py.
 
-## Next
+- `summary_text`'s positive planner note names actionable task sources, not opaque
+  ids: the "paid off" line now reads from `model.category_landed` ("Task sources that
+  have paid off (favor them): status-next, todo") instead of 12-hex `model.landed`
+  idea hashes the planner cannot map. Matches the negative `category_failure_reasons`
+  line, which already names sources. Empty-guard updated accordingly. Found by the
+  audit; covered by `test_summary_text_names_paid_off_sources_not_opaque_ids` in
+  test_experience.py.
 
-1. `summary_text`'s "paid off" planner note feeds opaque idea_id hashes, not actionable sources.
-   Evidence: src/looptight/experience.py:121-123 builds the line from `model.landed`
-   (12-hex idea_id → count), so the planner reads "Recently-landed idea kinds that paid
-   off: a3f2c1..., b1c9..." — hashes it has no mapping for and cannot steer toward. The
-   model already tracks `category_landed` (per-source landed counts, experience.py:75,86),
-   which IS actionable ("favor status-next"). The negative `category_failure_reasons`
-   line (experience.py:124-129) already names sources; the positive line should too.
-   Acceptance: change the paid-off line to name the top task sources from
-   `model.category_landed` (descending by count) instead of `model.landed` ids, and
-   update the empty-guard accordingly; a test asserts the line names sources
-   (e.g. `status-next`) and not opaque ids. Keep the line bounded to `k`.
+## Next
 
 ## Rules
 

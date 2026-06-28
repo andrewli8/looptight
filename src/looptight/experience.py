@@ -112,15 +112,18 @@ def reweight_factor(category: str, model: Model, *, lo: float = 0.5, hi: float =
 
 def summary_text(model: Model, *, k: int = 5) -> str:
     """A bounded experience note for the planner, or '' when there is nothing useful."""
-    if not model.failed and not model.landed and not model.category_failure_reasons:
+    if not (model.failed or model.category_landed or model.category_failure_reasons):
         return ""
     lines: list[str] = []
     if model.failed:
         avoid = sorted(model.failed, key=lambda i: model.failed[i], reverse=True)[:k]
         lines.append("Recently-failed ideas to avoid re-proposing: " + ", ".join(avoid) + ".")
-    if model.landed:
-        top = sorted(model.landed, key=lambda i: model.landed[i], reverse=True)[:k]
-        lines.append("Recently-landed idea kinds that paid off: " + ", ".join(top) + ".")
+    if model.category_landed:
+        # Name the task SOURCES that have verifiably paid off, not opaque idea ids: the
+        # planner can steer toward a source ("favor status-next") but has no mapping for
+        # a 12-hex idea hash. category_landed carries the actionable per-source signal.
+        top = sorted(model.category_landed, key=lambda c: model.category_landed[c], reverse=True)[:k]
+        lines.append("Task sources that have paid off (favor them): " + ", ".join(top) + ".")
     if model.category_failure_reasons:
         modes = ", ".join(
             f"{category} often fails on {reason}"

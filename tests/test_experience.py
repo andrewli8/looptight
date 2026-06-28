@@ -100,6 +100,20 @@ def test_summary_text_keeps_only_the_top_k_failed_ideas_by_count():
     assert "f" not in names and "g" not in names  # the two lowest are dropped
 
 
+def test_summary_text_names_paid_off_sources_not_opaque_ids():
+    # The positive-signal line must name actionable task SOURCES the planner can steer
+    # toward (favor status-next), not 12-hex idea_id hashes it has no mapping for.
+    m = Model(
+        landed={"a3f2c1": 9},  # opaque per-idea ids must NOT drive the prose note
+        category_landed={"status-next": 5, "todo": 2},
+    )
+    text = summary_text(m)
+    line = next(line for line in text.splitlines() if "paid off" in line)
+    assert "status-next" in line and "todo" in line
+    assert line.index("status-next") < line.index("todo")  # descending by count
+    assert "a3f2c1" not in text  # opaque idea id never reaches the planner prose
+
+
 def test_summary_text_surfaces_failure_modes_by_source():
     # Attribution capture: the note names WHY a source tends to fail, so the host can
     # avoid the failure mode (e.g. "scope") rather than just an opaque idea id.
