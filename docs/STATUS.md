@@ -1699,6 +1699,16 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `looptight status` names an active goal generically, not by its vision.
+   Evidence: src/looptight/protocol_commands.py:498 sets the next-action to "run `looptight goal
+   next` (a build goal is active)" when `active_goal` is set — but it already holds the goal
+   (`active_goal = read_goal(workdir)`, line ~473), so it could name the vision, the same
+   show-the-goal treatment now applied to the claimed task and the ui. Fix: include the vision in the
+   action (e.g. "run `looptight goal next` (building: <vision>)", truncated), completing the
+   show-the-goal thread across status/statusline/ui for all three loop modes.
+   Acceptance: a `test_cli.py` test with an active goal asserts `status --json`'s `next_action`
+   contains both `goal next` and the goal's vision text.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
