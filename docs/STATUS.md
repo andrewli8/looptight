@@ -985,6 +985,22 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_verifier_quality` calls looptight's own auto-detected test runners "custom/unknown".
+   Evidence: src/looptight/protocol_commands.py:669-672 (the `unit` token list is
+   Python/JS-only) vs src/looptight/detect.py:40-93 (detect_verify emits `cargo test`,
+   `go test ./...`, `deno test`, `mix test`, `swift test`, `dotnet test`,
+   `gradle test`/`./gradlew test`, `mvn test`/`./mvnw test`). So a Rust/Go/.NET/JVM/
+   Elixir/Swift user sees `status`/`doctor` report "custom/unknown" — and `cmd_init`
+   (commands.py:82) prints a "custom verifier" warning — for the very command looptight
+   chose as their test runner. Reproduce: `_verifier_quality("cargo test")` →
+   `custom/unknown`.
+   Acceptance: add the unambiguous single-runner test commands (cargo/go/deno/mix/
+   swift/dotnet/gradle/gradlew/mvn/mvnw test) to the `unit` branch so
+   `_verifier_quality("cargo test")`, `("go test ./...")`, `("dotnet test")`,
+   `("gradle test")` each classify as `unit`; a new test in test_cli.py covers them.
+   `make test`/`just test` stay `custom/unknown` (arbitrary recipes — preserve the
+   existing test at test_cli.py:828).
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
