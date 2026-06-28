@@ -1229,6 +1229,17 @@ existing CLI session and makes no model or API calls of its own.
   returns `PlanningResult("failed", ...)` with a Git-repository message outside a repo — so
   the daemon's continuous planner keeps its footing rather than crashing. No production change.
 
+## Next
+
+1. `plan_next_tasks`'s planner-provider-failure branch is untested.
+   Evidence: src/looptight/swarm.py:555-556 returns `PlanningResult("failed", ...)` when the
+   planner provider returns `ok=False`, so a crashed planning provider is a clean failure, not
+   an accepted plan. The plan-rejected and plan-accepted paths are tested but this provider-
+   failure path is not.
+   Acceptance: a test in tests/test_swarm.py uses a planner adapter that writes docs/STATUS.md
+   but returns `ok=False`, and asserts `plan_next_tasks` returns `status="failed"` carrying the
+   provider error. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
