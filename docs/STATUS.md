@@ -979,6 +979,17 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. SPEC overclaims that `propose --json` has a schema version.
+   Evidence: docs/SPEC.md:255-258 groups `propose` with the machine-facing
+   commands whose "JSON has a schema version", but src/looptight/protocol_commands.py:181
+   emits a bare list (`[c.__dict__ for c in candidates]`) with no `schema_version`
+   envelope — and the Validated history repeatedly guarantees `propose --json` is
+   byte-for-byte unchanged, so the bare list is intentional. The SPEC is inaccurate.
+   Acceptance: edit docs/SPEC.md's Output contract to note `propose --json` is the
+   exception — a bare ranked candidate list (no schema-version envelope), preserved
+   byte-for-byte — and add a test in tests/test_docs.py asserting the Output
+   contract mentions `propose --json` and its bare-list shape. No code change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
