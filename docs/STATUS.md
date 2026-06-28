@@ -1842,6 +1842,17 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. A worker missing its `number` renders `#None` in the terminal panel
+   (`src/looptight/ui.py:148`, `f"  #{worker.get('number')}"`) and `worker undefined` as the node
+   title in the browser (`src/looptight/ui.py:347`, `worker ${w.number}`). Default a missing
+   number to `?` on both surfaces ("#?" / "worker ?") so a malformed worker reads as unknown
+   rather than as a literal None/undefined. (The wire still matches via the node id, which is left
+   as-is.)
+   Evidence: src/looptight/ui.py:148
+   Acceptance: a new test in tests/test_ui.py asserts `render_state_panel` shows `#?` (not
+   `#None`) for a worker dict with no `number`, and that the page title expression falls back with
+   `?? '?'`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
