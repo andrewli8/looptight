@@ -161,12 +161,17 @@ def next_task(
     coordinator = Coordinator.open(workdir)
     if coordinator is not None:
         run_id = run_id or current_run_id()
-        coordinator.start_run("session", run_id=run_id)
+        owner = owner_id(workdir)
+        coordinator.start_run("session", run_id=run_id, owner=owner)
         # Mark this run live, then free leases stranded by abandoned runs before
         # claiming. Heartbeating first keeps a live looping session's own lease safe.
         coordinator.heartbeat(run_id)
         coordinator.reap_abandoned(older_than_s=_ABANDONED_RUN_DEADLINE_S)
-        lease = coordinator.claim(cast(list[dict[str, object]], tasks), run_id, ttl_s=24 * 60 * 60)
+        # Pass this worktree's owner so the claim sweep never completes a *different*
+        # worktree's live, in-flight task that is merely absent from this divergent set.
+        lease = coordinator.claim(
+            cast(list[dict[str, object]], tasks), run_id, ttl_s=24 * 60 * 60, owner=owner
+        )
         task = cast(dict[str, str | None] | None, lease.payload if lease else None)
         coordinator.close()
     else:

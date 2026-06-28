@@ -46,7 +46,7 @@ def test_coordinator_is_private_and_isolated_by_repository(tmp_path):
     assert two.path != one.path
     assert one.connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
     assert one.connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
-    assert one.connection.execute("PRAGMA user_version").fetchone()[0] == 3
+    assert one.connection.execute("PRAGMA user_version").fetchone()[0] == 4
 
 
 def test_coordinator_path_is_none_outside_git(tmp_path):
@@ -192,6 +192,51 @@ def test_expired_owner_cannot_renew_or_complete_reassigned_lease(tmp_path):
     assert not coordinator.complete(first)
     assert coordinator.renew(second, ttl_s=10, now=2)
     assert coordinator.complete(second)
+
+
+def test_claim_spares_a_different_owners_live_lease(tmp_path):
+    # The DB is shared across a repo's worktrees, which at different commits/branches
+    # see divergent candidate sets. A run must NOT complete or un-lease a task a
+    # DIFFERENT owner (worktree) holds a live lease on just because it is absent from
+    # this caller's set — that silently loses the other worktree's in-flight work.
+    coordinator = Coordinator.open(_repo(tmp_path / "repo"))
+    assert coordinator is not None
+    run_a = coordinator.start_run("a", owner="worktree-A", now=0)
+    run_b = coordinator.start_run("b", owner="worktree-B", now=0)
+    lease_x = coordinator.claim(
+        [{"id": "task-x", "goal": "x"}], run_a.id, ttl_s=100000, now=0, owner="worktree-A"
+    )
+    assert lease_x is not None
+    # run B (a different owner) claims a divergent set [Y]; X is out of B's set but live.
+    lease_y = coordinator.claim(
+        [{"id": "task-y", "goal": "y"}], run_b.id, ttl_s=60, now=1, owner="worktree-B"
+    )
+    assert lease_y is not None
+    # A's live lease survives B's sweep because B is a different owner; X stays leased.
+    assert coordinator.renew(lease_x, ttl_s=100000, now=2) is True
+    state = coordinator.connection.execute(
+        "SELECT state FROM tasks WHERE fingerprint = ?", ("task-x",)
+    ).fetchone()
+    assert state is not None and state[0] == "leased"
+
+
+def test_claim_still_completes_a_same_owner_out_of_set_task(tmp_path):
+    # The single-writer reconcile: the SAME owner (same worktree) running `next` after
+    # a task is removed from its set must still retire that task's stale claim, even
+    # though a prior run of the same owner holds its (still-live) lease.
+    coordinator = Coordinator.open(_repo(tmp_path / "repo"))
+    assert coordinator is not None
+    run1 = coordinator.start_run("s", owner="W", now=0)
+    run2 = coordinator.start_run("s", owner="W", now=0)
+    assert coordinator.claim(
+        [{"id": "x", "goal": "x"}], run1.id, ttl_s=100000, now=0, owner="W"
+    ) is not None
+    # run2 (same owner W) claims a divergent set; x is no longer proposed → retired.
+    coordinator.claim([{"id": "y", "goal": "y"}], run2.id, ttl_s=60, now=1, owner="W")
+    state = coordinator.connection.execute(
+        "SELECT state FROM tasks WHERE fingerprint = ?", ("x",)
+    ).fetchone()
+    assert state is not None and state[0] == "complete"
 
 
 def test_enqueue_integration_is_fenced_to_the_live_lease(tmp_path):

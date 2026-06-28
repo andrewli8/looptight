@@ -15,7 +15,7 @@ from typing import Iterator
 
 from .claims import MARKER_NAME, has_live_claim
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 _SCHEMA = """
 BEGIN IMMEDIATE;
@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS runs (
     kind TEXT NOT NULL,
     state TEXT NOT NULL CHECK (state IN ('active', 'complete', 'failed', 'abandoned')),
     pid INTEGER NOT NULL,
-    heartbeat REAL NOT NULL
+    heartbeat REAL NOT NULL,
+    owner TEXT  -- per-worktree identity (claims.owner_id); NULL when unknown
 );
 CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY,
@@ -85,7 +86,7 @@ CREATE TABLE IF NOT EXISTS experience (
     reason TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS experience_idea ON experience(idea_id);
-PRAGMA user_version = 3;
+PRAGMA user_version = 4;
 COMMIT;
 """
 
@@ -107,6 +108,22 @@ _MIGRATE_2_TO_3 = """BEGIN IMMEDIATE;
 ALTER TABLE experience ADD COLUMN reason TEXT NOT NULL DEFAULT '';
 PRAGMA user_version = 3;
 COMMIT;"""
+
+def _migrate_3_to_4(connection: sqlite3.Connection) -> None:
+    """v3→v4: add ``runs.owner`` so the claim sweep can spare a *different* worktree's
+    live lease. Guarded — ``ALTER`` only runs when ``runs`` exists and lacks the column.
+    A real DB always has ``runs`` (it predates v1); the guard keeps the migration safe
+    on a partial DB or a re-applied upgrade rather than crashing the open."""
+    connection.execute("BEGIN IMMEDIATE")
+    table = connection.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='runs'"
+    ).fetchone()
+    if table is not None:
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(runs)")}
+        if "owner" not in columns:
+            connection.execute("ALTER TABLE runs ADD COLUMN owner TEXT")
+    connection.execute("PRAGMA user_version = 4")
+    connection.execute("COMMIT")
 
 _INIT_RETRY_ATTEMPTS = 50
 _INIT_RETRY_SLEEP_S = 0.1
@@ -134,6 +151,9 @@ def _initialize_schema(connection: sqlite3.Connection) -> None:
             if version == 2:
                 connection.executescript(_MIGRATE_2_TO_3)
                 version = 3
+            if version == 3:
+                _migrate_3_to_4(connection)
+                version = 4
             if version != SCHEMA_VERSION:
                 raise RuntimeError(
                     f"unsupported coordinator schema {version}; expected {SCHEMA_VERSION}"
@@ -340,13 +360,19 @@ class Coordinator:
             self.connection.commit()
 
     def start_run(
-        self, kind: str, *, now: float | None = None, run_id: str | None = None
+        self,
+        kind: str,
+        *,
+        now: float | None = None,
+        run_id: str | None = None,
+        owner: str | None = None,
     ) -> Run:
         identity = run_id or uuid.uuid4().hex
         timestamp = time.time() if now is None else now
         self.connection.execute(
-            "INSERT OR IGNORE INTO runs(id, kind, state, pid, heartbeat) VALUES (?, ?, 'active', ?, ?)",
-            (identity, kind, 0, timestamp),
+            "INSERT OR IGNORE INTO runs(id, kind, state, pid, heartbeat, owner) "
+            "VALUES (?, ?, 'active', ?, ?, ?)",
+            (identity, kind, 0, timestamp, owner),
         )
         return Run(identity, kind)
 
@@ -357,6 +383,7 @@ class Coordinator:
         *,
         ttl_s: float,
         now: float | None = None,
+        owner: str | None = None,
     ) -> Lease | None:
         timestamp = time.time() if now is None else now
         fingerprints = [str(task["id"]) for task in tasks]
@@ -379,6 +406,22 @@ class Coordinator:
             else:
                 stale_rows = self.connection.execute("SELECT id FROM tasks").fetchall()
             for (row_id,) in stale_rows:
+                # The DB is shared across a repo's worktrees, which at different
+                # commits/branches see divergent candidate sets. A task absent from
+                # THIS caller's set but holding a live lease owned by a DIFFERENT
+                # worktree is that worktree's in-flight work, not abandoned — leave it
+                # alone. Same-owner reconcile (a task removed from one worktree's own
+                # set) and owner-less runs still retire. Spare only when both owners
+                # are known and differ, so the guard never fires without full info.
+                if owner is not None:
+                    peer = self.connection.execute(
+                        """SELECT 1 FROM leases l JOIN runs r ON r.id = l.run_id
+                           WHERE l.task_id = ? AND l.expires_at > ?
+                             AND r.owner IS NOT NULL AND r.owner <> ?""",
+                        (row_id, timestamp, owner),
+                    ).fetchone()
+                    if peer is not None:
+                        continue
                 self.connection.execute("DELETE FROM leases WHERE task_id = ?", (row_id,))
                 self.connection.execute(
                     "UPDATE tasks SET state = 'complete' WHERE id = ?", (row_id,)
