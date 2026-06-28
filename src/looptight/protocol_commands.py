@@ -239,8 +239,9 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
                 )
                 last_source = candidate.source
             # Plain location (no [dim]): the line is written verbatim to keep user title tokens,
-            # so it cannot carry looptight markup — and the console renders no dim anyway.
-            where = f" {candidate.location}" if candidate.location else ""
+            # so it cannot carry looptight markup — and the console renders no dim anyway. The `·`
+            # separator (used tool-wide) marks where the free-form title ends and provenance begins.
+            where = f" · {candidate.location}" if candidate.location else ""
             console.write(f"  {i}. {candidate.title}{where}")  # user title — preserve any tokens
         console.print()
         console.print(

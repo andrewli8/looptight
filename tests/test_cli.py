@@ -1858,6 +1858,19 @@ def test_swarm_rejects_non_positive_numeric_options(argv):
     assert exc.value.code == 2
 
 
+def test_propose_candidate_line_separates_title_from_location(tmp_path, monkeypatch, capsys):
+    # A candidate's free-form title flows straight into its path with a bare space, leaving the
+    # title/location boundary ambiguous. Use the same `·` metadata separator the rest of looptight
+    # uses (statusline, swarm tally, status), so the location reads as distinct provenance.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# TODO: fix the timeout\n")
+    assert main(["propose"]) == 0
+    out = capsys.readouterr().out
+    line = [ln for ln in out.splitlines() if "fix the timeout" in ln][0]
+    assert "· src/a.py:1" in line  # the `·` separator precedes the location
+
+
 def test_propose_text_output_describes_autonomous_flow(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "src").mkdir()

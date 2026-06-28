@@ -2005,6 +2005,11 @@ existing CLI session and makes no model or API calls of its own.
   for the same goal). `status` still appends its build-health verdict suffix. Replaces two
   drifted f-strings. Found by dogfooding the active-goal journey. Covered by a parity test.
 
+- The `propose` candidate line separates the free-form title from its location with the `·`
+  metadata separator used tool-wide (statusline, swarm tally, status) instead of a bare space,
+  so a prose title flowing into a path no longer reads ambiguously at the boundary. Found by
+  dogfooding `propose` over real TODO/FIXME markers. Covered by a separator test.
+
 ## Next
 
 ## Rules
