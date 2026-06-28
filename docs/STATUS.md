@@ -1818,6 +1818,15 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The two terminal surfaces format the same worker tally in opposite word order: `statusline`
+   prints `{count} {status}` ("3 running", `src/looptight/ui.py:169`) while `render_state_panel`
+   prints `{status} {count}` ("running 3", `src/looptight/ui.py:141`). Same swarm data, inverted
+   between the status bar and the `status --watch` panel. Align the panel to the statusline's
+   count-status order so both read the same ("workers: 2 (1 running, 1 merged)").
+   Evidence: src/looptight/ui.py:141
+   Acceptance: tests/test_ui.py asserts `render_state_panel` renders the tally as "1 running" /
+   "1 merged" (count-status), matching the statusline order.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
