@@ -194,6 +194,23 @@ class FailingPlannerAdapter(EditingAdapter):
         return IterationResult(transcript="", ok=False, error="planner provider crashed")
 
 
+class OffScopePlannerAdapter(EditingAdapter):
+    def run_iteration(self, goal, context, workdir, model=None):
+        (workdir / "src" / "x.py").write_text("# planner went off-scope\n", encoding="utf-8")
+        return IterationResult(transcript="planned")
+
+
+def test_plan_next_tasks_rejects_changes_outside_status_md(tmp_path, monkeypatch):
+    # The planner may only refresh docs/STATUS.md; a plan that edits any other file is rejected.
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: OffScopePlannerAdapter())
+
+    result = plan_next_tasks(tmp_path, agent="fake", verify="exit 0")
+
+    assert result.status == "failed"
+    assert "docs/STATUS.md" in (result.error or "")
+
+
 def test_plan_next_tasks_fails_when_planner_provider_fails(tmp_path, monkeypatch):
     # A planner provider that returns ok=False is a clean planning failure carrying the
     # provider error, not an accepted plan.
