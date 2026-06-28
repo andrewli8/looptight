@@ -31,7 +31,7 @@ from .protocol_commands import (
 from .summary import render_rich
 from .swarm import MAX_WORKERS, cmd_swarm
 from .types import StopReason
-from .ui import read_state, statusline
+from .ui import _with_session_task, read_state, statusline
 
 __all__ = [
     "cmd_daemon",
@@ -584,7 +584,9 @@ def cmd_statusline(args: argparse.Namespace, console: Console) -> int:
     except (ValueError, TypeError):
         pass
     try:
-        print(statusline(read_state(repo)))
+        # Overlay the session's claimed task so the bar shows current work on the default loop,
+        # not just swarm workers.
+        print(statusline(_with_session_task(read_state(repo), repo)))
     except Exception:  # a status line must never break the host editor
         print("looptight: idle")
     return 0

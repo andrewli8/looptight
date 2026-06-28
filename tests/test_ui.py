@@ -60,6 +60,31 @@ def test_task_node_surfaces_source_provenance():
     assert "t.source?`source" in ui.PAGE
 
 
+def test_statusline_shows_the_current_task_when_no_workers():
+    # On the default loop there are no swarm workers; the bar should show what's being worked,
+    # not "idle".
+    state = {"workers": [], "tasks": [{"id": "t1", "goal": "fix the parser", "status": "claimed"}]}
+    assert ui.statusline(state) == "looptight: fix the parser"
+
+
+def test_statusline_truncates_a_long_task_goal():
+    state = {"workers": [], "tasks": [{"id": "t1", "goal": "x" * 60, "status": "claimed"}]}
+    line = ui.statusline(state)
+    assert line.startswith("looptight: ") and line.endswith("…") and len(line) < 70
+
+
+def test_statusline_workers_win_over_a_task():
+    state = {
+        "workers": [{"number": 1, "status": "running"}],
+        "tasks": [{"id": "t1", "goal": "g", "status": "running"}],
+    }
+    assert ui.statusline(state) == "looptight: 1 running"  # swarm mode unchanged
+
+
+def test_statusline_idle_when_truly_empty():
+    assert ui.statusline({"workers": [], "tasks": []}) == "looptight: idle"
+
+
 def test_with_session_task_overlays_the_claim_when_no_swarm(monkeypatch, tmp_path):
     # On the default loop the state file is empty; the view should surface the session's claimed
     # task (manager "session", one task) instead of a bare idle screen.

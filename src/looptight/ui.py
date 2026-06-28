@@ -105,18 +105,24 @@ def render_state_panel(state: dict[str, object]) -> str:
 
 
 def statusline(state: dict[str, object]) -> str:
-    """One-line swarm summary for a status bar (e.g. Claude Code's statusLine).
+    """One-line summary for a status bar (e.g. Claude Code's statusLine).
 
-    `looptight: 3 running · 1 merged`, or `looptight: idle` with no workers."""
+    Swarm: `looptight: 3 running · 1 merged`. Session (no workers, but a task present — e.g. the
+    overlaid session claim): `looptight: <current task>`. Otherwise `looptight: idle`."""
     workers = state.get("workers") or []
-    if not isinstance(workers, list) or not workers:
-        return "looptight: idle"
-    counts: dict[str, int] = {}
-    for worker in workers:
-        counts[str(worker.get("status", "?"))] = counts.get(str(worker.get("status", "?")), 0) + 1
-    ordered = [s for s in _WORKER_STATUS_ORDER if s in counts]
-    ordered += [s for s in counts if s not in _WORKER_STATUS_ORDER]
-    return "looptight: " + " · ".join(f"{counts[s]} {s}" for s in ordered)
+    if isinstance(workers, list) and workers:
+        counts: dict[str, int] = {}
+        for worker in workers:
+            counts[str(worker.get("status", "?"))] = counts.get(str(worker.get("status", "?")), 0) + 1
+        ordered = [s for s in _WORKER_STATUS_ORDER if s in counts]
+        ordered += [s for s in counts if s not in _WORKER_STATUS_ORDER]
+        return "looptight: " + " · ".join(f"{counts[s]} {s}" for s in ordered)
+    tasks = state.get("tasks") or []
+    if isinstance(tasks, list) and tasks and isinstance(tasks[0], dict):
+        goal = str(tasks[0].get("goal") or tasks[0].get("id") or "").strip()
+        if goal:
+            return "looptight: " + (goal[:48] + "…" if len(goal) > 48 else goal)
+    return "looptight: idle"
 
 
 def _active_session_task(root: Path) -> dict[str, object] | None:

@@ -1650,19 +1650,13 @@ existing CLI session and makes no model or API calls of its own.
   only — the session-native path is unchanged. Verified live; covered by overlay/no-overlay/idle
   unit tests.
 
-## Next
+- `looptight statusline` represents the default session-native loop, parallel to the ui: when
+  there are no swarm workers it now shows the current task's goal (`looptight: <task>`,
+  truncated) instead of "idle", and `cmd_statusline` overlays the session claim via
+  `_with_session_task`. Swarm mode (workers present) is unchanged; truly-empty stays "idle".
+  Covered by statusline session/swarm/idle unit tests.
 
-1. `looptight statusline` shows "idle" during the default session-native loop (same gap the ui had).
-   Evidence: src/looptight/ui.py `statusline` returns "looptight: idle" whenever there are no swarm
-   workers, and src/looptight/commands.py:587 `cmd_statusline` calls it on the raw `read_state(repo)`
-   — so the Claude Code status bar reads "idle" even while the session actively holds a claimed task
-   (only the swarm publishes worker state). Fix (parallel to the ui session overlay): have
-   `statusline` fall back to the current task's goal when there are no workers but a task is present,
-   and have `cmd_statusline` overlay the session claim via `_with_session_task(read_state(repo), repo)`
-   so the bar reads e.g. "looptight: <current task>" instead of "idle". Swarm mode (workers present)
-   is unchanged. Evidence: src/looptight/ui.py (`statusline`, `_with_session_task`).
-   Acceptance: a `test_ui.py` test asserts `statusline` with a task and no workers returns the goal
-   (not "idle"), and that worker-present state still returns the worker tally; truly-empty stays "idle".
+## Next
 
 ## Rules
 
