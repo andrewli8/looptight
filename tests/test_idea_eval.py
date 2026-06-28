@@ -165,6 +165,23 @@ def test_score_status_next_reads_the_generated_queue(tmp_path):
     assert score.bounded is True
 
 
+def test_score_status_next_flags_an_over_budget_section_as_unbounded(tmp_path):
+    # The eval's headline guard: a ## Next that exceeds the 1-6 bound must report
+    # bounded=False. Previously from_status_next truncated at 6 before scoring, so
+    # size was always <= 6 and bounded was always True — the upper bound was dead
+    # code, and the misleading value reached propose --eval-batch --json.
+    _repo_with_files(tmp_path)
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    lines = ["## Next", ""]
+    for i in range(8):
+        lines.append(f"{i + 1}. Task {i}. Evidence: src/a.py:1; Acceptance: passes.")
+    (docs / "STATUS.md").write_text("\n".join(lines) + "\n")
+    score = score_status_next(tmp_path)
+    assert score.size == 8  # the true count, not the truncated-to-6 count
+    assert score.bounded is False
+
+
 def test_grounding_tolerates_a_trailing_sentence_period(tmp_path):
     # Evidence written as a sentence ("... Evidence: src/a.py.") must still resolve,
     # while a fabricated path with a period stays rejected.

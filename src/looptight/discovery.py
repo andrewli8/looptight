@@ -516,12 +516,17 @@ def from_task_file(
     *,
     next_section_only: bool = False,
     enforce_truthful_evidence: bool = False,
+    cap: int | None = 6,
 ) -> list[Candidate]:
     """Return executable numbered tasks from one explicit repository file.
 
     With ``enforce_truthful_evidence``, an item whose named ``Evidence:`` anchors do
     not all resolve to real files is dropped (the grounding gate for generated
     tasks); items naming no anchor are kept, so hand-written lists are unaffected.
+
+    ``cap`` bounds the number of tasks returned (default 6, the documented maximum the
+    ``next``/``propose`` path enforces). Pass ``cap=None`` to read the *true* count —
+    the eval needs every task to judge whether the batch exceeded the 1-6 bound.
     """
     relative = Path(task_file)
     if relative.is_absolute() or ".." in relative.parts:
@@ -582,19 +587,25 @@ def from_task_file(
                 acceptance=acceptance.strip(),
             )
         )
-        if len(out) == 6:
+        if cap is not None and len(out) >= cap:
             return out
     return out
 
 
-def from_status_next(root: Path) -> list[Candidate]:
-    """Return at most the first six executable tasks under the status Next heading.
+def from_status_next(root: Path, *, cap: int | None = 6) -> list[Candidate]:
+    """Return the executable tasks under the status Next heading (at most ``cap``).
 
     This is the generated/planned queue, so its evidence anchors are enforced: an
     item claiming evidence that does not resolve is dropped as ungrounded busywork.
+    ``cap`` defaults to the documented six-task maximum the ``next``/``propose`` path
+    enforces; ``cap=None`` reads the true count for the over-budget eval.
     """
     return from_task_file(
-        root, "docs/STATUS.md", next_section_only=True, enforce_truthful_evidence=True
+        root,
+        "docs/STATUS.md",
+        next_section_only=True,
+        enforce_truthful_evidence=True,
+        cap=cap,
     )
 
 

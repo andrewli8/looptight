@@ -96,5 +96,10 @@ def score_batch(root: Path, candidates: list[Candidate]) -> BatchScore:
 
 
 def score_status_next(root: Path) -> BatchScore:
-    """Score whatever the host has generated into docs/STATUS.md's ``## Next``."""
-    return score_batch(root, from_status_next(root))
+    """Score whatever the host has generated into docs/STATUS.md's ``## Next``.
+
+    Reads the *uncapped* Next section (``cap=None``) so an over-budget batch is scored
+    at its true size — otherwise the discovery cap truncates to six and ``bounded``
+    could never report a section that exceeded the 1-6 bound.
+    """
+    return score_batch(root, from_status_next(root, cap=None))

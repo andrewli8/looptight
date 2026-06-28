@@ -1028,19 +1028,15 @@ existing CLI session and makes no model or API calls of its own.
   Found by the audit; covered by `test_claude_native_loop_threads_the_configured_model`
   in test_adapters.py (stubs updated to accept the param).
 
-## Next
+- `score_status_next().bounded` now actually guards the upper bound: `from_task_file`/
+  `from_status_next` take a `cap` (default 6, preserving the `next`/`propose` cap), and
+  the eval reads the *uncapped* Next section, so a `## Next` with 8+ tasks scores
+  `size=8, bounded=False` instead of the old truncated `size=6, bounded=True`. The
+  `size <= 6` half of the eval's 1-6 guard was previously dead code and the misleading
+  value reached `propose --eval-batch --json`. Found by the audit; covered by
+  `test_score_status_next_flags_an_over_budget_section_as_unbounded` in test_idea_eval.py.
 
-1. `score_status_next().bounded` can never flag an over-budget `## Next` section.
-   Evidence: src/looptight/discovery.py:585 (`if len(out) == 6: return out` truncates
-   `from_task_file`/`from_status_next`) feeding src/looptight/idea_eval.py:94/100
-   (`bounded=_MIN_TASKS <= size <= _MAX_TASKS` over the already-truncated list). So a
-   `## Next` with 8+ tasks is scored `size=6, bounded=True` — the `size <= 6` half of
-   the eval's headline 1-6 guard (idea_eval.py:6-7,65) is dead code, and the
-   misleading value reaches `propose --eval-batch --json`.
-   Acceptance: add `cap: int | None = 6` to `from_task_file`/`from_status_next` (default
-   preserves the capped `next`/`propose` path), have `score_status_next` read the
-   uncapped list, and add a test writing a `## Next` with 8 grounded tasks asserting
-   `score_status_next(root).bounded is False` and `size == 8`.
+## Next
 
 ## Rules
 
