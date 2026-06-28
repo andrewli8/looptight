@@ -26,6 +26,7 @@ from .commands import (
     cmd_verify,
 )
 from .config import ConfigError
+from .coordinator import CoordinatorUnavailable
 from .detect import KNOWN_AGENTS
 from .ui import serve_ui
 
@@ -416,6 +417,26 @@ def main(argv: list[str] | None = None) -> int:
         return handler(args, console)
     except ConfigError as exc:
         console.print(f"[red]config error:[/red] {exc}")
+        return 2
+    except CoordinatorUnavailable as exc:
+        # An unusable coordinator DB must not crash with a traceback or break the --json
+        # contract. Emit a structured error for machine callers, a clean message otherwise.
+        if getattr(args, "json", False):
+            import json
+
+            print(
+                json.dumps(
+                    {
+                        "command": args.command,
+                        "schema_version": 1,
+                        "status": "error",
+                        "error": "coordinator_unavailable",
+                    },
+                    sort_keys=True,
+                )
+            )
+        else:
+            console.print(f"[red]coordinator error:[/red] {exc}")
         return 2
     except KeyboardInterrupt:
         # Ctrl-C during a run should exit cleanly, not dump a traceback. (The

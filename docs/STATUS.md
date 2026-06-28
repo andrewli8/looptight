@@ -1454,24 +1454,16 @@ existing CLI session and makes no model or API calls of its own.
   rewrites an existing user `.gitignore` (init owns only files it creates), and the dirty-worktree
   gate is unchanged. Two CLI tests cover the create-when-absent and leave-existing-untouched paths.
 
+- A corrupt, locked-out, or newer-schema coordinator DB no longer crashes every read command with
+  a traceback. `Coordinator.open` (coordinator.py) converts an unusable DB into a dedicated
+  `CoordinatorUnavailable` with an actionable message (DB path + remedy), and the cli.py top-level
+  handler catches it like `ConfigError`: a structured `{"status":"error","error":
+  "coordinator_unavailable"}` envelope under `--json`, a clean message otherwise, both exit 2 with
+  no traceback. Covered by coordinator-level (corrupt + newer-schema) and CLI-level tests.
+
 ## Next
 
-1. A corrupt, locked-out, or newer-schema coordinator DB crashes every read command with an
-   uncaught traceback (and breaks the `--json` contract), with no recovery.
-   Evidence: src/looptight/coordinator.py:319 (`Coordinator.open` calls `_initialize_schema`,
-   which at line 143 raises `sqlite3.DatabaseError` "file is not a database" for a corrupt file and
-   at line 158 raises `RuntimeError` for `user_version > 4`); these propagate through propose.py:42
-   / tasks.py:131 and the cli.py:415-424 top-level handler only catches `ConfigError`/
-   `KeyboardInterrupt`. Reproduced: a garbage `.git/looptight/coordinator.db` makes `next --json`
-   dump a traceback at exit 1 with no JSON, and it recurs every invocation until the user manually
-   deletes the file. Fix: have `Coordinator.open` convert an unusable DB (corrupt or newer-schema)
-   into a clean, dedicated exception with an actionable message (the DB path plus the remedy), and
-   catch it at the cli.py top level like `ConfigError` — a clean error + exit 2, never a traceback.
-   Acceptance: a failing-then-passing test points `coordinator_path` at a garbage DB and asserts
-   `main(["next"])` returns a non-2... (a clean nonzero exit, no traceback) and that a second test
-   for `user_version` beyond `SCHEMA_VERSION` is reported cleanly, not as a raw `RuntimeError`.
-
-2. Curated `## Next` / task-file task text is unbounded, bypassing the marker length cap.
+1. Curated `## Next` / task-file task text is unbounded, bypassing the marker length cap.
    Evidence: src/looptight/discovery.py:579-588 (`from_task_file` sets `title=task_text.strip()`
    and `detail=text` with no cap), whereas TODO/lint markers are bounded to `_MAX_MARKER_TEXT`
    (200) by `_bound` (discovery.py:271-276) precisely so "a long line cannot become a

@@ -14,6 +14,7 @@ from looptight.claims import ClaimStore, LegacyClaimsDisabled, claim_dir
 from looptight.coordinator import (
     CoordinationError,
     Coordinator,
+    CoordinatorUnavailable,
     IntegrationOutcome,
     MigrationBlocked,
     coordinator_path,
@@ -47,6 +48,20 @@ def test_coordinator_is_private_and_isolated_by_repository(tmp_path):
     assert one.connection.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
     assert one.connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
     assert one.connection.execute("PRAGMA user_version").fetchone()[0] == 4
+
+
+def test_open_reports_a_corrupt_database_as_unavailable(tmp_path):
+    # A corrupt/truncated coordinator.db raises sqlite3.DatabaseError ("not a database"),
+    # which is NOT an OperationalError, so the lock-retry loop does not absorb it. open must
+    # convert it to a clean CoordinatorUnavailable, not let a raw sqlite traceback escape.
+    repo = _repo(tmp_path / "r")
+    path = coordinator_path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"this is not a sqlite database")
+
+    with pytest.raises(CoordinatorUnavailable) as exc:
+        Coordinator.open(repo)
+    assert str(path) in str(exc.value)
 
 
 def test_coordinator_path_is_none_outside_git(tmp_path):
@@ -443,8 +458,8 @@ def test_migration_v3_to_v4_adds_owner_column(tmp_path):
 
 def test_open_rejects_a_newer_unsupported_schema_version(tmp_path):
     # A DB written by a *newer* looptight (user_version beyond SCHEMA_VERSION, e.g. after
-    # a downgrade) must fail to open with a clear error rather than misbehave on a schema
-    # it does not understand. Guards coordinator.py's version-skew RuntimeError.
+    # a downgrade) must fail to open with a clean CoordinatorUnavailable carrying an upgrade
+    # hint, not a raw version-skew RuntimeError traceback.
     repo = _repo(tmp_path / "repo")
     path = coordinator_path(repo)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -452,7 +467,7 @@ def test_open_rejects_a_newer_unsupported_schema_version(tmp_path):
     raw.executescript("PRAGMA user_version = 99;")  # a future, unknown schema
     raw.close()
 
-    with pytest.raises(RuntimeError, match="unsupported coordinator schema"):
+    with pytest.raises(CoordinatorUnavailable, match="newer looptight"):
         Coordinator.open(repo)
 
 

@@ -2013,6 +2013,28 @@ def test_next_refuses_outside_a_git_repo(tmp_path, monkeypatch, capsys):
     assert list(tmp_path.iterdir()) == []  # refused without touching the directory
 
 
+def test_next_reports_unreadable_coordinator_db_without_traceback(tmp_path, monkeypatch, capsys):
+    # A corrupt coordinator.db must not crash every command with a traceback (and must not
+    # break the --json contract). It degrades to a clean structured error at exit 2.
+    from looptight.coordinator import coordinator_path
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / "a.py").write_text("# TODO: fix it\n")
+    _commit_fixture()
+    path = coordinator_path(tmp_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(b"not a sqlite database")
+
+    assert main(["next", "--json"]) == 2
+    data = json.loads(capsys.readouterr().out)
+    assert data["status"] == "error"
+    assert data["error"] == "coordinator_unavailable"
+
+    assert main(["next"]) == 2  # human form also clean, no traceback
+    assert "coordinator error" in capsys.readouterr().out.lower()
+
+
 def test_next_human_output_prints_a_generic_error(tmp_path, monkeypatch, capsys):
     # For a non-dirty-worktree error, `next` prints "error: <message>".
     from looptight.tasks import NextResult

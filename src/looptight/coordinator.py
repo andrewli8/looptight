@@ -178,6 +178,27 @@ class CoordinationError(Exception):
     """Raised when a coordinator state transition is invalid (e.g. a stale lease)."""
 
 
+class CoordinatorUnavailable(Exception):
+    """Raised when the coordinator database cannot be opened (corrupt or newer-schema).
+
+    Carries an actionable, user-facing message. The CLI top level renders it as a clean
+    error with exit 2 instead of letting a raw ``sqlite3.Error``/``RuntimeError`` traceback
+    escape and recur on every invocation.
+    """
+
+
+def _unavailable_message(path: Path, exc: Exception) -> str:
+    if isinstance(exc, RuntimeError) and "unsupported coordinator schema" in str(exc):
+        return (
+            f"{exc}. The coordinator database at {path} was written by a newer looptight; "
+            "upgrade looptight, or delete that file to start fresh."
+        )
+    return (
+        f"the coordinator database at {path} is unreadable ({exc}); "
+        "delete that file to let looptight recreate it."
+    )
+
+
 class MigrationBlocked(Exception):
     """Raised when activation cannot proceed because live legacy claims exist."""
 
@@ -317,6 +338,12 @@ class Coordinator:
         connection.execute("PRAGMA busy_timeout = 5000")
         try:
             _initialize_schema(connection)
+        except (sqlite3.Error, RuntimeError) as exc:
+            # A corrupt/truncated DB raises sqlite3.DatabaseError; a future schema raises
+            # RuntimeError. Both are unusable external state — convert to a clean, actionable
+            # error rather than letting a traceback escape and recur on every command.
+            connection.close()
+            raise CoordinatorUnavailable(_unavailable_message(path, exc)) from exc
         except BaseException:
             connection.close()
             raise
