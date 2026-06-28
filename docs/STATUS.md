@@ -983,23 +983,38 @@ existing CLI session and makes no model or API calls of its own.
   `{candidates, eval}`) — matching `protocol_commands.py:181`. Locked by
   `test_spec_output_contract_documents_propose_json_bare_list` in test_docs.py.
 
+- `_verifier_quality` classifies the unambiguous single-runner test commands
+  detect_verify auto-selects (cargo/go/deno/mix/swift/dotnet/gradle/gradlew/mvn/
+  mvnw test) as `unit`, so `status`/`doctor`/`init` no longer call a Rust/Go/.NET/
+  JVM/Elixir/Swift user's own detected test command "custom/unknown". make/just
+  recipes stay `custom/unknown` (arbitrary). Found by the bug-hunt audit; covered
+  by `test_status_json_classifies_detected_runners_as_unit` in test_cli.py.
+
 ## Next
 
-1. `_verifier_quality` calls looptight's own auto-detected test runners "custom/unknown".
-   Evidence: src/looptight/protocol_commands.py:669-672 (the `unit` token list is
-   Python/JS-only) vs src/looptight/detect.py:40-93 (detect_verify emits `cargo test`,
-   `go test ./...`, `deno test`, `mix test`, `swift test`, `dotnet test`,
-   `gradle test`/`./gradlew test`, `mvn test`/`./mvnw test`). So a Rust/Go/.NET/JVM/
-   Elixir/Swift user sees `status`/`doctor` report "custom/unknown" — and `cmd_init`
-   (commands.py:82) prints a "custom verifier" warning — for the very command looptight
-   chose as their test runner. Reproduce: `_verifier_quality("cargo test")` →
-   `custom/unknown`.
-   Acceptance: add the unambiguous single-runner test commands (cargo/go/deno/mix/
-   swift/dotnet/gradle/gradlew/mvn/mvnw test) to the `unit` branch so
-   `_verifier_quality("cargo test")`, `("go test ./...")`, `("dotnet test")`,
-   `("gradle test")` each classify as `unit`; a new test in test_cli.py covers them.
-   `make test`/`just test` stay `custom/unknown` (arbitrary recipes — preserve the
-   existing test at test_cli.py:828).
+1. `_verifier_quality` mis-classifies on an incidental "integration"/"e2e" substring.
+   Evidence: src/looptight/protocol_commands.py:657 (e2e) and :662 (integration) do a
+   bare substring test before the test-runner check, so a deselection or helper name
+   flips the label: `pytest -m "not integration"` → `integration` (the command
+   *excludes* integration tests), `pytest tests/integration` → `integration`,
+   `npm run test:e2e-helpers` → `e2e`. Same bug-class as the `pytest && ruff` fix.
+   Acceptance: tighten the e2e/integration match so an incidental substring (notably
+   a `not integration` / `-m "not ..."` deselection) does not override the real
+   test-runner signal; a test asserting `_verifier_quality('pytest -m "not integration"')
+   ["classification"] == "unit"` goes red-to-green without regressing
+   `pytest tests/integration_suite` → `integration` or `playwright test` → `e2e`.
+
+2. `max_changed_files` policy double-counts a renamed file.
+   Evidence: src/looptight/protocol_commands.py:304 (`_changed_file_list` emits both
+   sides of a `old -> new` rename — correct, and needed for the protected-path scan)
+   feeding the count check at :319 (`len(files) > config.max_changed_files`). A single
+   rename counts as 2, so with `max_changed_files = 1` renaming one file is wrongly
+   blocked. The protected-path loop needs both sides; the count should treat a rename
+   as one file.
+   Acceptance: count distinct changed files for the `max_changed_files` comparison
+   (dedupe, or count a rename once) while keeping both sides for the protected-path
+   loop; a test that renames one tracked file with `max_changed_files = 1` goes from
+   a policy error to passing the count gate.
 
 ## Rules
 

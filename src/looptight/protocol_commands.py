@@ -666,7 +666,15 @@ def _verifier_quality(command: str | None) -> dict[str, str]:
         }
     if any(
         tool in normalized
-        for tool in ("pytest", "unittest", "npm test", "pnpm test", "yarn test", "vitest", "jest")
+        for tool in (
+            "pytest", "unittest", "npm test", "pnpm test", "yarn test", "vitest", "jest",
+            # The unambiguous single-runner test commands detect_verify auto-selects
+            # (detect.py): a project on one of these gets `unit`, not `custom/unknown`,
+            # so looptight does not call its own detected test command unknown. make/
+            # just recipes are intentionally left to `custom/unknown` (arbitrary).
+            "cargo test", "go test", "deno test", "mix test", "swift test", "dotnet test",
+            "gradle test", "gradlew test", "mvn test", "mvnw test",
+        )
     ):
         return {
             "classification": "unit",

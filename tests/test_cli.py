@@ -835,6 +835,36 @@ def test_status_json_classifies_common_verifier_quality(
         assert data["verifier_quality"]["risk"]
 
 
+def test_status_json_classifies_detected_runners_as_unit(
+    tmp_path, monkeypatch, capsys
+):
+    # Every unambiguous single-runner test command that detect_verify auto-selects
+    # must classify as `unit`, not `custom/unknown` — otherwise a Rust/Go/.NET/JVM
+    # user is told their own detected test command is an unknown verifier. make/just
+    # recipes stay custom/unknown (arbitrary), asserted by the common-quality test.
+    monkeypatch.chdir(tmp_path)
+    cases = {
+        "cargo test": "unit",
+        "go test ./...": "unit",
+        "deno test": "unit",
+        "mix test": "unit",
+        "swift test": "unit",
+        "dotnet test": "unit",
+        "gradle test": "unit",
+        "./gradlew test": "unit",
+        "mvn test": "unit",
+        "./mvnw test": "unit",
+    }
+    for command, expected in cases.items():
+        (tmp_path / ".looptight.toml").write_text(f'verify = "{command}"\n')
+        assert main(["status", "--json"]) == 0
+        data = json.loads(capsys.readouterr().out)
+        assert data["verifier_quality"]["classification"] == expected, (
+            f"expected {expected!r} for {command!r}, "
+            f"got {data['verifier_quality']['classification']!r}"
+        )
+
+
 def test_status_json_classifies_tests_plus_lint_as_unit_not_lint_only(
     tmp_path, monkeypatch, capsys
 ):
