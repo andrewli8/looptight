@@ -906,7 +906,12 @@ def cmd_swarm(args, console: Console) -> int:
 
 def _swarm_banner(workers, agent, verify, continuous, max_rounds, resume_on_limit=False) -> str:
     """One-line start banner naming what the swarm is about to run."""
-    plan = f"continuous · max {max_rounds} rounds" if continuous else "single round"
+    if continuous:
+        # max_rounds == 0 means run until no work/failure/interruption (cli.py), so
+        # naming a "max 0 rounds" cap is misleading — the run is unbounded.
+        plan = "continuous · unbounded rounds" if max_rounds == 0 else f"continuous · max {max_rounds} rounds"
+    else:
+        plan = "single round"
     if resume_on_limit:
         plan += " · resume-on-limit"
     return f"swarm · {workers} workers · agent {agent} · verify {verify} · {plan}"

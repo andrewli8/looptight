@@ -1015,17 +1015,15 @@ existing CLI session and makes no model or API calls of its own.
   and `test_daemon_backs_off_on_a_genuine_error_even_with_merged_work` in test_daemon.py
   (and the corrected `test_outcome_genuine_fault_with_merged_workers`).
 
+- The continuous-swarm start banner renders an unbounded run honestly: `_swarm_banner`
+  prints "continuous · unbounded rounds" for `max_rounds == 0` (the default, meaning
+  run until no work/failure/interruption) instead of the misleading "max 0 rounds"
+  cap. Found by the audit; covered by `test_swarm_banner_renders_unbounded_for_zero_max_rounds`
+  and the updated `test_swarm_banner_notes_resume_on_limit` in test_swarm.py.
+
 ## Next
 
-1. Continuous-swarm start banner prints "max 0 rounds" when 0 means unbounded.
-   Evidence: src/looptight/swarm.py:909 (`plan = f"continuous · max {max_rounds} rounds"`)
-   reached from cmd_swarm at swarm.py:866-875; `--max-rounds` 0 = unbounded per
-   cli.py:213. So `looptight swarm --headless --continuous` prints
-   "continuous · max 0 rounds", asserting a 0-round cap on an unbounded run.
-   Acceptance: render `max_rounds == 0` as "unbounded" (e.g. "continuous · unbounded
-   rounds"); a test asserts the 0 case does not contain "max 0 rounds".
-
-2. `--model` is silently ignored in `--native` mode.
+1. `--model` is silently ignored in `--native` mode.
    Evidence: src/looptight/loop.py:189 calls `adapter.drive_native_loop(goal,
    config.verify, config.max_iterations, workdir)` with no model; adapters/claude.py:57-68
    `drive_native_loop` hardcodes `self._invoke(prompt, workdir, None)`. The supply path

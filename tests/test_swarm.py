@@ -906,8 +906,16 @@ def test_swarm_parser_accepts_resume_on_limit_flags():
 
 def test_swarm_banner_notes_resume_on_limit():
     assert swarm._swarm_banner(2, "claude", "exit 0", True, 0, True) == (
-        "swarm · 2 workers · agent claude · verify exit 0 · continuous · max 0 rounds · resume-on-limit"
+        "swarm · 2 workers · agent claude · verify exit 0 · continuous · unbounded rounds · resume-on-limit"
     )
+
+
+def test_swarm_banner_renders_unbounded_for_zero_max_rounds():
+    # max_rounds == 0 is "until no work/failure/interruption" (unbounded), so the
+    # banner must not assert a "max 0 rounds" cap on the default continuous run.
+    banner = swarm._swarm_banner(4, "claude", "pytest -q", True, 0)
+    assert "unbounded rounds" in banner
+    assert "max 0 rounds" not in banner
 
 
 def test_swarm_reconciles_crashed_integration_on_start(tmp_path, monkeypatch):
