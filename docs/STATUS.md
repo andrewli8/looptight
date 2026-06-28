@@ -1409,6 +1409,15 @@ existing CLI session and makes no model or API calls of its own.
   planner's `commit` fails after a valid plan and asserts `plan_next_tasks` returns `status="failed"`
   carrying the commit error. No production change.
 
+## Next
+
+1. The planner's merge-to-root conflict-abort path is untested.
+   Evidence: src/looptight/swarm.py:589-594 — when merging the accepted plan into the repo fails
+   (the target advanced / a conflict), `plan_next_tasks` aborts the merge and returns
+   `PlanningResult("failed", ...)` rather than leaving a half-merged tree. Untested.
+   Acceptance: a test in tests/test_swarm.py wraps `_git` so the planner's `merge --no-commit` fails
+   and asserts `plan_next_tasks` returns `status="failed"` carrying the conflict error. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
