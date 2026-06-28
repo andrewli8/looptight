@@ -194,6 +194,29 @@ class FailingPlannerAdapter(EditingAdapter):
         return IterationResult(transcript="", ok=False, error="planner provider crashed")
 
 
+def test_swarm_fails_worker_when_status_inspection_fails(tmp_path, monkeypatch):
+    # A worker whose `git status --porcelain` cannot be inspected is marked failed, not integrated.
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+
+    real_git = swarm._git
+
+    def selective_git(root, *args):
+        # Fail the worker's status (in its own worktree), not the invoking-worktree
+        # cleanliness check at run_swarm's start (which also runs status --porcelain on root).
+        if args[:2] == ("status", "--porcelain") and Path(root).resolve() != tmp_path.resolve():
+            return subprocess.CompletedProcess(["git"], 1, "", "worker status broke")
+        return real_git(root, *args)
+
+    monkeypatch.setattr("looptight.swarm._git", selective_git)
+    result = run_swarm(
+        tmp_path, agent="fake", config=Config(verify="exit 0", max_iterations=1), workers=1
+    )
+
+    assert result.workers[0].status == "failed"
+    assert "worker status broke" in (result.workers[0].error or "")
+
+
 def test_swarm_fails_worker_when_commit_fails(tmp_path, monkeypatch):
     # A worker whose git commit of its in-scope changes fails is marked failed, not integrated.
     _repo(tmp_path)
