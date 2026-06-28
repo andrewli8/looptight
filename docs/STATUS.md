@@ -1899,6 +1899,16 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `propose --json` emits pretty-printed `indent=2` output (`src/looptight/protocol_commands.py:212`)
+   while every other `--json` command emits compact `sort_keys=True` — the lone formatting outlier,
+   with no rationale comment and no test pinning the whitespace (the propose JSON tests parse with
+   `json.loads`). Make it compact `sort_keys=True` so tooling gets uniform machine output across all
+   commands; the data structure (a candidates list / `{candidates, eval}`) and ranking order are
+   unchanged.
+   Evidence: src/looptight/protocol_commands.py:212
+   Acceptance: a new test asserts `propose --json` output is a single line (no `indent` newlines)
+   and still parses to the same candidate list.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
