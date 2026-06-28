@@ -1052,6 +1052,31 @@ existing CLI session and makes no model or API calls of its own.
   self-model keying. Found by the audit; covered by
   `test_identity_is_stable_across_a_line_range_location` in test_idea_identity.py.
 
+## Next
+
+1. `docs/usage.md` says the solo loop uses "file-based claims" until `migrate`, but it
+   always claims through the SQLite coordinator.
+   Evidence: docs/usage.md:48 ("The loop also runs without it, using file-based claims")
+   and the whole §37-52 framing of `migrate` as switching from file claims to the
+   coordinator, vs src/looptight/tasks.py:161-177 (`next_task` claims via
+   `Coordinator.open(workdir)` whenever it is non-None, i.e. in any Git repo; the file
+   `ClaimStore` branch runs only when `coordinator is None`, i.e. outside Git). The
+   correct model is already in docs/architecture.md:109-113: the coordinator is the
+   claim store in any Git repo whether or not `migrate` has run, and `migrate` fences
+   the legacy file-claim mechanism. usage.md contradicts code and architecture.md.
+   Acceptance: rewrite docs/usage.md §37-52 to match architecture.md/code (coordinator
+   claims from the first `next`; `migrate` fences legacy file claims, does not switch
+   the store); a test_docs.py assertion that `"using file-based claims"` is absent from
+   usage.md and that it states the coordinator is the claim store in any Git repo.
+
+2. `looptight revert` is undocumented in the README command list.
+   Evidence: src/looptight/cli.py:126 defines `revert` (a user-facing "undo the agent's
+   uncommitted edits" safety command with `--yes`), but it is absent from the README
+   Commands block (README.md:73-81) where its peers (init/next/verify/status/propose/
+   goal/doctor) are all listed; only a SPEC parenthetical mentions it.
+   Acceptance: add `looptight revert` with a one-line description to the README Commands
+   block; a test_docs.py assertion that `"revert"` appears in README.md.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
