@@ -1888,6 +1888,17 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Three human-output lines use the lazy `(s)` plural, which reads awkwardly for a count of 1 ("1
+   file(s)", "1 hook(s)", "1 task(s)") and is inconsistent with the codebase's own proper
+   pluralization (propose switches `task`/`tasks`): the revert untracked-files note
+   (`src/looptight/commands.py:564`), the uninstall-hook count (`src/looptight/commands.py:643`),
+   and the status idea-quality line (`src/looptight/protocol_commands.py:640`). Switch all three to
+   proper singular/plural (`hook` vs `hooks`) based on the count.
+   Evidence: src/looptight/commands.py:643
+   Acceptance: new tests assert the status idea-quality line says "1 task" (not "task(s)") for a
+   one-task queue and "2 tasks" for two, and the uninstall message says "1 looptight hook" (not
+   "hook(s)") when removing one.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
