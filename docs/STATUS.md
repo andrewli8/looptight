@@ -1968,19 +1968,14 @@ existing CLI session and makes no model or API calls of its own.
   worktrees above. Found by dogfooding the swarm success path with a fake agent. Covered by a
   merged-case and a failure-case test.
 
-## Next
+- The daemon no longer mislabels a productive cycle as idle: a cycle that merges the last task
+  and drains the backlog now reads as "progress (N merged)" and is counted in `progress`,
+  instead of the contradictory "idle (N merged)" / "progress 0". The user-facing outcome is
+  decoupled from the poll DELAY (fault → progress-if-merged → idle), and the delay behavior is
+  unchanged (a drained cycle still polls). Found by dogfooding the daemon with a fake agent.
+  Covered by a merged-drained-cycle test.
 
-1. The daemon mislabels a productive cycle as "idle": a cycle that merges the last task and drains
-   the backlog gets `_outcome` = "idle" (`src/looptight/daemon.py:87`) — correct for the poll DELAY,
-   but the same value drives the DISPLAY and the progress/idle counts, so the user sees the
-   self-contradictory "cycle 1 → idle (1 merged)" and a summary of "progress 0" even though work
-   merged. Decouple them: keep the delay keyed on the poll outcome, but classify the user-facing
-   outcome (the `DaemonCycle.outcome` shown + the `progress`/`idle` tallies) as fault → progress
-   (if any merged) → idle. Found by dogfooding the daemon with a fake agent.
-   Evidence: src/looptight/daemon.py:156
-   Acceptance: a test asserts a cycle whose swarm merged work but reached NO_WORK is reported with
-   outcome "progress" and counted in `progress` (not `idle`), while the cycle's `delay` is still the
-   idle poll interval; a no-merge idle cycle stays "idle".
+## Next
 
 ## Rules
 

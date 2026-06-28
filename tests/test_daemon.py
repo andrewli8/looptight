@@ -76,6 +76,28 @@ def test_daemon_stops_after_max_cycles_and_sleeps_between_only():
     assert rec.sleeps == [600.0, 600.0]
 
 
+def test_daemon_reports_a_merged_drained_cycle_as_progress_not_idle():
+    # A cycle that merges the last task and reaches NO_WORK (backlog drained) made progress, so it
+    # reads as "progress (1 merged)", not the contradictory "idle (1 merged)" — while its DELAY
+    # stays the idle poll interval (nothing left to do right now), not a 0 loop.
+    rec = _Recorder([_result(REASON_NO_WORK, merged=1), _result(REASON_NO_WORK, merged=0)])
+    report = run_daemon(
+        Path("."),
+        agent="claude",
+        config=_config(),
+        workers=1,
+        max_cycles=2,
+        idle_sleep_seconds=600.0,
+        sleep=rec.sleep,
+        run_cycle=rec.run_cycle,
+        on_cycle=rec.on_cycle,
+    )
+    assert rec.cycles[0].outcome == "progress" and rec.cycles[0].merged == 1  # user-facing progress
+    assert rec.cycles[0].delay == 600.0  # delay still polls (backlog drained), not a 0 loop
+    assert rec.cycles[1].outcome == "idle"  # nothing merged
+    assert report.progress == 1 and report.idle == 1
+
+
 def test_outcome_treats_idle_and_no_work_as_idle_despite_early_merges():
     # A cumulative merge earlier in a cycle must not flip a back-off signal to progress:
     # REASON_IDLE (swarm stalled) and REASON_NO_WORK (backlog drained) poll/back off even

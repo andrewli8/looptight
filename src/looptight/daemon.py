@@ -156,7 +156,12 @@ def run_daemon(
         cycles += 1
         last_reason = reason
 
+        # Keep the DELAY keyed on the poll outcome (idle → sleep, progress → loop, fault → back
+        # off), but classify the USER-FACING outcome by what actually happened: a cycle that merged
+        # the last task and drained the backlog (poll-outcome "idle") still made progress, so it
+        # reads as "progress (N merged)", not the contradictory "idle (N merged)".
         if outcome == "fault":
+            shown = "fault"
             faults += 1
             fault_streak += 1
             delay = min(
@@ -165,15 +170,16 @@ def run_daemon(
             )
         else:
             fault_streak = 0
-            if outcome == "progress":
+            delay = 0.0 if outcome == "progress" else idle_sleep_seconds
+            if merged:
+                shown = "progress"
                 progress += 1
-                delay = 0.0
             else:
+                shown = "idle"
                 idle += 1
-                delay = idle_sleep_seconds
 
         if on_cycle is not None:
-            on_cycle(DaemonCycle(cycles, outcome, reason, merged, error, delay))
+            on_cycle(DaemonCycle(cycles, shown, reason, merged, error, delay))
 
         if on_fault is not None and outcome == "fault":
             try:
