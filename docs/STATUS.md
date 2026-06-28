@@ -1419,7 +1419,15 @@ existing CLI session and makes no model or API calls of its own.
   `looptight:` commit fails and asserts the worker is `failed` with the commit error, not integrated.
   No production change.
 
-## Rules
+## Next
+
+1. The swarm worker git-status inspection-failure path is untested.
+   Evidence: src/looptight/swarm.py:342-346 — if `git status --porcelain` cannot inspect a worker's
+   worktree, `_run_worker` marks the worker `failed` rather than integrating an unknown state.
+   Untested.
+   Acceptance: a test in tests/test_swarm.py wraps `_git` so the worker's `status --porcelain` fails
+   and asserts the worker is `failed` with the inspection error. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
