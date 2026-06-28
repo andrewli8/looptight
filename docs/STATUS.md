@@ -1366,6 +1366,16 @@ existing CLI session and makes no model or API calls of its own.
   with `verify="exit 0"` and asserts the planner returns `status="planned"` and the planned tasks
   merged into the repo's docs/STATUS.md — the full plan-accepted/commit/merge path. No production change.
 
+## Next
+
+1. `cmd_swarm`'s continuous-mode output is untested.
+   Evidence: src/looptight/swarm.py:860-864 (continuous options) and :882-885 (the
+   "continuous · N rounds · M plans · K resumes" summary line) run only for `--continuous`, which
+   no CLI test exercises.
+   Acceptance: a test in tests/test_swarm.py stubs `run_continuous_swarm` to return a result with
+   rounds/plans and runs `swarm --headless --continuous`, asserting the continuous summary line is
+   printed. No production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
