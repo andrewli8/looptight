@@ -1284,6 +1284,14 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `cmd_run`'s NotImplementedError handler is untested.
+   Evidence: src/looptight/commands.py:201-207 — when the run loop raises `NotImplementedError`
+   (an unsupported mode), `run` reports it (human or `--json`) and exits 3 rather than crashing.
+   Untested.
+   Acceptance: a test in tests/test_cli.py with `direct_main=true` and a stubbed `run_loop` that
+   raises `NotImplementedError` asserts `run --headless` exits 3 carrying the message. No
+   production change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
