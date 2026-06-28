@@ -834,6 +834,18 @@ def test_from_status_next_parses_numbered_list(tmp_path):
     assert titles == ["First thing to do", "Second thing"]
 
 
+def test_from_status_next_normalizes_acceptance_whitespace(tmp_path):
+    # The acceptance clause renders on one line (`acceptance:` in next). Collapse internal runs
+    # of spaces/tabs so it never reads messy, like the title beside it.
+    _write(
+        tmp_path,
+        "docs/STATUS.md",
+        "## Next\n\n1. Harden it. Evidence: docs/STATUS.md:1; Acceptance: a   test\tcovers   the   case.\n",
+    )
+    cand = from_status_next(tmp_path, enforce_truthful_evidence=False)[0]
+    assert cand.acceptance == "a test covers the case."
+
+
 def test_from_status_next_parses_paren_style_ordered_list(tmp_path):
     # Markdown ordered lists also use `1)` (paren); such tasks must not be silently
     # dropped, and a following `2)` item must bound the first.

@@ -626,7 +626,7 @@ def from_task_file(
                 suggested_verify=None,
                 score=0.0,
                 detail=_bound(text, _MAX_TASK_TEXT),
-                acceptance=_bound(acceptance.strip(), _MAX_TASK_TEXT),
+                acceptance=_bound(_one_line(acceptance), _MAX_TASK_TEXT),
             )
         )
         if cap is not None and len(out) >= cap:

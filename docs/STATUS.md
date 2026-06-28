@@ -2036,6 +2036,11 @@ existing CLI session and makes no model or API calls of its own.
   as the goal-vision fix. Found by dogfooding a TODO/STATUS.md title with tabs and extra
   spaces. Covered by a title-normalization test.
 
+- A STATUS.md task's `Acceptance:` clause normalizes internal whitespace too (`_one_line`),
+  so the `acceptance:` line in `next` reads cleanly instead of preserving raw runs of spaces
+  and tabs from the task file — same one-line class as the title beside it. Found by
+  dogfooding a STATUS.md acceptance with tabs/extra spaces. Covered by an acceptance test.
+
 ## Next
 
 ## Rules
