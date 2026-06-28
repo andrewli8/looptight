@@ -1922,6 +1922,19 @@ def test_daemon_cli_paths_do_not_require_agent_on_path(tmp_path, monkeypatch):
     assert main(["daemon", "--headless", "--verify", "true"]) == 2
 
 
+def test_daemon_cli_rejects_too_many_workers_and_missing_verify(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+
+    # More than the worker cap → exit 2.
+    code = main(["daemon", "--headless", "--agent", "codex", "--workers", "51"])
+    assert code == 2 and "workers must be" in capsys.readouterr().out
+
+    # No verify command configured or detectable → exit 2.
+    code = main(["daemon", "--headless", "--agent", "codex"])
+    assert code == 2 and "verify" in capsys.readouterr().out.lower()
+
+
 def test_status_watch_parser_accepts_flags():
     args = build_parser().parse_args(["status", "--watch", "--interval", "5"])
     assert args.watch is True and args.interval == 5.0

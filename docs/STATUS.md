@@ -1277,15 +1277,12 @@ existing CLI session and makes no model or API calls of its own.
   `_worker_changed_paths` to return `(None, error)` and asserts the worker is `failed` with that
   error, so an undeterminable change set is not integrated. No production change.
 
-## Next
+- Two `cmd_daemon` CLI guards are covered:
+  `test_daemon_cli_rejects_too_many_workers_and_missing_verify` in test_cli.py asserts
+  `daemon --workers 51` exits 2 with a "workers must be" message and `daemon` with no detectable
+  verify exits 2 with a verify message. No production change.
 
-1. Two `cmd_daemon` CLI guards are untested.
-   Evidence: src/looptight/commands.py:227-229 (`daemon` rejects more than MAX_WORKERS workers
-   with exit 2) and :243-245 (rejects a missing verify command with exit 2). The not-headless
-   and no-agent guards are tested, but these two are not.
-   Acceptance: a test in tests/test_cli.py asserts `daemon --headless --agent codex --workers 51`
-   exits 2 with a "workers must be" message, and `daemon --headless --agent codex` in a repo with
-   no detectable verify exits 2 with a verify message. No production change.
+## Next
 
 ## Rules
 
