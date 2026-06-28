@@ -1267,16 +1267,10 @@ existing CLI session and makes no model or API calls of its own.
   well-formed JSON file with `schema_version: 99` and asserts `_read` returns None, so a
   forward-incompatible trajectory file cannot poison value-aware stopping. No production change.
 
-## Next
-
-3. `settings.py` path helpers and absent-file `uninstall` (lines 22, 26, 95) are
-   uncovered: `user_settings_path()`, `project_settings_path(root)`, and
-   `uninstall(nonexistent)` (returns 0 early) each lack direct unit tests; sibling
-   functions `install`/`_load` are covered but these simple helpers are not.
-   Evidence: src/looptight/settings.py:22
-   Acceptance: `test_settings_path_helpers_and_absent_file_uninstall` in
-   tests/test_settings.py asserts the returned paths match the expected layout and
-   `uninstall` on a non-existent path returns 0; verify passes.
+- `settings.py` path helpers and absent-file `uninstall` are covered:
+  `test_settings_path_helpers_and_absent_file_uninstall` in test_settings.py asserts
+  `user_settings_path()`/`project_settings_path(root)` return the expected `.claude/settings.json`
+  layout and `uninstall` on a non-existent path returns 0 without raising. No production change.
 
 4. The swarm worker change-detection-failure path is untested.
    Evidence: src/looptight/swarm.py:332-335 — when `_worker_changed_paths` cannot determine a

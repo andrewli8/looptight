@@ -165,3 +165,14 @@ def test_write_is_atomic_and_preserves_original_on_failure(tmp_path, monkeypatch
 
     assert path.read_text(encoding="utf-8") == original  # original untouched
     assert not (tmp_path / "settings.tmp").exists()  # no leaked temp
+
+
+def test_settings_path_helpers_and_absent_file_uninstall(tmp_path):
+    from pathlib import Path
+
+    from looptight.settings import project_settings_path, uninstall, user_settings_path
+
+    assert user_settings_path() == Path.home() / ".claude" / "settings.json"
+    assert project_settings_path(tmp_path) == tmp_path / ".claude" / "settings.json"
+    # Uninstalling from a non-existent settings file removes nothing and does not raise.
+    assert uninstall(tmp_path / "missing.json") == 0
