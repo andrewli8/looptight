@@ -27,6 +27,7 @@ from .protocol_commands import (
     cmd_propose,
     cmd_status,
     cmd_verify,
+    humanized_checks,
 )
 from .summary import render_rich
 from .swarm import MAX_WORKERS, cmd_swarm
@@ -434,10 +435,7 @@ def cmd_doctor(args: argparse.Namespace, console: Console) -> int:
     # `status` shows, rather than making the operator run a second command to learn why.
     checks = readiness.get("checks")
     if isinstance(checks, dict) and checks:
-        console.print(
-            "  readiness checks: "
-            + " · ".join(f"{key} {value}" for key, value in checks.items())
-        )
+        console.print("  readiness checks: " + humanized_checks(checks))
     console.print(
         f"  setup next: {_doctor_next_setup_command(verify, agent, git_ready)}"
     )

@@ -935,6 +935,29 @@ def test_status_json_is_read_only_and_actionable(tmp_path, monkeypatch, capsys):
     assert list(tmp_path.iterdir()) == []
 
 
+def test_human_readiness_checks_do_not_leak_snake_case_status(tmp_path, monkeypatch, capsys):
+    # Outside a git repo the readiness/concurrency checks include the internal `not_git`
+    # status. Human output must read it as prose ("not a git repo"), matching the rest of
+    # the doctor/status lines, not leak the snake_case enum token. The JSON keeps `not_git`.
+    monkeypatch.chdir(tmp_path)
+
+    assert main(["status"]) == 0  # read-only human report
+    human = capsys.readouterr().out
+    assert "not_git" not in human, "snake_case status token leaked into human output"
+    assert "not a git repo" in human
+
+    assert main(["doctor"]) == 1  # non-git → unsafe
+    doctor = capsys.readouterr().out
+    assert "not_git" not in doctor
+    assert "not a git repo" in doctor
+
+    # The machine contract is unchanged — JSON consumers still see the enum token.
+    main(["status", "--json"])
+    data = json.loads(capsys.readouterr().out)
+    assert data["readiness"]["checks"]["git"] == "not_git"
+    assert data["workspace"] == "not_git"
+
+
 def test_status_readiness_reports_ready_repo(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)

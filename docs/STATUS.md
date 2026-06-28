@@ -1987,6 +1987,13 @@ existing CLI session and makes no model or API calls of its own.
   when there is nothing to break down; multi-worker tallies are unchanged. Found by
   dogfooding the continuous-swarm planning-failure path. Covered by an empty-tally test.
 
+- Human `doctor`/`status` output no longer leaks the snake_case `not_git` enum token: the
+  readiness-checks, concurrency-checks, and `workspace:` lines now read `not a git repo`
+  (matching the prose the rest of the same output already uses), via one shared
+  `humanize_status`/`humanized_checks` helper replacing three drifted `f"{key} {value}"`
+  joins. The JSON contract is unchanged — machine consumers still see `not_git`. Found by
+  dogfooding `doctor`/`status` in a non-git directory. Covered by a no-leak test.
+
 ## Next
 
 ## Rules

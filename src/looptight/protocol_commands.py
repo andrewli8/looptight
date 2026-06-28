@@ -462,6 +462,23 @@ def _watch_status(
     return ticks
 
 
+# Internal readiness/concurrency status tokens that are not already plain English.
+# The machine (JSON) contract keeps the raw tokens; only rendered human text is humanized,
+# so a snake_case enum (e.g. ``not_git``) never leaks into a line that elsewhere says
+# "not a git repo".
+_HUMAN_STATUS = {"not_git": "not a git repo"}
+
+
+def humanize_status(value: object) -> object:
+    """Map an internal status token to prose for human display, leaving others as-is."""
+    return _HUMAN_STATUS.get(value, value) if isinstance(value, str) else value
+
+
+def humanized_checks(checks: dict[str, object]) -> str:
+    """Join a checks dict for a human ``... checks:`` line, humanizing leaked tokens."""
+    return " · ".join(f"{key} {humanize_status(value)}" for key, value in checks.items())
+
+
 def cmd_status(args: argparse.Namespace, console: Console) -> int:
     """Report safety state without running validation or claiming work."""
     workdir = Path.cwd()
@@ -596,12 +613,7 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         print(json.dumps(payload, sort_keys=True))
     else:
         console.print(f"readiness: {readiness['tier']}")
-        console.print(
-            "readiness checks: "
-            + " · ".join(
-                f"{key} {value}" for key, value in readiness["checks"].items()
-            )
-        )
+        console.print("readiness checks: " + humanized_checks(readiness["checks"]))
         # Only surface a readiness step when it differs from the authoritative `next:` action
         # below — otherwise (ready, or dirty) the remediation is the same string and would print
         # the identical instruction twice under two labels.
@@ -615,14 +627,9 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
             f"{verifier_quality['risk']}"
         )
         console.print(f"concurrency: {concurrency['status']}")
-        console.print(
-            "concurrency checks: "
-            + " · ".join(
-                f"{key} {value}" for key, value in concurrency["checks"].items()
-            )
-        )
+        console.print("concurrency checks: " + humanized_checks(concurrency["checks"]))
         console.print(f"concurrency next: {concurrency['next_remediation']}")
-        console.print(f"workspace: {workspace}")
+        console.print(f"workspace: {humanize_status(workspace)}")
         owner = f" · yours: {claimed_task}" if claimed_task else ""
         console.print(f"claims: {active_claims} active{owner}")
         if coordinator_counts is not None:
