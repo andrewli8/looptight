@@ -194,6 +194,26 @@ class FailingPlannerAdapter(EditingAdapter):
         return IterationResult(transcript="", ok=False, error="planner provider crashed")
 
 
+class RateLimitedAdapter(EditingAdapter):
+    def run_iteration(self, goal, context, workdir, model=None):
+        return IterationResult(
+            transcript="", ok=False, error="provider rate limit reached; retry after 60s"
+        )
+
+
+def test_swarm_marks_a_rate_limited_worker_as_limited(tmp_path, monkeypatch):
+    # A worker whose run loop ends on a provider rate limit is marked `limited`, not `failed`,
+    # so the continuous swarm can wait it out instead of treating it as a failure.
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: RateLimitedAdapter())
+
+    result = run_swarm(
+        tmp_path, agent="fake", config=Config(verify="exit 0", max_iterations=1), workers=1
+    )
+
+    assert result.workers[0].status == "limited"
+
+
 class IdlePlannerAdapter(EditingAdapter):
     def run_iteration(self, goal, context, workdir, model=None):
         return IterationResult(transcript="nothing to plan")  # ok=True, no changes
