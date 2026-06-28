@@ -1394,15 +1394,10 @@ existing CLI session and makes no model or API calls of its own.
   covered by `test_continuous_swarm_planner_limit_persists_to_terminal` (asserts `REASON_LIMIT`),
   with the worker-limit resume tests still green.
 
-## Next
-
-1. The planner's git-status/diff-inspection failure paths are untested.
-   Evidence: src/looptight/swarm.py:538-547 — `plan_next_tasks` returns `PlanningResult("failed",
-   ...)` if `git status`/`git diff` cannot inspect the planner worktree's changes, so a git failure
-   during planning is a clean failure, not a crash. Untested.
-   Acceptance: a test in tests/test_swarm.py wraps `_git` so the planner's `status` call returns a
-   nonzero result and asserts `plan_next_tasks` returns `status="failed"` mentioning the inspection
-   failure. No production change.
+- The planner's git-status inspection-failure path is covered:
+  `test_plan_next_tasks_fails_on_git_status_inspection_failure` in test_swarm.py wraps `_git` so the
+  planner's `status` call fails and asserts `plan_next_tasks` returns `status="failed"` carrying the
+  inspection error — a git failure during planning is a clean failure, not a crash. No production change.
 
 ## Rules
 
