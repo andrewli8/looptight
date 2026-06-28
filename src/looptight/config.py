@@ -80,6 +80,7 @@ def load_config(path: Path | None = None) -> Config:
         data = tomllib.loads(resolved.read_text(encoding="utf-8-sig"))
     except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError) as exc:
         raise ConfigError(f"{resolved} is not valid TOML: {exc}") from exc
+    _reject_misplaced_keys(resolved, data)
     try:
         return Config(
             verify=_optional_string(data, "verify"),
@@ -93,6 +94,42 @@ def load_config(path: Path | None = None) -> Config:
         )
     except (TypeError, ValueError) as exc:
         raise ConfigError(f"{resolved} has an invalid value: {exc}") from exc
+
+
+#: The config schema is flat (top-level keys only). These are every recognized key, used to
+#: catch keys mistakenly nested under a TOML table like ``[policy]`` — where they would be
+#: silently dropped, including safety-relevant ones (protected_paths, max_changed_files).
+_KNOWN_FIELDS = frozenset(
+    {
+        "verify",
+        "tasks",
+        "direct_main",
+        "idea_generation",
+        "protected_paths",
+        "no_direct_push",
+        "max_changed_files",
+        "allowed_verify_commands",
+    }
+)
+
+
+def _reject_misplaced_keys(resolved: Path, data: dict[str, object]) -> None:
+    """Fail fast when recognized config keys are nested under a TOML table.
+
+    The schema is flat, so ``[policy]\\nmax_changed_files = 3`` is never read. Silently
+    dropping a safety setting the user believes they set is a footgun; an unknown table with
+    no recognized keys is left alone (forward-compatible).
+    """
+    for table, value in data.items():
+        if not isinstance(value, dict):
+            continue
+        misplaced = _KNOWN_FIELDS & value.keys()
+        if misplaced:
+            keys = ", ".join(sorted(misplaced))
+            raise ConfigError(
+                f"{resolved}: config keys are top-level, not under a [{table}] table; "
+                f"move {keys} out of [{table}]"
+            )
 
 
 def _boolean(data: dict[str, object], field: str, default: bool) -> bool:

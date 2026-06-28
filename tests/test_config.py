@@ -89,6 +89,32 @@ def test_load_config_rejects_string_direct_main(tmp_path):
     assert "direct_main" in str(exc.value)
 
 
+def test_load_config_rejects_keys_nested_under_a_table(tmp_path):
+    # The schema is flat; a [policy] table holding safety keys would be silently dropped
+    # (status --json reports a "policy" object, inviting exactly this mistake). Fail fast.
+    path = tmp_path / ".looptight.toml"
+    path.write_text(
+        'verify = "pytest -q"\n[policy]\nmax_changed_files = 3\nprotected_paths = ["x"]\n',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigError) as exc:
+        load_config(path)
+
+    message = str(exc.value)
+    assert "policy" in message
+    assert "max_changed_files" in message and "protected_paths" in message
+
+
+def test_load_config_ignores_an_unknown_table_with_no_known_keys(tmp_path):
+    # A table that shadows no recognized key is left alone, so the guard is forward-compatible
+    # and does not reject benign/future sections.
+    path = tmp_path / ".looptight.toml"
+    path.write_text('verify = "pytest -q"\n[notes]\nauthor = "me"\n', encoding="utf-8")
+
+    assert load_config(path).verify == "pytest -q"
+
+
 def test_load_config_rejects_non_string_verify(tmp_path):
     path = tmp_path / ".looptight.toml"
     path.write_text("verify = 42\n", encoding="utf-8")
