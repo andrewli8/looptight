@@ -396,7 +396,15 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     def cmd_ui(args, console):
-        serve_ui(Path.cwd(), args.port)
+        try:
+            serve_ui(Path.cwd(), args.port)
+        except OSError as exc:
+            # A bind failure (port in use) must not dump a traceback — give an actionable line.
+            console.print(
+                f"[red]could not serve the ui on port {args.port}:[/red] {exc} — "
+                "the port may be in use; try a different --port."
+            )
+            return 2
         return 0
 
     handler = {

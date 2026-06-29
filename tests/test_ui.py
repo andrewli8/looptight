@@ -659,6 +659,19 @@ def test_ui_command_rejects_out_of_range_port():
     assert exc.value.code == 2
 
 
+def test_ui_command_reports_bind_failure_without_traceback(tmp_path, monkeypatch, capsys):
+    # A port already in use must surface as an actionable line, not a raw OSError traceback.
+    monkeypatch.chdir(tmp_path)
+
+    def boom(root, port):
+        raise OSError(48, "Address already in use")
+
+    monkeypatch.setattr("looptight.cli.serve_ui", boom)
+    assert main(["ui", "--port", "8801"]) == 2
+    out = capsys.readouterr().out
+    assert "8801" in out and "port may be in use" in out
+
+
 def test_render_state_panel_summarizes_workers():
     from looptight.ui import render_state_panel
 

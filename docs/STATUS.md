@@ -2148,6 +2148,11 @@ existing CLI session and makes no model or API calls of its own.
   ignores) an optional `goal` positional, so any basic `improve …` reaches the deprecation message.
   Found by dogfooding the CLI entry behavior. Covered by a goal-form deprecation test.
 
+- `looptight ui` on an in-use port reports an actionable line (`could not serve the ui on port
+  N: … — the port may be in use; try a different --port.`) instead of dumping a raw OSError
+  traceback: `cmd_ui` now catches the bind `OSError` and exits 2. Found by dogfooding two `ui`
+  servers on the same port. Covered by a bind-failure test.
+
 ## Next
 
 ## Rules
