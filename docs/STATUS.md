@@ -2253,14 +2253,13 @@ existing CLI session and makes no model or API calls of its own.
   which monkeypatches `Popen` to raise `OSError` and asserts `returncode == 127`
   and `"could not launch"` in `result.stderr`.
 
-## Next
+- `_files_with_exts`'s missing-subdir defensive path (`discovery.py:67`) now has direct
+  unit coverage: `test_files_with_exts_missing_subdir_returns_empty` in tests/test_propose.py
+  calls `_files_with_exts(tmp_path, "no_such_dir", (".py",))` and asserts the result is `[]`
+  — so a regression removing the `if not base.is_dir(): return []` guard would now be caught.
+  No production code change.
 
-1. `_files_with_exts` (`discovery.py:65`) returns `[]` when `root / subdir` is not a directory,
-   but this defensive path has no direct test. By analogy with `test_from_lint_returns_empty_on_timeout`,
-   a test naming a missing subdirectory should assert the function returns `[]` rather than raising.
-   Evidence: `src/looptight/discovery.py:65`
-   Acceptance: `test_files_with_exts_missing_subdir_returns_empty` in tests/test_propose.py calls
-   `_files_with_exts(tmp_path, "no_such_dir", (".py",))` and asserts the result is `[]`.
+## Next
 
 ## Rules
 

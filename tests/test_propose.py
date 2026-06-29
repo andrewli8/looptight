@@ -1500,3 +1500,9 @@ def test_from_lint_subprocess_sets_git_terminal_prompt_env(tmp_path):
 
     assert "env" in captured_kwargs, "from_lint must pass an explicit env to subprocess.run"
     assert captured_kwargs["env"].get("GIT_TERMINAL_PROMPT") == "0"
+
+
+def test_files_with_exts_missing_subdir_returns_empty(tmp_path):
+    from looptight.discovery import _files_with_exts
+
+    assert _files_with_exts(tmp_path, "no_such_dir", (".py",)) == []
