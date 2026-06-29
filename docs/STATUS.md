@@ -75,6 +75,9 @@ existing CLI session and makes no model or API calls of its own.
   versioned Git-private swarm state with polling and restrictive browser headers.
 - The graph supports pointer and keyboard node inspection plus read-only status
   filters; every projection redraws its dependency arrows without mutating state.
+- The status badge honors the same acid/red/cyan color language as the node
+  left-border and tally, so a complete node never shows an active-colored badge;
+  found by rendering the live UI, covered in test_ui.py.
 - Concurrent worker results publish in completion order for timely observation;
   verified integration and returned results remain ordered by worker number.
 - Submitted workers publish a running state before result collection, so the UI

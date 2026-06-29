@@ -222,6 +222,22 @@ def test_page_marks_a_failing_verdict_for_legibility():
     assert ".manager.verify-fail .detail{color:var(--red)}" in page
 
 
+def test_page_colors_complete_status_badges_to_match_the_node_border():
+    # The page has one color language: acid=active, red=attention, cyan=complete. The node
+    # left-border and the tally cards both honor it. The status badge must too: a merged/complete
+    # node carries a cyan left-border, so a green (acid) badge on the same card contradicts it and
+    # reads as "still active". Attention statuses already get a red badge; complete needs cyan.
+    page = ui.PAGE
+    assert (
+        ".merged .status,.complete .status,.completed .status,.passed .status"
+        "{background:var(--cyan)}" in page
+    )
+    # The complete-badge rule must use the same accent the node border and tally already use,
+    # so the three surfaces never disagree about what "complete" looks like.
+    assert ".task.merged,.task.complete,.task.completed,.task.passed{border-left-color:var(--cyan)}" in page
+    assert ".stat.complete{border-top-color:var(--cyan)}" in page
+
+
 def test_page_renders_goal_mode():
     assert "mode==='goal'" in ui.PAGE
     assert "your goal build loop" in ui.PAGE
