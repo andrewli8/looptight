@@ -55,6 +55,18 @@ def test_run_command_redirects_stdin_from_devnull(monkeypatch, tmp_path):
     assert popen_kwargs.get("stdin") == subprocess.DEVNULL
 
 
+def test_run_command_oserror_returns_returncode_127(monkeypatch, tmp_path):
+    import looptight.adapters.base as base
+
+    def fake_run(cmd, **kwargs):
+        raise OSError("no such file or directory")
+
+    monkeypatch.setattr(base.subprocess, "run", fake_run)
+    result = run_command(["no-such-agent"], tmp_path)
+    assert result.returncode == 127
+    assert "could not launch" in result.stderr
+
+
 def test_provider_adapter_passes_worker_timeout_to_command(monkeypatch, tmp_path):
     captured = {}
 
