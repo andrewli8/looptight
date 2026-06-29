@@ -2087,19 +2087,14 @@ existing CLI session and makes no model or API calls of its own.
   `test_cmd_status_git_sets_terminal_prompt_env` and `test_cmd_doctor_git_sets_terminal_prompt_env`
   in `tests/test_cli.py`.
 
+- `trajectory._path` now passes `GIT_TERMINAL_PROMPT=0` to its `git rev-parse --git-dir` call;
+  `import os` added. A headless `looptight verify --patience` can no longer block on a git
+  credential prompt. Covered by `test_trajectory_path_git_sets_terminal_prompt_env` in
+  `tests/test_trajectory.py`.
+
 ## Next
 
-1. `trajectory._path` runs `git rev-parse --git-dir` without
-   `GIT_TERMINAL_PROMPT=0`. This call runs during `looptight verify --patience`
-   (the value-aware stall detection), which is a headless path. Sibling of
-   the already-fixed `_has_dirty_git_worktree`, `_changed_entries`, and
-   `checkpoint._git` calls; `trajectory.py` has no `import os` yet.
-   Evidence: `src/looptight/trajectory.py:29`
-   Acceptance: `test_trajectory_path_git_sets_terminal_prompt_env` in
-   `tests/test_trajectory.py` monkeypatches `subprocess.run` and asserts
-   `GIT_TERMINAL_PROMPT == "0"` in the env dict — failing before, passing after.
-
-2. `_task_paths` in `swarm.py` adds `tests/test_{stem}.py` as a test
+1. `_task_paths` in `swarm.py` adds `tests/test_{stem}.py` as a test
    counterpart for a task's source file, but only tries the file stem —
    so evidence pointing at `src/looptight/adapters/claude.py` maps to
    `tests/test_claude.py` (absent) rather than `tests/test_adapters.py`

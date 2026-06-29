@@ -14,6 +14,7 @@ reads and atomic writes, matching goal.py / ui.py.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -29,6 +30,7 @@ def _path(root: Path) -> Path | None:
     result = subprocess.run(
         ["git", "rev-parse", "--git-dir"],
         cwd=root,
+        env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
         capture_output=True,
         text=True,
         check=False,

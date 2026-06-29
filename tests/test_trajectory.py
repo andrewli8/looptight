@@ -120,3 +120,19 @@ def test_trajectory_read_returns_none_for_wrong_schema_version(tmp_path):
     path = tmp_path / "traj.json"
     path.write_text(json.dumps({"schema_version": 99, "entries": []}), encoding="utf-8")
     assert trajectory._read(path) is None
+
+
+def test_trajectory_path_git_sets_terminal_prompt_env(tmp_path):
+    # _path's `git rev-parse --git-dir` must pass GIT_TERMINAL_PROMPT=0 so a
+    # headless `looptight verify --patience` cannot block on a credential prompt.
+    from unittest.mock import patch
+
+    captured: dict = {}
+
+    def fake_run(cmd, **kwargs):
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(cmd, 0, str(tmp_path / ".git"), "")
+
+    with patch.object(trajectory.subprocess, "run", fake_run):
+        trajectory._path(tmp_path)
+    assert captured.get("env", {}).get("GIT_TERMINAL_PROMPT") == "0"
