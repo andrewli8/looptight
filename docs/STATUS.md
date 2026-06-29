@@ -2076,6 +2076,19 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+Surfaced design decisions (dogfound this session, NOT autopatched — each needs a maintainer call):
+
+1. Custom `tasks` config + idea generation: discovery reads the configured files, but the
+   auto-generation planner (`PLANNING_GOAL`) and scorer (`score_status_next`) still target
+   `docs/STATUS.md`, so generated tasks land where `next` never looks. The human `next` message was
+   fixed to point at the configured files; the planner/scorer wiring needs a decision (thread the
+   target through, or disable idea-gen when `tasks` is set).
+2. `max_iterations` is a half-wired Config field: read by `loop.py`/`hook.py` and CLI-settable, but
+   `config.from_dict` never parses it, so it is config-inert and untyped (`max_iterations = "abc"`
+   is silently accepted). Making it config-settable is blocked on unifying its `0`-semantics, which
+   today differ across goal (`0` = unlimited), run/swarm/daemon (`_positive_int`, `≥1`), and the
+   loop's `range` (`0` = no iterations). Decide config-settability + one `0` meaning.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
