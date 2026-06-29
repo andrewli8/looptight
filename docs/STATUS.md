@@ -2186,6 +2186,37 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_drift_directive` (hook.py:89) is completely uncovered — all 21 lines of the
+   drift-detection function body are dead in the test suite because `run_hook` tests
+   inject a `drift_fn` lambda instead of calling through the real function. The core
+   loop-control lever 2 feature is therefore untested end-to-end.
+   Evidence: `src/looptight/hook.py:89`
+   Acceptance: `test_drift_directive_returns_refocus_when_session_is_off_task` in
+   tests/test_hook.py creates a real git repo, opens a coordinator, claims a task with
+   an evidence anchor, stages an unrelated file, and asserts `_drift_directive` returns
+   a non-None reason string; a sibling test asserts it returns `None` when no lease
+   exists — covering lines 95-115. Both tests must pass.
+
+2. `_active_task_identity` (protocol_commands.py:91) success path is uncovered —
+   lines 99, 106-108 are dead because no test creates a real coordinator lease and
+   calls the function. It scopes the verify trajectory to the claimed task for
+   `--patience`, so a silent regression here would break trajectory keying silently.
+   Evidence: `src/looptight/protocol_commands.py:91`
+   Acceptance: `test_active_task_identity_returns_idea_id_for_active_lease` in
+   tests/test_cli.py (or test_propose.py) creates a real git repo + coordinator,
+   claims a task, and asserts `_active_task_identity(repo)` returns the idea's id string;
+   a no-lease sibling asserts `None`. Must pass; lines 99 and 106-108 must be covered.
+
+3. `_task_paths` safety guards (swarm.py:247, 251, 254) are uncovered — the `continue`
+   branches for a `None` reference, a bare path without a `:line` separator, and an
+   absolute or `..` path are all dead in tests. These guards prevent scope-escape by
+   a malformed evidence anchor.
+   Evidence: `src/looptight/swarm.py:238`
+   Acceptance: `test_task_paths_safety_guards` in tests/test_swarm.py asserts that
+   `_task_paths` returns an empty set for a task with `location=None` and no evidence
+   (line 247), a non-empty set for a bare path reference with no `:line` (line 251),
+   and an empty set for an absolute-path and a `..`-containing reference (line 254).
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
