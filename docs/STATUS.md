@@ -2241,18 +2241,14 @@ existing CLI session and makes no model or API calls of its own.
   (discovery.py:661 was the lone omission). Covered by
   `test_from_lint_subprocess_sets_git_terminal_prompt_env` in tests/test_propose.py.
 
+- `strip_position_suffix` (`grounding.py:63`) has direct unit coverage for its
+  `:line:col` (two-level) and `:start-end` (range) patterns, which were previously
+  only implicitly covered through `ref_resolves`. Covered by
+  `test_strip_position_suffix_multi_level_and_range` in tests/test_idea_eval.py.
+
 ## Next
 
-1. `strip_position_suffix` (`grounding.py:63`) covers `:line`, `:line:col`, and `:start-end`
-   patterns via its regex (`_POSITION_SUFFIX`), but has no direct unit test — only implicit
-   coverage through `ref_resolves`. The `:line:col` (two-level) and `:start-end` (range) paths
-   are dead in the suite.
-   Evidence: `src/looptight/grounding.py:60`
-   Acceptance: `test_strip_position_suffix_multi_level_and_range` in tests/test_idea_eval.py
-   asserts `strip_position_suffix("src/a.py:10:5") == "src/a.py"` and
-   `strip_position_suffix("src/a.py:10-20") == "src/a.py"`.
-
-2. `run_command`'s `except OSError` handler (`adapters/base.py:116`) wraps both the
+1. `run_command`'s `except OSError` handler (`adapters/base.py:116`) wraps both the
    `subprocess.run` (no-timeout) and `subprocess.Popen` (timeout) branches. The test added in
    increment 1 only covers the `subprocess.run` branch (timeout_s=None). The Popen branch is
    still dead — a regression removing `OSError` handling from Popen would surface an uncaught
@@ -2263,7 +2259,7 @@ existing CLI session and makes no model or API calls of its own.
    `run_command(["x"], tmp_path, timeout_s=5)`, asserting `result.returncode == 127` and
    `"could not launch"` in `result.stderr`.
 
-3. `_files_with_exts` (`discovery.py:65`) returns `[]` when `root / subdir` is not a directory,
+2. `_files_with_exts` (`discovery.py:65`) returns `[]` when `root / subdir` is not a directory,
    but this defensive path has no direct test. By analogy with `test_from_lint_returns_empty_on_timeout`,
    a test naming a missing subdirectory should assert the function returns `[]` rather than raising.
    Evidence: `src/looptight/discovery.py:65`
