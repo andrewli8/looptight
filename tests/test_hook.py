@@ -103,6 +103,12 @@ def test_count_roundtrip_and_reset(tmp_path):
     assert read_count(path) == 0
 
 
+def test_read_count_returns_zero_on_non_integer_content(tmp_path):
+    path = tmp_path / "count"
+    path.write_text("not-a-number", encoding="utf-8")
+    assert read_count(path) == 0
+
+
 def test_run_hook_blocks_when_verify_is_configured(tmp_path):
     # A repo with a verify command is opted in — no extra hook=true flag needed.
     write_config(Config(verify="pytest -q"), tmp_path)

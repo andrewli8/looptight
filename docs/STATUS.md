@@ -2259,16 +2259,14 @@ existing CLI session and makes no model or API calls of its own.
   — so a regression removing the `if not base.is_dir(): return []` guard would now be caught.
   No production code change.
 
+- `read_count`'s `ValueError` branch (`hook.py:202`) now has direct coverage:
+  `test_read_count_returns_zero_on_non_integer_content` in tests/test_hook.py writes
+  `"not-a-number"` to the count path and asserts `read_count(path) == 0`, so a regression
+  dropping `ValueError` from the `except` tuple would now be caught. No production code change.
+
 ## Next
 
-1. `read_count` (`hook.py:202`) catches `(OSError, ValueError)` but only the happy path and
-   absent-file path are tested; a file with non-integer content (e.g. `"abc"`) hits the
-   `ValueError` branch and returns 0 with no direct test.
-   Evidence: `src/looptight/hook.py:202`
-   Acceptance: `test_read_count_returns_zero_on_non_integer_content` in tests/test_hook.py
-   writes `"not-a-number"` to `path` and asserts `read_count(path) == 0`.
-
-2. `atomic_write_text` (`fsutil.py:25`) wraps both `write_text` and `os.replace` in a single
+1. `atomic_write_text` (`fsutil.py:25`) wraps both `write_text` and `os.replace` in a single
    `try/except OSError` that unlinks the `.tmp` on failure. The existing test patches
    `os.replace` (`.tmp` exists when it fires), but never patches `write_text` (where `.tmp`
    may not yet exist and `missing_ok=True` is what keeps cleanup safe).
