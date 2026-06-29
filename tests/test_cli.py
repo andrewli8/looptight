@@ -3208,6 +3208,18 @@ def test_task_source_health_counts_discoverable_signals(tmp_path):
     assert _task_source_health(tmp_path, ()) == "configured"  # a real discoverable TODO
 
 
+def test_task_source_health_recognizes_status_md_without_config_tasks(tmp_path):
+    # When config_tasks is empty but docs/STATUS.md exists the function must return
+    # "configured" via the STATUS.md branch (protocol_commands.py:822), not via
+    # TODO-discovery — so a looptight-managed repo with an empty TODO scan is still
+    # recognized as healthy. The existing test covers only the TODO-discovery branch.
+    from looptight.protocol_commands import _task_source_health
+
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text("## Next\n\n_No work._\n", encoding="utf-8")
+    assert _task_source_health(tmp_path, ()) == "configured"
+
+
 def test_propose_source_filter_empty_is_not_clean_tree(tmp_path, monkeypatch, capsys):
     # `propose --source lint` with no lint candidates but real todo candidates must
     # not claim a "clean tree" — that misleads the user into thinking there is no work.
