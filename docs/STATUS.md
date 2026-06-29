@@ -2083,6 +2083,43 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `cmd_status` and `cmd_doctor` run `git status --porcelain` without
+   `GIT_TERMINAL_PROMPT=0`, leaving `looptight status` and `looptight doctor`
+   able to hang on a credential prompt in a headless session — unlike every
+   other git call in the same files (`_changed_entries`, `_git_common_dir`,
+   `coordinator_path`). Both need `env={**os.environ, "GIT_TERMINAL_PROMPT":
+   "0"}` added; `commands.py` also needs `import os`.
+   Evidence: `src/looptight/protocol_commands.py:535`;
+   `src/looptight/commands.py:391`
+   Acceptance: `test_cmd_status_git_sets_terminal_prompt_env` and
+   `test_cmd_doctor_git_sets_terminal_prompt_env` in `tests/test_cli.py`
+   monkeypatch `subprocess.run` and assert the captured env contains
+   `GIT_TERMINAL_PROMPT == "0"` — failing before the fix, passing after.
+
+2. `trajectory._path` runs `git rev-parse --git-dir` without
+   `GIT_TERMINAL_PROMPT=0`. This call runs during `looptight verify --patience`
+   (the value-aware stall detection), which is a headless path. Sibling of
+   the already-fixed `_has_dirty_git_worktree`, `_changed_entries`, and
+   `checkpoint._git` calls; `trajectory.py` has no `import os` yet.
+   Evidence: `src/looptight/trajectory.py:29`
+   Acceptance: `test_trajectory_path_git_sets_terminal_prompt_env` in
+   `tests/test_trajectory.py` monkeypatches `subprocess.run` and asserts
+   `GIT_TERMINAL_PROMPT == "0"` in the env dict — failing before, passing after.
+
+3. `_task_paths` in `swarm.py` adds `tests/test_{stem}.py` as a test
+   counterpart for a task's source file, but only tries the file stem —
+   so evidence pointing at `src/looptight/adapters/claude.py` maps to
+   `tests/test_claude.py` (absent) rather than `tests/test_adapters.py`
+   (present). A worker legitimately editing `tests/test_adapters.py` is
+   falsely rejected as out-of-scope. Fix: also try `tests/test_{parent}.py`
+   (where `parent` is the immediate parent directory name) when the
+   stem counterpart is missing.
+   Evidence: `src/looptight/swarm.py:253`
+   Acceptance: `test_task_paths_falls_back_to_parent_dir_counterpart` in
+   `tests/test_swarm.py` asserts that with `src/adapters/claude.py` as
+   evidence (no `test_claude.py` but `test_adapters.py` present),
+   `_task_paths` includes `tests/test_adapters.py` — failing before, passing after.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
