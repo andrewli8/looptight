@@ -295,7 +295,8 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
             )
         return 2
 
-    idea_generation = load_config().idea_generation and not args.no_ideas
+    config = load_config()
+    idea_generation = config.idea_generation and not args.no_ideas
     result = next_task(workdir, idea_generation=idea_generation)
     if args.json:
         print(json.dumps(result.as_dict(), sort_keys=True))
@@ -320,11 +321,22 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
             console.print(f"[red]error:[/red] {result.error}")
     elif result.status == "no_work":
         if result.directive is not None:
-            print(
-                "NO_WORK · queue empty — generate grounded tasks for docs/STATUS.md "
-                "Next (each with Evidence and Acceptance) and continue, or pass "
-                "--no-ideas to stop."
-            )
+            # Point at the queue the loop actually reads: a configured `tasks` list replaces
+            # docs/STATUS.md as the discovery source, so directing the user to STATUS.md would
+            # send their tasks where `next` never looks. (Auto-generation's planner still targets
+            # STATUS.md — a deeper gap for custom `tasks` + idea-gen, surfaced separately.)
+            if config.tasks:
+                where = ", ".join(config.tasks)
+                print(
+                    f"NO_WORK · queue empty — add grounded tasks to {where} (each with Evidence "
+                    "and Acceptance) and continue, or pass --no-ideas to stop."
+                )
+            else:
+                print(
+                    "NO_WORK · queue empty — generate grounded tasks for docs/STATUS.md "
+                    "Next (each with Evidence and Acceptance) and continue, or pass "
+                    "--no-ideas to stop."
+                )
         else:
             print("NO_WORK")
     else:

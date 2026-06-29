@@ -2067,6 +2067,13 @@ existing CLI session and makes no model or API calls of its own.
   `_summary_and_evidence` helper: `Wire up the export button · NOTES.md:3`. Found by dogfooding a
   custom `tasks`-config file. Covered by a clean-summary test.
 
+- `next`'s empty-queue guidance points at the queue it actually reads: with a configured `tasks`
+  list (which replaces docs/STATUS.md as the discovery source), the NO_WORK message now says `add
+  grounded tasks to <files>` instead of misdirecting the user to docs/STATUS.md (where `next`
+  never looks under a custom config). Found by dogfooding a custom `tasks`-config + missing file.
+  Covered by a configured-task-files test. (Deeper gap surfaced, not patched: auto-generation's
+  planner/scorer still target docs/STATUS.md, so custom `tasks` + idea-gen needs a design call.)
+
 ## Next
 
 ## Rules

@@ -496,6 +496,23 @@ def test_next_no_work_directs_idea_generation_by_default(tmp_path, monkeypatch, 
     assert "--no-ideas" in out  # the default offers idea generation rather than stopping
 
 
+def test_next_no_work_points_at_configured_task_files(tmp_path, monkeypatch, capsys):
+    # With a custom `tasks` config, discovery reads those files, not docs/STATUS.md — so the
+    # empty-queue guidance must point at the configured files, not misdirect the user to STATUS.md.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "true"\ntasks = ["NOTES.md"]\n', encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "i"], check=True
+    )
+    assert main(["next"]) == 0
+    out = capsys.readouterr().out
+    assert "NO_WORK" in out
+    assert "NOTES.md" in out  # points at the configured file
+    assert "docs/STATUS.md" not in out  # not the default it never reads
+
+
 def test_next_no_work_is_bare_with_no_ideas(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
