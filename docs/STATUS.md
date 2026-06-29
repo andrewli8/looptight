@@ -2141,6 +2141,11 @@ existing CLI session and makes no model or API calls of its own.
   test location without a false out-of-scope rejection. Extends the colocated allowance. Covered by a
   `__tests__/` `_task_paths` test.
 
+- Swarm task-scope's Python test-counterpart allowance now works for any layout, not just `src/*`: a
+  flat package (`mypackage/foo.py`) or top-level module (`app.py`) keeps its test at
+  `tests/test_{stem}.py` (with `tests/test_{parent}.py` as the nested fallback), so a worker on a
+  non-`src` project is no longer falsely rejected for editing its test. Covered by a flat-layout test.
+
 - `install-hook --uninstall` fully restores the settings file instead of leaving a dangling empty
   `"Stop": []` (and `"hooks": {}`): when looptight's was the only Stop hook, the emptied list and
   an emptied hooks object are now pruned — symmetric with `install` creating them — so uninstall
