@@ -2209,17 +2209,15 @@ existing CLI session and makes no model or API calls of its own.
   (empty set), the bare-path-without-`:line` path (non-empty set, line 269), and the
   absolute-path / `..`-traversal reject (empty set, line 272).
 
+- `policy_line`'s `allowed_verify_commands` branch is directly covered:
+  `test_policy_line_includes_allowed_verify_commands_count` in tests/test_cli.py configures
+  `allowed_verify_commands = ["pytest -q"]` and asserts `status` human output contains
+  "1 allowed verify command" — the last safety-rail branch previously untested; no production
+  code change.
+
 ## Next
 
-1. `policy_line`'s `allowed_verify_commands` branch has no direct coverage: the human one-liner
-   that tells users their safety rails took hold omits the last branch, so a regression removing
-   the "N allowed verify commands" label goes undetected.
-   Evidence: `src/looptight/protocol_commands.py:978`
-   Acceptance: `test_policy_line_includes_allowed_verify_commands_count` in tests/test_cli.py
-   configures `allowed_verify_commands = ["pytest -q"]` and asserts `status` human output
-   contains "1 allowed verify command".
-
-2. `Candidate.render()` is dead code: defined at discovery.py:58 but never called in production
+1. `Candidate.render()` is dead code: defined at discovery.py:58 but never called in production
    or tests; it's maintenance burden in a module meant to stay small.
    Evidence: `src/looptight/discovery.py:58`
    Acceptance: method removed; `ruff check` and the full test suite pass with no failures or new

@@ -1093,6 +1093,25 @@ def test_human_status_and_doctor_surface_configured_policy(tmp_path, monkeypatch
     assert "policy:" not in capsys.readouterr().out
 
 
+def test_policy_line_includes_allowed_verify_commands_count(tmp_path, monkeypatch, capsys):
+    # `policy_line`'s allowed_verify_commands branch (protocol_commands.py:978) was uncovered:
+    # a user who configures an allowlist must see it confirmed in human status output.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / ".looptight.toml").write_text(
+        'verify = "true"\nallowed_verify_commands = ["pytest -q"]\n',
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "i"],
+        cwd=tmp_path, check=True,
+    )
+    assert main(["status"]) == 0
+    out = capsys.readouterr().out
+    assert "1 allowed verify command" in out
+
+
 def test_status_readiness_reports_ready_repo(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
