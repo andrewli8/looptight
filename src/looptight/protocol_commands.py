@@ -678,7 +678,21 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
             console.print(configured_policy)
         console.print(f"concurrency: {concurrency['status']}")
         console.print("concurrency checks: " + humanized_checks(concurrency["checks"]))
-        console.print(f"concurrency next: {concurrency['next_remediation']}")
+        # Suppress the concurrency remediation when the only active coordinator work is the user's
+        # own single claim: "wait for active coordinator work to drain" then contradicts the
+        # authoritative `next: continue your claimed task` below (telling a solo user to wait for
+        # their own task). Other contention (more claims, integrations, publications) still prints.
+        cc = concurrency["checks"]
+        own_claim_is_only_active = bool(
+            claimed_task
+            and concurrency["status"] == "degraded"
+            and cc.get("active_leases") == 1
+            and cc.get("queued_integrations") == 0
+            and cc.get("pending_publications") == 0
+            and cc.get("legacy_claims") == "none"
+        )
+        if not own_claim_is_only_active:
+            console.print(f"concurrency next: {concurrency['next_remediation']}")
         console.print(f"workspace: {humanize_status(workspace)}")
         owner = f" · yours: {claimed_task}" if claimed_task else ""
         console.print(f"claims: {active_claims} active{owner}")

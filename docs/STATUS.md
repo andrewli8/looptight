@@ -2097,6 +2097,14 @@ existing CLI session and makes no model or API calls of its own.
   whose evidence points at `src/adapters/claude.py` is no longer falsely rejected as out-of-scope.
   Covered by `test_task_paths_falls_back_to_parent_dir_counterpart` in `tests/test_swarm.py`.
 
+- `status` suppresses the `concurrency next:` remediation when the only active coordinator work is
+  the user's own single claim: `wait for active coordinator work to drain` then contradicted the
+  authoritative `next: continue your claimed task` (telling a solo user to wait for their own task).
+  The `concurrency: degraded` status line still shows; real contention (more claims, queued
+  integrations, pending publications) still prints the remediation. Same dedup pattern as the
+  `readiness next:`/`next:` fix. Found by dogfooding cross-worktree claims. Covered by a
+  suppression test.
+
 ## Next
 
 ## Rules

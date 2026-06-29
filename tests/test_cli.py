@@ -1425,6 +1425,30 @@ def test_status_concurrency_is_safe_in_plain_git_repo(tmp_path, monkeypatch, cap
     assert "run `looptight migrate`" not in out  # nothing to fence, no migrate prompt
 
 
+def test_status_suppresses_concurrency_next_for_own_only_claim(tmp_path, monkeypatch, capsys):
+    # A solo user whose own single claim is the only active coordinator work should not see
+    # "concurrency next: wait for active coordinator work to drain" contradicting the authoritative
+    # "next: continue your claimed task" below it. The concurrency status line itself still shows.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "true"\n', encoding="utf-8")
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("# TODO: handle the empty input case\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "i"], check=True
+    )
+    monkeypatch.setenv("LOOPTIGHT_RUN_ID", "solo")
+    assert main(["next", "--json"]) == 0  # claim the only task
+    capsys.readouterr()
+
+    assert main(["status"]) == 0
+    out = capsys.readouterr().out
+    assert "concurrency: degraded" in out  # the status itself is still reported
+    assert "wait for active coordinator work to drain" not in out  # the contradiction is gone
+    assert "continue your claimed task" in out  # the authoritative action remains
+
+
 def test_status_concurrency_unsafe_only_with_live_legacy_claims(
     tmp_path, monkeypatch, capsys
 ):
