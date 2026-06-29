@@ -2243,6 +2243,41 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `from_lint`'s `except (OSError, subprocess.TimeoutExpired)` block (`discovery.py:669`)
+   catches both error kinds, but only the `TimeoutExpired` branch has a direct test
+   (`test_from_lint_returns_empty_on_timeout` in tests/test_propose.py:1014). A regression
+   removing `OSError` from the tuple would silently propagate OS launch failures.
+   Evidence: `src/looptight/discovery.py:669`
+   Acceptance: `test_from_lint_returns_empty_on_oserror` in tests/test_propose.py monkeypatches
+   `looptight.discovery.subprocess.run` to raise `OSError` and asserts `from_lint(tmp_path) == []`.
+
+2. `strip_position_suffix` (`grounding.py:63`) covers `:line`, `:line:col`, and `:start-end`
+   patterns via its regex (`_POSITION_SUFFIX`), but has no direct unit test — only implicit
+   coverage through `ref_resolves`. The `:line:col` (two-level) and `:start-end` (range) paths
+   are dead in the suite.
+   Evidence: `src/looptight/grounding.py:60`
+   Acceptance: `test_strip_position_suffix_multi_level_and_range` in tests/test_idea_eval.py
+   asserts `strip_position_suffix("src/a.py:10:5") == "src/a.py"` and
+   `strip_position_suffix("src/a.py:10-20") == "src/a.py"`.
+
+3. `run_command`'s `except OSError` handler (`adapters/base.py:116`) wraps both the
+   `subprocess.run` (no-timeout) and `subprocess.Popen` (timeout) branches. The test added in
+   increment 1 only covers the `subprocess.run` branch (timeout_s=None). The Popen branch is
+   still dead — a regression removing `OSError` handling from Popen would surface an uncaught
+   exception when timeout_s is set.
+   Evidence: `src/looptight/adapters/base.py:91`
+   Acceptance: `test_run_command_popen_oserror_returns_returncode_127` in tests/test_adapters.py
+   monkeypatches `looptight.adapters.base.subprocess.Popen` to raise `OSError` and calls
+   `run_command(["x"], tmp_path, timeout_s=5)`, asserting `result.returncode == 127` and
+   `"could not launch"` in `result.stderr`.
+
+4. `_files_with_exts` (`discovery.py:65`) returns `[]` when `root / subdir` is not a directory,
+   but this defensive path has no direct test. By analogy with `test_from_lint_returns_empty_on_timeout`,
+   a test naming a missing subdirectory should assert the function returns `[]` rather than raising.
+   Evidence: `src/looptight/discovery.py:65`
+   Acceptance: `test_files_with_exts_missing_subdir_returns_empty` in tests/test_propose.py calls
+   `_files_with_exts(tmp_path, "no_such_dir", (".py",))` and asserts the result is `[]`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
