@@ -756,7 +756,7 @@ def run_continuous_swarm(
                 if limit_max_resumes and limit_attempt >= limit_max_resumes:
                     return SwarmResult(
                         tuple(completed),
-                        f"provider usage limit persisted after {limit_max_resumes} resumes",
+                        f"provider usage limit persisted after {_plural(limit_max_resumes, 'resume')}",
                         pushed, rounds=rounds, plans=plans, resumes=resumes, reason=REASON_LIMIT,
                     )
                 limit_attempt += 1
@@ -812,7 +812,7 @@ def run_continuous_swarm(
             if limit_max_resumes and limit_attempt >= limit_max_resumes:
                 return SwarmResult(
                     tuple(completed),
-                    f"provider usage limit persisted after {limit_max_resumes} resumes",
+                    f"provider usage limit persisted after {_plural(limit_max_resumes, 'resume')}",
                     pushed, rounds=rounds, plans=plans, resumes=resumes, reason=REASON_LIMIT,
                 )
             limit_attempt += 1

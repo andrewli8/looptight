@@ -1162,6 +1162,8 @@ def test_continuous_swarm_planner_limit_persists_to_terminal(tmp_path, monkeypat
     )
 
     assert result.reason == REASON_LIMIT
+    # Proper singular agreement at the cap of 1 — "after 1 resume", not "1 resumes".
+    assert "after 1 resume" in (result.error or "") and "1 resumes" not in (result.error or "")
 
 
 def test_continuous_swarm_returns_on_planner_failure(tmp_path, monkeypatch):

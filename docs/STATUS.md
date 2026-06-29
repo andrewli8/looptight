@@ -2117,6 +2117,12 @@ existing CLI session and makes no model or API calls of its own.
   systematic sweep of every command's error paths under `--json` (only `swarm` and `migrate` were
   broken). Covered by a guard-envelope test.
 
+- Plural agreement completed for the two remaining count==1 cases: the `status` coordinator line
+  reads `1 integration`/`1 publication` (not `1 integrations`/`1 publications`), and the
+  continuous-swarm usage-limit error reads `persisted after 1 resume` (not `1 resumes`, via the
+  shared `_plural` helper). Found by a grep sweep of the plural class. Covered by a singular
+  assertion on the existing limit-resume terminal test.
+
 ## Next
 
 ## Rules

@@ -708,10 +708,12 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         owner = f" · yours: {claimed_task}" if claimed_task else ""
         console.print(f"claims: {active_claims} active{owner}")
         if coordinator_counts is not None:
+            qi = coordinator_counts["queued_integrations"]
+            pp = coordinator_counts["pending_publications"]
             console.print(
                 f"coordinator: {coordinator_counts['queued_tasks']} queued · "
-                f"{coordinator_counts['queued_integrations']} integrations · "
-                f"{coordinator_counts['pending_publications']} publications"
+                f"{qi} integration{'s' if qi != 1 else ''} · "
+                f"{pp} publication{'s' if pp != 1 else ''}"
             )
         if active_goal is not None:
             # Fold the last verify verdict onto the dedicated goal line so goal-mode build
