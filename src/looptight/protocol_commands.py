@@ -24,7 +24,10 @@ def cmd_verify(args: argparse.Namespace, console: Console) -> int:
     workdir = Path.cwd()
     try:
         config = load_config()
-        command = args.verify or config.verify or detect_verify(workdir)
+        # Trim the resolved command (config.verify is already trimmed; a CLI --verify is not) so a
+        # blank --verify reads as "no verify" like config does, and incidental surrounding
+        # whitespace never spuriously fails the allowed_verify_commands allowlist match.
+        command = (args.verify or config.verify or detect_verify(workdir) or "").strip() or None
     except ConfigError as exc:
         if args.json:
             _print_verify_json(status="error", output=f"config error: {exc}")

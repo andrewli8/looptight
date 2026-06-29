@@ -2161,6 +2161,11 @@ existing CLI session and makes no model or API calls of its own.
   config nor the `--verify` flag can install a no-op gate. Found by dogfooding a whitespace verify.
   Covered by config + run_verify tests.
 
+- The `allowed_verify_commands` allowlist match trims the resolved command first, so a CLI
+  `--verify "  true  "` (the allowed command with incidental whitespace) is no longer spuriously
+  rejected; a blank `--verify` also reads as "no verify" like config. Closes the CLI gap left by
+  the config-side trim above. Covered by a whitespace-allowlist test.
+
 ## Next
 
 ## Rules

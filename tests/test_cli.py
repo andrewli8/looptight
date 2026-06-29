@@ -1892,6 +1892,22 @@ def test_verify_json_refuses_command_not_in_allowlist(tmp_path, monkeypatch, cap
     assert "exit 0" in payload["output"]
 
 
+def test_verify_allowlist_match_ignores_surrounding_whitespace(tmp_path, monkeypatch, capsys):
+    # An allowed command passed with incidental surrounding whitespace must match the allowlist
+    # (the resolved command is trimmed), not be spuriously rejected.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text(
+        'verify = "true"\nallowed_verify_commands = ["true"]\n', encoding="utf-8"
+    )
+    subprocess.run(["git", "add", "-A"], check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "i"], check=True
+    )
+    assert main(["verify", "--verify", "  true  "]) == 0  # allowed despite the whitespace
+    assert "PASS" in capsys.readouterr().out
+
+
 def test_max_changed_files_counts_a_rename_as_one_file(tmp_path, monkeypatch):
     # A staged rename is `R  old -> new`: one changed file, two paths. The
     # protected-path scan needs both paths, but the max_changed_files COUNT must
