@@ -2154,6 +2154,13 @@ existing CLI session and makes no model or API calls of its own.
   nothing, keeping scope tight. JS `foo.test.ts`/`foo.spec.ts` maps to the colocated `foo.ts` (or, inside `__tests__/`, the
   parent-dir source). Covered by unambiguous/ambiguous/JS/__tests__ reverse tests.
 
+- Resolved the integration dead-columns design decision (the lane's remaining item) with judgment:
+  `publications.observed_local_sha` and `reconciliation_sha` are confirmed dead (0 reads/writes;
+  explicit INSERT/SELECT lists, version-based schema validation). Neither dropped (would make the v4
+  schema ambiguous across DBs for a cosmetic gain) nor wired into a speculative push-reconciliation
+  feature (the safe-fail on non-ff is correct) — instead documented in the schema as reserved/unused,
+  so the data representation is truthful with zero risk. Covered by a reserved-columns-kept test.
+
 - `install-hook --uninstall` fully restores the settings file instead of leaving a dangling empty
   `"Stop": []` (and `"hooks": {}`): when looptight's was the only Stop hook, the emptied list and
   an emptied hooks object are now pruned — symmetric with `install` creating them — so uninstall

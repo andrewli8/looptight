@@ -69,6 +69,9 @@ CREATE TABLE IF NOT EXISTS publications (
     integration_id TEXT NOT NULL REFERENCES integrations(id),
     remote TEXT NOT NULL,
     remote_ref TEXT NOT NULL,
+    -- observed_local_sha and reconciliation_sha are reserved for a future push-reconciliation
+    -- feature (rebase a non-ff-rejected result onto the new remote tip and retry); they are not
+    -- yet read or written. Kept rather than dropped so the v4 schema stays unambiguous across DBs.
     observed_local_sha TEXT,
     observed_remote_sha TEXT,
     result_sha TEXT NOT NULL,

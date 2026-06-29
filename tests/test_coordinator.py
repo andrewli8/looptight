@@ -178,6 +178,15 @@ def test_schema_contains_coordinator_state_tables(tmp_path):
     assert {"runs", "tasks", "leases", "proposals", "integrations", "publications"} <= tables
 
 
+def test_publications_reserved_columns_are_kept(tmp_path):
+    # observed_local_sha and reconciliation_sha are reserved for a future push-reconciliation
+    # feature: kept (not dropped, so the v4 schema stays unambiguous across DBs), never read/written.
+    coordinator = Coordinator.open(_repo(tmp_path / "repo"))
+    assert coordinator is not None
+    cols = {row[1] for row in coordinator.connection.execute("PRAGMA table_info(publications)")}
+    assert {"observed_local_sha", "reconciliation_sha"} <= cols  # present (reserved, not dropped)
+
+
 def test_experience_records_failures_and_cooldown(tmp_path):
     coord = Coordinator.open(_repo(tmp_path / "repo"))
     assert coord is not None
