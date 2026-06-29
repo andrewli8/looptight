@@ -263,12 +263,14 @@ def _task_paths(root: Path, task: dict[str, str | None]) -> set[str]:
                 if (root / parent_counterpart).is_file():
                     paths.add(parent_counterpart.as_posix())
         elif path.suffix in _JS_TS_SUFFIXES:
-            # JS/TS colocate the test beside the source (foo.test.ts / foo.spec.ts), so allow that
-            # counterpart too — the analogue of the src/*.py -> tests/test_*.py allowance above.
+            # JS/TS put the test either beside the source (foo.test.ts / foo.spec.ts) or in a
+            # sibling __tests__/ directory (__tests__/foo.test.ts) — both common; allow whichever
+            # exists, the analogue of the src/*.py -> tests/test_*.py allowance above.
             for infix in (".test", ".spec"):
-                counterpart = path.with_name(f"{path.stem}{infix}{path.suffix}")
-                if (root / counterpart).is_file():
-                    paths.add(counterpart.as_posix())
+                name = f"{path.stem}{infix}{path.suffix}"
+                for counterpart in (path.with_name(name), path.parent / "__tests__" / name):
+                    if (root / counterpart).is_file():
+                        paths.add(counterpart.as_posix())
     return paths
 
 

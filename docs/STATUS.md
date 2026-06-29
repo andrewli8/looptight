@@ -2136,6 +2136,11 @@ existing CLI session and makes no model or API calls of its own.
   as "changed files outside task scope" — mirroring the existing `src/*.py` → `tests/test_*.py`
   allowance. Found by dogfooding the out-of-scope rejection path. Covered by a `_task_paths` test.
 
+- Swarm task-scope also allows the JS/TS sibling `__tests__/` test directory (`src/__tests__/foo.test.ts`)
+  in addition to the colocated `foo.test.ts`, so a worker on a `.ts` source can edit either common
+  test location without a false out-of-scope rejection. Extends the colocated allowance. Covered by a
+  `__tests__/` `_task_paths` test.
+
 - `install-hook --uninstall` fully restores the settings file instead of leaving a dangling empty
   `"Stop": []` (and `"hooks": {}`): when looptight's was the only Stop hook, the emptied list and
   an emptied hooks object are now pruned — symmetric with `install` creating them — so uninstall
