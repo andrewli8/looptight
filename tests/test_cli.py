@@ -3276,3 +3276,67 @@ def test_cmd_doctor_git_sets_terminal_prompt_env(tmp_path, monkeypatch, capsys):
         env is not None and env.get("GIT_TERMINAL_PROMPT") == "0"
         for env in captured_calls
     )
+
+
+# ── _active_task_identity coverage ───────────────────────────────────────────
+
+
+def _make_git_repo(path):
+    subprocess.run(["git", "init", "-q"], cwd=path, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.name", "Test"], cwd=path, check=True, capture_output=True)
+    subprocess.run(["git", "config", "user.email", "t@t.com"], cwd=path, check=True, capture_output=True)
+    (path / "a.py").write_text("x", encoding="utf-8")
+    subprocess.run(["git", "add", "."], cwd=path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-qm", "init"], cwd=path, check=True, capture_output=True)
+
+
+def test_active_task_identity_returns_idea_id_for_active_lease(tmp_path):
+    # lines 99, 106-108: a claimed task with idea_id → returns that string
+    from looptight.claims import owner_id
+    from looptight.coordinator import Coordinator
+    from looptight.protocol_commands import _active_task_identity
+
+    _make_git_repo(tmp_path)
+    coordinator = Coordinator.open(tmp_path)
+    assert coordinator is not None
+    owner = owner_id(tmp_path)
+    run = coordinator.start_run("session", owner=owner)
+    coordinator.claim(
+        [{"id": "t1", "idea_id": "abc123xyz", "evidence": "Evidence: a.py:1", "goal": "fix it"}],
+        run.id, ttl_s=60,
+    )
+    coordinator.close()
+
+    result = _active_task_identity(tmp_path)
+    assert result == "abc123xyz"
+
+
+def test_active_task_identity_returns_none_when_no_lease(tmp_path):
+    # lines 104-105: no active lease → None
+    from looptight.protocol_commands import _active_task_identity
+
+    _make_git_repo(tmp_path)
+    assert _active_task_identity(tmp_path) is None
+
+
+def test_active_task_identity_returns_none_outside_git(tmp_path):
+    # line 99: Coordinator.open returns None outside git → None
+    from looptight.protocol_commands import _active_task_identity
+
+    non_git = tmp_path / "notgit"
+    non_git.mkdir()
+    assert _active_task_identity(non_git) is None
+
+
+def test_active_task_identity_swallows_exception(tmp_path, monkeypatch):
+    # lines 107-108: any exception is swallowed, returns None
+    import looptight.coordinator as _coord
+    from looptight.protocol_commands import _active_task_identity
+
+    _make_git_repo(tmp_path)
+    monkeypatch.setattr(
+        _coord.Coordinator,
+        "open",
+        staticmethod(lambda p: (_ for _ in ()).throw(RuntimeError("boom"))),
+    )
+    assert _active_task_identity(tmp_path) is None

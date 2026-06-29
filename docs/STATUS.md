@@ -2189,19 +2189,14 @@ existing CLI session and makes no model or API calls of its own.
   (shared stem → None), non-git directory (Coordinator.open returns None), exception-
   swallowing, and `drift_reason`/`_changed_files` success paths. hook.py reaches 100%.
 
+- `_active_task_identity` (protocol_commands.py:91-108) now has direct coverage: four
+  tests in tests/test_cli.py cover the active-lease (returns idea_id), no-lease (None),
+  non-git directory (coordinator None → line 99), and exception-swallowing (lines 107-108)
+  paths; lines 99 and 106-108 are now covered.
+
 ## Next
 
-1. `_active_task_identity` (protocol_commands.py:91) success path is uncovered —
-   lines 99, 106-108 are dead because no test creates a real coordinator lease and
-   calls the function. It scopes the verify trajectory to the claimed task for
-   `--patience`, so a silent regression here would break trajectory keying silently.
-   Evidence: `src/looptight/protocol_commands.py:91`
-   Acceptance: `test_active_task_identity_returns_idea_id_for_active_lease` in
-   tests/test_cli.py (or test_propose.py) creates a real git repo + coordinator,
-   claims a task, and asserts `_active_task_identity(repo)` returns the idea's id string;
-   a no-lease sibling asserts `None`. Must pass; lines 99 and 106-108 must be covered.
-
-2. `_task_paths` safety guards (swarm.py:247, 251, 254) are uncovered — the `continue`
+1. `_task_paths` safety guards (swarm.py:247, 251, 254) are uncovered — the `continue`
    branches for a `None` reference, a bare path without a `:line` separator, and an
    absolute or `..` path are all dead in tests. These guards prevent scope-escape by
    a malformed evidence anchor.
