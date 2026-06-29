@@ -3116,3 +3116,63 @@ def test_git_common_dir_sets_terminal_prompt_env(tmp_path):
     with patch.object(pc.subprocess, "run", fake_run):
         pc._git_common_dir(tmp_path)
     assert captured.get("env", {}).get("GIT_TERMINAL_PROMPT") == "0"
+
+
+def test_cmd_status_git_sets_terminal_prompt_env(tmp_path, monkeypatch, capsys):
+    # cmd_status's `git status --porcelain` must pass GIT_TERMINAL_PROMPT=0 so
+    # `looptight status` cannot block on a credential prompt in a headless session.
+    from unittest.mock import patch
+
+    import looptight.protocol_commands as pc
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "exit 0"\n', encoding="utf-8")
+
+    captured_calls: list = []
+    real_run = subprocess.run
+
+    def fake_run(cmd, **kwargs):
+        if list(cmd[:3]) == ["git", "status", "--porcelain"]:
+            captured_calls.append(kwargs.get("env"))
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+        return real_run(cmd, **kwargs)
+
+    with patch.object(pc.subprocess, "run", fake_run):
+        main(["status"])
+
+    assert captured_calls, "cmd_status did not call `git status --porcelain`"
+    assert all(
+        env is not None and env.get("GIT_TERMINAL_PROMPT") == "0"
+        for env in captured_calls
+    )
+
+
+def test_cmd_doctor_git_sets_terminal_prompt_env(tmp_path, monkeypatch, capsys):
+    # cmd_doctor's `git status --porcelain` must pass GIT_TERMINAL_PROMPT=0 so
+    # `looptight doctor` cannot block on a credential prompt in a headless session.
+    from unittest.mock import patch
+
+    import looptight.commands as cmd_module
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "exit 0"\n', encoding="utf-8")
+
+    captured_calls: list = []
+    real_run = subprocess.run
+
+    def fake_run(cmd, **kwargs):
+        if list(cmd[:3]) == ["git", "status", "--porcelain"]:
+            captured_calls.append(kwargs.get("env"))
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+        return real_run(cmd, **kwargs)
+
+    with patch.object(cmd_module.subprocess, "run", fake_run):
+        main(["doctor"])
+
+    assert captured_calls, "cmd_doctor did not call `git status --porcelain`"
+    assert all(
+        env is not None and env.get("GIT_TERMINAL_PROMPT") == "0"
+        for env in captured_calls
+    )

@@ -538,6 +538,7 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         git = subprocess.run(
             ["git", "status", "--porcelain"],
             cwd=workdir,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
             capture_output=True,
             text=True,
             check=False,

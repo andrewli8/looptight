@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import signal
 import subprocess
 import sys
@@ -390,6 +391,7 @@ def cmd_doctor(args: argparse.Namespace, console: Console) -> int:
     try:
         git = subprocess.run(
             ["git", "status", "--porcelain"], cwd=workdir,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
             capture_output=True, text=True, check=False,
         )
     except OSError:

@@ -2081,22 +2081,15 @@ existing CLI session and makes no model or API calls of its own.
   the conservative judgment (suppress, don't misdirect). Covered by suppression + still-coherent
   tests.
 
+- `cmd_status` and `cmd_doctor` now pass `GIT_TERMINAL_PROMPT=0` to their `git status --porcelain`
+  subprocesses; `import os` added to `commands.py`. A headless `looptight status` or `looptight
+  doctor` can no longer hang on a credential prompt. Covered by
+  `test_cmd_status_git_sets_terminal_prompt_env` and `test_cmd_doctor_git_sets_terminal_prompt_env`
+  in `tests/test_cli.py`.
+
 ## Next
 
-1. `cmd_status` and `cmd_doctor` run `git status --porcelain` without
-   `GIT_TERMINAL_PROMPT=0`, leaving `looptight status` and `looptight doctor`
-   able to hang on a credential prompt in a headless session — unlike every
-   other git call in the same files (`_changed_entries`, `_git_common_dir`,
-   `coordinator_path`). Both need `env={**os.environ, "GIT_TERMINAL_PROMPT":
-   "0"}` added; `commands.py` also needs `import os`.
-   Evidence: `src/looptight/protocol_commands.py:535`;
-   `src/looptight/commands.py:391`
-   Acceptance: `test_cmd_status_git_sets_terminal_prompt_env` and
-   `test_cmd_doctor_git_sets_terminal_prompt_env` in `tests/test_cli.py`
-   monkeypatch `subprocess.run` and assert the captured env contains
-   `GIT_TERMINAL_PROMPT == "0"` — failing before the fix, passing after.
-
-2. `trajectory._path` runs `git rev-parse --git-dir` without
+1. `trajectory._path` runs `git rev-parse --git-dir` without
    `GIT_TERMINAL_PROMPT=0`. This call runs during `looptight verify --patience`
    (the value-aware stall detection), which is a headless path. Sibling of
    the already-fixed `_has_dirty_git_worktree`, `_changed_entries`, and
@@ -2106,7 +2099,7 @@ existing CLI session and makes no model or API calls of its own.
    `tests/test_trajectory.py` monkeypatches `subprocess.run` and asserts
    `GIT_TERMINAL_PROMPT == "0"` in the env dict — failing before, passing after.
 
-3. `_task_paths` in `swarm.py` adds `tests/test_{stem}.py` as a test
+2. `_task_paths` in `swarm.py` adds `tests/test_{stem}.py` as a test
    counterpart for a task's source file, but only tries the file stem —
    so evidence pointing at `src/looptight/adapters/claude.py` maps to
    `tests/test_claude.py` (absent) rather than `tests/test_adapters.py`
