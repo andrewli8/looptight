@@ -2201,17 +2201,12 @@ existing CLI session and makes no model or API calls of its own.
   non-git directory (coordinator None → line 99), and exception-swallowing (lines 107-108)
   paths; lines 99 and 106-108 are now covered.
 
-## Next
+- `_task_paths` safety guards (swarm.py:264-272) now have direct coverage:
+  `test_task_paths_safety_guards` in tests/test_swarm.py asserts the None-reference skip
+  (empty set), the bare-path-without-`:line` path (non-empty set, line 269), and the
+  absolute-path / `..`-traversal reject (empty set, line 272).
 
-1. `_task_paths` safety guards (swarm.py:247, 251, 254) are uncovered — the `continue`
-   branches for a `None` reference, a bare path without a `:line` separator, and an
-   absolute or `..` path are all dead in tests. These guards prevent scope-escape by
-   a malformed evidence anchor.
-   Evidence: `src/looptight/swarm.py:238`
-   Acceptance: `test_task_paths_safety_guards` in tests/test_swarm.py asserts that
-   `_task_paths` returns an empty set for a task with `location=None` and no evidence
-   (line 247), a non-empty set for a bare path reference with no `:line` (line 251),
-   and an empty set for an absolute-path and a `..`-containing reference (line 254).
+## Next
 
 ## Rules
 

@@ -1760,3 +1760,25 @@ def test_swarm_git_runs_non_interactively(tmp_path, monkeypatch):
     monkeypatch.setattr(sw.subprocess, "run", fake_run)
     sw._git(tmp_path, "status")
     assert captured["env"]["GIT_TERMINAL_PROMPT"] == "0"
+
+
+def test_task_paths_safety_guards(tmp_path):
+    # line 265: None reference is skipped (location=None, no evidence → empty set)
+    from looptight.swarm import _task_paths
+
+    paths = _task_paths(tmp_path, {"location": None, "evidence": ""})
+    assert paths == set()
+
+    # line 269: bare path with no `:line` suffix is still added to scope (non-empty)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "foo.py").write_text("x", encoding="utf-8")
+    paths = _task_paths(tmp_path, {"location": None, "evidence": "Evidence: src/foo.py"})
+    assert "src/foo.py" in paths
+
+    # line 272: absolute path is rejected (continue)
+    paths = _task_paths(tmp_path, {"location": None, "evidence": "Evidence: /etc/passwd:1"})
+    assert paths == set()
+
+    # line 272: `..`-containing path is rejected (continue)
+    paths = _task_paths(tmp_path, {"location": None, "evidence": "Evidence: ../evil.py:1"})
+    assert paths == set()
