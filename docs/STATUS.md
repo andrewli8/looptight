@@ -2211,6 +2211,35 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `policy_line`'s `allowed_verify_commands` branch has no direct coverage: the human one-liner
+   that tells users their safety rails took hold omits the last branch, so a regression removing
+   the "N allowed verify commands" label goes undetected.
+   Evidence: `src/looptight/protocol_commands.py:978`
+   Acceptance: `test_policy_line_includes_allowed_verify_commands_count` in tests/test_cli.py
+   configures `allowed_verify_commands = ["pytest -q"]` and asserts `status` human output
+   contains "1 allowed verify command".
+
+2. `Candidate.render()` is dead code: defined at discovery.py:58 but never called in production
+   or tests; it's maintenance burden in a module meant to stay small.
+   Evidence: `src/looptight/discovery.py:58`
+   Acceptance: method removed; `ruff check` and the full test suite pass with no failures or new
+   skips.
+
+3. `cmd_hook`'s write-to-stdout branch is uncovered: when the Stop hook has a decision to emit
+   (a loop-continuation directive), `cmd_hook` must write it to stdout — but the only existing
+   test uses a dormant hook where output is always empty, leaving the core feature path untested.
+   Evidence: `src/looptight/commands.py:619`
+   Acceptance: `test_hook_command_writes_nonempty_output_to_stdout` in tests/test_cli.py
+   monkeypatches `run_hook` to return `("directive-json", 0)` and asserts the string appears on
+   stdout.
+
+4. `_watch_status`'s clear-screen branch is uncovered: real usage always clears the terminal on
+   each tick (`clear=True` default in `_watch_status`), but every test call passes `clear=False`,
+   leaving the ANSI escape emission — the visible live-refresh behavior — untested.
+   Evidence: `src/looptight/protocol_commands.py:503`
+   Acceptance: `test_watch_status_emits_ansi_clear_when_clear_is_true` in tests/test_cli.py
+   calls `_watch_status` with `clear=True, max_ticks=1` and asserts `\x1b[2J` appears in output.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
