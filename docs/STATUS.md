@@ -2221,14 +2221,11 @@ existing CLI session and makes no model or API calls of its own.
   in tests/test_cli.py monkeypatches `looptight.hook.run_hook` to return `("directive-json", 0)` and
   asserts the string appears on stdout, covering commands.py:619.
 
-## Next
+- `_watch_status`'s clear-screen branch is covered: `test_watch_status_emits_ansi_clear_when_clear_is_true`
+  in tests/test_cli.py calls `_watch_status` with `clear=True, max_ticks=1` and asserts `\x1b[2J`
+  appears in output — the visible live-refresh behavior (ANSI clear-screen escape) is now tested.
 
-1. `_watch_status`'s clear-screen branch is uncovered: real usage always clears the terminal on
-   each tick (`clear=True` default in `_watch_status`), but every test call passes `clear=False`,
-   leaving the ANSI escape emission — the visible live-refresh behavior — untested.
-   Evidence: `src/looptight/protocol_commands.py:503`
-   Acceptance: `test_watch_status_emits_ansi_clear_when_clear_is_true` in tests/test_cli.py
-   calls `_watch_status` with `clear=True, max_ticks=1` and asserts `\x1b[2J` appears in output.
+## Next
 
 ## Rules
 

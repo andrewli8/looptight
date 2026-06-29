@@ -2736,6 +2736,27 @@ def test_watch_status_renders_one_tick_without_sleeping(tmp_path, capsys):
     assert "1 running" in out and "#1" in out  # count-status tally, matching the statusline
 
 
+def test_watch_status_emits_ansi_clear_when_clear_is_true(tmp_path, capsys):
+    from looptight.console import Console
+    from looptight.protocol_commands import _watch_status
+    from looptight.ui import write_state
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    write_state(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "manager": {"status": "running"},
+            "tasks": [],
+            "workers": [],
+        },
+    )
+    ticks = _watch_status(tmp_path, Console(), interval=5.0, sleep=lambda _: None, max_ticks=1, clear=True)
+    assert ticks == 1
+    out = capsys.readouterr().out
+    assert "\x1b[2J" in out  # clear-screen escape emitted before each tick
+
+
 def test_statusline_command_reads_stdin_and_prints_one_line(tmp_path, monkeypatch, capsys):
     import io
 
