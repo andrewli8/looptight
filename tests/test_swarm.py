@@ -133,6 +133,21 @@ def test_swarm_requires_explicit_headless(capsys):
     assert "--headless" in capsys.readouterr().out
 
 
+def test_swarm_json_guard_emits_error_envelope(capsys):
+    # A guard failure under --json must be a parseable error envelope, not plain text — matching
+    # the swarm result envelope and every other --json command.
+    import json as _json
+
+    assert main(["swarm", "--json", "--agent", "codex"]) == 2  # missing --headless
+    data = _json.loads(capsys.readouterr().out)
+    assert data["command"] == "swarm" and data["status"] == "error"
+    assert "--headless" in data["error"] and data["schema_version"] == 1
+
+    assert main(["swarm", "--json", "--headless", "--agent", "codex", "--workers", "999"]) == 2
+    data = _json.loads(capsys.readouterr().out)
+    assert data["status"] == "error" and "workers must be between" in data["error"]
+
+
 def test_swarm_refuses_direct_push_when_policy_disables_it(
     tmp_path, monkeypatch, capsys
 ):

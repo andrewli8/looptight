@@ -835,12 +835,23 @@ def run_continuous_swarm(
 
 def cmd_swarm(args, console: Console) -> int:
     """CLI boundary for the explicit headless swarm manager."""
+
+    def _guard(message: str) -> int:
+        # Honor --json on the guard paths too: a machine consumer must get a parseable error
+        # envelope, not plain text — matching the swarm result envelope and every other command.
+        if getattr(args, "json", False):
+            print(json.dumps(
+                {"schema_version": SCHEMA_VERSION, "command": "swarm", "status": "error", "error": message},
+                sort_keys=True,
+            ))
+        else:
+            console.print(f"[red]{message}[/red]")
+        return 2
+
     if not args.headless:
-        console.print("[red]swarm launches agent child processes.[/red] Pass --headless explicitly.")
-        return 2
+        return _guard("swarm launches agent child processes. Pass --headless explicitly.")
     if args.workers > MAX_WORKERS:
-        console.print(f"[red]workers must be between 1 and {MAX_WORKERS}[/red]")
-        return 2
+        return _guard(f"workers must be between 1 and {MAX_WORKERS}")
     config = load_config().merged(
         agent=args.agent,
         model=args.model,
@@ -850,16 +861,13 @@ def cmd_swarm(args, console: Console) -> int:
     )
     agent = config.agent or detect_agent()
     if not agent:
-        console.print("[red]No coding agent found on PATH.[/red]")
-        return 2
+        return _guard("No coding agent found on PATH.")
     if not config.verify:
         config = config.merged(verify=detect_verify(Path.cwd()))
     if not config.verify:
-        console.print("[red]No verify command.[/red] Configure one before starting a swarm.")
-        return 2
+        return _guard("No verify command. Configure one before starting a swarm.")
     if args.push and config.no_direct_push:
-        console.print("[red]direct push disabled by policy.[/red] Remove --push or update .looptight.toml.")
-        return 2
+        return _guard("direct push disabled by policy. Remove --push or update .looptight.toml.")
     runner = run_continuous_swarm if args.continuous else run_swarm
     options = {
         "agent": agent,

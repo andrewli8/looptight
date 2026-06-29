@@ -2111,6 +2111,12 @@ existing CLI session and makes no model or API calls of its own.
   shared `_error` helper covers both. Found by dogfooding `migrate` fencing a live legacy claim.
   Covered by a JSON-envelope test for both error paths.
 
+- `swarm --json` emits a JSON error envelope on all five guard paths (missing `--headless`, workers
+  out of range, no agent, no verify, push-disabled-by-policy) instead of plain text, via a shared
+  `_guard` helper — same `--json`-contract-on-error-paths class as the `migrate` fix. Found by a
+  systematic sweep of every command's error paths under `--json` (only `swarm` and `migrate` were
+  broken). Covered by a guard-envelope test.
+
 ## Next
 
 ## Rules
