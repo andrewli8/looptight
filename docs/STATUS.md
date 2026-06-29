@@ -2243,6 +2243,26 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `run_command`'s `OSError` exception path (`adapters/base.py:116`) returns a
+   `CompletedProcess(cmd, 127, ...)` with a "could not launch" stderr — analogous to
+   `verify.py`'s `popen_oserror` path, but not yet covered. A regression removing the
+   `except OSError` handler would silently surface an uncaught exception instead of the
+   documented 127 failure result.
+   Evidence: `src/looptight/adapters/base.py:116`
+   Acceptance: `test_run_command_oserror_returns_returncode_127` in tests/test_adapters.py
+   monkeypatches `subprocess.run` to raise `OSError` and asserts `result.returncode == 127`
+   and `"could not launch"` in `result.stderr`.
+
+2. `_area`'s no-colon evidence branch (`idea_eval.py:51`) and top-level-file fallback
+   (`idea_eval.py:52-53`) are exercised only implicitly. Every `score_batch` test uses refs
+   with a colon (`src/a.py:10`), and the busywork candidate with no evidence skips to the
+   `candidate.source` fallback — so the `else refs[0]` path and the `parent == "."` guard
+   are dead in the suite.
+   Evidence: `src/looptight/idea_eval.py:51`
+   Acceptance: `test_area_no_colon_ref_and_top_level_file_branches` in tests/test_idea_eval.py
+   asserts `_area(candidate_with_ref_no_colon) == "src"` (parent dir of `src/a.py`) and
+   `_area(candidate_with_top_level_ref) == "README.md"` (fallback when parent is `"."`).
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
