@@ -30,6 +30,15 @@ def test_failing_command(tmp_path):
     assert result.exit_code == 1
 
 
+def test_blank_command_never_passes(tmp_path):
+    # A whitespace-only command runs a no-op shell that exits 0; verify is the only commit
+    # authority, so it must refuse to treat that as a pass.
+    for blank in ("", "   ", "\t\n"):
+        result = run_verify(blank, tmp_path)
+        assert not result.passed and result.error == "blank_verify"
+        assert result.exit_code == 2
+
+
 def test_verify_result_rejects_contradictory_verdict():
     with pytest.raises(ValueError, match="exit code zero"):
         VerifyResult(passed=True, exit_code=1)

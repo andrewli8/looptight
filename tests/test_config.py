@@ -72,6 +72,18 @@ def test_write_then_load_roundtrip(tmp_path):
     assert loaded == config
 
 
+def test_blank_verify_is_treated_as_no_verify(tmp_path):
+    # A whitespace-only verify in config is a no-op that would always pass; treat it as no verify
+    # (None) so the user gets the "No verify command found" guidance, not a silent always-pass gate.
+    for blank in ('verify = ""', 'verify = "   "', 'verify = "\\t"'):
+        path = tmp_path / ".looptight.toml"
+        path.write_text(blank + "\n", encoding="utf-8")
+        assert load_config(path).verify is None
+    # A real verify with incidental surrounding whitespace is trimmed, not dropped.
+    (tmp_path / ".looptight.toml").write_text('verify = "  pytest -q  "\n', encoding="utf-8")
+    assert load_config(tmp_path / ".looptight.toml").verify == "pytest -q"
+
+
 def test_write_then_load_preserves_verify_command_with_toml_special_characters(tmp_path):
     verify = 'python -c "print(\\"C:\\\\tmp\\\\artifact\\")"\n# second check'
 

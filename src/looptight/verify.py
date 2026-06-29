@@ -62,6 +62,15 @@ def run_verify(
     A timeout or launch failure is treated as a (recoverable) failure, never a
     crash — the loop should keep its footing and let the agent try again.
     """
+    if not command or not command.strip():
+        # A blank command runs a no-op shell that exits 0 — never treat that as a pass, since
+        # verify is the only commit authority. Defense-in-depth behind config's blank-verify guard.
+        return VerifyResult(
+            passed=False,
+            exit_code=2,
+            output="verify command is blank; refusing to treat a no-op as a pass",
+            error="blank_verify",
+        )
     started = time.monotonic()
     try:
         proc = subprocess.Popen(

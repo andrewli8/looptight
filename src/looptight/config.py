@@ -86,7 +86,10 @@ def load_config(path: Path | None = None) -> Config:
     _reject_typo_keys(resolved, data)
     try:
         return Config(
-            verify=_optional_string(data, "verify"),
+            # A whitespace-only verify is a no-op shell command that always exits 0 — it would
+            # silently pass every change, defeating the only commit authority. Treat a blank verify
+            # as no verify (the same "No verify command found" guidance as an empty string).
+            verify=_nonblank_string(data, "verify"),
             tasks=_string_list(data, "tasks"),
             direct_main=_boolean(data, "direct_main", False),
             idea_generation=_boolean(data, "idea_generation", True),
@@ -167,6 +170,13 @@ def _optional_string(data: dict[str, object], field: str) -> str | None:
     if value is not None and not isinstance(value, str):
         raise ValueError(f"{field} must be a string")
     return value
+
+
+def _nonblank_string(data: dict[str, object], field: str) -> str | None:
+    """Like ``_optional_string`` but a whitespace-only value is ``None`` — for fields where a blank
+    string is meaningless or unsafe (a blank ``verify`` would always pass)."""
+    value = _optional_string(data, field)
+    return value.strip() or None if value is not None else None
 
 
 def _optional_int(data: dict[str, object], field: str) -> int | None:

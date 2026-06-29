@@ -2153,6 +2153,14 @@ existing CLI session and makes no model or API calls of its own.
   traceback: `cmd_ui` now catches the bind `OSError` and exits 2. Found by dogfooding two `ui`
   servers on the same port. Covered by a bind-failure test.
 
+- A blank (whitespace-only) verify command no longer silently passes everything — closing a hole in
+  the only commit authority. `verify = "   "` in config ran a no-op shell that exits 0 (always
+  PASS); empty `""` was caught but whitespace was not. Now `config` treats a blank verify as no
+  verify (`_nonblank_string`, also trimming a real command), and `run_verify` refuses a blank
+  command outright (`error="blank_verify"`, exit 2) as defense-in-depth behind it — so neither the
+  config nor the `--verify` flag can install a no-op gate. Found by dogfooding a whitespace verify.
+  Covered by config + run_verify tests.
+
 ## Next
 
 ## Rules
