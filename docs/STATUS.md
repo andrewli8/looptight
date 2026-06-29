@@ -2151,8 +2151,8 @@ existing CLI session and makes no model or API calls of its own.
   verification") can require editing the code, so `_task_paths` now allows it. For a Python
   `tests/test_foo.py` it globs the repo (pruning vendored/test dirs) and adds the source ONLY when
   exactly one `foo.py` exists — ambiguous common names (`test_utils.py` -> many `utils.py`) add
-  nothing, keeping scope tight. JS `foo.test.ts`/`foo.spec.ts` maps to the colocated `foo.ts`.
-  Covered by unambiguous/ambiguous/JS reverse tests.
+  nothing, keeping scope tight. JS `foo.test.ts`/`foo.spec.ts` maps to the colocated `foo.ts` (or, inside `__tests__/`, the
+  parent-dir source). Covered by unambiguous/ambiguous/JS/__tests__ reverse tests.
 
 - `install-hook --uninstall` fully restores the settings file instead of leaving a dangling empty
   `"Stop": []` (and `"hooks": {}`): when looptight's was the only Stop hook, the emptied list and
