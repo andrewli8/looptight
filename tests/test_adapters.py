@@ -67,6 +67,18 @@ def test_run_command_oserror_returns_returncode_127(monkeypatch, tmp_path):
     assert "could not launch" in result.stderr
 
 
+def test_run_command_popen_oserror_returns_returncode_127(monkeypatch, tmp_path):
+    import looptight.adapters.base as base
+
+    def fake_popen(cmd, **kwargs):
+        raise OSError("exec format error")
+
+    monkeypatch.setattr(base.subprocess, "Popen", fake_popen)
+    result = run_command(["x"], tmp_path, timeout_s=5)
+    assert result.returncode == 127
+    assert "could not launch" in result.stderr
+
+
 def test_provider_adapter_passes_worker_timeout_to_command(monkeypatch, tmp_path):
     captured = {}
 

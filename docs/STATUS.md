@@ -2246,20 +2246,16 @@ existing CLI session and makes no model or API calls of its own.
   only implicitly covered through `ref_resolves`. Covered by
   `test_strip_position_suffix_multi_level_and_range` in tests/test_idea_eval.py.
 
+- `run_command`'s `except OSError` handler (`adapters/base.py:116`) is now covered
+  in both branches: the `subprocess.run` (no-timeout) path was already tested; the
+  `subprocess.Popen` (timeout) path is now covered by
+  `test_run_command_popen_oserror_returns_returncode_127` in tests/test_adapters.py,
+  which monkeypatches `Popen` to raise `OSError` and asserts `returncode == 127`
+  and `"could not launch"` in `result.stderr`.
+
 ## Next
 
-1. `run_command`'s `except OSError` handler (`adapters/base.py:116`) wraps both the
-   `subprocess.run` (no-timeout) and `subprocess.Popen` (timeout) branches. The test added in
-   increment 1 only covers the `subprocess.run` branch (timeout_s=None). The Popen branch is
-   still dead — a regression removing `OSError` handling from Popen would surface an uncaught
-   exception when timeout_s is set.
-   Evidence: `src/looptight/adapters/base.py:91`
-   Acceptance: `test_run_command_popen_oserror_returns_returncode_127` in tests/test_adapters.py
-   monkeypatches `looptight.adapters.base.subprocess.Popen` to raise `OSError` and calls
-   `run_command(["x"], tmp_path, timeout_s=5)`, asserting `result.returncode == 127` and
-   `"could not launch"` in `result.stderr`.
-
-2. `_files_with_exts` (`discovery.py:65`) returns `[]` when `root / subdir` is not a directory,
+1. `_files_with_exts` (`discovery.py:65`) returns `[]` when `root / subdir` is not a directory,
    but this defensive path has no direct test. By analogy with `test_from_lint_returns_empty_on_timeout`,
    a test naming a missing subdirectory should assert the function returns `[]` rather than raising.
    Evidence: `src/looptight/discovery.py:65`
