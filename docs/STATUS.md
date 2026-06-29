@@ -2142,6 +2142,12 @@ existing CLI session and makes no model or API calls of its own.
   returns the file to its pre-install shape. Sibling hook types are preserved. Found by dogfooding
   the install→uninstall lifecycle. Covered by a prune test.
 
+- The deprecated `improve` command shows its migration guidance for `improve "<goal>"` too, not
+  just bare `improve`: the old command took a goal, so the natural muscle-memory call previously
+  errored with a bare argparse usage that hid how to migrate. `_add_improve_flags` now accepts (and
+  ignores) an optional `goal` positional, so any basic `improve …` reaches the deprecation message.
+  Found by dogfooding the CLI entry behavior. Covered by a goal-form deprecation test.
+
 ## Next
 
 ## Rules

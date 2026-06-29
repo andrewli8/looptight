@@ -206,6 +206,14 @@ def test_improve_is_deprecated_without_launching_agent(capsys):
     assert "next" in out
 
 
+def test_improve_with_a_goal_still_shows_deprecation_guidance(capsys):
+    # The old `improve` took a goal, so `improve "<goal>"` (muscle memory) must reach the migration
+    # guidance, not error with a bare argparse usage that hides how to migrate.
+    assert main(["improve", "build a thing"]) == 2
+    out = capsys.readouterr().out.lower()
+    assert "deprecated" in out and "init --integrate" in out
+
+
 def test_run_exits_error_when_no_verify_command(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: "claude")

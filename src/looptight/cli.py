@@ -368,6 +368,12 @@ def _add_run_flags(parser: argparse.ArgumentParser) -> None:
 
 
 def _add_improve_flags(parser: argparse.ArgumentParser) -> None:
+    # The old `improve` took a goal positional, so accept (and ignore) one for migration
+    # compatibility — otherwise `improve "<goal>"`, the natural muscle-memory call, errors with a
+    # bare argparse usage instead of reaching cmd_improve's deprecation guidance.
+    parser.add_argument(
+        "goal", nargs="?", help="accepted for migration compatibility; ignored (see the message)"
+    )
     parser.add_argument(
         "--headless",
         action="store_true",
