@@ -512,6 +512,27 @@ def test_next_no_work_points_at_configured_task_files(tmp_path, monkeypatch, cap
     assert "NOTES.md" in out  # points at the configured file
     assert "docs/STATUS.md" not in out  # not the default it never reads
 
+    # The auto-gen directive is suppressed (its planner targets docs/STATUS.md, which discovery
+    # does not read here), so generated tasks can't land where `next` looks — JSON carries no directive.
+    assert main(["next", "--json"]) == 0
+    assert "directive" not in json.loads(capsys.readouterr().out)  # directive omitted when suppressed
+
+
+def test_next_idea_gen_stays_on_when_custom_tasks_include_status_md(tmp_path, monkeypatch, capsys):
+    # If the custom `tasks` list includes docs/STATUS.md, auto-gen is coherent (it targets a file
+    # discovery reads), so the directive stays and the guidance points at STATUS.md as usual.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text(
+        'verify = "true"\ntasks = ["docs/STATUS.md", "NOTES.md"]\n', encoding="utf-8"
+    )
+    subprocess.run(["git", "add", "-A"], check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "i"], check=True
+    )
+    assert main(["next", "--json"]) == 0
+    assert "directive" in json.loads(capsys.readouterr().out)  # auto-gen stays coherent
+
 
 def test_next_no_work_is_bare_with_no_ideas(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)

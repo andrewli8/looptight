@@ -2071,19 +2071,21 @@ existing CLI session and makes no model or API calls of its own.
   list (which replaces docs/STATUS.md as the discovery source), the NO_WORK message now says `add
   grounded tasks to <files>` instead of misdirecting the user to docs/STATUS.md (where `next`
   never looks under a custom config). Found by dogfooding a custom `tasks`-config + missing file.
-  Covered by a configured-task-files test. (Deeper gap surfaced, not patched: auto-generation's
-  planner/scorer still target docs/STATUS.md, so custom `tasks` + idea-gen needs a design call.)
+  Covered by a configured-task-files test.
+
+- `next` suppresses the idea-generation directive when it would be incoherent: auto-gen writes to
+  `docs/STATUS.md ## Next`, so a custom `tasks` list that omits STATUS.md means generated tasks
+  would land where `next` never looks. Idea-gen now stays on only when discovery reads STATUS.md
+  (no `tasks`, or `tasks` includes `docs/STATUS.md`); otherwise the directive is omitted and the
+  human message guides the user to fill their configured files. Resolves surfaced design item 1 by
+  the conservative judgment (suppress, don't misdirect). Covered by suppression + still-coherent
+  tests.
 
 ## Next
 
-Surfaced design decisions (dogfound this session, NOT autopatched — each needs a maintainer call):
+Surfaced design decision (dogfound this session, NOT autopatched — needs a maintainer call):
 
-1. Custom `tasks` config + idea generation: discovery reads the configured files, but the
-   auto-generation planner (`PLANNING_GOAL`) and scorer (`score_status_next`) still target
-   `docs/STATUS.md`, so generated tasks land where `next` never looks. The human `next` message was
-   fixed to point at the configured files; the planner/scorer wiring needs a decision (thread the
-   target through, or disable idea-gen when `tasks` is set).
-2. `max_iterations` is a half-wired Config field: read by `loop.py`/`hook.py` and CLI-settable, but
+1. `max_iterations` is a half-wired Config field: read by `loop.py`/`hook.py` and CLI-settable, but
    `config.from_dict` never parses it, so it is config-inert and untyped (`max_iterations = "abc"`
    is silently accepted). Making it config-settable is blocked on unifying its `0`-semantics, which
    today differ across goal (`0` = unlimited), run/swarm/daemon (`_positive_int`, `≥1`), and the

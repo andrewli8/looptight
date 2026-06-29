@@ -296,7 +296,12 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
         return 2
 
     config = load_config()
-    idea_generation = config.idea_generation and not args.no_ideas
+    # Idea-generation writes grounded tasks to docs/STATUS.md ## Next, so it is only coherent when
+    # discovery actually reads STATUS.md. A custom `tasks` list that omits it means generated tasks
+    # would land where `next` never looks — suppress the directive there (the user manages those
+    # files; the human message below guides them to fill the configured ones instead).
+    idea_gen_target_read = not config.tasks or "docs/STATUS.md" in config.tasks
+    idea_generation = config.idea_generation and not args.no_ideas and idea_gen_target_read
     result = next_task(workdir, idea_generation=idea_generation)
     if args.json:
         print(json.dumps(result.as_dict(), sort_keys=True))
@@ -321,22 +326,20 @@ def cmd_next(args: argparse.Namespace, console: Console) -> int:
             console.print(f"[red]error:[/red] {result.error}")
     elif result.status == "no_work":
         if result.directive is not None:
-            # Point at the queue the loop actually reads: a configured `tasks` list replaces
-            # docs/STATUS.md as the discovery source, so directing the user to STATUS.md would
-            # send their tasks where `next` never looks. (Auto-generation's planner still targets
-            # STATUS.md — a deeper gap for custom `tasks` + idea-gen, surfaced separately.)
-            if config.tasks:
-                where = ", ".join(config.tasks)
-                print(
-                    f"NO_WORK · queue empty — add grounded tasks to {where} (each with Evidence "
-                    "and Acceptance) and continue, or pass --no-ideas to stop."
-                )
-            else:
-                print(
-                    "NO_WORK · queue empty — generate grounded tasks for docs/STATUS.md "
-                    "Next (each with Evidence and Acceptance) and continue, or pass "
-                    "--no-ideas to stop."
-                )
+            # Auto-gen is coherent here (STATUS.md is in the discovery path): direct the user to it.
+            print(
+                "NO_WORK · queue empty — generate grounded tasks for docs/STATUS.md "
+                "Next (each with Evidence and Acceptance) and continue, or pass "
+                "--no-ideas to stop."
+            )
+        elif config.tasks and not args.no_ideas:
+            # Custom task files `next` reads but auto-gen cannot target — guide the user to fill them
+            # (the STATUS.md-specific planner was suppressed above, so there is no directive).
+            where = ", ".join(config.tasks)
+            print(
+                f"NO_WORK · queue empty — add grounded tasks to {where} (each with Evidence "
+                "and Acceptance) and continue."
+            )
         else:
             print("NO_WORK")
     else:
