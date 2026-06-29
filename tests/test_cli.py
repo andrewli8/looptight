@@ -3220,6 +3220,21 @@ def test_task_source_health_recognizes_status_md_without_config_tasks(tmp_path):
     assert _task_source_health(tmp_path, ()) == "configured"
 
 
+def test_task_source_health_recognizes_skipped_tests_without_todos(tmp_path):
+    # `from_skipped_tests` is the second operand of the `or` in _task_source_health
+    # (protocol_commands.py:828). The existing test always hits `from_todos()` first,
+    # so dropping skip-discovery entirely would be undetected. This test ensures a repo
+    # with only a skipped test (and no TODO) still reports "configured".
+    from looptight.protocol_commands import _task_source_health
+
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_example.py").write_text(
+        "import pytest\n\ndef test_stub():\n    pytest.skip('not implemented')\n",
+        encoding="utf-8",
+    )
+    assert _task_source_health(tmp_path, ()) == "configured"
+
+
 def test_propose_source_filter_empty_is_not_clean_tree(tmp_path, monkeypatch, capsys):
     # `propose --source lint` with no lint candidates but real todo candidates must
     # not claim a "clean tree" — that misleads the user into thinking there is no work.

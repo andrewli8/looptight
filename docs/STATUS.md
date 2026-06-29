@@ -2230,36 +2230,15 @@ existing CLI session and makes no model or API calls of its own.
   `docs/STATUS.md` in a tmp dir (no `config_tasks`) and asserts `_task_source_health(tmp_path, ()) ==
   "configured"` — so a looptight-managed repo with no TODO scan is still recognized as healthy.
 
+- `_task_source_health`'s `from_skipped_tests` branch is directly covered:
+  `test_task_source_health_recognizes_skipped_tests_without_todos` in tests/test_cli.py creates a
+  Python file with only `pytest.skip(...)` (no TODO) and asserts `_task_source_health(tmp_path, ()) ==
+  "configured"` — so a regression dropping skip-discovery cannot silently leave readiness reporting
+  `"missing"` while `from_todos` still returns results.
+
 ## Next
 
-1. `_task_source_health`'s `from_skipped_tests` branch is never exercised alone: the existing
-   direct test always asserts via a TODO (the `from_todos()` truthy short-circuit), so the
-   second `or` operand (`from_skipped_tests`) is dead in the test suite — a regression dropping
-   skip-discovery would leave readiness incorrectly reporting `"missing"`.
-   Evidence: `src/looptight/protocol_commands.py:824`
-   Acceptance: `test_task_source_health_recognizes_skipped_tests_without_todos` in tests/test_cli.py
-   creates a Python file with only `pytest.skip(...)` (no TODO) and asserts
-   `_task_source_health(tmp_path, ()) == "configured"`.
-
-2. `from_lint`'s subprocess call (discovery.py:661) is the only session-native subprocess that
-   omits `GIT_TERMINAL_PROMPT=0`; all siblings (`_not_ignored`, `experience._git`,
-   `tasks._has_dirty_git_worktree`, `hook._changed_files`, etc.) include it, so discovery.py is
-   the single inconsistency in the non-interactive-git invariant.
-   Evidence: `src/looptight/discovery.py:661`
-   Acceptance: `test_from_lint_subprocess_sets_git_terminal_prompt_env` in tests/test_propose.py
-   monkeypatches `discovery.subprocess.run`, calls `from_lint(tmp_path)`, and asserts the captured
-   `env` kwarg contains `"GIT_TERMINAL_PROMPT": "0"`.
-
-2. `_task_source_health`'s `from_skipped_tests` branch is never exercised alone: the existing
-   direct test always asserts via a TODO (the `from_todos()` truthy short-circuit), so the
-   second `or` operand (`from_skipped_tests`) is dead in the test suite — a regression dropping
-   skip-discovery would leave readiness incorrectly reporting `"missing"`.
-   Evidence: `src/looptight/protocol_commands.py:824`
-   Acceptance: `test_task_source_health_recognizes_skipped_tests_without_todos` in tests/test_cli.py
-   creates a Python file with only `pytest.skip(...)` (no TODO) and asserts
-   `_task_source_health(tmp_path, ()) == "configured"`.
-
-3. `from_lint`'s subprocess call (discovery.py:661) is the only session-native subprocess that
+1. `from_lint`'s subprocess call (discovery.py:661) is the only session-native subprocess that
    omits `GIT_TERMINAL_PROMPT=0`; all siblings (`_not_ignored`, `experience._git`,
    `tasks._has_dirty_git_worktree`, `hook._changed_files`, etc.) include it, so discovery.py is
    the single inconsistency in the non-interactive-git invariant.
