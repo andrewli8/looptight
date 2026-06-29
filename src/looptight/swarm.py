@@ -254,6 +254,10 @@ def _task_paths(root: Path, task: dict[str, str | None]) -> set[str]:
             counterpart = Path("tests") / f"test_{path.stem}.py"
             if (root / counterpart).is_file():
                 paths.add(counterpart.as_posix())
+            elif len(path.parts) >= 3:
+                parent_counterpart = Path("tests") / f"test_{path.parts[-2]}.py"
+                if (root / parent_counterpart).is_file():
+                    paths.add(parent_counterpart.as_posix())
     return paths
 
 

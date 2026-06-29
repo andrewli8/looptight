@@ -1051,6 +1051,26 @@ def test_task_paths_resolves_backticked_evidence_to_bare_path(tmp_path):
     assert "`src/a.py:1`" not in paths  # the backticks are not kept as a path
 
 
+def test_task_paths_falls_back_to_parent_dir_counterpart(tmp_path):
+    # When evidence points at a nested source file (src/adapters/claude.py), the
+    # stem-only counterpart test_claude.py is absent, but test_adapters.py (named
+    # for the parent directory) is present — _task_paths must include it so a
+    # worker editing tests/test_adapters.py is not falsely rejected as out-of-scope.
+    from looptight.swarm import _task_paths
+
+    (tmp_path / "src" / "adapters").mkdir(parents=True)
+    (tmp_path / "src" / "adapters" / "claude.py").write_text("x", encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_adapters.py").write_text("x", encoding="utf-8")
+    # no tests/test_claude.py
+
+    paths = _task_paths(
+        tmp_path,
+        {"location": "docs/STATUS.md:1", "evidence": "Evidence: `src/adapters/claude.py:1`"},
+    )
+    assert "tests/test_adapters.py" in paths
+
+
 def test_planned_tasks_grounded_tolerates_bold_evidence_marker(tmp_path):
     # The planner check must share the gate's marker tolerance: a bold marker
     # (``**Evidence:** `path` ``) should still ground, not be rejected because a

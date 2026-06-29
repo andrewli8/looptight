@@ -2092,21 +2092,12 @@ existing CLI session and makes no model or API calls of its own.
   credential prompt. Covered by `test_trajectory_path_git_sets_terminal_prompt_env` in
   `tests/test_trajectory.py`.
 
-## Next
+- `_task_paths` in `swarm.py` now also tries `tests/test_{parent}.py` (parent directory name)
+  when `tests/test_{stem}.py` is absent, so a worker editing `tests/test_adapters.py` for a task
+  whose evidence points at `src/adapters/claude.py` is no longer falsely rejected as out-of-scope.
+  Covered by `test_task_paths_falls_back_to_parent_dir_counterpart` in `tests/test_swarm.py`.
 
-1. `_task_paths` in `swarm.py` adds `tests/test_{stem}.py` as a test
-   counterpart for a task's source file, but only tries the file stem —
-   so evidence pointing at `src/looptight/adapters/claude.py` maps to
-   `tests/test_claude.py` (absent) rather than `tests/test_adapters.py`
-   (present). A worker legitimately editing `tests/test_adapters.py` is
-   falsely rejected as out-of-scope. Fix: also try `tests/test_{parent}.py`
-   (where `parent` is the immediate parent directory name) when the
-   stem counterpart is missing.
-   Evidence: `src/looptight/swarm.py:253`
-   Acceptance: `test_task_paths_falls_back_to_parent_dir_counterpart` in
-   `tests/test_swarm.py` asserts that with `src/adapters/claude.py` as
-   evidence (no `test_claude.py` but `test_adapters.py` present),
-   `_task_paths` includes `tests/test_adapters.py` — failing before, passing after.
+## Next
 
 ## Rules
 
