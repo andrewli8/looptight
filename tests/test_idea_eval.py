@@ -13,6 +13,7 @@ from pathlib import Path
 from looptight.discovery import Candidate
 from looptight.idea_eval import (
     BatchScore,
+    _area,
     evidence_refs,
     is_grounded,
     score_batch,
@@ -104,6 +105,16 @@ def test_is_grounded_rejects_escaping_or_absolute_paths(tmp_path):
     absolute = _candidate("Abs", "Abs. Evidence: /etc/passwd:1; Acceptance: x")
     assert is_grounded(tmp_path, escaping) is False
     assert is_grounded(tmp_path, absolute) is False
+
+
+def test_area_no_colon_ref_and_top_level_file_branches():
+    # ref without a colon -> uses refs[0] directly; parent of "src/a.py" is "src"
+    no_colon = _candidate("T", "T. Evidence: src/a.py; Acceptance: x")
+    assert _area(no_colon) == "src"
+
+    # top-level file -> parent is "."; fallback returns path_text itself
+    top_level = _candidate("T2", "T2. Evidence: README.md; Acceptance: x")
+    assert _area(top_level) == "README.md"
 
 
 def test_score_batch_rewards_a_grounded_diverse_bounded_batch(tmp_path):
