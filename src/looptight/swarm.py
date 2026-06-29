@@ -254,11 +254,14 @@ def _task_paths(root: Path, task: dict[str, str | None]) -> set[str]:
             continue
         relative = path.as_posix()
         paths.add(relative)
-        if len(path.parts) >= 2 and path.parts[0] == "src" and path.suffix == ".py":
+        if path.suffix == ".py":
+            # Allow the test counterpart for any layout, not just src/* — a flat package
+            # (mypackage/foo.py) or a top-level module (foo.py) keeps its test at
+            # tests/test_{stem}.py too, with tests/test_{parent}.py as the nested fallback.
             counterpart = Path("tests") / f"test_{path.stem}.py"
             if (root / counterpart).is_file():
                 paths.add(counterpart.as_posix())
-            elif len(path.parts) >= 3:
+            elif len(path.parts) >= 2:
                 parent_counterpart = Path("tests") / f"test_{path.parts[-2]}.py"
                 if (root / parent_counterpart).is_file():
                     paths.add(parent_counterpart.as_posix())
