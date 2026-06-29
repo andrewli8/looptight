@@ -77,6 +77,24 @@ def test_uninstall_removes_only_ours(tmp_path):
     assert commands == ["make lint"]
 
 
+def test_uninstall_prunes_emptied_stop_and_hooks(tmp_path):
+    # When looptight's was the only Stop hook, uninstall must restore the file to its pre-install
+    # shape — no dangling "Stop": [] or empty "hooks": {} — symmetric with install creating them.
+    path = tmp_path / "settings.json"
+    path.write_text(json.dumps({"model": "opus"}))  # no hooks at all
+
+    assert install(path) is True
+    assert uninstall(path) == 1
+    assert _read(path) == {"model": "opus"}  # fully restored, no residual keys
+
+    # But a sibling hook type is preserved (only the emptied Stop list is pruned).
+    path.write_text(json.dumps({"hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": []}]}}))
+    install(path)
+    assert uninstall(path) == 1
+    data = _read(path)
+    assert "Stop" not in data["hooks"] and "PreToolUse" in data["hooks"]
+
+
 def test_uninstall_preserves_commands_that_only_contain_ours(tmp_path):
     path = tmp_path / "settings.json"
     user_command = f"echo {HOOK_COMMAND} disabled"

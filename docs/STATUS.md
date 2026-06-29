@@ -2136,6 +2136,12 @@ existing CLI session and makes no model or API calls of its own.
   as "changed files outside task scope" — mirroring the existing `src/*.py` → `tests/test_*.py`
   allowance. Found by dogfooding the out-of-scope rejection path. Covered by a `_task_paths` test.
 
+- `install-hook --uninstall` fully restores the settings file instead of leaving a dangling empty
+  `"Stop": []` (and `"hooks": {}`): when looptight's was the only Stop hook, the emptied list and
+  an emptied hooks object are now pruned — symmetric with `install` creating them — so uninstall
+  returns the file to its pre-install shape. Sibling hook types are preserved. Found by dogfooding
+  the install→uninstall lifecycle. Covered by a prune test.
+
 ## Next
 
 ## Rules

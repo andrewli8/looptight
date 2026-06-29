@@ -104,6 +104,15 @@ def uninstall(path: Path) -> int:
     kept = [entry for entry in stop if not (isinstance(entry, dict) and _is_ours(entry))]
     removed = len(stop) - len(kept)
     if removed:
-        hooks["Stop"] = kept
-        _write(path, {**data, "hooks": hooks})
+        if kept:
+            hooks["Stop"] = kept
+        else:
+            # Don't leave a dangling empty "Stop": [] — prune it (and the "hooks" object if it
+            # empties) so uninstall restores the file to its pre-install shape, symmetric with
+            # add() which creates "hooks" when absent.
+            hooks.pop("Stop", None)
+        new_data = {**data, "hooks": hooks}
+        if not hooks:
+            new_data.pop("hooks", None)
+        _write(path, new_data)
     return removed
