@@ -2261,6 +2261,22 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `read_count` (`hook.py:202`) catches `(OSError, ValueError)` but only the happy path and
+   absent-file path are tested; a file with non-integer content (e.g. `"abc"`) hits the
+   `ValueError` branch and returns 0 with no direct test.
+   Evidence: `src/looptight/hook.py:202`
+   Acceptance: `test_read_count_returns_zero_on_non_integer_content` in tests/test_hook.py
+   writes `"not-a-number"` to `path` and asserts `read_count(path) == 0`.
+
+2. `atomic_write_text` (`fsutil.py:25`) wraps both `write_text` and `os.replace` in a single
+   `try/except OSError` that unlinks the `.tmp` on failure. The existing test patches
+   `os.replace` (`.tmp` exists when it fires), but never patches `write_text` (where `.tmp`
+   may not yet exist and `missing_ok=True` is what keeps cleanup safe).
+   Evidence: `src/looptight/fsutil.py:25`
+   Acceptance: `test_atomic_write_text_cleans_up_when_write_text_fails` in tests/test_fsutil.py
+   monkeypatches `Path.write_text` to raise `OSError`, asserts the exception is re-raised and no
+   `.tmp` file remains beside the target.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
