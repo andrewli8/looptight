@@ -247,11 +247,16 @@ def cmd_propose(args: argparse.Namespace, console: Console) -> int:
                     f"{int(candidate.score)})[/dim]"
                 )
                 last_source = candidate.source
+            # Show the same clean summary the `next` directive does: status/task-file titles carry
+            # their `Evidence:` anchor inline, which would otherwise read as part of the task name.
+            from .tasks import _summary_and_evidence
+
+            summary = _summary_and_evidence(candidate)[0]
             # Plain location (no [dim]): the line is written verbatim to keep user title tokens,
             # so it cannot carry looptight markup — and the console renders no dim anyway. The `·`
             # separator (used tool-wide) marks where the free-form title ends and provenance begins.
             where = f" · {candidate.location}" if candidate.location else ""
-            console.write(f"  {i}. {candidate.title}{where}")  # user title — preserve any tokens
+            console.write(f"  {i}. {summary}{where}")  # user summary — preserve any tokens
         if total > len(candidates):
             console.print(
                 f"[dim]… {total - len(candidates)} more not shown — pass [/dim]"

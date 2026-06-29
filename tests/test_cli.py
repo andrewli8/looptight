@@ -1948,6 +1948,26 @@ def test_swarm_rejects_non_positive_numeric_options(argv):
     assert exc.value.code == 2
 
 
+def test_propose_shows_clean_summary_not_inline_evidence(tmp_path, monkeypatch, capsys):
+    # Status/task-file titles carry their `Evidence:` anchor inline (parsed out for the next
+    # directive). propose must show the same clean summary `next` does, not leak "Evidence: ..."
+    # into the displayed task name beside the location.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("x = 1\n", encoding="utf-8")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text(
+        "## Next\n\n1. Wire up the export button. Evidence: src/a.py:1; Acceptance: a test covers it.\n",
+        encoding="utf-8",
+    )
+    assert main(["propose"]) == 0
+    out = capsys.readouterr().out
+    line = [ln for ln in out.splitlines() if "Wire up the export button" in ln][0]
+    assert "Evidence:" not in line  # the inline anchor is not shown as part of the task name
+    assert "Wire up the export button ·" in line  # clean summary, then the location separator
+
+
 def test_propose_candidate_line_separates_title_from_location(tmp_path, monkeypatch, capsys):
     # A candidate's free-form title flows straight into its path with a bare space, leaving the
     # title/location boundary ambiguous. Use the same `·` metadata separator the rest of looptight

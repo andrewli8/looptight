@@ -2060,6 +2060,13 @@ existing CLI session and makes no model or API calls of its own.
   but false in CI, so the test passed locally and failed CI. It now forces claude detection via
   monkeypatch. The full suite passes under an agent-free PATH (986 passed), matching CI.
 
+- `propose` shows the same clean task summary `next` does for status/task-file candidates: their
+  titles carry the `Evidence:` anchor inline (parsed out for the next directive), so propose was
+  rendering `Wire up the export button. Evidence: src/a.py:1 · NOTES.md:3` — the anchor read as
+  part of the task name and clashed with `next`'s clean form. Now via the shared
+  `_summary_and_evidence` helper: `Wire up the export button · NOTES.md:3`. Found by dogfooding a
+  custom `tasks`-config file. Covered by a clean-summary test.
+
 ## Next
 
 ## Rules
