@@ -523,7 +523,8 @@ def cmd_revert(args: argparse.Namespace, console: Console) -> int:
     try:
         status = subprocess.run(
             ["git", "status", "--porcelain", "--untracked-files=no"],
-            cwd=str(workdir), capture_output=True, text=True, check=False,
+            cwd=str(workdir), env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+            capture_output=True, text=True, check=False,
         )
     except OSError:
         status = None
@@ -539,7 +540,8 @@ def cmd_revert(args: argparse.Namespace, console: Console) -> int:
     if has_tracked_changes:
         try:
             result = subprocess.run(
-                ["git", "checkout", "HEAD", "--", "."], cwd=str(workdir), check=False
+                ["git", "checkout", "HEAD", "--", "."], cwd=str(workdir),
+                env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}, check=False,
             )
         except OSError as exc:
             console.print(f"[red]error:[/red] could not run git checkout: {exc}")
@@ -557,6 +559,7 @@ def cmd_revert(args: argparse.Namespace, console: Console) -> int:
         untracked = subprocess.run(
             ["git", "ls-files", "--others", "--exclude-standard"],
             cwd=str(workdir),
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
             capture_output=True,
             text=True,
             check=False,

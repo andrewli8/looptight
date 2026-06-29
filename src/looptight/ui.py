@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import os
 import subprocess
 from datetime import UTC, datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -24,6 +25,7 @@ def _state_path(root: Path) -> Path:
     result = subprocess.run(
         ["git", "rev-parse", "--git-common-dir"],
         cwd=root,
+        env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},  # headless-safe: never block on a prompt
         capture_output=True,
         text=True,
         check=False,

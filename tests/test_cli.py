@@ -2207,6 +2207,37 @@ def test_revert_dirty_tree_without_yes_still_prompts(tmp_path, monkeypatch, caps
     assert (tmp_path / "app.py").read_text() == "changed\n"  # nothing discarded yet
 
 
+def test_revert_git_calls_set_terminal_prompt_env(tmp_path, monkeypatch, capsys):
+    # cmd_revert's git status/checkout/ls-files must pass GIT_TERMINAL_PROMPT=0 so a headless
+    # `looptight revert --yes` cannot block on a credential prompt — the uniform headless-safety
+    # invariant the other git calls already follow.
+    from unittest.mock import patch
+
+    import looptight.commands as cmds
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / "app.py").write_text("x\n")
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "i"], cwd=tmp_path, check=True)
+    (tmp_path / "app.py").write_text("changed\n")  # tracked change → reaches checkout
+    (tmp_path / "untracked.txt").write_text("u\n")  # untracked → reaches ls-files
+
+    envs: list = []
+    real_run = subprocess.run
+
+    def fake_run(cmd, **kwargs):
+        if list(cmd[:1]) == ["git"] and cmd[1] in ("status", "checkout", "ls-files"):
+            envs.append((cmd[1], (kwargs.get("env") or {}).get("GIT_TERMINAL_PROMPT")))
+        return real_run(cmd, **kwargs)
+
+    with patch.object(cmds.subprocess, "run", fake_run):
+        main(["revert", "--yes"])
+
+    seen = dict(envs)
+    assert seen.get("status") == "0" and seen.get("checkout") == "0" and seen.get("ls-files") == "0"
+
+
 def test_status_json_keeps_v1_keys_and_adds_coordinator_counts(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)

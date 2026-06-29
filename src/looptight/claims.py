@@ -47,6 +47,7 @@ def claim_dir(workdir: Path) -> Path | None:
         result = subprocess.run(
             ["git", "rev-parse", "--git-common-dir"],
             cwd=workdir,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},  # headless-safe: never block on a prompt
             capture_output=True,
             text=True,
             check=False,

@@ -2123,6 +2123,13 @@ existing CLI session and makes no model or API calls of its own.
   shared `_plural` helper). Found by a grep sweep of the plural class. Covered by a singular
   assertion on the existing limit-resume terminal test.
 
+- Completed the uniform `GIT_TERMINAL_PROMPT=0` headless-safety invariant: five git subprocess
+  calls still missed it (`claims.py`/`ui.py` `rev-parse`, and `cmd_revert`'s `git status`,
+  `checkout`, and `ls-files`), so a headless `looptight revert`/`statusline`/`status` could in
+  principle block on a credential prompt. All git calls now set the env. Found by a code-scan sweep
+  of every git subprocess. Covered by a `cmd_revert` env test mirroring the existing status/doctor
+  ones.
+
 ## Next
 
 ## Rules
