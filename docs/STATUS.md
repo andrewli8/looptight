@@ -2184,20 +2184,14 @@ existing CLI session and makes no model or API calls of its own.
   rejected; a blank `--verify` also reads as "no verify" like config. Closes the CLI gap left by
   the config-side trim above. Covered by a whitespace-allowlist test.
 
+- `_drift_directive` (hook.py:89-115) now has end-to-end coverage: six new tests in
+  tests/test_hook.py cover the no-lease, off-task (returns refocus string), on-task
+  (shared stem → None), non-git directory (Coordinator.open returns None), exception-
+  swallowing, and `drift_reason`/`_changed_files` success paths. hook.py reaches 100%.
+
 ## Next
 
-1. `_drift_directive` (hook.py:89) is completely uncovered — all 21 lines of the
-   drift-detection function body are dead in the test suite because `run_hook` tests
-   inject a `drift_fn` lambda instead of calling through the real function. The core
-   loop-control lever 2 feature is therefore untested end-to-end.
-   Evidence: `src/looptight/hook.py:89`
-   Acceptance: `test_drift_directive_returns_refocus_when_session_is_off_task` in
-   tests/test_hook.py creates a real git repo, opens a coordinator, claims a task with
-   an evidence anchor, stages an unrelated file, and asserts `_drift_directive` returns
-   a non-None reason string; a sibling test asserts it returns `None` when no lease
-   exists — covering lines 95-115. Both tests must pass.
-
-2. `_active_task_identity` (protocol_commands.py:91) success path is uncovered —
+1. `_active_task_identity` (protocol_commands.py:91) success path is uncovered —
    lines 99, 106-108 are dead because no test creates a real coordinator lease and
    calls the function. It scopes the verify trajectory to the claimed task for
    `--patience`, so a silent regression here would break trajectory keying silently.
@@ -2207,7 +2201,7 @@ existing CLI session and makes no model or API calls of its own.
    claims a task, and asserts `_active_task_identity(repo)` returns the idea's id string;
    a no-lease sibling asserts `None`. Must pass; lines 99 and 106-108 must be covered.
 
-3. `_task_paths` safety guards (swarm.py:247, 251, 254) are uncovered — the `continue`
+2. `_task_paths` safety guards (swarm.py:247, 251, 254) are uncovered — the `continue`
    branches for a `None` reference, a bare path without a `:line` separator, and an
    absolute or `..` path are all dead in tests. These guards prevent scope-escape by
    a malformed evidence anchor.

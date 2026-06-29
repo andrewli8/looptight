@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess as _subprocess
 
 from looptight.config import Config, write_config
 from looptight.hook import (
@@ -296,3 +297,122 @@ def test_has_grounded_work_returns_false_on_exception(tmp_path, monkeypatch):
 
     monkeypatch.setattr(_propose, "propose", _raise)
     assert _hook._has_grounded_work(tmp_path) is False
+
+
+# ── _drift_directive end-to-end coverage ──────────────────────────────────────
+
+
+def _git_repo(path):
+    """Minimal git repo with one commit so HEAD exists."""
+    path.mkdir()
+    _subprocess.run(["git", "init", "-q"], cwd=path, check=True, capture_output=True)
+    _subprocess.run(["git", "config", "user.name", "Test"], cwd=path, check=True, capture_output=True)
+    _subprocess.run(["git", "config", "user.email", "t@t.com"], cwd=path, check=True, capture_output=True)
+    (path / "a.py").write_text("x", encoding="utf-8")
+    _subprocess.run(["git", "add", "."], cwd=path, check=True, capture_output=True)
+    _subprocess.run(["git", "commit", "-qm", "init"], cwd=path, check=True, capture_output=True)
+    return path
+
+
+def test_drift_directive_returns_none_when_no_lease_exists(tmp_path):
+    # No active coordinator lease for this owner → _drift_directive returns None (lines 107-108).
+    from looptight.hook import _drift_directive
+
+    root = _git_repo(tmp_path / "r")
+    assert _drift_directive(root) is None
+
+
+def test_drift_directive_returns_refocus_when_session_is_off_task(tmp_path):
+    # A live lease with evidence pointing to src/foo.py, but the staged change touches
+    # other.py (wholly unrelated) → _drift_directive returns the drift-reason string.
+    # Covers hook.py:95-115 end-to-end.
+    from looptight.claims import owner_id
+    from looptight.coordinator import Coordinator
+    from looptight.hook import _drift_directive
+
+    root = _git_repo(tmp_path / "r")
+    coordinator = Coordinator.open(root)
+    assert coordinator is not None
+    owner = owner_id(root)
+    run = coordinator.start_run("session", owner=owner)
+    coordinator.claim(
+        [{"id": "t1", "idea_id": "abc123", "evidence": "Evidence: src/foo.py:1", "goal": "fix foo"}],
+        run.id,
+        ttl_s=60,
+    )
+    coordinator.close()
+
+    # Stage a file unrelated to src/foo.py so drift fires.
+    (root / "other.py").write_text("y", encoding="utf-8")
+    _subprocess.run(["git", "add", "other.py"], cwd=root, check=True, capture_output=True)
+
+    result = _drift_directive(root)
+    assert result is not None
+    assert "src/foo.py" in result or "refocus" in result.lower()
+
+
+def test_changed_files_returns_staged_file_names(tmp_path):
+    # _changed_files success path (hook.py:58): returns file names changed since HEAD.
+    from looptight.hook import _changed_files
+
+    root = _git_repo(tmp_path / "r")
+    (root / "new.py").write_text("z", encoding="utf-8")
+    _subprocess.run(["git", "add", "new.py"], cwd=root, check=True, capture_output=True)
+
+    files = _changed_files(root)
+    assert "new.py" in files
+
+
+def test_drift_reason_names_the_evidence_and_changed_files(tmp_path):
+    # drift_reason (hook.py:82) builds a human-readable refocus message that names both sides.
+    from looptight.hook import drift_reason
+
+    reason = drift_reason("fix foo", ["src/foo.py"], ["src/bar.py"])
+    assert "src/foo.py" in reason
+    assert "src/bar.py" in reason
+    assert "fix foo" in reason
+
+
+def test_drift_directive_returns_none_outside_git(tmp_path):
+    # No git repo → Coordinator.open returns None → _drift_directive returns None (line 102).
+    from looptight.hook import _drift_directive
+
+    non_git = tmp_path / "notgit"
+    non_git.mkdir()
+    assert _drift_directive(non_git) is None
+
+
+def test_drift_directive_swallows_exception_and_returns_none(tmp_path, monkeypatch):
+    # Any exception inside _drift_directive is swallowed (lines 114-115) so the hook
+    # never traps a session on an adverse coordinator state.
+    import looptight.coordinator as _coord
+    from looptight.hook import _drift_directive
+
+    root = _git_repo(tmp_path / "r")
+    monkeypatch.setattr(_coord.Coordinator, "open", staticmethod(lambda p: (_ for _ in ()).throw(RuntimeError("boom"))))
+    assert _drift_directive(root) is None
+
+
+def test_drift_directive_returns_none_when_on_task(tmp_path):
+    # Changed file shares the stem of the evidence anchor → _off_task is False → None (line 111).
+    from looptight.claims import owner_id
+    from looptight.coordinator import Coordinator
+    from looptight.hook import _drift_directive
+
+    root = _git_repo(tmp_path / "r")
+    coordinator = Coordinator.open(root)
+    assert coordinator is not None
+    owner = owner_id(root)
+    run = coordinator.start_run("session", owner=owner)
+    coordinator.claim(
+        [{"id": "t2", "idea_id": "def456", "evidence": "Evidence: src/foo.py:1", "goal": "fix foo"}],
+        run.id,
+        ttl_s=60,
+    )
+    coordinator.close()
+
+    # Stage a file whose name contains "foo" (shares the evidence stem) — on-task, no drift.
+    (root / "test_foo.py").write_text("# test", encoding="utf-8")
+    _subprocess.run(["git", "add", "test_foo.py"], cwd=root, check=True, capture_output=True)
+
+    assert _drift_directive(root) is None
