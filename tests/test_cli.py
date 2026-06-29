@@ -2562,6 +2562,21 @@ def test_install_skill_command_install_and_already_current(tmp_path, monkeypatch
     assert "already up to date" in capsys.readouterr().out.lower()
 
 
+def test_hook_command_writes_nonempty_output_to_stdout(tmp_path, monkeypatch, capsys):
+    # When run_hook returns a non-empty string (a loop-continuation directive),
+    # cmd_hook must write it to stdout so Claude Code can parse the decision.
+    # The production branch at commands.py:619 was previously uncovered because
+    # the only test used a dormant hook that always returns an empty string.
+    import io
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    monkeypatch.setattr("sys.stdin", io.StringIO("{}"))
+    monkeypatch.setattr("looptight.hook.run_hook", lambda _: ("directive-json", 0))
+    assert main(["hook"]) == 0
+    assert "directive-json" in capsys.readouterr().out
+
+
 def test_hook_command_runs_run_hook_and_returns_a_code(tmp_path, monkeypatch, capsys):
     # The hook command reads the Stop-hook event on stdin and returns run_hook's code.
     # With no verify configured the hook is dormant: it allows the stop (exit 0) cleanly.
