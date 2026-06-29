@@ -2227,6 +2227,33 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_task_source_health`'s `docs/STATUS.md` branch is uncovered: when `config_tasks` is empty
+   but `docs/STATUS.md` exists the function returns `"configured"` (protocol_commands.py:822), but
+   no test exercises this path — the existing direct test covers only the TODO-discovery path, and
+   the integration tests that reach `"configured"` always use `tasks = [...]`, hitting line 820.
+   Evidence: `src/looptight/protocol_commands.py:822`
+   Acceptance: `test_task_source_health_recognizes_status_md_without_config_tasks` in
+   tests/test_cli.py creates a `docs/STATUS.md` in a tmp dir (no `config_tasks`) and asserts
+   `_task_source_health(tmp_path, ()) == "configured"`.
+
+2. `_task_source_health`'s `from_skipped_tests` branch is never exercised alone: the existing
+   direct test always asserts via a TODO (the `from_todos()` truthy short-circuit), so the
+   second `or` operand (`from_skipped_tests`) is dead in the test suite — a regression dropping
+   skip-discovery would leave readiness incorrectly reporting `"missing"`.
+   Evidence: `src/looptight/protocol_commands.py:824`
+   Acceptance: `test_task_source_health_recognizes_skipped_tests_without_todos` in tests/test_cli.py
+   creates a Python file with only `pytest.skip(...)` (no TODO) and asserts
+   `_task_source_health(tmp_path, ()) == "configured"`.
+
+3. `from_lint`'s subprocess call (discovery.py:661) is the only session-native subprocess that
+   omits `GIT_TERMINAL_PROMPT=0`; all siblings (`_not_ignored`, `experience._git`,
+   `tasks._has_dirty_git_worktree`, `hook._changed_files`, etc.) include it, so discovery.py is
+   the single inconsistency in the non-interactive-git invariant.
+   Evidence: `src/looptight/discovery.py:661`
+   Acceptance: `test_from_lint_subprocess_sets_git_terminal_prompt_env` in tests/test_propose.py
+   monkeypatches `discovery.subprocess.run`, calls `from_lint(tmp_path)`, and asserts the captured
+   `env` kwarg contains `"GIT_TERMINAL_PROMPT": "0"`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
