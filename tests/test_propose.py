@@ -1473,3 +1473,30 @@ def test_not_ignored_git_sets_terminal_prompt_env(tmp_path):
 
     assert "env" in captured_kwargs, "_not_ignored must pass an explicit env"
     assert captured_kwargs["env"].get("GIT_TERMINAL_PROMPT") == "0"
+
+
+def test_from_lint_subprocess_sets_git_terminal_prompt_env(tmp_path):
+    # from_lint()'s subprocess.run must pass GIT_TERMINAL_PROMPT=0 so a headless
+    # ruff invocation cannot hang waiting for a git credential prompt (ruff never
+    # needs credentials, but the invariant is uniform across all session-native
+    # subprocesses in discovery.py — discovery.py:661 was the lone omission).
+    import shutil
+
+    import looptight.discovery as disc
+
+    if shutil.which("ruff") is None:
+        import pytest
+
+        pytest.skip("ruff not on PATH")
+
+    captured_kwargs: dict = {}
+
+    def fake_run(cmd, **kwargs):
+        captured_kwargs.update(kwargs)
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    with patch.object(disc.subprocess, "run", fake_run):
+        disc.from_lint(tmp_path)
+
+    assert "env" in captured_kwargs, "from_lint must pass an explicit env to subprocess.run"
+    assert captured_kwargs["env"].get("GIT_TERMINAL_PROMPT") == "0"

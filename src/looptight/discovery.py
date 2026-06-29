@@ -658,7 +658,14 @@ def from_lint(root: Path) -> list[Candidate]:
         return []
     cmd = [ruff, "check", "--no-cache", "--output-format", "concise", "--quiet"]
     try:
-        proc = subprocess.run(cmd, cwd=str(root), capture_output=True, text=True, timeout=60)
+        proc = subprocess.run(
+            cmd,
+            cwd=str(root),
+            capture_output=True,
+            text=True,
+            timeout=60,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+        )
     except (OSError, subprocess.TimeoutExpired):
         return []
     out: list[Candidate] = []

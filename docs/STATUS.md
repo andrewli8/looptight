@@ -2236,16 +2236,12 @@ existing CLI session and makes no model or API calls of its own.
   "configured"` — so a regression dropping skip-discovery cannot silently leave readiness reporting
   `"missing"` while `from_todos` still returns results.
 
-## Next
+- `from_lint`'s subprocess call passes `GIT_TERMINAL_PROMPT=0`, completing the uniform
+  non-interactive-git invariant across all session-native subprocesses in discovery.py
+  (discovery.py:661 was the lone omission). Covered by
+  `test_from_lint_subprocess_sets_git_terminal_prompt_env` in tests/test_propose.py.
 
-1. `from_lint`'s subprocess call (discovery.py:661) is the only session-native subprocess that
-   omits `GIT_TERMINAL_PROMPT=0`; all siblings (`_not_ignored`, `experience._git`,
-   `tasks._has_dirty_git_worktree`, `hook._changed_files`, etc.) include it, so discovery.py is
-   the single inconsistency in the non-interactive-git invariant.
-   Evidence: `src/looptight/discovery.py:661`
-   Acceptance: `test_from_lint_subprocess_sets_git_terminal_prompt_env` in tests/test_propose.py
-   monkeypatches `discovery.subprocess.run`, calls `from_lint(tmp_path)`, and asserts the captured
-   `env` kwarg contains `"GIT_TERMINAL_PROMPT": "0"`.
+## Next
 
 ## Rules
 
