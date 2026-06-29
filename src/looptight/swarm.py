@@ -290,10 +290,16 @@ def _task_paths(root: Path, task: dict[str, str | None]) -> set[str]:
                 if (root / parent_counterpart).is_file():
                     paths.add(parent_counterpart.as_posix())
         elif path.suffix in _JS_TS_SUFFIXES and path.stem.endswith((".test", ".spec")):
-            # Reverse map for a JS/TS test: the module under test is the colocated source.
-            source = path.with_name(f"{path.stem.rsplit('.', 1)[0]}{path.suffix}")
-            if (root / source).is_file():
-                paths.add(source.as_posix())
+            # Reverse map for a JS/TS test: the module under test is the colocated source, or — for a
+            # test inside a __tests__/ directory — the same-named source in the parent dir (symmetric
+            # with the forward __tests__/ allowance).
+            src_name = f"{path.stem.rsplit('.', 1)[0]}{path.suffix}"
+            candidates = [path.with_name(src_name)]
+            if path.parent.name == "__tests__":
+                candidates.append(path.parent.parent / src_name)
+            for source in candidates:
+                if (root / source).is_file():
+                    paths.add(source.as_posix())
         elif path.suffix in _JS_TS_SUFFIXES:
             # JS/TS put the test either beside the source (foo.test.ts / foo.spec.ts) or in a
             # sibling __tests__/ directory (__tests__/foo.test.ts) — both common; allow whichever

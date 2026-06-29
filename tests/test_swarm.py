@@ -1143,6 +1143,18 @@ def test_task_paths_reverse_maps_js_test_to_colocated_source(tmp_path):
     assert "src/api.test.ts" in paths and "src/api.ts" in paths
 
 
+def test_task_paths_reverse_maps_js_tests_dir_to_parent_source(tmp_path):
+    # A test inside __tests__/ has its source in the parent dir (src/__tests__/api.test.ts -> src/api.ts).
+    from looptight.swarm import _task_paths
+
+    (tmp_path / "src" / "__tests__").mkdir(parents=True)
+    (tmp_path / "src" / "api.ts").write_text("x", encoding="utf-8")
+    (tmp_path / "src" / "__tests__" / "api.test.ts").write_text("x", encoding="utf-8")
+
+    paths = _task_paths(tmp_path, {"location": "S:1", "evidence": "Evidence: `src/__tests__/api.test.ts:2`"})
+    assert "src/api.ts" in paths
+
+
 def test_task_paths_test_counterpart_works_for_flat_python_layout(tmp_path):
     # Not every project uses a src/ layout. A flat package (mypackage/foo.py) or a top-level module
     # (app.py) keeps its test at tests/test_{stem}.py, so a worker must be allowed to edit it.
