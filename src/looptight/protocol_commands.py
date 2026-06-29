@@ -444,16 +444,27 @@ def _verify_policy_error(command: str, config, workdir: Path) -> str | None:
 def cmd_migrate(args: argparse.Namespace, console: Console) -> int:
     """Activate the repository coordinator, migrating from legacy file claims."""
     workdir = Path.cwd()
+
+    def _error(message: str) -> int:
+        # Honor the --json contract on the error paths too: a machine consumer must get a JSON
+        # envelope, not plain text it cannot parse (matching every other --json command).
+        if args.json:
+            print(json.dumps(
+                {"schema_version": 1, "command": "migrate", "status": "error", "error": message},
+                sort_keys=True,
+            ))
+        else:
+            console.print(f"[red]{message}[/red]")
+        return 2
+
     coordinator = Coordinator.open(workdir)
     if coordinator is None:
-        console.print("[red]migrate requires a Git repository.[/red]")
-        return 2
+        return _error("migrate requires a Git repository.")
     already_active = (coordinator.path.parent / MARKER_NAME).is_file()
     try:
         coordinator.activate_from_legacy()
     except MigrationBlocked as exc:
-        console.print(f"[red]cannot activate the coordinator:[/red] {exc}")
-        return 2
+        return _error(f"cannot activate the coordinator: {exc}")
     finally:
         coordinator.close()
     if args.json:

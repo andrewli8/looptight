@@ -2105,6 +2105,12 @@ existing CLI session and makes no model or API calls of its own.
   `readiness next:`/`next:` fix. Found by dogfooding cross-worktree claims. Covered by a
   suppression test.
 
+- `migrate --json` emits a JSON error envelope (`status: error`, `error: <msg>`) on its failure
+  paths — outside a Git repo and the live-legacy-claim refusal — instead of plain text a machine
+  consumer cannot parse, matching every other `--json` command (the success path already did). A
+  shared `_error` helper covers both. Found by dogfooding `migrate` fencing a live legacy claim.
+  Covered by a JSON-envelope test for both error paths.
+
 ## Next
 
 ## Rules

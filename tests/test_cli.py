@@ -2259,6 +2259,27 @@ def test_migrate_outside_git_errors(tmp_path, monkeypatch, capsys):
     assert "Git repository" in capsys.readouterr().out
 
 
+def test_migrate_json_emits_envelope_on_error_paths(tmp_path, monkeypatch, capsys):
+    # `migrate --json` must emit a parseable JSON error envelope on its failure paths, not plain
+    # text — matching every other --json command. Both not-git and the live-legacy-claim refusal.
+    monkeypatch.chdir(tmp_path)
+    assert main(["migrate", "--json"]) == 2  # not a git repo
+    data = json.loads(capsys.readouterr().out)
+    assert data["command"] == "migrate" and data["status"] == "error"
+    assert "Git repository" in data["error"] and data["schema_version"] == 1
+
+    subprocess.run(["git", "init", "-q"], check=True)
+    claims = tmp_path / ".git" / "looptight" / "claims"
+    claims.mkdir(parents=True)
+    (claims / "t.json").write_text(
+        json.dumps({"schema_version": 1, "task_id": "t", "owner": "o", "claimed_at": 9_999_999_999}),
+        encoding="utf-8",
+    )
+    assert main(["migrate", "--json"]) == 2  # live legacy claim blocks activation
+    data = json.loads(capsys.readouterr().out)
+    assert data["status"] == "error" and "legacy" in data["error"]
+
+
 def test_status_human_output_shows_coordinator_counts(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
