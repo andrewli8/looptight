@@ -2083,14 +2083,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-Surfaced design decision (dogfound this session, NOT autopatched — needs a maintainer call):
-
-1. `max_iterations` is a half-wired Config field: read by `loop.py`/`hook.py` and CLI-settable, but
-   `config.from_dict` never parses it, so it is config-inert and untyped (`max_iterations = "abc"`
-   is silently accepted). Making it config-settable is blocked on unifying its `0`-semantics, which
-   today differ across goal (`0` = unlimited), run/swarm/daemon (`_positive_int`, `≥1`), and the
-   loop's `range` (`0` = no iterations). Decide config-settability + one `0` meaning.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
