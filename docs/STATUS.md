@@ -2146,6 +2146,14 @@ existing CLI session and makes no model or API calls of its own.
   `tests/test_{stem}.py` (with `tests/test_{parent}.py` as the nested fallback), so a worker on a
   non-`src` project is no longer falsely rejected for editing its test. Covered by a flat-layout test.
 
+- Swarm task-scope reverse-maps a test back to the module under test (you chose the glob approach): a
+  skipped-test task's evidence is the test file, but its acceptance ("un-skip and pass project
+  verification") can require editing the code, so `_task_paths` now allows it. For a Python
+  `tests/test_foo.py` it globs the repo (pruning vendored/test dirs) and adds the source ONLY when
+  exactly one `foo.py` exists — ambiguous common names (`test_utils.py` -> many `utils.py`) add
+  nothing, keeping scope tight. JS `foo.test.ts`/`foo.spec.ts` maps to the colocated `foo.ts`.
+  Covered by unambiguous/ambiguous/JS reverse tests.
+
 - `install-hook --uninstall` fully restores the settings file instead of leaving a dangling empty
   `"Stop": []` (and `"hooks": {}`): when looptight's was the only Stop hook, the emptied list and
   an emptied hooks object are now pruned — symmetric with `install` creating them — so uninstall

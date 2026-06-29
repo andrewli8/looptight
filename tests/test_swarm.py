@@ -1102,6 +1102,47 @@ def test_task_paths_includes_colocated_js_ts_test_counterpart(tmp_path):
     assert "src/foo.spec.ts" not in paths  # absent counterparts are not invented
 
 
+def test_task_paths_reverse_maps_test_to_its_unambiguous_source(tmp_path):
+    # A skipped-test task's evidence IS the test, but its acceptance ("un-skip and pass project
+    # verification") can need editing the module under test. Allow the unambiguous source module.
+    from looptight.swarm import _task_paths
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "parser.py").write_text("x", encoding="utf-8")  # the one module under test
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_parser.py").write_text("x", encoding="utf-8")
+
+    paths = _task_paths(tmp_path, {"location": "S:1", "evidence": "Evidence: `tests/test_parser.py:3`"})
+    assert "tests/test_parser.py" in paths and "src/parser.py" in paths
+
+
+def test_task_paths_reverse_is_conservative_when_source_is_ambiguous(tmp_path):
+    # Two modules named utils.py: the test->source mapping is ambiguous, so neither is added (we do
+    # not open every same-named file in the repo to a worker's scope). The test file stays in scope.
+    from looptight.swarm import _task_paths
+
+    for pkg in ("a", "b"):
+        (tmp_path / pkg).mkdir()
+        (tmp_path / pkg / "utils.py").write_text("x", encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_utils.py").write_text("x", encoding="utf-8")
+
+    paths = _task_paths(tmp_path, {"location": None, "evidence": "Evidence: `tests/test_utils.py:1`"})
+    assert "tests/test_utils.py" in paths  # the evidence test stays in scope
+    assert "a/utils.py" not in paths and "b/utils.py" not in paths  # ambiguous source not added
+
+
+def test_task_paths_reverse_maps_js_test_to_colocated_source(tmp_path):
+    from looptight.swarm import _task_paths
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "api.ts").write_text("x", encoding="utf-8")
+    (tmp_path / "src" / "api.test.ts").write_text("x", encoding="utf-8")
+
+    paths = _task_paths(tmp_path, {"location": "S:1", "evidence": "Evidence: `src/api.test.ts:2`"})
+    assert "src/api.test.ts" in paths and "src/api.ts" in paths
+
+
 def test_task_paths_test_counterpart_works_for_flat_python_layout(tmp_path):
     # Not every project uses a src/ layout. A flat package (mypackage/foo.py) or a top-level module
     # (app.py) keeps its test at tests/test_{stem}.py, so a worker must be allowed to edit it.

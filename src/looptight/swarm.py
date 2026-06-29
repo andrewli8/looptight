@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import json
+import os
 import secrets
 import subprocess
 import time
@@ -17,7 +18,7 @@ from .adapters.base import stop_active_processes
 from .config import Config, load_config
 from .console import Console
 from .detect import detect_agent, detect_verify
-from .discovery import Candidate, from_status_next
+from .discovery import _PRUNE_DIRS, Candidate, from_status_next
 from .grounding import evidence_refs, strip_anchor_decoration
 from .limits import (
     DEFAULT_LIMIT_BACKOFF,
@@ -235,6 +236,23 @@ def _remove_worker_worktree(root: Path, worktree: Path) -> subprocess.CompletedP
     return removed
 
 
+def _reverse_source_paths(root: Path, test_rel: Path, source_name: str) -> set[str]:
+    """The module a ``tests/test_{name}.py`` test covers, found by name across the repo (pruning
+    vendored and test directories). Returned only when exactly one candidate exists, so an
+    ambiguous common name (``test_utils.py`` -> many ``utils.py``) does not open unrelated files
+    to a worker's scope; zero or many matches add nothing."""
+    matches: list[str] = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in _PRUNE_DIRS and d not in ("tests", "test")]
+        if source_name in filenames:
+            rel = (Path(dirpath) / source_name).relative_to(root)
+            if rel != test_rel:
+                matches.append(rel.as_posix())
+                if len(matches) > 1:
+                    return set()  # ambiguous — stop early, add nothing
+    return {matches[0]} if len(matches) == 1 else set()
+
+
 def _task_paths(root: Path, task: dict[str, str | None]) -> set[str]:
     """Return grounded paths that may be changed while completing ``task``."""
     paths: set[str] = set()
@@ -254,7 +272,13 @@ def _task_paths(root: Path, task: dict[str, str | None]) -> set[str]:
             continue
         relative = path.as_posix()
         paths.add(relative)
-        if path.suffix == ".py":
+        if path.suffix == ".py" and path.name.startswith("test_"):
+            # Reverse map: a skipped-test task's evidence IS the test, and its acceptance is to
+            # un-skip and pass project verification — which can need editing the module under test.
+            # Glob for that module; allow only an unambiguous single match so a common name
+            # (test_utils.py) does not open every utils.py in the repo to edit.
+            paths.update(_reverse_source_paths(root, path, f"{path.name[len('test_'):]}"))
+        elif path.suffix == ".py":
             # Allow the test counterpart for any layout, not just src/* — a flat package
             # (mypackage/foo.py) or a top-level module (foo.py) keeps its test at
             # tests/test_{stem}.py too, with tests/test_{parent}.py as the nested fallback.
@@ -265,6 +289,11 @@ def _task_paths(root: Path, task: dict[str, str | None]) -> set[str]:
                 parent_counterpart = Path("tests") / f"test_{path.parts[-2]}.py"
                 if (root / parent_counterpart).is_file():
                     paths.add(parent_counterpart.as_posix())
+        elif path.suffix in _JS_TS_SUFFIXES and path.stem.endswith((".test", ".spec")):
+            # Reverse map for a JS/TS test: the module under test is the colocated source.
+            source = path.with_name(f"{path.stem.rsplit('.', 1)[0]}{path.suffix}")
+            if (root / source).is_file():
+                paths.add(source.as_posix())
         elif path.suffix in _JS_TS_SUFFIXES:
             # JS/TS put the test either beside the source (foo.test.ts / foo.spec.ts) or in a
             # sibling __tests__/ directory (__tests__/foo.test.ts) — both common; allow whichever
