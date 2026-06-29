@@ -1086,6 +1086,22 @@ def test_task_paths_falls_back_to_parent_dir_counterpart(tmp_path):
     assert "tests/test_adapters.py" in paths
 
 
+def test_task_paths_includes_colocated_js_ts_test_counterpart(tmp_path):
+    # A JS/TS worker whose evidence is a source file must be allowed to edit its colocated test
+    # (foo.test.ts / foo.spec.ts beside the source), not just Python's tests/test_*.py layout —
+    # else it is falsely rejected as "changed files outside task scope".
+    from looptight.swarm import _task_paths
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "foo.ts").write_text("x", encoding="utf-8")
+    (tmp_path / "src" / "foo.test.ts").write_text("x", encoding="utf-8")
+    # no foo.spec.ts on disk — only the present counterpart is allowed
+
+    paths = _task_paths(tmp_path, {"location": "docs/STATUS.md:1", "evidence": "Evidence: `src/foo.ts:1`"})
+    assert "src/foo.ts" in paths and "src/foo.test.ts" in paths
+    assert "src/foo.spec.ts" not in paths  # absent counterparts are not invented
+
+
 def test_planned_tasks_grounded_tolerates_bold_evidence_marker(tmp_path):
     # The planner check must share the gate's marker tolerance: a bold marker
     # (``**Evidence:** `path` ``) should still ground, not be rejected because a

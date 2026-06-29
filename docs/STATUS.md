@@ -2130,6 +2130,12 @@ existing CLI session and makes no model or API calls of its own.
   of every git subprocess. Covered by a `cmd_revert` env test mirroring the existing status/doctor
   ones.
 
+- Swarm task-scope now includes colocated JS/TS test counterparts: a worker whose evidence is a
+  `.ts`/`.tsx`/`.js`/`.jsx`/`.mts`/`.cts`/`.mjs`/`.cjs` file may also edit the same-directory
+  `{stem}.test.{ext}` / `{stem}.spec.{ext}` (when present on disk) without being falsely rejected
+  as "changed files outside task scope" — mirroring the existing `src/*.py` → `tests/test_*.py`
+  allowance. Found by dogfooding the out-of-scope rejection path. Covered by a `_task_paths` test.
+
 ## Next
 
 ## Rules

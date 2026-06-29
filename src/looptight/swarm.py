@@ -60,6 +60,10 @@ REASON_LIMIT = "limit"
 REASON_ERROR = "error"
 SCHEMA_VERSION = 1
 
+#: JS/TS source extensions whose colocated `{stem}.test.{ext}`/`{stem}.spec.{ext}` test counterpart
+#: is allowed within a task's scope (the analogue of the src/*.py -> tests/test_*.py allowance).
+_JS_TS_SUFFIXES = frozenset({".ts", ".tsx", ".js", ".jsx", ".mts", ".cts", ".mjs", ".cjs"})
+
 
 @dataclass
 class Worker:
@@ -258,6 +262,13 @@ def _task_paths(root: Path, task: dict[str, str | None]) -> set[str]:
                 parent_counterpart = Path("tests") / f"test_{path.parts[-2]}.py"
                 if (root / parent_counterpart).is_file():
                     paths.add(parent_counterpart.as_posix())
+        elif path.suffix in _JS_TS_SUFFIXES:
+            # JS/TS colocate the test beside the source (foo.test.ts / foo.spec.ts), so allow that
+            # counterpart too — the analogue of the src/*.py -> tests/test_*.py allowance above.
+            for infix in (".test", ".spec"):
+                counterpart = path.with_name(f"{path.stem}{infix}{path.suffix}")
+                if (root / counterpart).is_file():
+                    paths.add(counterpart.as_posix())
     return paths
 
 
