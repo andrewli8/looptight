@@ -2214,16 +2214,13 @@ existing CLI session and makes no model or API calls of its own.
   `allowed_verify_commands = ["pytest -q"]` and asserts `status` human output contains
   "1 allowed verify command" — the last safety-rail branch previously untested; no production
   code change.
+- `Candidate.render()` dead code removed from `src/looptight/discovery.py:58`: the method was
+  defined but never called in production or tests; removing it keeps the module small and the
+  full test suite passes with no new failures.
 
 ## Next
 
-1. `Candidate.render()` is dead code: defined at discovery.py:58 but never called in production
-   or tests; it's maintenance burden in a module meant to stay small.
-   Evidence: `src/looptight/discovery.py:58`
-   Acceptance: method removed; `ruff check` and the full test suite pass with no failures or new
-   skips.
-
-3. `cmd_hook`'s write-to-stdout branch is uncovered: when the Stop hook has a decision to emit
+1. `cmd_hook`'s write-to-stdout branch is uncovered: when the Stop hook has a decision to emit
    (a loop-continuation directive), `cmd_hook` must write it to stdout — but the only existing
    test uses a dormant hook where output is always empty, leaving the core feature path untested.
    Evidence: `src/looptight/commands.py:619`
@@ -2231,7 +2228,7 @@ existing CLI session and makes no model or API calls of its own.
    monkeypatches `run_hook` to return `("directive-json", 0)` and asserts the string appears on
    stdout.
 
-4. `_watch_status`'s clear-screen branch is uncovered: real usage always clears the terminal on
+2. `_watch_status`'s clear-screen branch is uncovered: real usage always clears the terminal on
    each tick (`clear=True` default in `_watch_status`), but every test call passes `clear=False`,
    leaving the ANSI escape emission — the visible live-refresh behavior — untested.
    Evidence: `src/looptight/protocol_commands.py:503`

@@ -55,10 +55,6 @@ class Candidate:
     detail: str = ""
     acceptance: str = ""
 
-    def render(self) -> str:
-        where = f"  [{self.location}]" if self.location else ""
-        return f"[{self.source}] {self.title}{where}"
-
 
 # JavaScript/TypeScript family extensions scanned for TODO markers. Discovery is
 # Python-first, but most real repos are polyglot; surfacing JS/TS markers keeps
