@@ -3371,6 +3371,17 @@ def test_git_common_dir_sets_terminal_prompt_env(tmp_path):
     assert captured.get("env", {}).get("GIT_TERMINAL_PROMPT") == "0"
 
 
+def test_coordinator_activation_returns_unknown_when_git_common_dir_fails(tmp_path, monkeypatch):
+    # protocol_commands.py:797-798 — when the workspace is not "not_git" but
+    # _git_common_dir returns None (e.g. git subprocess error), the result must
+    # be "unknown" so callers can distinguish this from a healthy "active" store.
+    import looptight.protocol_commands as pc
+
+    monkeypatch.setattr(pc, "_git_common_dir", lambda _path: None)
+    result = pc._coordinator_activation(tmp_path, "clean")
+    assert result == "unknown"
+
+
 def test_cmd_status_git_sets_terminal_prompt_env(tmp_path, monkeypatch, capsys):
     # cmd_status's `git status --porcelain` must pass GIT_TERMINAL_PROMPT=0 so
     # `looptight status` cannot block on a credential prompt in a headless session.

@@ -2365,13 +2365,6 @@ existing CLI session and makes no model or API calls of its own.
   (2 chars, ≤ 3) alongside a normal `" M src/a.py"` and asserts only the second entry is
   returned — the `if len(line) <= 3: continue` guard at line 392 was dead in all prior tests.
 
-4. `_coordinator_activation` returns `"unknown"` (protocol_commands.py:798) when workspace
-   is not `"not_git"` but `_git_common_dir` returns `None`; no test covers this divergent case.
-   Evidence: src/looptight/protocol_commands.py:797
-   Acceptance: `test_coordinator_activation_returns_unknown_when_git_common_dir_fails` passes:
-   monkeypatch `protocol_commands._git_common_dir` to return `None`, call
-   `_coordinator_activation(tmp_path, "clean")`, assert result is `"unknown"`.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
