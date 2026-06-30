@@ -2365,16 +2365,7 @@ existing CLI session and makes no model or API calls of its own.
   (2 chars, ≤ 3) alongside a normal `" M src/a.py"` and asserts only the second entry is
   returned — the `if len(line) <= 3: continue` guard at line 392 was dead in all prior tests.
 
-1. `cmd_install_hook` returns exit-code 1 and prints the ValueError message when `install()`
-   raises (e.g., settings file contains invalid JSON) — commands.py:654 is the catch clause;
-   no test exercises this user-visible error path.
-   Evidence: src/looptight/commands.py:654
-   Acceptance: `test_install_hook_prints_error_and_returns_1_on_invalid_settings_json` passes:
-   write `{"hooks": []}` (hooks is a list, not a dict) to `.claude/settings.json`, call
-   `main(["install-hook", "--project"])`, assert return code is 1 and the output contains
-   the ValueError message ("refusing to edit").
-
-2. `cmd_verify`'s `write_verdict` failure is silently swallowed (protocol_commands.py:57):
+1. `cmd_verify`'s `write_verdict` failure is silently swallowed (protocol_commands.py:57):
    the `except Exception: pass` block never lets verify fail due to UI bookkeeping, but
    no test confirms the swallow actually holds — a crashing `write_verdict` could hide a
    regression in future.

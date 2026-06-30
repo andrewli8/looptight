@@ -2683,6 +2683,24 @@ def test_install_hook_message_is_scope_accurate(tmp_path, monkeypatch, capsys):
     assert "any repo" in capsys.readouterr().out.lower()
 
 
+def test_install_hook_prints_error_and_returns_1_on_invalid_settings_json(tmp_path, monkeypatch, capsys):
+    # commands.py:654 — when install() raises ValueError (e.g. a settings file whose
+    # `hooks` key is a list instead of an object), cmd_install_hook must print the error
+    # and return exit code 1 rather than crashing or silently succeeding.
+    import json
+
+    monkeypatch.chdir(tmp_path)
+    claude_dir = tmp_path / ".claude"
+    claude_dir.mkdir()
+    (claude_dir / "settings.json").write_text(
+        json.dumps({"hooks": []}), encoding="utf-8"
+    )
+
+    assert main(["install-hook", "--project"]) == 1
+    out = capsys.readouterr().out
+    assert "refusing to edit" in out
+
+
 def test_run_guard_fails_without_agent_or_verify(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
