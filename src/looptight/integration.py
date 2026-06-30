@@ -71,6 +71,8 @@ def _install_block(root: Path, block: str, start: str, end: str) -> list[Path]:
             continue
         try:
             currents[name] = path.read_text(encoding="utf-8")
+        except OSError as exc:
+            raise ConfigError(f"{path} cannot be read: {exc}") from None
         except ValueError:
             raise ConfigError(
                 f"{path} is not UTF-8 text; re-save it as UTF-8 before integrating."

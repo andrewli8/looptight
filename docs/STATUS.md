@@ -2320,18 +2320,17 @@ existing CLI session and makes no model or API calls of its own.
   in `tests/test_cli.py` passes `"not valid json"` on stdin and asserts exit code 0 with output
   starting `"looptight:"`, so a regression propagating the parse exception is caught.
 
-## Next
+- `_install_block`'s `read_text` in `integration.py` now catches `OSError` (a separate `except`
+  clause before `ValueError`) and raises `ConfigError` with the path and OS message, matching the
+  fault-tolerance pattern used in every other `read_text` call in the codebase. The gap was that
+  a CLAUDE.md / AGENTS.md that exists but is unreadable (wrong permissions, is a directory, etc.)
+  previously propagated the raw OS error as an unhandled exception rather than a clean user message.
+  `test_install_raises_config_error_on_unreadable_file` in `tests/test_integration.py` pins this:
+  it replaces CLAUDE.md with a same-name directory (triggering `IsADirectoryError`, a subclass of
+  `OSError`), calls `install_session_instructions`, and asserts `ConfigError` is raised with the
+  path in the message and that AGENTS.md was not written first.
 
-1. Fix `_install_block` in `integration.py` to catch `OSError` as well as `ValueError` when
-   reading CLAUDE.md / AGENTS.md: a file that exists but is unreadable (e.g. wrong permissions
-   or is a directory) currently propagates a raw `PermissionError` / `IsADirectoryError` traceback
-   instead of a clean `ConfigError` naming the path. Every other `read_text` in the codebase that
-   needs fault-tolerance uses `except (OSError, ValueError):`; this path was missed.
-   Evidence: src/looptight/integration.py:73
-   Acceptance: `test_install_raises_config_error_on_unreadable_file` passes — replacing CLAUDE.md
-   with a directory (so `read_text` raises `IsADirectoryError`, a subclass of `OSError`) and
-   calling `install_session_instructions` raises `ConfigError` with the path in the message rather
-   than propagating the raw OS error.
+## Next
 
 ## Rules
 

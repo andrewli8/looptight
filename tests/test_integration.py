@@ -88,6 +88,20 @@ def test_install_raises_clear_error_on_non_utf8_file_without_partial_write(tmp_p
     assert not (tmp_path / "AGENTS.md").exists()
 
 
+def test_install_raises_config_error_on_unreadable_file(tmp_path):
+    # A CLAUDE.md that exists but cannot be read (here: replaced by a directory so
+    # read_text raises IsADirectoryError, a subclass of OSError) must produce a clear
+    # ConfigError naming the path, not propagate the raw OS error.
+    claude = tmp_path / "CLAUDE.md"
+    claude.mkdir()
+
+    with pytest.raises(ConfigError) as exc:
+        install_session_instructions(tmp_path)
+
+    assert "CLAUDE.md" in str(exc.value)
+    assert not (tmp_path / "AGENTS.md").exists()
+
+
 def test_install_writes_managed_block_atomically(tmp_path, monkeypatch):
     # An interrupted write must not corrupt a user's instructions file: if the
     # rename fails, the original AGENTS.md is intact and no .tmp is left behind.
