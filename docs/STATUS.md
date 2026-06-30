@@ -2295,6 +2295,11 @@ existing CLI session and makes no model or API calls of its own.
   the path that sets `git = None` so `workspace` resolves to `"not_git"`. The prior tests used
   a non-git `tmp_path` where git returns a non-zero returncode, not an OSError.
 
+- `detect_verify`'s fallback pytest heuristic's `test/` (singular) directory entry
+  (`detect.py:114`) now has direct coverage: `test_detect_verify_pytest_from_test_singular_dir`
+  in `tests/test_detect.py` creates a `test/` directory with a `test_thing.py` file and
+  asserts `detect_verify` returns `"pytest -q"`, so a regression removing that entry is caught.
+
 ## Next
 
 - `detect_verify`'s `.fsproj` and `.vbproj` .NET project-type branches now have
@@ -2305,15 +2310,7 @@ existing CLI session and makes no model or API calls of its own.
   coverage: `test_is_python_verify_recognises_all_python_runners` added to
   `tests/test_cli.py`, importing the function directly.
 
-1. `detect_verify`'s fallback pytest heuristic iterates `(base, base/"tests",
-   base/"test")` at `detect.py:114` but the `test/` (singular) directory is not
-   covered by any test; a regression removing that entry would go undetected.
-   Evidence: src/looptight/detect.py:114
-   Acceptance: `test_detect_verify_pytest_from_test_singular_dir` in
-   tests/test_detect.py passes — creates a `test/` directory containing a
-   `test_thing.py` file and asserts `detect_verify` returns `"pytest -q"`.
-
-2. `detect_verify`'s fallback pytest heuristic matches both `test_*.py` (prefix)
+1. `detect_verify`'s fallback pytest heuristic matches both `test_*.py` (prefix)
    and `*_test.py` (suffix) at `detect.py:120`, but all existing tests use
    prefix-named files; the suffix glob is not exercised and a typo there would
    go undetected.
