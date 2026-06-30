@@ -2322,6 +2322,17 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Fix `_install_block` in `integration.py` to catch `OSError` as well as `ValueError` when
+   reading CLAUDE.md / AGENTS.md: a file that exists but is unreadable (e.g. wrong permissions
+   or is a directory) currently propagates a raw `PermissionError` / `IsADirectoryError` traceback
+   instead of a clean `ConfigError` naming the path. Every other `read_text` in the codebase that
+   needs fault-tolerance uses `except (OSError, ValueError):`; this path was missed.
+   Evidence: src/looptight/integration.py:73
+   Acceptance: `test_install_raises_config_error_on_unreadable_file` passes — replacing CLAUDE.md
+   with a directory (so `read_text` raises `IsADirectoryError`, a subclass of `OSError`) and
+   calling `install_session_instructions` raises `ConfigError` with the path in the message rather
+   than propagating the raw OS error.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
