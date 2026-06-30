@@ -9,8 +9,19 @@ import subprocess
 import pytest
 
 from looptight.cli import build_parser, main
+from looptight.commands import _is_python_verify
 from looptight.protocol_commands import _verify_exit_code
 from looptight.propose import propose
+
+
+def test_is_python_verify_recognises_all_python_runners():
+    # All three branches (pytest / py.test / python -m) must match; a rename or
+    # typo in commands.py:61-63 would otherwise go undetected.
+    assert _is_python_verify("pytest -q")
+    assert _is_python_verify("py.test --tb=short")
+    assert _is_python_verify("python -m unittest discover")
+    assert not _is_python_verify("cargo test")
+    assert not _is_python_verify("go test ./...")
 
 
 def test_run_parser_accepts_resume_on_limit_flags():

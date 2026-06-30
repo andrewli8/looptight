@@ -2301,13 +2301,9 @@ existing CLI session and makes no model or API calls of its own.
   direct test coverage: `test_detect_verify_dotnet_fsproj_only` and
   `test_detect_verify_dotnet_vbproj_only` added to `tests/test_detect.py`.
 
-1. `_is_python_verify`'s `py.test` and `python -m` branches at `commands.py:61-63`
-   are not directly covered: only `pytest` is exercised via the `cmd_init`
-   integration path; a rename or typo in those strings would go undetected.
-   Evidence: src/looptight/commands.py:60
-   Acceptance: a new test in tests/test_cli.py imports `_is_python_verify` directly
-   and asserts True for `"py.test -q"` and `"python -m unittest"`, False for
-   `"cargo test"`.
+- `_is_python_verify`'s `py.test` and `python -m` branches now have direct unit
+  coverage: `test_is_python_verify_recognises_all_python_runners` added to
+  `tests/test_cli.py`, importing the function directly.
 
 ## Rules
 
