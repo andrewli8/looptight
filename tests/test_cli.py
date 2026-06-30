@@ -3360,6 +3360,33 @@ def test_cmd_doctor_git_sets_terminal_prompt_env(tmp_path, monkeypatch, capsys):
     )
 
 
+def test_doctor_git_oserror_reports_not_git(tmp_path, monkeypatch, capsys):
+    # cmd_doctor's subprocess.run call for `git status --porcelain` can raise OSError
+    # when git is not on PATH or the OS refuses the exec. The except OSError clause at
+    # commands.py:397-398 sets git=None so workspace becomes "not_git"; this was previously
+    # uncovered because tmp_path outside git returns a non-zero returncode, not an OSError.
+    from unittest.mock import patch
+
+    import looptight.commands as cmd_module
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".looptight.toml").write_text('verify = "exit 0"\n', encoding="utf-8")
+
+    real_run = subprocess.run
+
+    def fake_run(cmd, **kwargs):
+        if list(cmd[:3]) == ["git", "status", "--porcelain"]:
+            raise OSError("git not found")
+        return real_run(cmd, **kwargs)
+
+    with patch.object(cmd_module.subprocess, "run", fake_run):
+        exit_code = main(["doctor", "--json"])
+
+    data = json.loads(capsys.readouterr().out)
+    assert exit_code == 1  # OSError → workspace not_git → unsafe → exit 1
+    assert data.get("readiness", {}).get("checks", {}).get("git") == "not_git"
+
+
 # ── _active_task_identity coverage ───────────────────────────────────────────
 
 

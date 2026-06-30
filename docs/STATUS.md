@@ -2288,9 +2288,14 @@ existing CLI session and makes no model or API calls of its own.
   used `import pytest; pytest.skip(...)` which `_is_skip_line` does not detect, so
   `_inside_conditional` was never called.
 
-## Next
+- `cmd_doctor`'s `OSError` branch at `commands.py:397-398` (when `git status --porcelain`
+  raises `OSError`, e.g. git not on PATH) is covered: `test_doctor_git_oserror_reports_not_git`
+  in `tests/test_cli.py` monkeypatches `cmd_module.subprocess.run` to raise `OSError` for the
+  porcelain call and asserts `doctor --json` exits 1 with `readiness.checks.git == "not_git"` —
+  the path that sets `git = None` so `workspace` resolves to `"not_git"`. The prior tests used
+  a non-git `tmp_path` where git returns a non-zero returncode, not an OSError.
 
-3. `cmd_doctor`'s `OSError` branch when `git status --porcelain` fails to launch (commands.py:397-398) sets `git = None` → `workspace = "not_git"`, but is never exercised. A new test in `tests/test_cli.py` monkeypatches `commands.subprocess.run` to raise `OSError` and asserts `doctor --json` includes `"workspace"` with value `"not_git"` (or `"not a git repo"`) and exits 1. Evidence: `src/looptight/commands.py:397`; Acceptance: `test_doctor_git_oserror_reports_not_git` passes and line 397-398 are covered.
+## Next
 
 ## Rules
 
