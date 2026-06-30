@@ -34,6 +34,11 @@ def test_detect_verify_pytest_from_test_singular_dir(tmp_path):
     assert detect.detect_verify(tmp_path) == "pytest -q"
 
 
+def test_detect_verify_pytest_from_suffix_named_test_file(tmp_path):
+    (tmp_path / "calc_test.py").write_text("def test_add():\n    assert 1 + 1 == 2\n")
+    assert detect.detect_verify(tmp_path) == "pytest -q"
+
+
 def test_detect_verify_none_for_repo_without_tests_or_config(tmp_path):
     (tmp_path / "main.py").write_text("print('hi')\n")  # code, but no tests and no config
     assert detect.detect_verify(tmp_path) is None
