@@ -2273,6 +2273,12 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_comments()` and `_multiline_string_lines()` exception handlers (discovery.py:184-185, 199-200) are never exercised: the existing tests use `b'\x00'` which tokenize treats as an ERRORTOKEN, not an exception. Two new direct unit tests in `tests/test_propose.py` invoke `_comments` and `_multiline_string_lines` with an unclosed-triple-quote file (`b'"""'`), which raises `tokenize.TokenError`, asserting each returns its sentinel (no yield / empty set) without raising. Evidence: `src/looptight/discovery.py:184`; Acceptance: `test_comments_and_multiline_string_lines_handle_tokenize_error` in `tests/test_propose.py` passes and the previously-uncovered except clauses at lines 184 and 199 are reached.
+
+2. `_inside_conditional` blank-line and module-level paths (discovery.py:403, 406) are unreachable by any existing test. The existing `test_conditional_skip_with_blank_line_in_block_is_suppressed` uses `import pytest; pytest.skip(...)` which `_is_skip_line` does not detect, so `_inside_conditional` is never called. Two new tests in `tests/test_propose.py`: one where `pytest.skip(...)` starts the line inside an `if` with a blank line between (must be suppressed, line 403 fired); one where `pytest.skip(...)` starts a line with no enclosing guard (must be surfaced, line 406 fired). Evidence: `src/looptight/discovery.py:403`; Acceptance: both tests pass and lines 403 and 406 are covered.
+
+3. `cmd_doctor`'s `OSError` branch when `git status --porcelain` fails to launch (commands.py:397-398) sets `git = None` → `workspace = "not_git"`, but is never exercised. A new test in `tests/test_cli.py` monkeypatches `commands.subprocess.run` to raise `OSError` and asserts `doctor --json` includes `"workspace"` with value `"not_git"` (or `"not a git repo"`) and exits 1. Evidence: `src/looptight/commands.py:397`; Acceptance: `test_doctor_git_oserror_reports_not_git` passes and line 397-398 are covered.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
