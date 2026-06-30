@@ -2814,6 +2814,17 @@ def test_statusline_uses_project_dir_when_current_dir_absent(tmp_path, monkeypat
     assert "verified" in out
 
 
+def test_statusline_tolerates_stdin_read_oserror(monkeypatch, capsys):
+    # commands.py:587-588: OSError/ValueError from sys.stdin.read() must recover to raw="".
+    import types
+
+    fake_stdin = types.SimpleNamespace(isatty=lambda: False, read=lambda: (_ for _ in ()).throw(OSError("broken pipe")))
+    monkeypatch.setattr("sys.stdin", fake_stdin)
+    assert main(["statusline"]) == 0
+    out = capsys.readouterr().out.strip()
+    assert out.startswith("looptight:")
+
+
 def test_statusline_parser_registered():
     args = build_parser().parse_args(["statusline"])
     assert args.command == "statusline"

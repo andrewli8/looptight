@@ -2310,18 +2310,14 @@ existing CLI session and makes no model or API calls of its own.
   root `conftest.py` with no test files present and asserts `detect_verify` returns `"pytest -q"`,
   so a regression removing the `conftest.py` guard is caught independently of the file-glob branch.
 
+- `cmd_statusline`'s `OSError`/`ValueError` branch when `sys.stdin.read()` raises
+  (`commands.py:587-588`) now has direct coverage: `test_statusline_tolerates_stdin_read_oserror`
+  in `tests/test_cli.py` monkeypatches `sys.stdin.read` to raise `OSError` and asserts exit code 0
+  with output starting `"looptight:"`, so a regression propagating the exception is caught.
+
 ## Next
 
-1. `cmd_statusline`'s `OSError`/`ValueError` branch when `sys.stdin.read()` raises
-   (`commands.py:587-588`) has no direct test: the exception handler sets `raw = ""`
-   but no test injects an `OSError` into `sys.stdin.read`, so a regression silently
-   propagating the error rather than recovering would go undetected.
-   Evidence: src/looptight/commands.py:587
-   Acceptance: `test_statusline_tolerates_stdin_read_oserror` in tests/test_cli.py
-   passes — monkeypatches `sys.stdin.read` to raise `OSError`, asserts exit code 0
-   and output starts with `"looptight:"`.
-
-3. `cmd_statusline`'s `ValueError`/`TypeError` branch when JSON parsing fails
+1. `cmd_statusline`'s `ValueError`/`TypeError` branch when JSON parsing fails
    (`commands.py:600-601`) has no direct test: the exception handler falls back to
    `cwd`, but no test passes invalid JSON on stdin to exercise this path.
    Evidence: src/looptight/commands.py:600
