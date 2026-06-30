@@ -2332,6 +2332,28 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_verifier_quality` classifies `bun test`, `node --test`, and `mocha` as
+   `custom/unknown` instead of `unit`. All three are mainstream, unambiguous test
+   runners; `bun test` and `node --test` are the analogs of `deno test`/`mix test`
+   already in the list, and `mocha` is the historical Node default alongside jest/vitest.
+   A user who sets `verify = "bun test"` sees a misleading `verifier quality:
+   custom/unknown` in `status`, same as an arbitrary shell command.
+   Evidence: `src/looptight/protocol_commands.py:874`
+   Acceptance: `test_status_json_classifies_bun_node_test_and_mocha_as_unit` fails
+   before the fix and passes after; `protocol_commands.py` updated.
+
+2. `detect_verify` returns `pytest -q` for `uv`-managed Python projects (which
+   have both `pyproject.toml` and `uv.lock`), but the correct command is
+   `uv run pytest -q`. In a fresh uv-only environment pytest is not on PATH, so
+   `init` silently writes a verify command that fails on the very first `looptight
+   verify`. Found by running `detect_verify(Path("."))` in this repo, which has
+   `uv.lock`, and observing `"pytest -q"` even though the project's own config
+   uses `uv run pytest -q`.
+   Evidence: `src/looptight/detect.py:41`
+   Acceptance: `test_detect_verify_uv_lock_prefers_uv_run_pytest` fails before the fix
+   and passes after; `detect.py` updated so a `pyproject.toml` + `uv.lock` project
+   returns `uv run pytest -q`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
