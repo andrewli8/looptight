@@ -2339,19 +2339,15 @@ existing CLI session and makes no model or API calls of its own.
   it asserts each command classifies as `unit` via `status --json`, so a regression removing any
   of the three entries is caught independently.
 
-## Next
+- `detect_verify` now returns `uv run pytest -q` instead of `pytest -q` when both `pyproject.toml`
+  and `uv.lock` are present. In a fresh uv-only environment pytest is not on PATH, so `init` was
+  silently writing a verify command that fails on the very first `looptight verify`. The fix
+  intercepts the uv case before the generic `_VERIFY_RULES` loop.
+  `test_detect_verify_uv_lock_prefers_uv_run_pytest` in `tests/test_detect.py` pins this: it
+  creates both marker files in a tmp dir and asserts `detect_verify` returns `"uv run pytest -q"`,
+  so a regression to the bare command is caught directly.
 
-1. `detect_verify` returns `pytest -q` for `uv`-managed Python projects (which
-   have both `pyproject.toml` and `uv.lock`), but the correct command is
-   `uv run pytest -q`. In a fresh uv-only environment pytest is not on PATH, so
-   `init` silently writes a verify command that fails on the very first `looptight
-   verify`. Found by running `detect_verify(Path("."))` in this repo, which has
-   `uv.lock`, and observing `"pytest -q"` even though the project's own config
-   uses `uv run pytest -q`.
-   Evidence: `src/looptight/detect.py:41`
-   Acceptance: `test_detect_verify_uv_lock_prefers_uv_run_pytest` fails before the fix
-   and passes after; `detect.py` updated so a `pyproject.toml` + `uv.lock` project
-   returns `uv run pytest -q`.
+## Next
 
 ## Rules
 

@@ -12,6 +12,15 @@ def test_detect_verify_python_pyproject(tmp_path):
     assert detect.detect_verify(tmp_path) == "pytest -q"
 
 
+def test_detect_verify_uv_lock_prefers_uv_run_pytest(tmp_path):
+    # A uv-managed project has both pyproject.toml and uv.lock. In a fresh
+    # uv-only env pytest is not on PATH, so detect_verify must return
+    # "uv run pytest -q" rather than "pytest -q".
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n")
+    (tmp_path / "uv.lock").write_text("version = 1\n")
+    assert detect.detect_verify(tmp_path) == "uv run pytest -q"
+
+
 def test_detect_verify_pytest_from_test_files_without_config(tmp_path):
     # A plain pytest project (test files, no pyproject/setup.cfg/etc.) should be detected as
     # pytest rather than reported as "no test command detected".

@@ -74,6 +74,12 @@ def detect_verify(root: Path | None = None) -> str | None:
         except (ValueError, OSError):
             pass
 
+    # uv-managed projects have uv.lock alongside pyproject.toml. In a fresh
+    # uv-only environment pytest is not on PATH, so the correct command is
+    # `uv run pytest -q`, not the bare `pytest -q` that _VERIFY_RULES would return.
+    if (base / "pyproject.toml").is_file() and (base / "uv.lock").is_file():
+        return "uv run pytest -q"
+
     for marker, command in _VERIFY_RULES:
         if (base / marker).is_file():
             return command
