@@ -39,6 +39,13 @@ def test_detect_verify_pytest_from_suffix_named_test_file(tmp_path):
     assert detect.detect_verify(tmp_path) == "pytest -q"
 
 
+def test_detect_verify_pytest_from_conftest_only(tmp_path):
+    # detect.py:117-118: conftest.py alone (no test_*.py files) must be enough to detect pytest.
+    # The branch was only exercised with test_thing.py present, so this pins it directly.
+    (tmp_path / "conftest.py").write_text("")
+    assert detect.detect_verify(tmp_path) == "pytest -q"
+
+
 def test_detect_verify_none_for_repo_without_tests_or_config(tmp_path):
     (tmp_path / "main.py").write_text("print('hi')\n")  # code, but no tests and no config
     assert detect.detect_verify(tmp_path) is None

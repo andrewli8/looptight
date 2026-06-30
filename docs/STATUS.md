@@ -2305,18 +2305,14 @@ existing CLI session and makes no model or API calls of its own.
   creates a root `calc_test.py` file and asserts `detect_verify` returns `"pytest -q"`, so a
   typo in the suffix pattern would be caught.
 
+- `detect_verify`'s `conftest.py`-only detection branch (`detect.py:117-118`) now has direct
+  coverage: `test_detect_verify_pytest_from_conftest_only` in `tests/test_detect.py` creates a
+  root `conftest.py` with no test files present and asserts `detect_verify` returns `"pytest -q"`,
+  so a regression removing the `conftest.py` guard is caught independently of the file-glob branch.
+
 ## Next
 
-1. `detect_verify`'s `conftest.py`-only detection branch (`detect.py:117-118`) is
-   never directly exercised: the only test that creates a `conftest.py` also creates
-   a `test_thing.py`, so the `any(directory.glob("test_*.py"))` branch matches first;
-   a regression removing the `conftest.py` guard would go undetected.
-   Evidence: src/looptight/detect.py:117
-   Acceptance: `test_detect_verify_pytest_from_conftest_only` in tests/test_detect.py
-   passes — creates a root `conftest.py` (no test files present) and asserts
-   `detect_verify` returns `"pytest -q"`.
-
-2. `cmd_statusline`'s `OSError`/`ValueError` branch when `sys.stdin.read()` raises
+1. `cmd_statusline`'s `OSError`/`ValueError` branch when `sys.stdin.read()` raises
    (`commands.py:587-588`) has no direct test: the exception handler sets `raw = ""`
    but no test injects an `OSError` into `sys.stdin.read`, so a regression silently
    propagating the error rather than recovering would go undetected.
