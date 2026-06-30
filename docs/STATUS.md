@@ -2349,6 +2349,40 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `run_continuous_swarm` while-exit at `max_rounds` with workers succeeding is uncovered
+   (swarm.py:884 — the `return SwarmResult(...)` after the `while` loop — is only reached
+   when `max_rounds > 0`, workers complete in the final round, and the loop exits naturally;
+   the existing `test_continuous_swarm_returns_at_max_rounds_with_no_work` hits the inner
+   line 833 path instead).
+   Evidence: src/looptight/swarm.py:884
+   Acceptance: `test_continuous_swarm_exits_naturally_after_max_rounds_with_workers` passes:
+   monkeypatch `run_swarm` to return a merged worker on the first call, set `max_rounds=1`,
+   and assert `result.rounds == 1` and no `result.error`.
+
+2. `_session_panel`'s empty-goal guard at `ui.py:118` (`if not goal: return ""`) is uncovered:
+   a state with `manager.status == "session"` and `tasks[0].goal == ""` / `tasks[0].id == ""`
+   should return `""` rather than `"session: "`.
+   Evidence: src/looptight/ui.py:118
+   Acceptance: `test_session_panel_returns_empty_when_task_has_no_goal_or_id` passes: call
+   `_session_panel({"manager": {"status": "session"}, "tasks": [{"goal": "", "id": ""}]})`
+   and assert `== ""`.
+
+3. `_changed_entries` silently skips a `git status --short` line of ≤3 chars
+   (`protocol_commands.py:392-393`); this guard is unreachable by all current tests that
+   inject well-formed 4+-char lines.
+   Evidence: src/looptight/protocol_commands.py:393
+   Acceptance: `test_changed_entries_skips_short_git_status_lines` passes: monkeypatch
+   `subprocess.run` to return a status output whose first line is `"M "` (2 chars) and whose
+   second is a normal `" M  src/a.py"`, then assert `_changed_entries` returns one entry
+   (the normal line) and not the short one.
+
+4. `_coordinator_activation` returns `"unknown"` (protocol_commands.py:798) when workspace
+   is not `"not_git"` but `_git_common_dir` returns `None`; no test covers this divergent case.
+   Evidence: src/looptight/protocol_commands.py:797
+   Acceptance: `test_coordinator_activation_returns_unknown_when_git_common_dir_fails` passes:
+   monkeypatch `protocol_commands._git_common_dir` to return `None`, call
+   `_coordinator_activation(tmp_path, "clean")`, assert result is `"unknown"`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
