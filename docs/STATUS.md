@@ -2315,15 +2315,12 @@ existing CLI session and makes no model or API calls of its own.
   in `tests/test_cli.py` monkeypatches `sys.stdin.read` to raise `OSError` and asserts exit code 0
   with output starting `"looptight:"`, so a regression propagating the exception is caught.
 
-## Next
+- `cmd_statusline`'s `ValueError`/`TypeError` branch when JSON parsing fails
+  (`commands.py:600-601`) now has direct coverage: `test_statusline_tolerates_malformed_json_on_stdin`
+  in `tests/test_cli.py` passes `"not valid json"` on stdin and asserts exit code 0 with output
+  starting `"looptight:"`, so a regression propagating the parse exception is caught.
 
-1. `cmd_statusline`'s `ValueError`/`TypeError` branch when JSON parsing fails
-   (`commands.py:600-601`) has no direct test: the exception handler falls back to
-   `cwd`, but no test passes invalid JSON on stdin to exercise this path.
-   Evidence: src/looptight/commands.py:600
-   Acceptance: `test_statusline_tolerates_malformed_json_on_stdin` in tests/test_cli.py
-   passes — passes `"not valid json"` on stdin, asserts exit code 0 and output starts
-   with `"looptight:"`.
+## Next
 
 ## Rules
 

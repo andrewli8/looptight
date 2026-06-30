@@ -2825,6 +2825,16 @@ def test_statusline_tolerates_stdin_read_oserror(monkeypatch, capsys):
     assert out.startswith("looptight:")
 
 
+def test_statusline_tolerates_malformed_json_on_stdin(monkeypatch, capsys):
+    # commands.py:600-601: invalid JSON on stdin must fall back to cwd without raising.
+    import io
+
+    monkeypatch.setattr("sys.stdin", io.StringIO("not valid json"))
+    assert main(["statusline"]) == 0
+    out = capsys.readouterr().out.strip()
+    assert out.startswith("looptight:")
+
+
 def test_statusline_parser_registered():
     args = build_parser().parse_args(["statusline"])
     assert args.command == "statusline"
