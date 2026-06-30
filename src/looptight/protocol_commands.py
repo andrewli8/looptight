@@ -872,6 +872,7 @@ def _verifier_quality(command: str | None) -> dict[str, str]:
         tool in normalized
         for tool in (
             "pytest", "unittest", "npm test", "pnpm test", "yarn test", "vitest", "jest",
+            "bun test", "node --test", "mocha",
             # The unambiguous single-runner test commands detect_verify auto-selects
             # (detect.py): a project on one of these gets `unit`, not `custom/unknown`,
             # so looptight does not call its own detected test command unknown. make/

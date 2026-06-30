@@ -2330,19 +2330,18 @@ existing CLI session and makes no model or API calls of its own.
   `OSError`), calls `install_session_instructions`, and asserts `ConfigError` is raised with the
   path in the message and that AGENTS.md was not written first.
 
+- `_verifier_quality` now classifies `bun test`, `node --test`, and `mocha` as `unit` instead of
+  `custom/unknown`. All three are mainstream, unambiguous test runners — `bun test` and
+  `node --test` are the analogs of `deno test`/`mix test` already in the list, and `mocha` is
+  the historical Node default alongside jest/vitest. A user whose `verify` is `"bun test"` now
+  sees `verifier quality: unit` rather than a misleading `custom/unknown`.
+  `test_status_json_classifies_bun_node_test_and_mocha_as_unit` in `tests/test_cli.py` pins this:
+  it asserts each command classifies as `unit` via `status --json`, so a regression removing any
+  of the three entries is caught independently.
+
 ## Next
 
-1. `_verifier_quality` classifies `bun test`, `node --test`, and `mocha` as
-   `custom/unknown` instead of `unit`. All three are mainstream, unambiguous test
-   runners; `bun test` and `node --test` are the analogs of `deno test`/`mix test`
-   already in the list, and `mocha` is the historical Node default alongside jest/vitest.
-   A user who sets `verify = "bun test"` sees a misleading `verifier quality:
-   custom/unknown` in `status`, same as an arbitrary shell command.
-   Evidence: `src/looptight/protocol_commands.py:874`
-   Acceptance: `test_status_json_classifies_bun_node_test_and_mocha_as_unit` fails
-   before the fix and passes after; `protocol_commands.py` updated.
-
-2. `detect_verify` returns `pytest -q` for `uv`-managed Python projects (which
+1. `detect_verify` returns `pytest -q` for `uv`-managed Python projects (which
    have both `pyproject.toml` and `uv.lock`), but the correct command is
    `uv run pytest -q`. In a fresh uv-only environment pytest is not on PATH, so
    `init` silently writes a verify command that fails on the very first `looptight

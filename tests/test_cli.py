@@ -1338,6 +1338,27 @@ def test_status_json_classifies_detected_runners_as_unit(
         )
 
 
+def test_status_json_classifies_bun_node_test_and_mocha_as_unit(
+    tmp_path, monkeypatch, capsys
+):
+    # bun test, node --test, and mocha are mainstream unambiguous test runners
+    # that must classify as `unit`, not `custom/unknown`.
+    monkeypatch.chdir(tmp_path)
+    cases = {
+        "bun test": "unit",
+        "node --test": "unit",
+        "mocha": "unit",
+    }
+    for command, expected in cases.items():
+        (tmp_path / ".looptight.toml").write_text(f'verify = "{command}"\n')
+        assert main(["status", "--json"]) == 0
+        data = json.loads(capsys.readouterr().out)
+        assert data["verifier_quality"]["classification"] == expected, (
+            f"expected {expected!r} for {command!r}, "
+            f"got {data['verifier_quality']['classification']!r}"
+        )
+
+
 def test_status_json_classifies_tests_plus_lint_as_unit_not_lint_only(
     tmp_path, monkeypatch, capsys
 ):
