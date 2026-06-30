@@ -2365,6 +2365,42 @@ existing CLI session and makes no model or API calls of its own.
   (2 chars, ≤ 3) alongside a normal `" M src/a.py"` and asserts only the second entry is
   returned — the `if len(line) <= 3: continue` guard at line 392 was dead in all prior tests.
 
+1. `cmd_install_hook` returns exit-code 1 and prints the ValueError message when `install()`
+   raises (e.g., settings file contains invalid JSON) — commands.py:654 is the catch clause;
+   no test exercises this user-visible error path.
+   Evidence: src/looptight/commands.py:654
+   Acceptance: `test_install_hook_prints_error_and_returns_1_on_invalid_settings_json` passes:
+   write `{"hooks": []}` (hooks is a list, not a dict) to `.claude/settings.json`, call
+   `main(["install-hook", "--project"])`, assert return code is 1 and the output contains
+   the ValueError message ("refusing to edit").
+
+2. `cmd_verify`'s `write_verdict` failure is silently swallowed (protocol_commands.py:57):
+   the `except Exception: pass` block never lets verify fail due to UI bookkeeping, but
+   no test confirms the swallow actually holds — a crashing `write_verdict` could hide a
+   regression in future.
+   Evidence: src/looptight/protocol_commands.py:57
+   Acceptance: `test_verify_continues_despite_write_verdict_failure` passes: monkeypatch
+   `protocol_commands.write_verdict` (via `looptight.protocol_commands`) to raise
+   `OSError("disk full")`, run `main(["verify", "--json"])`, assert return is 0 (pass),
+   and JSON output contains `"status": "pass"`.
+
+3. `humanize_status` passes non-string values through unchanged (protocol_commands.py:523):
+   the `else value` branch is exercised in integration via `humanized_checks` but has no
+   dedicated unit test, leaving the identity contract unguarded.
+   Evidence: src/looptight/protocol_commands.py:522
+   Acceptance: `test_humanize_status_passes_non_string_values_through` passes: call
+   `humanize_status(42)`, `humanize_status(None)`, and `humanize_status(True)`, asserting
+   each is returned unchanged.
+
+4. `_watch_status` exits cleanly on KeyboardInterrupt (protocol_commands.py:509):
+   the `except KeyboardInterrupt: pass` block is reachable only when the sleep is
+   interrupted, but no test exercises this path — future refactors could accidentally
+   re-raise and break `looptight status --watch`.
+   Evidence: src/looptight/protocol_commands.py:509
+   Acceptance: `test_watch_status_exits_cleanly_on_keyboard_interrupt` passes: inject a
+   `sleep` that raises `KeyboardInterrupt`, call `_watch_status` with `max_ticks=0`,
+   assert `ticks == 1` (one panel was rendered before interrupt) and no exception escapes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
