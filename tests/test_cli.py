@@ -1875,6 +1875,24 @@ def test_changed_file_list_splits_renames_and_unquotes(tmp_path, monkeypatch):
     assert "plain.py" in files
 
 
+def test_changed_entries_skips_short_git_status_lines(tmp_path, monkeypatch):
+    # protocol_commands.py:392-393 — the `if len(line) <= 3: continue` guard skips lines
+    # that are too short to contain a path (e.g. a bare "??" or " M " with no path). This
+    # guard was dead in all prior tests, which only injected well-formed 4+-char lines.
+    from looptight import protocol_commands
+
+    def fake_run(*args, **kwargs):
+        class R:
+            returncode = 0
+            # "??" is 2 chars (≤ 3) → skipped; " M src/a.py" is a normal 2-char status + space + path
+            stdout = "??\n M src/a.py\n"
+        return R()
+
+    monkeypatch.setattr(protocol_commands.subprocess, "run", fake_run)
+    entries = protocol_commands._changed_entries(tmp_path)
+    assert entries == [["src/a.py"]]  # the short "??" line is skipped, normal line kept
+
+
 def test_verify_json_refuses_glob_protected_path_changes(tmp_path, monkeypatch, capsys):
     # A glob pattern in protected_paths must actually protect matching files, not
     # silently fail open (the `*` implies globbing).

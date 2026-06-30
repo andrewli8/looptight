@@ -2360,14 +2360,10 @@ existing CLI session and makes no model or API calls of its own.
   `_session_panel` with a session state whose task has `goal=""` and `id=""` and asserts
   `== ""` — reaching the `if not goal: return ""` branch that was previously dead.
 
-3. `_changed_entries` silently skips a `git status --short` line of ≤3 chars
-   (`protocol_commands.py:392-393`); this guard is unreachable by all current tests that
-   inject well-formed 4+-char lines.
-   Evidence: src/looptight/protocol_commands.py:393
-   Acceptance: `test_changed_entries_skips_short_git_status_lines` passes: monkeypatch
-   `subprocess.run` to return a status output whose first line is `"M "` (2 chars) and whose
-   second is a normal `" M  src/a.py"`, then assert `_changed_entries` returns one entry
-   (the normal line) and not the short one.
+- `_changed_entries`'s short-line skip is covered (`protocol_commands.py:393`):
+  `test_changed_entries_skips_short_git_status_lines` in test_cli.py injects a `"??"` line
+  (2 chars, ≤ 3) alongside a normal `" M src/a.py"` and asserts only the second entry is
+  returned — the `if len(line) <= 3: continue` guard at line 392 was dead in all prior tests.
 
 4. `_coordinator_activation` returns `"unknown"` (protocol_commands.py:798) when workspace
    is not `"not_git"` but `_git_common_dir` returns `None`; no test covers this divergent case.
