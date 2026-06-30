@@ -2349,15 +2349,11 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `run_continuous_swarm` while-exit at `max_rounds` with workers succeeding is uncovered
-   (swarm.py:884 — the `return SwarmResult(...)` after the `while` loop — is only reached
-   when `max_rounds > 0`, workers complete in the final round, and the loop exits naturally;
-   the existing `test_continuous_swarm_returns_at_max_rounds_with_no_work` hits the inner
-   line 833 path instead).
-   Evidence: src/looptight/swarm.py:884
-   Acceptance: `test_continuous_swarm_exits_naturally_after_max_rounds_with_workers` passes:
-   monkeypatch `run_swarm` to return a merged worker on the first call, set `max_rounds=1`,
-   and assert `result.rounds == 1` and no `result.error`.
+- `run_continuous_swarm`'s while-exit at `max_rounds` with workers is covered:
+  `test_continuous_swarm_exits_naturally_after_max_rounds_with_workers` in test_swarm.py
+  monkeypatches `run_swarm` to return a merged worker, sets `max_rounds=1`, and asserts
+  `result.rounds == 1` and no `result.error` — reaching swarm.py:884, the only path the
+  while-condition fallthrough produces (the inner line-833 early return serves the no-work case).
 
 2. `_session_panel`'s empty-goal guard at `ui.py:118` (`if not goal: return ""`) is uncovered:
    a state with `manager.status == "session"` and `tasks[0].goal == ""` / `tasks[0].id == ""`

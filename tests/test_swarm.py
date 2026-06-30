@@ -1782,3 +1782,30 @@ def test_task_paths_safety_guards(tmp_path):
     # line 272: `..`-containing path is rejected (continue)
     paths = _task_paths(tmp_path, {"location": None, "evidence": "Evidence: ../evil.py:1"})
     assert paths == set()
+
+
+def test_continuous_swarm_exits_naturally_after_max_rounds_with_workers(tmp_path, monkeypatch):
+    # swarm.py:884 — the `return SwarmResult(...)` after the while loop — is reached when
+    # max_rounds > 0 and workers succeed in the final round (so `continue` brings the loop
+    # back to the while condition, which is now False). The existing max-rounds test uses an
+    # empty round (no workers), which hits the early return at line 833 instead.
+    merged_worker = Worker(
+        1,
+        {"id": "task-1", "source": "status-next", "goal": "cover line 884", "location": None},
+        "branch",
+        tmp_path / "worker",
+        "base",
+        status="merged",
+    )
+    monkeypatch.setattr(
+        "looptight.swarm.run_swarm",
+        lambda *args, **kwargs: SwarmResult((merged_worker,)),
+    )
+
+    result = run_continuous_swarm(
+        tmp_path, agent="fake", config=Config(verify="exit 0"), workers=1, max_rounds=1
+    )
+
+    assert result.rounds == 1
+    assert result.error is None
+    assert merged_worker in result.workers
