@@ -2297,15 +2297,11 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `detect_verify`'s `.fsproj` and `.vbproj` .NET project-type branches are not
-   directly tested: only `.sln` and `.csproj` have sibling tests; a regression
-   removing those extensions would not be caught.
-   Evidence: src/looptight/detect.py:92
-   Acceptance: two new tests in tests/test_detect.py pass — one asserting a lone
-   `.fsproj` file maps to `dotnet test`, one asserting a lone `.vbproj` file maps
-   to `dotnet test`.
+- `detect_verify`'s `.fsproj` and `.vbproj` .NET project-type branches now have
+  direct test coverage: `test_detect_verify_dotnet_fsproj_only` and
+  `test_detect_verify_dotnet_vbproj_only` added to `tests/test_detect.py`.
 
-2. `_is_python_verify`'s `py.test` and `python -m` branches at `commands.py:61-63`
+1. `_is_python_verify`'s `py.test` and `python -m` branches at `commands.py:61-63`
    are not directly covered: only `pytest` is exercised via the `cmd_init`
    integration path; a rename or typo in those strings would go undetected.
    Evidence: src/looptight/commands.py:60

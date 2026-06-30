@@ -94,6 +94,16 @@ def test_detect_verify_dotnet_csproj_only(tmp_path):
     assert detect.detect_verify(tmp_path) == "dotnet test"
 
 
+def test_detect_verify_dotnet_fsproj_only(tmp_path):
+    (tmp_path / "MyLib.fsproj").write_text("<Project></Project>\n")
+    assert detect.detect_verify(tmp_path) == "dotnet test"
+
+
+def test_detect_verify_dotnet_vbproj_only(tmp_path):
+    (tmp_path / "MyApp.vbproj").write_text("<Project></Project>\n")
+    assert detect.detect_verify(tmp_path) == "dotnet test"
+
+
 def test_detect_verify_makefile_check_target(tmp_path):
     # `make check` (GNU/autotools, and a common "run all checks" target) is detected
     # as a fallback after `make test`; near-miss target names do not match.
