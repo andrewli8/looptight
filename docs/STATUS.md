@@ -2355,13 +2355,10 @@ existing CLI session and makes no model or API calls of its own.
   `result.rounds == 1` and no `result.error` — reaching swarm.py:884, the only path the
   while-condition fallthrough produces (the inner line-833 early return serves the no-work case).
 
-2. `_session_panel`'s empty-goal guard at `ui.py:118` (`if not goal: return ""`) is uncovered:
-   a state with `manager.status == "session"` and `tasks[0].goal == ""` / `tasks[0].id == ""`
-   should return `""` rather than `"session: "`.
-   Evidence: src/looptight/ui.py:118
-   Acceptance: `test_session_panel_returns_empty_when_task_has_no_goal_or_id` passes: call
-   `_session_panel({"manager": {"status": "session"}, "tasks": [{"goal": "", "id": ""}]})`
-   and assert `== ""`.
+- `_session_panel`'s empty-goal guard (`ui.py:118`) is covered:
+  `test_session_panel_returns_empty_when_task_has_no_goal_or_id` in test_ui.py calls
+  `_session_panel` with a session state whose task has `goal=""` and `id=""` and asserts
+  `== ""` — reaching the `if not goal: return ""` branch that was previously dead.
 
 3. `_changed_entries` silently skips a `git status --short` line of ≤3 chars
    (`protocol_commands.py:392-393`); this guard is unreachable by all current tests that

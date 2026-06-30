@@ -877,3 +877,16 @@ def test_active_goal_view_returns_none_on_exception(tmp_path, monkeypatch):
     monkeypatch.setattr(_goal, "read_goal", _fail)
     result = ui._active_goal_view(tmp_path)
     assert result is None
+
+
+def test_session_panel_returns_empty_when_task_has_no_goal_or_id():
+    # ui.py:118 — the `if not goal: return ""` guard — is reached when
+    # tasks[0] has both "goal" and "id" as empty strings (so the `or` fallback
+    # also yields an empty string that strips to ""). A well-formed session state
+    # but no actual text to display should produce "" rather than "session: ".
+    state = {
+        "manager": {"status": "session"},
+        "tasks": [{"goal": "", "id": ""}],
+        "workers": [],
+    }
+    assert ui._session_panel(state) == ""
