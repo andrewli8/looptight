@@ -2307,13 +2307,31 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-- `detect_verify`'s `.fsproj` and `.vbproj` .NET project-type branches now have
-  direct test coverage: `test_detect_verify_dotnet_fsproj_only` and
-  `test_detect_verify_dotnet_vbproj_only` added to `tests/test_detect.py`.
+1. `detect_verify`'s `conftest.py`-only detection branch (`detect.py:117-118`) is
+   never directly exercised: the only test that creates a `conftest.py` also creates
+   a `test_thing.py`, so the `any(directory.glob("test_*.py"))` branch matches first;
+   a regression removing the `conftest.py` guard would go undetected.
+   Evidence: src/looptight/detect.py:117
+   Acceptance: `test_detect_verify_pytest_from_conftest_only` in tests/test_detect.py
+   passes — creates a root `conftest.py` (no test files present) and asserts
+   `detect_verify` returns `"pytest -q"`.
 
-- `_is_python_verify`'s `py.test` and `python -m` branches now have direct unit
-  coverage: `test_is_python_verify_recognises_all_python_runners` added to
-  `tests/test_cli.py`, importing the function directly.
+2. `cmd_statusline`'s `OSError`/`ValueError` branch when `sys.stdin.read()` raises
+   (`commands.py:587-588`) has no direct test: the exception handler sets `raw = ""`
+   but no test injects an `OSError` into `sys.stdin.read`, so a regression silently
+   propagating the error rather than recovering would go undetected.
+   Evidence: src/looptight/commands.py:587
+   Acceptance: `test_statusline_tolerates_stdin_read_oserror` in tests/test_cli.py
+   passes — monkeypatches `sys.stdin.read` to raise `OSError`, asserts exit code 0
+   and output starts with `"looptight:"`.
+
+3. `cmd_statusline`'s `ValueError`/`TypeError` branch when JSON parsing fails
+   (`commands.py:600-601`) has no direct test: the exception handler falls back to
+   `cwd`, but no test passes invalid JSON on stdin to exercise this path.
+   Evidence: src/looptight/commands.py:600
+   Acceptance: `test_statusline_tolerates_malformed_json_on_stdin` in tests/test_cli.py
+   passes — passes `"not valid json"` on stdin, asserts exit code 0 and output starts
+   with `"looptight:"`.
 
 ## Rules
 
