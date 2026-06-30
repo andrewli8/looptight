@@ -2278,9 +2278,17 @@ existing CLI session and makes no model or API calls of its own.
   uses `b'"""'` (unclosed triple-quote → `tokenize.TokenError`) and asserts `_comments` yields
   nothing and `_multiline_string_lines` returns `set()` without raising.
 
-## Next
+- `_inside_conditional` blank-line (discovery.py:403) and module-level return-False (line 406)
+  paths are covered: `test_inside_conditional_blank_line_path_suppresses_skip` places
+  `pytest.skip('gated')` (detected by `_is_skip_line`) inside an `if` with a blank line
+  between, asserting suppression (blank line skipped at 403, guard found, returns True);
+  `test_inside_conditional_returns_false_when_no_enclosing_guard` places `pytest.skip('always')`
+  at module level (idx=0, lines[:0]=[], loop never runs), asserting the skip IS surfaced
+  (returns False at 406). The prior `test_conditional_skip_with_blank_line_in_block_is_suppressed`
+  used `import pytest; pytest.skip(...)` which `_is_skip_line` does not detect, so
+  `_inside_conditional` was never called.
 
-2. `_inside_conditional` blank-line and module-level paths (discovery.py:403, 406) are unreachable by any existing test. The existing `test_conditional_skip_with_blank_line_in_block_is_suppressed` uses `import pytest; pytest.skip(...)` which `_is_skip_line` does not detect, so `_inside_conditional` is never called. Two new tests in `tests/test_propose.py`: one where `pytest.skip(...)` starts the line inside an `if` with a blank line between (must be suppressed, line 403 fired); one where `pytest.skip(...)` starts a line with no enclosing guard (must be surfaced, line 406 fired). Evidence: `src/looptight/discovery.py:403`; Acceptance: both tests pass and lines 403 and 406 are covered.
+## Next
 
 3. `cmd_doctor`'s `OSError` branch when `git status --porcelain` fails to launch (commands.py:397-398) sets `git = None` → `workspace = "not_git"`, but is never exercised. A new test in `tests/test_cli.py` monkeypatches `commands.subprocess.run` to raise `OSError` and asserts `doctor --json` includes `"workspace"` with value `"not_git"` (or `"not a git repo"`) and exits 1. Evidence: `src/looptight/commands.py:397`; Acceptance: `test_doctor_git_oserror_reports_not_git` passes and line 397-398 are covered.
 

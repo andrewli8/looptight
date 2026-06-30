@@ -308,6 +308,36 @@ def test_conditional_skip_with_blank_line_in_block_is_suppressed(tmp_path):
     assert from_skipped_tests(tmp_path) == []
 
 
+def test_inside_conditional_blank_line_path_suppresses_skip(tmp_path):
+    # _inside_conditional scans backward to find an enclosing if/elif guard.
+    # A blank line between the if and the pytest.skip() must not confuse the scan
+    # (line 403: `continue` skips it); the guard is still found → skip suppressed.
+    # Unlike the prior test, this uses pytest.skip() as the LINE START so
+    # _is_skip_line() detects it and _inside_conditional() is actually called.
+    from looptight.discovery import from_skipped_tests
+
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_j.py").write_text(
+        "def test_x():\n    if condition:\n\n        pytest.skip('gated')\n"
+    )
+    assert from_skipped_tests(tmp_path) == []
+
+
+def test_inside_conditional_returns_false_when_no_enclosing_guard(tmp_path):
+    # A pytest.skip() at the very first line (idx=0) has no preceding lines.
+    # _inside_conditional(lines, 0): lines[:0]=[], the backward scan loop never runs,
+    # and returns False at discovery.py:406. The skip is NOT suppressed — surfaced.
+    from looptight.discovery import from_skipped_tests
+
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_k.py").write_text("pytest.skip('always')\n")
+    candidates = from_skipped_tests(tmp_path)
+    assert len(candidates) == 1
+    assert "test_k" in candidates[0].title
+
+
 def test_python_skipped_tests_in_one_file_have_distinct_idea_ids(tmp_path):
     # Two independent skipped tests in one file must not collapse to a single idea_id —
     # that would make cooldown suppress the innocent sibling and merge their outcome stats.
