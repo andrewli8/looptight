@@ -281,6 +281,19 @@ def test_from_todos_skips_malformed_python_file(tmp_path):
     assert from_todos(tmp_path) == []
 
 
+def test_comments_and_multiline_string_lines_handle_tokenize_error(tmp_path):
+    # An unclosed triple-quote raises tokenize.TokenError mid-iteration.
+    # _comments() must yield nothing; _multiline_string_lines() must return set().
+    # b'\x00' (the prior test) produces an ERRORTOKEN without raising, so does NOT
+    # exercise these except clauses — this test uses b'"""' which does.
+    from looptight.discovery import _comments, _multiline_string_lines
+
+    bad = tmp_path / "bad.py"
+    bad.write_bytes(b'"""')  # unclosed triple-quote → tokenize.TokenError
+    assert list(_comments(bad)) == []
+    assert _multiline_string_lines(bad) == set()
+
+
 def test_conditional_skip_with_blank_line_in_block_is_suppressed(tmp_path):
     # A pytest.skip() under an `if` guard is conditional (intentional infrastructure), even
     # with a blank line between the `if` and the skip — the backward scan skips blanks to

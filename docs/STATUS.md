@@ -2271,9 +2271,14 @@ existing CLI session and makes no model or API calls of its own.
   the write fails before the file exists. The existing `os.replace` test did not reach this path.
   No production code change.
 
-## Next
+- `_comments()` and `_multiline_string_lines()` exception handlers (`discovery.py:184-185`,
+  `199-200`) are directly covered: the prior test used `b'\x00'` (produces an ERRORTOKEN, no
+  exception), so the `except (tokenize.TokenError, ...)` clauses were never reached.
+  `test_comments_and_multiline_string_lines_handle_tokenize_error` in `tests/test_propose.py`
+  uses `b'"""'` (unclosed triple-quote → `tokenize.TokenError`) and asserts `_comments` yields
+  nothing and `_multiline_string_lines` returns `set()` without raising.
 
-1. `_comments()` and `_multiline_string_lines()` exception handlers (discovery.py:184-185, 199-200) are never exercised: the existing tests use `b'\x00'` which tokenize treats as an ERRORTOKEN, not an exception. Two new direct unit tests in `tests/test_propose.py` invoke `_comments` and `_multiline_string_lines` with an unclosed-triple-quote file (`b'"""'`), which raises `tokenize.TokenError`, asserting each returns its sentinel (no yield / empty set) without raising. Evidence: `src/looptight/discovery.py:184`; Acceptance: `test_comments_and_multiline_string_lines_handle_tokenize_error` in `tests/test_propose.py` passes and the previously-uncovered except clauses at lines 184 and 199 are reached.
+## Next
 
 2. `_inside_conditional` blank-line and module-level paths (discovery.py:403, 406) are unreachable by any existing test. The existing `test_conditional_skip_with_blank_line_in_block_is_suppressed` uses `import pytest; pytest.skip(...)` which `_is_skip_line` does not detect, so `_inside_conditional` is never called. Two new tests in `tests/test_propose.py`: one where `pytest.skip(...)` starts the line inside an `if` with a blank line between (must be suppressed, line 403 fired); one where `pytest.skip(...)` starts a line with no enclosing guard (must be surfaced, line 406 fired). Evidence: `src/looptight/discovery.py:403`; Acceptance: both tests pass and lines 403 and 406 are covered.
 
