@@ -955,6 +955,51 @@ def test_swarm_marks_worker_failed_when_lease_is_lost(tmp_path, monkeypatch):
     assert "lost task lease" in (worker.error or "")
 
 
+def test_swarm_marks_worker_failed_when_integration_did_not_run(tmp_path, monkeypatch):
+    # When lease_for returns a valid Lease and enqueue_integration stores an id but the
+    # Integrator's next_queued_integration returns None (empty queue despite the enqueue),
+    # _integrate_via_queue marks the queued worker failed with "integration did not run".
+    from looptight.coordinator import Lease
+
+    _repo(tmp_path)
+
+    class _DropIntegrationCoordinator:
+        def lease_for(self, fingerprint, run_id):
+            return Lease(fingerprint, run_id, 0, {}, 0)
+
+        def enqueue_integration(self, lease, target_ref, candidate_sha):
+            return "dropped-integration-id"
+
+        def next_queued_integration(self):
+            return None  # pretend the queue is empty
+
+        def close(self):
+            pass
+
+    class _FakeCoordinatorClass:
+        @staticmethod
+        def open(root, **kw):
+            return _DropIntegrationCoordinator()
+
+    monkeypatch.setattr("looptight.swarm.Coordinator", _FakeCoordinatorClass)
+
+    worker = Worker(
+        number=0,
+        task={"id": "abc123", "goal": "test goal", "source": "test"},
+        branch="worker-0",
+        worktree=tmp_path,
+        base="HEAD",
+        status="verified",
+        run_id="run-xyz",
+    )
+
+    from looptight.swarm import _integrate_via_queue
+    _integrate_via_queue(tmp_path, [worker], "exit 0")
+
+    assert worker.status == "failed"
+    assert "integration did not run" in (worker.error or "")
+
+
 def test_swarm_handles_coordination_timeout(tmp_path, monkeypatch):
     _repo(tmp_path)
     monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())

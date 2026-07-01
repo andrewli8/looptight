@@ -2412,18 +2412,14 @@ existing CLI session and makes no model or API calls of its own.
   worker is marked `failed` with `"lost task lease"` — the recovery invariant is now tested.
   No production code change.
 
-## Next
+- `_integrate_via_queue`'s "integration did not run" path (`swarm.py:543`) is covered:
+  `test_swarm_marks_worker_failed_when_integration_did_not_run` in `tests/test_swarm.py` patches
+  `Coordinator.open` to return a fake whose `lease_for` returns a valid `Lease`,
+  `enqueue_integration` returns an id, and `next_queued_integration` returns `None`, then asserts
+  the queued worker is `failed` with `"integration did not run"` — the defensive recovery path
+  is now tested. No production code change.
 
-1. `_integrate_via_queue`'s "integration did not run" path (swarm.py:543) is untested: when a
-   worker is successfully queued (lease valid, `enqueue_integration` returns an id) but the
-   Integrator's `next_queued_integration` returns `None` (empty queue despite the enqueue),
-   the worker is marked `failed` with "integration did not run" — a defensive recovery path
-   with no test.
-   Evidence: src/looptight/swarm.py:543
-   Acceptance: `test_swarm_marks_worker_failed_when_integration_did_not_run` in `tests/test_swarm.py`
-   patches `Coordinator.open` to return a fake whose `lease_for` returns a valid `Lease`,
-   `enqueue_integration` returns an id, and `next_queued_integration` returns `None`, then
-   asserts `worker.status == "failed"` with `"integration did not run"` in the error.
+## Next
 
 2. `read_state`'s `not isinstance(payload, dict)` arm (ui.py:66) is untested: valid JSON that is
    not a dict (e.g. `[]`) takes a distinct branch from the wrong-schema-version path, but no test
