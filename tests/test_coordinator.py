@@ -121,6 +121,23 @@ def test_coordinator_path_is_none_when_git_is_not_installed(tmp_path, monkeypatc
     assert coordinator_path(repo) is None
 
 
+def test_coordinator_open_closes_connection_on_base_exception(tmp_path, monkeypatch):
+    from unittest.mock import MagicMock
+
+    import looptight.coordinator as coord_mod
+
+    repo = _repo(tmp_path / "repo")
+
+    mock_conn = MagicMock()
+    monkeypatch.setattr(coord_mod.sqlite3, "connect", lambda *a, **kw: mock_conn)
+    monkeypatch.setattr(coord_mod, "_initialize_schema", lambda _: (_ for _ in ()).throw(KeyboardInterrupt()))
+
+    with pytest.raises(KeyboardInterrupt):
+        Coordinator.open(repo)
+
+    mock_conn.close.assert_called_once()
+
+
 def test_coordinator_unknown_id_lookups_are_safe_no_ops(tmp_path):
     # A stale or mistaken id must be a safe no-op, not a crash: lease_for returns None
     # when no lease matches, and finish_integration returns without effect on an

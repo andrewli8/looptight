@@ -2429,16 +2429,13 @@ existing CLI session and makes no model or API calls of its own.
   calling `write_count(tmp_path / "no_such.count", 0)` asserts no exception and no file created —
   the `missing_ok=True` promise is directly tested independently of the roundtrip. No production change.
 
-## Next
+- `Coordinator.open`'s `BaseException` handler (`coordinator.py:354-356`) is locked by
+  `test_coordinator_open_closes_connection_on_base_exception` in `tests/test_coordinator.py`:
+  monkeypatching `_initialize_schema` to raise `KeyboardInterrupt` and asserting
+  `connection.close()` was called proves a `^C` during schema init never leaks the DB handle.
+  No production code change.
 
-2. `Coordinator.open`'s `BaseException` fallback (coordinator.py:354-356) closes the connection
-   before re-raising on any non-`sqlite3.Error`/non-`RuntimeError` (e.g. `KeyboardInterrupt`) —
-   the resource-cleanup guarantee has no test.
-   Evidence: src/looptight/coordinator.py:354
-   Acceptance: `test_coordinator_open_closes_connection_on_base_exception` in
-   `tests/test_coordinator.py` monkeypatches `_initialize_schema` to raise `KeyboardInterrupt`,
-   calls `Coordinator.open` inside `pytest.raises(KeyboardInterrupt)`, and asserts the
-   connection's `close` method was called — so a `^C` during DB init never leaks the handle.
+## Next
 
 ## Rules
 
