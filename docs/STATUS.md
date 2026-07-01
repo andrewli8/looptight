@@ -2400,15 +2400,13 @@ existing CLI session and makes no model or API calls of its own.
   a goal at iteration 100 with `max_iterations=0` returns `status="active"`, not `"stop"` — a future
   refactor tightening the condition would now be caught. No production code change.
 
-## Next
+- `detect_verify`'s npm-no-test + uv.lock fallthrough (`detect.py:58-81`) is locked by
+  `test_detect_verify_falls_through_npm_to_uv_when_no_test_script` in `tests/test_detect.py`:
+  a directory with a no-test-script `package.json` plus `pyproject.toml` + `uv.lock` returns
+  `"uv run pytest -q"` — confirming the npm branch falls through to uv when no test script is
+  present. No production code change.
 
-1. `detect_verify`'s npm-no-test + pyproject + uv.lock fallthrough is not tested:
-   when `package.json` has no test script, the function must fall through to the
-   `uv.lock` branch, but no test exercises that exact combination.
-   Evidence: `src/looptight/detect.py:58-81`
-   Acceptance: `test_detect_verify_falls_through_npm_to_uv_when_no_test_script`
-   passes — a directory with a no-test-script `package.json` plus `pyproject.toml` +
-   `uv.lock` returns `"uv run pytest -q"`.
+## Next
 
 ## Rules
 

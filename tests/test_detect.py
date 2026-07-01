@@ -179,6 +179,15 @@ def test_detect_verify_npm_without_test_script_falls_through(tmp_path):
     assert detect.detect_verify(tmp_path) is None
 
 
+def test_detect_verify_falls_through_npm_to_uv_when_no_test_script(tmp_path):
+    # detect.py:58-81: when package.json has no test script, the npm branch
+    # falls through to the uv.lock branch and returns "uv run pytest -q".
+    (tmp_path / "package.json").write_text('{"scripts": {"build": "tsc"}}')
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n")
+    (tmp_path / "uv.lock").write_text("version = 1\n")
+    assert detect.detect_verify(tmp_path) == "uv run pytest -q"
+
+
 def test_detect_verify_npm_placeholder_test_script_falls_through(tmp_path):
     # `npm init` writes a placeholder test that always exits 1. Claiming `npm
     # test` for it would make every verify fail and stall the loop before the
