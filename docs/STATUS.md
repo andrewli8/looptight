@@ -2414,6 +2414,44 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_integrate_via_queue`'s "integration did not run" path (swarm.py:543) is untested: when a
+   worker is successfully queued (lease valid, `enqueue_integration` returns an id) but the
+   Integrator's `next_queued_integration` returns `None` (empty queue despite the enqueue),
+   the worker is marked `failed` with "integration did not run" — a defensive recovery path
+   with no test.
+   Evidence: src/looptight/swarm.py:543
+   Acceptance: `test_swarm_marks_worker_failed_when_integration_did_not_run` in `tests/test_swarm.py`
+   patches `Coordinator.open` to return a fake whose `lease_for` returns a valid `Lease`,
+   `enqueue_integration` returns an id, and `next_queued_integration` returns `None`, then
+   asserts `worker.status == "failed"` with `"integration did not run"` in the error.
+
+2. `read_state`'s `not isinstance(payload, dict)` arm (ui.py:66) is untested: valid JSON that is
+   not a dict (e.g. `[]`) takes a distinct branch from the wrong-schema-version path, but no test
+   writes such a payload. The existing `test_read_state_returns_empty_on_wrong_schema_version`
+   writes `{"schema_version": 99}` — always a dict.
+   Evidence: src/looptight/ui.py:66
+   Acceptance: `test_read_state_returns_empty_on_valid_json_non_dict` in `tests/test_ui.py`
+   writes `[]` to the state file and asserts `read_state(tmp_path) == empty_state()`, mutation-
+   verified by temporarily removing the `not isinstance(payload, dict)` guard.
+
+3. `write_count`'s negative branch (hook.py:207-209) — `count <= 0` triggers `path.unlink` —
+   is covered by the roundtrip test only when the file already exists, but is never asserted
+   when the file is absent (`missing_ok=True` is the no-error promise). The absent-file `unlink`
+   success is not directly asserted.
+   Evidence: src/looptight/hook.py:208
+   Acceptance: `test_write_count_zero_is_silent_no_op_when_file_absent` in `tests/test_hook.py`
+   calls `write_count(tmp_path / "no_such.count", 0)` and asserts no exception and no file
+   created — the `missing_ok=True` contract is locked.
+
+4. `Coordinator.open`'s `BaseException` fallback (coordinator.py:354-356) closes the connection
+   before re-raising on any non-`sqlite3.Error`/non-`RuntimeError` (e.g. `KeyboardInterrupt`) —
+   the resource-cleanup guarantee has no test.
+   Evidence: src/looptight/coordinator.py:354
+   Acceptance: `test_coordinator_open_closes_connection_on_base_exception` in
+   `tests/test_coordinator.py` monkeypatches `_initialize_schema` to raise `KeyboardInterrupt`,
+   calls `Coordinator.open` inside `pytest.raises(KeyboardInterrupt)`, and asserts the
+   connection's `close` method was called — so a `^C` during DB init never leaks the handle.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
