@@ -2390,23 +2390,21 @@ existing CLI session and makes no model or API calls of its own.
   `detect_verify` returns `None` without raising — the sibling of the non-UTF-8 ValueError test,
   closing the last uncovered arm. No production code change.
 
+- `detect_verify`'s `.justfile` (hidden-dotfile variant) detection at `detect.py:108` is locked by
+  `test_detect_verify_hidden_dotfile_justfile` in `tests/test_detect.py`: a `.justfile` with a `test:`
+  recipe returns `"just test"` — the sibling of the `justfile`/`Justfile` tests, closing the one
+  untested name variant. No production code change.
+
 ## Next
 
-1. `detect_verify`'s `.justfile` (hidden-dotfile variant) detection is exercised by
-   `detect.py:108` but has no test; only `justfile` and `Justfile` are covered in
-   `tests/test_detect.py`.
-   Evidence: `src/looptight/detect.py:108`
-   Acceptance: `test_detect_verify_hidden_dotfile_justfile` passes — a `.justfile`
-   with a `test:` recipe returns `"just test"` and no production code changes.
-
-2. `goal next`'s `max_iterations=0` "unlimited" contract (`goal.py:138` treats falsy
+1. `goal next`'s `max_iterations=0` "unlimited" contract (`goal.py:138` treats falsy
    0 as no cap) is documented in `cli.py:143` ("0 = unlimited") but not locked by a
    test; a future refactor could silently break it.
    Evidence: `src/looptight/goal.py:138`
    Acceptance: `test_goal_next_zero_max_iterations_is_unlimited` passes — a goal at
    iteration 100 with `max_iterations=0` returns `status="active"`, not `"stop"`.
 
-3. `detect_verify`'s npm-no-test + pyproject + uv.lock fallthrough is not tested:
+2. `detect_verify`'s npm-no-test + pyproject + uv.lock fallthrough is not tested:
    when `package.json` has no test script, the function must fall through to the
    `uv.lock` branch, but no test exercises that exact combination.
    Evidence: `src/looptight/detect.py:58-81`

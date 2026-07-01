@@ -285,6 +285,12 @@ def test_detect_verify_makefile_ignores_commented_test(tmp_path):
     assert detect.detect_verify(tmp_path) is None
 
 
+def test_detect_verify_hidden_dotfile_justfile(tmp_path):
+    # detect.py:108 includes ".justfile" in the loop but no test ever exercised it.
+    (tmp_path / ".justfile").write_text("test:\n    pytest\n")
+    assert detect.detect_verify(tmp_path) == "just test"
+
+
 def test_detect_verify_none(tmp_path):
     assert detect.detect_verify(tmp_path) is None
 
