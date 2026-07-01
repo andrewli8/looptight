@@ -2367,6 +2367,11 @@ existing CLI session and makes no model or API calls of its own.
   asserting exit 2 and "No coding agent" in human output — a regression removing the
   guard is now caught.
 
+- `cmd_swarm`'s no-verify guard (`swarm.py:918`) is now covered:
+  `test_swarm_cli_no_verify_guard` in tests/test_swarm.py monkeypatches `detect_verify`
+  to return `None` and runs `swarm --headless --agent codex` without `--verify`, asserting
+  exit 2 and "No verify command" in human output — a regression removing the guard is now caught.
+
 - `detect.py:74`'s `except (ValueError, OSError)` for `package.json` now has direct coverage:
   `test_detect_verify_non_utf8_package_json_falls_through` in `tests/test_detect.py` writes a
   `package.json` with non-UTF-8 bytes (triggering `UnicodeDecodeError`, a `ValueError`) and asserts
@@ -2375,11 +2380,25 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-- `cmd_swarm`'s no-verify guard (`swarm.py:918`) is now covered:
-  `test_swarm_cli_no_verify_guard` in tests/test_swarm.py monkeypatches `detect_verify`
-  to return `None` and runs `swarm --headless --agent codex` without `--verify`, asserting
-  exit 2 and "No verify command" in human output — a regression removing the guard is now caught.
+1. `config.py:83`'s `OSError` arm of `except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError)` in
+   `load_config` has no direct test: `test_load_config_raises_clear_error_on_malformed_toml`
+   (test_config.py:103) exercises the `TOMLDecodeError` path, but no test monkeypatches `Path.read_text`
+   to raise `OSError` (unreadable file), so a regression dropping `OSError` from the except would not be
+   caught. The error message would change from a ConfigError to a raw traceback.
+   Evidence: src/looptight/config.py:83
+   Acceptance: `test_load_config_raises_config_error_for_unreadable_file` in tests/test_config.py
+   monkeypatches `Path.read_text` to raise `OSError("permission denied")` and asserts `ConfigError`
+   is raised containing the file path in the message — directly exercising the OSError arm.
 
+2. `detect.py:74`'s `OSError` arm of `except (ValueError, OSError)` for `package.json` has no
+   direct test: `test_detect_verify_non_utf8_package_json_falls_through` covers the `ValueError`
+   (UnicodeDecodeError) branch, but a package.json that raises `IsADirectoryError` (replacing the
+   file with a same-name directory) exercises the `OSError` sibling arm — a regression dropping
+   `OSError` from the except would propagate the exception and crash `detect_verify`.
+   Evidence: src/looptight/detect.py:74
+   Acceptance: `test_detect_verify_oserror_on_package_json_falls_through` in tests/test_detect.py
+   creates a same-name directory where `package.json` is expected and asserts `detect_verify` returns
+   `None` without raising.
 
 ## Rules
 
