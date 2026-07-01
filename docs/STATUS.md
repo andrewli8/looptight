@@ -2419,18 +2419,14 @@ existing CLI session and makes no model or API calls of its own.
   the queued worker is `failed` with `"integration did not run"` — the defensive recovery path
   is now tested. No production code change.
 
+- `read_state`'s `not isinstance(payload, dict)` arm (`ui.py:66`) is locked by
+  `test_read_state_returns_empty_on_valid_json_non_dict` in `tests/test_ui.py`:
+  writing `[]` (valid JSON, not a dict) to the state file and asserting `read_state(tmp_path) == empty_state()`
+  proves the non-dict branch is distinct from the wrong-schema-version path. No production code change.
+
 ## Next
 
-2. `read_state`'s `not isinstance(payload, dict)` arm (ui.py:66) is untested: valid JSON that is
-   not a dict (e.g. `[]`) takes a distinct branch from the wrong-schema-version path, but no test
-   writes such a payload. The existing `test_read_state_returns_empty_on_wrong_schema_version`
-   writes `{"schema_version": 99}` — always a dict.
-   Evidence: src/looptight/ui.py:66
-   Acceptance: `test_read_state_returns_empty_on_valid_json_non_dict` in `tests/test_ui.py`
-   writes `[]` to the state file and asserts `read_state(tmp_path) == empty_state()`, mutation-
-   verified by temporarily removing the `not isinstance(payload, dict)` guard.
-
-3. `write_count`'s negative branch (hook.py:207-209) — `count <= 0` triggers `path.unlink` —
+2. `write_count`'s negative branch (hook.py:207-209) — `count <= 0` triggers `path.unlink` —
    is covered by the roundtrip test only when the file already exists, but is never asserted
    when the file is absent (`missing_ok=True` is the no-error promise). The absent-file `unlink`
    success is not directly asserted.

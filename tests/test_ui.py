@@ -859,6 +859,17 @@ def test_read_state_returns_empty_on_wrong_schema_version(tmp_path):
     assert read_state(tmp_path) == empty_state()
 
 
+def test_read_state_returns_empty_on_valid_json_non_dict(tmp_path):
+    import json
+
+    from looptight.ui import _state_path, empty_state, read_state
+
+    path = _state_path(tmp_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps([]), encoding="utf-8")
+    assert read_state(tmp_path) == empty_state()
+
+
 def test_state_path_in_git_repo_uses_common_dir(tmp_path):
     import subprocess
 
