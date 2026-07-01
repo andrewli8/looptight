@@ -123,6 +123,13 @@ def test_verdict_round_trips_and_degrades(tmp_path):
     assert ui.read_verdict(tmp_path) is None  # corrupt → None, never raises
 
 
+def test_verdict_record_returns_none_for_non_dict_json(tmp_path):
+    path = ui._verdict_path(tmp_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("[1, 2, 3]\n", encoding="utf-8")
+    assert ui._verdict_record(tmp_path) is None
+
+
 def test_with_session_task_includes_the_verify_verdict_and_freshness(monkeypatch, tmp_path):
     monkeypatch.setattr(
         ui, "_active_session_task", lambda root: {"id": "a", "goal": "g", "source": "", "status": "claimed"}
