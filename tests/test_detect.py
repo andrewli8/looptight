@@ -205,6 +205,14 @@ def test_detect_verify_npm_non_dict_manifest_falls_through(tmp_path):
     assert detect.detect_verify(tmp_path) is None
 
 
+def test_detect_verify_non_utf8_package_json_falls_through(tmp_path):
+    # A non-UTF-8 package.json raises UnicodeDecodeError (a ValueError) at
+    # detect.py:64; the except (ValueError, OSError) at line 74 must catch it
+    # and fall through to None rather than crashing detect_verify.
+    (tmp_path / "package.json").write_bytes(b'{"scripts": {"test": "\xff\xfe broken"}}')
+    assert detect.detect_verify(tmp_path) is None
+
+
 def test_detect_verify_setup_cfg(tmp_path):
     (tmp_path / "setup.cfg").write_text("[metadata]\nname = x\n")
     assert detect.detect_verify(tmp_path) == "pytest -q"

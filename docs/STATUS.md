@@ -2367,6 +2367,12 @@ existing CLI session and makes no model or API calls of its own.
   asserting exit 2 and "No coding agent" in human output — a regression removing the
   guard is now caught.
 
+- `detect.py:74`'s `except (ValueError, OSError)` for `package.json` now has direct coverage:
+  `test_detect_verify_non_utf8_package_json_falls_through` in `tests/test_detect.py` writes a
+  `package.json` with non-UTF-8 bytes (triggering `UnicodeDecodeError`, a `ValueError`) and asserts
+  `detect_verify` returns `None` without raising — the sibling of the Makefile/justfile tolerance
+  tests, closing the one missing path. No production code change.
+
 ## Next
 
 - `cmd_swarm`'s no-verify guard (`swarm.py:918`) is now covered:
@@ -2374,14 +2380,6 @@ existing CLI session and makes no model or API calls of its own.
   to return `None` and runs `swarm --headless --agent codex` without `--verify`, asserting
   exit 2 and "No verify command" in human output — a regression removing the guard is now caught.
 
-1. `detect.py:74`'s `except (ValueError, OSError)` for `package.json` has no direct test: the
-   Makefile and justfile tests (test_detect.py:233-244) explicitly call it a sibling to the
-   package.json tolerance, but there is no test writing a non-UTF-8 `package.json` to exercise the
-   `ValueError` (UnicodeDecodeError) path. A regression broadening the except would not be caught.
-   Evidence: src/looptight/detect.py:74
-   Acceptance: `test_detect_verify_non_utf8_package_json_falls_through` in tests/test_detect.py
-   passes: a `package.json` written with non-UTF-8 bytes causes `detect_verify` to skip npm and
-   return `None` or a fallback verifier without raising.
 
 ## Rules
 
