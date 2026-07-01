@@ -139,6 +139,18 @@ def test_goal_next_stops_at_max_iterations(tmp_path):
     assert decision.reason == "max_iterations"
 
 
+def test_goal_next_zero_max_iterations_is_unlimited(tmp_path):
+    # goal.py:138 uses `if goal.max_iterations and ...` so max_iterations=0 is falsy
+    # (no cap). cli.py:143 documents this as "(0 = unlimited)". A future refactor
+    # changing the condition would silently break the contract without this test.
+    from looptight.goal import goal_next
+
+    repo = _repo(tmp_path)
+    write_goal(repo, Goal(vision="x", max_iterations=0, iteration=100))
+    decision = goal_next(repo, check_runner=lambda root, cmd: False)
+    assert decision.status == "active", "max_iterations=0 must be unlimited, not stop"
+
+
 def test_goal_build_prompt_carries_vision_and_bootstrap():
     from looptight.prompts import goal_build
 
