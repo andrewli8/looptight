@@ -148,6 +148,15 @@ def test_swarm_json_guard_emits_error_envelope(capsys):
     assert data["status"] == "error" and "workers must be between" in data["error"]
 
 
+def test_swarm_cli_no_agent_guard(tmp_path, monkeypatch, capsys):
+    _repo(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.swarm.detect_agent", lambda: None)
+
+    assert main(["swarm", "--headless", "--verify", "exit 0"]) == 2
+    assert "No coding agent" in capsys.readouterr().out
+
+
 def test_swarm_refuses_direct_push_when_policy_disables_it(
     tmp_path, monkeypatch, capsys
 ):

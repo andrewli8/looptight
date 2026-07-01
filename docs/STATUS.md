@@ -2361,16 +2361,13 @@ existing CLI session and makes no model or API calls of its own.
   `pc.subprocess.run` to raise `OSError` for `git status --porcelain`, runs `status
   --json`, and asserts exit 0 with `workspace == "not_git"` — parallel to the existing
   doctor test, closing the uncovered except-OSError branch.
+- `cmd_swarm`'s no-agent human guard (`swarm.py:915`) is now covered:
+  `test_swarm_cli_no_agent_guard` in tests/test_swarm.py monkeypatches `detect_agent`
+  to return `None` and runs `swarm --headless --verify "exit 0"` without `--agent`,
+  asserting exit 2 and "No coding agent" in human output — a regression removing the
+  guard is now caught.
 
 ## Next
-
-1. `cmd_swarm`'s no-agent human guard (`swarm.py:915`) is untested: the existing guard tests
-   always pass `--agent codex` explicitly, so the `if not agent: return _guard(...)` branch at
-   line 915 is never reached. A regression silently removing the guard would not be caught.
-   Evidence: src/looptight/swarm.py:914
-   Acceptance: `test_swarm_cli_no_agent_guard` in tests/test_swarm.py passes: with
-   `detect_agent` monkeypatched to return `None` and no `--agent` flag, `swarm --headless
-   --verify "exit 0"` exits 2 and "No coding agent" appears in human output (line 915 covered).
 
 ## Rules
 
