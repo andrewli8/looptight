@@ -157,6 +157,15 @@ def test_swarm_cli_no_agent_guard(tmp_path, monkeypatch, capsys):
     assert "No coding agent" in capsys.readouterr().out
 
 
+def test_swarm_cli_no_verify_guard(tmp_path, monkeypatch, capsys):
+    _repo(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.swarm.detect_verify", lambda root: None)
+
+    assert main(["swarm", "--headless", "--agent", "codex"]) == 2
+    assert "No verify command" in capsys.readouterr().out
+
+
 def test_swarm_refuses_direct_push_when_policy_disables_it(
     tmp_path, monkeypatch, capsys
 ):
