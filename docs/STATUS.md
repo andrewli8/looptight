@@ -2408,6 +2408,22 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `run_swarm`'s `CoordinationTimeout` path (swarm.py:737) is untested: when `_integrate_via_queue` raises `CoordinationTimeout` (integration lock busy past the deadline), the swarm returns a `SwarmResult` carrying the error string — a real production path that fires under lock contention but has no regression guard.
+Evidence: src/looptight/swarm.py:737;
+Acceptance: `test_swarm_handles_coordination_timeout` in `tests/test_swarm.py` monkeypatches `swarm._integrate_via_queue` to raise `CoordinationTimeout("lock busy")` and asserts `run_swarm` returns a result whose `.error` field contains the message — a regression dropping the `except` clause fails the assertion.
+
+2. `_verdict_record`'s non-dict valid-JSON branch (ui.py:90) is untested: the existing test writes `"not json"` (triggers `ValueError`), but the `isinstance(payload, dict) else None` guard fires on valid-but-non-dict JSON (e.g., a list) — a distinct branch.
+Evidence: src/looptight/ui.py:90;
+Acceptance: `test_verdict_record_returns_none_for_non_dict_json` in `tests/test_ui.py` writes `"[1, 2, 3]\n"` to `ui._verdict_path(tmp_path)` and asserts `ui._verdict_record(tmp_path)` is `None` — a regression removing the `else None` would now be caught.
+
+3. `read_verdict`'s non-string status branch (ui.py:97) is untested: when the verdict file contains a non-string `status` (e.g., `{"status": 42}`), `isinstance(status, str) else None` returns `None` rather than crashing or returning a spurious value — no regression guard exists.
+Evidence: src/looptight/ui.py:97;
+Acceptance: `test_read_verdict_returns_none_for_non_string_status` in `tests/test_ui.py` writes `{"status": 42}` to the verdict path and asserts `ui.read_verdict(tmp_path)` returns `None` — a regression dropping the `isinstance` guard would now be caught.
+
+4. `_integrate_via_queue`'s "lost task lease before integration" path (swarm.py:523) is untested: when `coordinator.lease_for` returns `None` for a verified worker (lease expired or reaped between claim and integration), the worker is marked `failed` with "lost task lease before integration" — this branch has no test and is a recovery invariant.
+Evidence: src/looptight/swarm.py:523;
+Acceptance: `test_swarm_marks_worker_failed_when_lease_is_lost` in `tests/test_swarm.py` drives a swarm where the coordinator's `lease_for` returns `None` and asserts the worker's `status == "failed"` with `"lost task lease"` in the error — a regression removing the guard would produce a `KeyError` or incorrect status.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
