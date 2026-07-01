@@ -108,6 +108,18 @@ def test_load_config_raises_clear_error_on_malformed_toml(tmp_path):
     assert str(path) in str(exc.value)
 
 
+def test_load_config_raises_config_error_for_unreadable_file(tmp_path, monkeypatch):
+    # config.py:83's OSError arm: when read_text raises OSError (permission denied,
+    # IsADirectoryError, etc.) the caller gets a ConfigError naming the file, not a
+    # raw OS traceback.  A regression dropping OSError from the except would propagate.
+    path = tmp_path / ".looptight.toml"
+    path.write_text('verify = "pytest -q"\n', encoding="utf-8")
+    monkeypatch.setattr("pathlib.Path.read_text", lambda *a, **k: (_ for _ in ()).throw(OSError("permission denied")))
+    with pytest.raises(ConfigError) as exc:
+        load_config(path)
+    assert str(path) in str(exc.value)
+
+
 def test_load_config_rejects_string_direct_main(tmp_path):
     path = tmp_path / ".looptight.toml"
     path.write_text('direct_main = "false"\n', encoding="utf-8")

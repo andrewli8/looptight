@@ -2378,19 +2378,15 @@ existing CLI session and makes no model or API calls of its own.
   `detect_verify` returns `None` without raising — the sibling of the Makefile/justfile tolerance
   tests, closing the one missing path. No production code change.
 
+- `config.py:83`'s `OSError` arm of `except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError)`
+  in `load_config` now has direct coverage: `test_load_config_raises_config_error_for_unreadable_file`
+  in `tests/test_config.py` monkeypatches `Path.read_text` to raise `OSError("permission denied")`
+  and asserts `ConfigError` is raised containing the file path — a regression dropping `OSError`
+  from the except is now caught. No production code change.
+
 ## Next
 
-1. `config.py:83`'s `OSError` arm of `except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError)` in
-   `load_config` has no direct test: `test_load_config_raises_clear_error_on_malformed_toml`
-   (test_config.py:103) exercises the `TOMLDecodeError` path, but no test monkeypatches `Path.read_text`
-   to raise `OSError` (unreadable file), so a regression dropping `OSError` from the except would not be
-   caught. The error message would change from a ConfigError to a raw traceback.
-   Evidence: src/looptight/config.py:83
-   Acceptance: `test_load_config_raises_config_error_for_unreadable_file` in tests/test_config.py
-   monkeypatches `Path.read_text` to raise `OSError("permission denied")` and asserts `ConfigError`
-   is raised containing the file path in the message — directly exercising the OSError arm.
-
-2. `detect.py:74`'s `OSError` arm of `except (ValueError, OSError)` for `package.json` has no
+1. `detect.py:74`'s `OSError` arm of `except (ValueError, OSError)` for `package.json` has no
    direct test: `test_detect_verify_non_utf8_package_json_falls_through` covers the `ValueError`
    (UnicodeDecodeError) branch, but a package.json that raises `IsADirectoryError` (replacing the
    file with a same-name directory) exercises the `OSError` sibling arm — a regression dropping
