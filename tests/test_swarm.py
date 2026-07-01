@@ -13,6 +13,7 @@ from looptight import swarm
 from looptight.adapters.base import Adapter, run_command
 from looptight.cli import build_parser, main
 from looptight.config import Config
+from looptight.integration_queue import CoordinationTimeout
 from looptight.swarm import (
     MAX_WORKERS,
     PlanningResult,
@@ -912,6 +913,26 @@ def test_swarm_contains_worker_runtime_exception(tmp_path, monkeypatch):
     assert not result.passed
     assert result.workers[0].status == "failed"
     assert result.workers[0].error == "worker crashed: provider crashed"
+
+
+def test_swarm_handles_coordination_timeout(tmp_path, monkeypatch):
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+
+    def _raise(*_a, **_kw):
+        raise CoordinationTimeout("lock busy")
+
+    monkeypatch.setattr("looptight.swarm._integrate_via_queue", _raise)
+
+    result = run_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0", max_iterations=1),
+        workers=1,
+    )
+
+    assert result.error is not None
+    assert "lock busy" in result.error
 
 
 def test_swarm_interrupt_stops_processes_and_publishes_terminal_state(tmp_path, monkeypatch):
