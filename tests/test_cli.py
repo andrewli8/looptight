@@ -3540,6 +3540,34 @@ def test_doctor_git_oserror_reports_not_git(tmp_path, monkeypatch, capsys):
     assert data.get("readiness", {}).get("checks", {}).get("git") == "not_git"
 
 
+def test_cmd_status_git_oserror_reports_not_git(tmp_path, monkeypatch, capsys):
+    # cmd_status's subprocess.run for `git status --porcelain` can raise OSError when
+    # git is not on PATH or the OS refuses the exec. The except OSError at
+    # protocol_commands.py:560-561 sets git=None so workspace becomes "not_git";
+    # this was previously uncovered because tmp_path outside git returns a non-zero
+    # returncode (not an OSError). Parallel to test_doctor_git_oserror_reports_not_git.
+    from unittest.mock import patch
+
+    import looptight.protocol_commands as pc
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".looptight.toml").write_text('verify = "exit 0"\n', encoding="utf-8")
+
+    real_run = subprocess.run
+
+    def fake_run(cmd, **kwargs):
+        if list(cmd[:3]) == ["git", "status", "--porcelain"]:
+            raise OSError("git not found")
+        return real_run(cmd, **kwargs)
+
+    with patch.object(pc.subprocess, "run", fake_run):
+        exit_code = main(["status", "--json"])
+
+    data = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert data.get("workspace") == "not_git"
+
+
 # ── _active_task_identity coverage ───────────────────────────────────────────
 
 
