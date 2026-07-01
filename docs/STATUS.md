@@ -2408,11 +2408,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `read_verdict`'s non-string status branch (ui.py:97) is untested: when the verdict file has a non-string `status` (e.g., `{"status": 42}`), `isinstance(status, str) else None` returns `None` instead of a spurious value — no regression guard exists.
-   Evidence: src/looptight/ui.py:97;
-   Acceptance: `test_read_verdict_returns_none_for_non_string_status` in `tests/test_ui.py` writes `{"status": 42}` to the verdict path and asserts `ui.read_verdict(tmp_path)` returns `None`.
-
-2. `_integrate_via_queue`'s lost-lease path (swarm.py:523) is untested: when `coordinator.lease_for` returns `None` for a verified worker (lease reaped before integration), the worker is marked `failed` with "lost task lease before integration" — this recovery invariant has no test.
+1. `_integrate_via_queue`'s lost-lease path (swarm.py:523) is untested: when `coordinator.lease_for` returns `None` for a verified worker (lease reaped before integration), the worker is marked `failed` with "lost task lease before integration" — this recovery invariant has no test.
    Evidence: src/looptight/swarm.py:523;
    Acceptance: `test_swarm_marks_worker_failed_when_lease_is_lost` in `tests/test_swarm.py` drives a swarm where the coordinator's `lease_for` returns `None` for a verified worker and asserts `worker.status == "failed"` with `"lost task lease"` in the error.
 

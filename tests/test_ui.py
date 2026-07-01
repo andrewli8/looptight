@@ -130,6 +130,13 @@ def test_verdict_record_returns_none_for_non_dict_json(tmp_path):
     assert ui._verdict_record(tmp_path) is None
 
 
+def test_read_verdict_returns_none_for_non_string_status(tmp_path):
+    path = ui._verdict_path(tmp_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"status": 42}) + "\n", encoding="utf-8")
+    assert ui.read_verdict(tmp_path) is None
+
+
 def test_with_session_task_includes_the_verify_verdict_and_freshness(monkeypatch, tmp_path):
     monkeypatch.setattr(
         ui, "_active_session_task", lambda root: {"id": "a", "goal": "g", "source": "", "status": "claimed"}
