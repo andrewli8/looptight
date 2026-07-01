@@ -2369,6 +2369,24 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `cmd_swarm`'s no-verify guard (`swarm.py:918`) is untested: all swarm tests pass
+   `--verify "exit 0"` explicitly, so the `if not config.verify: return _guard("No verify
+   command...")` branch at line 918 is never reached. A regression removing the guard would
+   silently let swarm start without a verifier.
+   Evidence: src/looptight/swarm.py:916
+   Acceptance: `test_swarm_cli_no_verify_guard` in tests/test_swarm.py passes: with
+   `detect_verify` monkeypatched to return `None` and `--agent codex` (no `--verify`), `swarm
+   --headless --agent codex` exits 2 and "No verify command" appears in human output.
+
+2. `detect.py:74`'s `except (ValueError, OSError)` for `package.json` has no direct test: the
+   Makefile and justfile tests (test_detect.py:233-244) explicitly call it a sibling to the
+   package.json tolerance, but there is no test writing a non-UTF-8 `package.json` to exercise the
+   `ValueError` (UnicodeDecodeError) path. A regression broadening the except would not be caught.
+   Evidence: src/looptight/detect.py:74
+   Acceptance: `test_detect_verify_non_utf8_package_json_falls_through` in tests/test_detect.py
+   passes: a `package.json` written with non-UTF-8 bytes causes `detect_verify` to skip npm and
+   return `None` or a fallback verifier without raising.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
