@@ -2738,6 +2738,25 @@ def test_run_reports_not_implemented_from_loop_with_exit_3(tmp_path, monkeypatch
     assert "this run mode is not supported" in capsys.readouterr().out
 
 
+def test_run_warns_when_native_mode_not_supported(tmp_path, monkeypatch, capsys):
+    # When --native is passed but the adapter has no native loop, a yellow warning
+    # is printed and the supply loop runs instead (commands.py:204-205).
+    from looptight.types import RunResult, StopReason
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        "looptight.commands.get_adapter",
+        lambda name: __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter(supports_native=False),
+    )
+    fake_result = RunResult(goal="fix it", agent="codex", mode="supply", stop_reason=StopReason.SUCCESS)
+    monkeypatch.setattr("looptight.commands.run_loop", lambda *a, **k: fake_result)
+
+    code = main(["run", "--headless", "--native", "--agent", "codex", "fix it", "--verify", "exit 0"])
+    out = capsys.readouterr().out
+    assert "no native loop" in out.lower()
+    assert code == 0
+
+
 def test_daemon_cli_renders_cycle_outcomes_and_stop_summary(tmp_path, monkeypatch, capsys):
     from looptight.daemon import DaemonCycle, DaemonReport
 
