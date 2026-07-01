@@ -2349,36 +2349,42 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-- `run_continuous_swarm`'s while-exit at `max_rounds` with workers is covered:
-  `test_continuous_swarm_exits_naturally_after_max_rounds_with_workers` in test_swarm.py
-  monkeypatches `run_swarm` to return a merged worker, sets `max_rounds=1`, and asserts
-  `result.rounds == 1` and no `result.error` — reaching swarm.py:884, the only path the
-  while-condition fallthrough produces (the inner line-833 early return serves the no-work case).
+1. `cmd_run`'s native-mode fallback warning (`commands.py:205`) is untested: when `config.native`
+   is True but the chosen adapter has no native loop (codex/opencode), the yellow "no native loop;
+   supplying the loop instead" message fires and the supply loop runs — but no test exercises this
+   branch, so a silent regression (losing the warning or swapping to native) would not be caught.
+   Evidence: src/looptight/commands.py:204
+   Acceptance: `test_run_warns_when_native_mode_not_supported` in tests/test_cli.py passes: `run
+   --headless --native --verify "exit 0" --agent codex` with `direct_main=true` and `run_loop`
+   stubbed to return a passing result prints "no native loop" in its output (covering line 205)
+   and exits 0.
 
-- `_session_panel`'s empty-goal guard (`ui.py:118`) is covered:
-  `test_session_panel_returns_empty_when_task_has_no_goal_or_id` in test_ui.py calls
-  `_session_panel` with a session state whose task has `goal=""` and `id=""` and asserts
-  `== ""` — reaching the `if not goal: return ""` branch that was previously dead.
+2. `cmd_run --json`'s `NotImplementedError` path (`commands.py:235-237`) is untested: the existing
+   `test_run_reports_not_implemented_from_loop_with_exit_3` uses human mode (no `--json`), so
+   lines 235-237 (the JSON envelope branch of the NotImplementedError handler) are never reached
+   and a regression silently dropping the JSON envelope would not be caught.
+   Evidence: src/looptight/commands.py:234
+   Acceptance: `test_run_json_reports_not_implemented_error` in tests/test_cli.py passes:
+   `run --headless --json --agent codex --verify "exit 0"` with `run_loop` stubbed to raise
+   `NotImplementedError("unsupported")` exits 3 and stdout is valid JSON with
+   `command == "run"` and `"unsupported"` in `error`.
 
-- `_changed_entries`'s short-line skip is covered (`protocol_commands.py:393`):
-  `test_changed_entries_skips_short_git_status_lines` in test_cli.py injects a `"??"` line
-  (2 chars, ≤ 3) alongside a normal `" M src/a.py"` and asserts only the second entry is
-  returned — the `if len(line) <= 3: continue` guard at line 392 was dead in all prior tests.
+3. `cmd_status`'s `OSError` path for `git status --porcelain` (`protocol_commands.py:560-561`) is
+   untested: `test_cmd_status_git_sets_terminal_prompt_env` only checks the env dict, not the
+   error path. When git itself is unavailable (OSError), `workspace` must fall back to `"not_git"`
+   — the same contract `cmd_doctor` already has a test for — but `cmd_status` lacks a parallel test.
+   Evidence: src/looptight/protocol_commands.py:560
+   Acceptance: `test_cmd_status_git_oserror_reports_not_git` in tests/test_cli.py passes:
+   monkeypatching `protocol_commands.subprocess.run` to raise `OSError` for the `git status`
+   call, `status --json` exits 0 with `workspace == "not_git"` in the JSON output.
 
-- `cmd_verify`'s `write_verdict` failure is silently swallowed (`protocol_commands.py:57`):
-  `test_verify_continues_despite_write_verdict_failure` monkeypatches `looptight.ui.write_verdict`
-  to raise `OSError("disk full")`, runs `main(["verify", "--json", "--verify", "exit 0"])`,
-  and confirms return is 0 with `"status": "pass"` — the `except Exception: pass` guard holds.
-
-- `humanize_status` identity contract for non-string values is pinned (`protocol_commands.py:523`):
-  `test_humanize_status_passes_non_string_values_through` calls `humanize_status(42)`,
-  `humanize_status(None)`, and `humanize_status(True)`, asserting each is returned unchanged —
-  the `else value` branch that skips the dict lookup now has a dedicated unit test.
-
-- `_watch_status` exits cleanly on KeyboardInterrupt (`protocol_commands.py:509`):
-  `test_watch_status_exits_cleanly_on_keyboard_interrupt` injects a `sleep` that raises
-  `KeyboardInterrupt`, calls `_watch_status` with `max_ticks=0`, and asserts `ticks == 1`
-  and no exception escapes — the `except KeyboardInterrupt: pass` guard at line 509 is now covered.
+4. `cmd_swarm`'s no-agent human guard (`swarm.py:915`) is untested: the existing guard tests
+   always pass `--agent codex` explicitly, so the `if not agent: return _guard(...)` branch at
+   line 915 is never reached. A regression silently removing the guard would not be caught.
+   Evidence: src/looptight/swarm.py:914
+   Acceptance: `test_swarm_cli_no_agent_guard` in tests/test_swarm.py passes: with
+   `detect_agent` monkeypatched to return `None` and no `--agent` flag, `swarm --headless
+   --verify "exit 0"` exits 2 and "No coding agent" appears in human output (line 915 covered).
 
 ## Rules
 
