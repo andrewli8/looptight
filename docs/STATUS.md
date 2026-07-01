@@ -2424,18 +2424,14 @@ existing CLI session and makes no model or API calls of its own.
   writing `[]` (valid JSON, not a dict) to the state file and asserting `read_state(tmp_path) == empty_state()`
   proves the non-dict branch is distinct from the wrong-schema-version path. No production code change.
 
+- `write_count`'s absent-file `unlink` contract (`hook.py:208`, `missing_ok=True`) is locked by
+  `test_write_count_zero_is_silent_no_op_when_file_absent` in `tests/test_hook.py`:
+  calling `write_count(tmp_path / "no_such.count", 0)` asserts no exception and no file created —
+  the `missing_ok=True` promise is directly tested independently of the roundtrip. No production change.
+
 ## Next
 
-2. `write_count`'s negative branch (hook.py:207-209) — `count <= 0` triggers `path.unlink` —
-   is covered by the roundtrip test only when the file already exists, but is never asserted
-   when the file is absent (`missing_ok=True` is the no-error promise). The absent-file `unlink`
-   success is not directly asserted.
-   Evidence: src/looptight/hook.py:208
-   Acceptance: `test_write_count_zero_is_silent_no_op_when_file_absent` in `tests/test_hook.py`
-   calls `write_count(tmp_path / "no_such.count", 0)` and asserts no exception and no file
-   created — the `missing_ok=True` contract is locked.
-
-4. `Coordinator.open`'s `BaseException` fallback (coordinator.py:354-356) closes the connection
+2. `Coordinator.open`'s `BaseException` fallback (coordinator.py:354-356) closes the connection
    before re-raising on any non-`sqlite3.Error`/non-`RuntimeError` (e.g. `KeyboardInterrupt`) —
    the resource-cleanup guarantee has no test.
    Evidence: src/looptight/coordinator.py:354

@@ -103,6 +103,12 @@ def test_count_roundtrip_and_reset(tmp_path):
     assert read_count(path) == 0
 
 
+def test_write_count_zero_is_silent_no_op_when_file_absent(tmp_path):
+    path = tmp_path / "no_such.count"
+    write_count(path, 0)
+    assert not path.exists()
+
+
 def test_read_count_returns_zero_on_non_integer_content(tmp_path):
     path = tmp_path / "count"
     path.write_text("not-a-number", encoding="utf-8")
