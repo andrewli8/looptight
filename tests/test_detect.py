@@ -213,6 +213,14 @@ def test_detect_verify_non_utf8_package_json_falls_through(tmp_path):
     assert detect.detect_verify(tmp_path) is None
 
 
+def test_detect_verify_oserror_on_package_json_falls_through(tmp_path):
+    # detect.py:74's OSError arm: a directory named package.json raises
+    # IsADirectoryError (an OSError) at read_text; the except must catch it and
+    # fall through to None rather than crashing detect_verify.
+    (tmp_path / "package.json").mkdir()
+    assert detect.detect_verify(tmp_path) is None
+
+
 def test_detect_verify_setup_cfg(tmp_path):
     (tmp_path / "setup.cfg").write_text("[metadata]\nname = x\n")
     assert detect.detect_verify(tmp_path) == "pytest -q"

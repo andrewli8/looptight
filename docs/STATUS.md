@@ -2384,17 +2384,11 @@ existing CLI session and makes no model or API calls of its own.
   and asserts `ConfigError` is raised containing the file path — a regression dropping `OSError`
   from the except is now caught. No production code change.
 
-## Next
-
-1. `detect.py:74`'s `OSError` arm of `except (ValueError, OSError)` for `package.json` has no
-   direct test: `test_detect_verify_non_utf8_package_json_falls_through` covers the `ValueError`
-   (UnicodeDecodeError) branch, but a package.json that raises `IsADirectoryError` (replacing the
-   file with a same-name directory) exercises the `OSError` sibling arm — a regression dropping
-   `OSError` from the except would propagate the exception and crash `detect_verify`.
-   Evidence: src/looptight/detect.py:74
-   Acceptance: `test_detect_verify_oserror_on_package_json_falls_through` in tests/test_detect.py
-   creates a same-name directory where `package.json` is expected and asserts `detect_verify` returns
-   `None` without raising.
+- `detect.py:74`'s `OSError` arm of `except (ValueError, OSError)` for `package.json` now has direct
+  coverage: `test_detect_verify_oserror_on_package_json_falls_through` in `tests/test_detect.py`
+  creates a directory named `package.json` (triggering `IsADirectoryError`, an `OSError`) and asserts
+  `detect_verify` returns `None` without raising — the sibling of the non-UTF-8 ValueError test,
+  closing the last uncovered arm. No production code change.
 
 ## Rules
 
