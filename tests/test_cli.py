@@ -2757,6 +2757,26 @@ def test_run_warns_when_native_mode_not_supported(tmp_path, monkeypatch, capsys)
     assert code == 0
 
 
+def test_run_json_reports_not_implemented_error(tmp_path, monkeypatch, capsys):
+    # `run --json` must emit a versioned JSON error envelope when run_loop raises
+    # NotImplementedError (commands.py:235-237); the human-mode path is already covered.
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        "looptight.commands.get_adapter",
+        lambda name: __import__("conftest", fromlist=["FakeAdapter"]).FakeAdapter(),
+    )
+
+    def raise_not_implemented(*args, **kwargs):
+        raise NotImplementedError("unsupported")
+
+    monkeypatch.setattr("looptight.commands.run_loop", raise_not_implemented)
+    code = main(["run", "--headless", "--json", "--agent", "codex", "do the thing", "--verify", "exit 0"])
+    assert code == 3
+    data = json.loads(capsys.readouterr().out)
+    assert data["command"] == "run"
+    assert "unsupported" in data["error"]
+
+
 def test_daemon_cli_renders_cycle_outcomes_and_stop_summary(tmp_path, monkeypatch, capsys):
     from looptight.daemon import DaemonCycle, DaemonReport
 

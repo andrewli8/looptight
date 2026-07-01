@@ -2351,20 +2351,15 @@ existing CLI session and makes no model or API calls of its own.
   with `FakeAdapter(supports_native=False)` and `run_loop` to return a SUCCESS result, runs
   `run --headless --native --agent codex "fix it" --verify "exit 0"`, and asserts "no native
   loop" appears in output and exit is 0, so a regression dropping the warning is caught.
+- `cmd_run --json`'s `NotImplementedError` path (`commands.py:235-237`) is covered:
+  `test_run_json_reports_not_implemented_error` in `tests/test_cli.py` stubs `get_adapter`
+  and `run_loop` to raise `NotImplementedError("unsupported")`, runs `run --headless --json
+  --agent codex`, asserts exit 3 and stdout is valid JSON with `command == "run"` and
+  `"unsupported"` in `error` — so a regression dropping the JSON envelope is caught.
 
 ## Next
 
-1. `cmd_run --json`'s `NotImplementedError` path (`commands.py:235-237`) is untested: the existing
-   `test_run_reports_not_implemented_from_loop_with_exit_3` uses human mode (no `--json`), so
-   lines 235-237 (the JSON envelope branch of the NotImplementedError handler) are never reached
-   and a regression silently dropping the JSON envelope would not be caught.
-   Evidence: src/looptight/commands.py:234
-   Acceptance: `test_run_json_reports_not_implemented_error` in tests/test_cli.py passes:
-   `run --headless --json --agent codex --verify "exit 0"` with `run_loop` stubbed to raise
-   `NotImplementedError("unsupported")` exits 3 and stdout is valid JSON with
-   `command == "run"` and `"unsupported"` in `error`.
-
-2. `cmd_status`'s `OSError` path for `git status --porcelain` (`protocol_commands.py:560-561`) is
+1. `cmd_status`'s `OSError` path for `git status --porcelain` (`protocol_commands.py:560-561`) is
    untested: `test_cmd_status_git_sets_terminal_prompt_env` only checks the env dict, not the
    error path. When git itself is unavailable (OSError), `workspace` must fall back to `"not_git"`
    — the same contract `cmd_doctor` already has a test for — but `cmd_status` lacks a parallel test.
@@ -2373,7 +2368,7 @@ existing CLI session and makes no model or API calls of its own.
    monkeypatching `protocol_commands.subprocess.run` to raise `OSError` for the `git status`
    call, `status --json` exits 0 with `workspace == "not_git"` in the JSON output.
 
-3. `cmd_swarm`'s no-agent human guard (`swarm.py:915`) is untested: the existing guard tests
+2. `cmd_swarm`'s no-agent human guard (`swarm.py:915`) is untested: the existing guard tests
    always pass `--agent codex` explicitly, so the `if not agent: return _guard(...)` branch at
    line 915 is never reached. A regression silently removing the guard would not be caught.
    Evidence: src/looptight/swarm.py:914
