@@ -2370,13 +2370,10 @@ existing CLI session and makes no model or API calls of its own.
   to raise `OSError("disk full")`, runs `main(["verify", "--json", "--verify", "exit 0"])`,
   and confirms return is 0 with `"status": "pass"` — the `except Exception: pass` guard holds.
 
-3. `humanize_status` passes non-string values through unchanged (protocol_commands.py:523):
-   the `else value` branch is exercised in integration via `humanized_checks` but has no
-   dedicated unit test, leaving the identity contract unguarded.
-   Evidence: src/looptight/protocol_commands.py:522
-   Acceptance: `test_humanize_status_passes_non_string_values_through` passes: call
-   `humanize_status(42)`, `humanize_status(None)`, and `humanize_status(True)`, asserting
-   each is returned unchanged.
+- `humanize_status` identity contract for non-string values is pinned (`protocol_commands.py:523`):
+  `test_humanize_status_passes_non_string_values_through` calls `humanize_status(42)`,
+  `humanize_status(None)`, and `humanize_status(True)`, asserting each is returned unchanged —
+  the `else value` branch that skips the dict lookup now has a dedicated unit test.
 
 4. `_watch_status` exits cleanly on KeyboardInterrupt (protocol_commands.py:509):
    the `except KeyboardInterrupt: pass` block is reachable only when the sleep is

@@ -3551,6 +3551,14 @@ def test_active_task_identity_swallows_exception(tmp_path, monkeypatch):
     assert _active_task_identity(tmp_path) is None
 
 
+def test_humanize_status_passes_non_string_values_through():
+    from looptight.protocol_commands import humanize_status
+
+    assert humanize_status(42) == 42
+    assert humanize_status(None) is None
+    assert humanize_status(True) is True
+
+
 def test_verify_continues_despite_write_verdict_failure(tmp_path, monkeypatch, capsys):
     # protocol_commands.py:57 swallows write_verdict errors so UI bookkeeping never
     # breaks verify. This test confirms a crashing write_verdict doesn't hide a pass.
