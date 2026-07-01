@@ -2365,15 +2365,10 @@ existing CLI session and makes no model or API calls of its own.
   (2 chars, ≤ 3) alongside a normal `" M src/a.py"` and asserts only the second entry is
   returned — the `if len(line) <= 3: continue` guard at line 392 was dead in all prior tests.
 
-1. `cmd_verify`'s `write_verdict` failure is silently swallowed (protocol_commands.py:57):
-   the `except Exception: pass` block never lets verify fail due to UI bookkeeping, but
-   no test confirms the swallow actually holds — a crashing `write_verdict` could hide a
-   regression in future.
-   Evidence: src/looptight/protocol_commands.py:57
-   Acceptance: `test_verify_continues_despite_write_verdict_failure` passes: monkeypatch
-   `protocol_commands.write_verdict` (via `looptight.protocol_commands`) to raise
-   `OSError("disk full")`, run `main(["verify", "--json"])`, assert return is 0 (pass),
-   and JSON output contains `"status": "pass"`.
+- `cmd_verify`'s `write_verdict` failure is silently swallowed (`protocol_commands.py:57`):
+  `test_verify_continues_despite_write_verdict_failure` monkeypatches `looptight.ui.write_verdict`
+  to raise `OSError("disk full")`, runs `main(["verify", "--json", "--verify", "exit 0"])`,
+  and confirms return is 0 with `"status": "pass"` — the `except Exception: pass` guard holds.
 
 3. `humanize_status` passes non-string values through unchanged (protocol_commands.py:523):
    the `else value` branch is exercised in integration via `humanized_checks` but has no

@@ -3549,3 +3549,17 @@ def test_active_task_identity_swallows_exception(tmp_path, monkeypatch):
         staticmethod(lambda p: (_ for _ in ()).throw(RuntimeError("boom"))),
     )
     assert _active_task_identity(tmp_path) is None
+
+
+def test_verify_continues_despite_write_verdict_failure(tmp_path, monkeypatch, capsys):
+    # protocol_commands.py:57 swallows write_verdict errors so UI bookkeeping never
+    # breaks verify. This test confirms a crashing write_verdict doesn't hide a pass.
+    import looptight.ui as _ui
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(_ui, "write_verdict", lambda *a, **kw: (_ for _ in ()).throw(OSError("disk full")))
+    rc = main(["verify", "--json", "--verify", "exit 0"])
+    assert rc == 0
+    out = capsys.readouterr().out
+    data = json.loads(out)
+    assert data["status"] == "pass"
