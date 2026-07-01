@@ -2375,14 +2375,10 @@ existing CLI session and makes no model or API calls of its own.
   `humanize_status(None)`, and `humanize_status(True)`, asserting each is returned unchanged —
   the `else value` branch that skips the dict lookup now has a dedicated unit test.
 
-4. `_watch_status` exits cleanly on KeyboardInterrupt (protocol_commands.py:509):
-   the `except KeyboardInterrupt: pass` block is reachable only when the sleep is
-   interrupted, but no test exercises this path — future refactors could accidentally
-   re-raise and break `looptight status --watch`.
-   Evidence: src/looptight/protocol_commands.py:509
-   Acceptance: `test_watch_status_exits_cleanly_on_keyboard_interrupt` passes: inject a
-   `sleep` that raises `KeyboardInterrupt`, call `_watch_status` with `max_ticks=0`,
-   assert `ticks == 1` (one panel was rendered before interrupt) and no exception escapes.
+- `_watch_status` exits cleanly on KeyboardInterrupt (`protocol_commands.py:509`):
+  `test_watch_status_exits_cleanly_on_keyboard_interrupt` injects a `sleep` that raises
+  `KeyboardInterrupt`, calls `_watch_status` with `max_ticks=0`, and asserts `ticks == 1`
+  and no exception escapes — the `except KeyboardInterrupt: pass` guard at line 509 is now covered.
 
 ## Rules
 

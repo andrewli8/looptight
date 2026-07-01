@@ -2825,6 +2825,20 @@ def test_watch_status_emits_ansi_clear_when_clear_is_true(tmp_path, capsys):
     assert "\x1b[2J" in out  # clear-screen escape emitted before each tick
 
 
+def test_watch_status_exits_cleanly_on_keyboard_interrupt(tmp_path):
+    from looptight.console import Console
+    from looptight.protocol_commands import _watch_status
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+
+    def _raise_ki(_interval):
+        raise KeyboardInterrupt
+
+    # max_ticks=0 means unbounded; the injected sleep raises KI after the first tick.
+    ticks = _watch_status(tmp_path, Console(), interval=0.0, sleep=_raise_ki, max_ticks=0, clear=False)
+    assert ticks == 1
+
+
 def test_statusline_command_reads_stdin_and_prints_one_line(tmp_path, monkeypatch, capsys):
     import io
 
