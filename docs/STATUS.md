@@ -2406,11 +2406,13 @@ existing CLI session and makes no model or API calls of its own.
   `"uv run pytest -q"` — confirming the npm branch falls through to uv when no test script is
   present. No production code change.
 
-## Next
+- `_integrate_via_queue`'s lost-lease path (`swarm.py:523`) is covered:
+  `test_swarm_marks_worker_failed_when_lease_is_lost` in `tests/test_swarm.py` patches
+  `Coordinator.open` to return a fake whose `lease_for` always returns `None` and asserts the
+  worker is marked `failed` with `"lost task lease"` — the recovery invariant is now tested.
+  No production code change.
 
-1. `_integrate_via_queue`'s lost-lease path (swarm.py:523) is untested: when `coordinator.lease_for` returns `None` for a verified worker (lease reaped before integration), the worker is marked `failed` with "lost task lease before integration" — this recovery invariant has no test.
-   Evidence: src/looptight/swarm.py:523;
-   Acceptance: `test_swarm_marks_worker_failed_when_lease_is_lost` in `tests/test_swarm.py` drives a swarm where the coordinator's `lease_for` returns `None` for a verified worker and asserts `worker.status == "failed"` with `"lost task lease"` in the error.
+## Next
 
 ## Rules
 

@@ -915,6 +915,46 @@ def test_swarm_contains_worker_runtime_exception(tmp_path, monkeypatch):
     assert result.workers[0].error == "worker crashed: provider crashed"
 
 
+def test_swarm_marks_worker_failed_when_lease_is_lost(tmp_path, monkeypatch):
+    # When coordinator.lease_for returns None for a verified worker (lease reaped before
+    # integration), _integrate_via_queue marks the worker failed with "lost task lease"
+    # — the recovery invariant has no other test.
+    _repo(tmp_path)
+
+    class _LostLeaseCoordinator:
+        def lease_for(self, fingerprint, run_id):
+            return None
+
+        def next_queued_integration(self):
+            return None
+
+        def close(self):
+            pass
+
+    class _FakeCoordinatorClass:
+        @staticmethod
+        def open(root, **kw):
+            return _LostLeaseCoordinator()
+
+    monkeypatch.setattr("looptight.swarm.Coordinator", _FakeCoordinatorClass)
+
+    worker = Worker(
+        number=0,
+        task={"id": "abc123", "goal": "test goal", "source": "test"},
+        branch="worker-0",
+        worktree=tmp_path,
+        base="HEAD",
+        status="verified",
+        run_id="run-xyz",
+    )
+
+    from looptight.swarm import _integrate_via_queue
+    _integrate_via_queue(tmp_path, [worker], "exit 0")
+
+    assert worker.status == "failed"
+    assert "lost task lease" in (worker.error or "")
+
+
 def test_swarm_handles_coordination_timeout(tmp_path, monkeypatch):
     _repo(tmp_path)
     monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
