@@ -27,14 +27,17 @@ SCHEMA_VERSION = 1
 
 
 def _path(root: Path) -> Path | None:
-    result = subprocess.run(
-        ["git", "rev-parse", "--git-dir"],
-        cwd=root,
-        env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--git-dir"],
+            cwd=root,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return None
     if result.returncode != 0:
         return None
     git_dir = Path(result.stdout.strip())

@@ -2467,21 +2467,16 @@ existing CLI session and makes no model or API calls of its own.
   `_changed_entries`) while all other commands degraded gracefully. Covered by
   `test_changed_entries_returns_none_on_oserror` in tests/test_cli.py.
 
+- `trajectory._path()` now catches `OSError` around its `subprocess.run(["git",
+  "rev-parse", "--git-dir"], ...)` call, matching the module's documented "noop outside
+  git" contract. Previously, `trajectory.record()` (and via it `looptight verify
+  --patience N > 0`) crashed with `FileNotFoundError` when git was absent from PATH;
+  now it degrades gracefully to `None`. Covered by
+  `test_trajectory_path_returns_none_on_oserror` in tests/test_trajectory.py.
+
 ## Next
 
-1. `trajectory._path()` at `trajectory.py:29` calls `subprocess.run(["git", "rev-parse",
-   "--git-dir"], ...)` with no `try/except OSError`. Every sibling git call in the module
-   that uses the result of `_path()` (`_read`, `_is_fresh`) already wraps its own call,
-   but `_path` does not — so `trajectory.record()` (and via it `run_verify` with `--patience
-   N > 0`) crashes with `FileNotFoundError` when git is absent from PATH, instead of
-   silently returning `None`. The fix: add `try/except OSError: return None` around the
-   subprocess.run call in `_path`, matching the documented "noop outside git" contract.
-   Evidence: src/looptight/trajectory.py:29;
-   Acceptance: `test_trajectory_path_returns_none_on_oserror` in tests/test_trajectory.py
-   monkeypatches `trajectory.subprocess.run` to raise `OSError` and asserts `_path(tmp_path)`
-   returns `None` without raising.
-
-3. `test_next_json_contract_is_grounded_and_stable` in `tests/test_cli.py:602` asserts
+1. `test_next_json_contract_is_grounded_and_stable` in `tests/test_cli.py:602` asserts
    `task["source"]`, `task["goal"]`, `task["evidence"]`, and `task["acceptance"]` but does
    NOT assert `task["idea_id"]` or `task["suggested_verify"]`. `docs/SPEC.md` names both as
    always-present task fields. A regression dropping either from the serialized JSON would not
@@ -2492,7 +2487,7 @@ existing CLI session and makes no model or API calls of its own.
    `assert "idea_id" in first["task"]` and `assert "suggested_verify" in first["task"]`
    (or `assert first["task"]["suggested_verify"] is None`).
 
-4. `_count()` at `protocol_commands.py:938` returns `value if isinstance(value, int) else 0`
+2. `_count()` at `protocol_commands.py:938` returns `value if isinstance(value, int) else 0`
    when the coordinator counts dict has a non-int value for a key (e.g. a string from a future
    schema evolution). The `else 0` branch at line 941 has no direct test; only the `None`-dict
    and absent-key paths are exercised by existing tests. A regression dropping the isinstance

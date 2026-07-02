@@ -151,3 +151,14 @@ def test_trajectory_path_git_sets_terminal_prompt_env(tmp_path):
     with patch.object(trajectory.subprocess, "run", fake_run):
         trajectory._path(tmp_path)
     assert captured.get("env", {}).get("GIT_TERMINAL_PROMPT") == "0"
+
+
+def test_trajectory_path_returns_none_on_oserror(tmp_path):
+    # trajectory.py:29 — _path's subprocess.run must catch OSError so
+    # trajectory.record() (and verify --patience) degrades gracefully when
+    # git is absent from PATH instead of crashing with FileNotFoundError.
+    from unittest.mock import patch
+
+    with patch.object(trajectory.subprocess, "run", side_effect=OSError("git not found")):
+        result = trajectory._path(tmp_path)
+    assert result is None
