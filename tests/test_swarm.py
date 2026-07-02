@@ -1933,3 +1933,12 @@ def test_continuous_swarm_exits_naturally_after_max_rounds_with_workers(tmp_path
     assert result.rounds == 1
     assert result.error is None
     assert merged_worker in result.workers
+
+
+def test_publish_state_swallows_write_oserror(tmp_path, monkeypatch):
+    # _publish_state's except OSError: pass (swarm.py:191) must absorb a write failure
+    # so an I/O error never disrupts orchestration — observability is best-effort.
+    from looptight.swarm import _publish_state
+
+    monkeypatch.setattr("looptight.swarm.write_state", lambda *a, **kw: (_ for _ in ()).throw(OSError("disk full")))
+    _publish_state(tmp_path, [], "ok")  # must not raise

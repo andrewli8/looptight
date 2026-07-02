@@ -2495,15 +2495,11 @@ existing CLI session and makes no model or API calls of its own.
   `landed_category_counts(tmp_path, "HEAD") == {}` — sibling of the existing
   `test_landed_counts_returns_empty_when_git_not_found`. No production code change.
 
-## Next
-
-1. `_publish_state`'s `except OSError: pass` (swarm.py:191) is uncovered. A failing `write_state`
-   call (disk full, read-only FS) must be silently swallowed because observability is best-effort;
-   a regression removing the try/except would abort the swarm run on a transient I/O error.
-   Evidence: src/looptight/swarm.py:191;
-   Acceptance: `test_publish_state_swallows_write_oserror` in tests/test_swarm.py monkeypatches
-   `looptight.swarm.write_state` to raise `OSError` and asserts `_publish_state(tmp_path, [], "ok")`
-   returns without raising.
+- `_publish_state`'s `except OSError: pass` (swarm.py:191) now has direct regression coverage:
+  `test_publish_state_swallows_write_oserror` in tests/test_swarm.py monkeypatches
+  `looptight.swarm.write_state` to raise `OSError` and asserts `_publish_state(tmp_path, [], "ok")`
+  returns without raising — a regression removing the guard would abort the swarm run on a
+  transient I/O error. No production code change.
 
 ## Rules
 
