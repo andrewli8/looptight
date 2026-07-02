@@ -141,6 +141,13 @@ def test_format_limit_error_without_reset_is_bare_marker():
     assert retry_after_from_error(error) is None
 
 
+def test_retry_after_from_error_returns_none_for_none_input():
+    # The `if not error: return None` guard at limits.py:148 is never exercised by the
+    # existing tests, which pass non-None strings; a None error (valid for the str|None
+    # signature) must return None without reaching the regex search.
+    assert retry_after_from_error(None) is None
+
+
 def test_is_limit_error_rejects_other_failures():
     assert not is_limit_error(None)
     assert not is_limit_error("codex exited 1")
