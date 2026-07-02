@@ -2510,6 +2510,46 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `verify.py:109` maps exit codes `126` and `127` to `"launch_error"`, but only
+   exit 127 (command not found) has a direct regression test (`test_missing_command_is_launch_error_not_test_failure`
+   in `tests/test_verify.py:85`). Exit 126 (file exists but is not executable) is
+   never exercised; a regression narrowing the check to `== 127` would silently
+   reclassify a permission error as a test failure.
+   Evidence: src/looptight/verify.py:109;
+   Acceptance: `test_exit_126_is_launch_error_not_test_failure` in `tests/test_verify.py`
+   creates a non-executable script, calls `verify()`, and asserts `result.error == "launch_error"`
+   and `result.exit_code == 126`.
+
+2. `checkpoint.py:80-89` has three outcomes for `snapshot()`: stash-SHA (dirty tree),
+   `None` (stash fails), and HEAD-SHA (clean tree). The clean-tree branch—where
+   `stash create` succeeds with empty stdout and the code falls back to
+   `rev-parse HEAD`—is the most common production case and has no test. A regression
+   dropping the fallback would make `snapshot()` return `None` on every unmodified
+   iteration without failing any existing test.
+   Evidence: src/looptight/checkpoint.py:80;
+   Acceptance: `test_snapshot_on_clean_tree_returns_head_sha` in `tests/test_checkpoint.py`
+   initialises a repo with one commit, makes no modifications, calls `cp.snapshot()`,
+   and asserts the returned SHA equals the HEAD commit SHA and appears in `cp.snapshots`.
+
+3. `experience.py:49` extracts `idea = line.split()[0]` after the guard `"landed" not in line`.
+   A one-token line `"landed"` passes the guard (the word is present) and produces
+   `idea = "landed"`—polluting `landed_counts` with a synthetic key that could skew
+   proposal ranking. No test covers this degenerate trailer format.
+   Evidence: src/looptight/experience.py:49;
+   Acceptance: `test_landed_counts_ignores_bare_landed_token` in `tests/test_experience.py`
+   monkeypatches `_git` to return `stdout="landed\n"` and asserts
+   `landed_counts(tmp_path, "HEAD") == {}` (no `"landed"` key in the result).
+
+4. `discovery.py:156-166` uses a `seen: set[Path]` to deduplicate files found by both
+   the directory sweep and the colocated `_js_test_files` sweep. No test places a
+   `*.test.ts` file under `src/` (hit by both sweeps) and asserts it appears exactly
+   once; a regression removing the `seen` guard would produce duplicate entries that
+   cause duplicate task proposals.
+   Evidence: src/looptight/discovery.py:156;
+   Acceptance: `test_js_discovery_files_does_not_duplicate_colocated_test` in
+   `tests/test_propose.py` (or a new `tests/test_discovery.py`) creates a `src/util.test.ts`,
+   calls `_js_discovery_files(tmp_path)`, and asserts the path appears exactly once.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
