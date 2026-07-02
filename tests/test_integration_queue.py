@@ -15,6 +15,7 @@ from looptight.integration_queue import (
     Integrator,
     Publisher,
     _is_ancestor,
+    _try_lock,
     git_common_dir,
     integration_worktree,
     prepare_integration_worktree,
@@ -548,3 +549,10 @@ def test_is_ancestor_returns_false_on_empty_sha(tmp_path, monkeypatch):
     assert _is_ancestor(tmp_path, "", "abc") is False
     assert _is_ancestor(tmp_path, "abc", "") is False
     assert called == [], "git must not be invoked when either SHA is empty"
+
+
+def test_try_lock_returns_false_on_oserror(monkeypatch):
+    import looptight.integration_queue as iq
+
+    monkeypatch.setattr(iq.fcntl, "flock", lambda fd, op: (_ for _ in ()).throw(OSError("locked")))
+    assert _try_lock(0) is False

@@ -2503,16 +2503,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `_try_lock`'s `except OSError: return False` (integration_queue.py:93) has no direct test.
-   The lock acquisition path converts any OSError (EAGAIN, EBADF, etc.) into a `False` so
-   `IntegrationLock.acquire` retries instead of crashing; a regression removing the except
-   would propagate the exception to the caller.
-   Evidence: src/looptight/integration_queue.py:93;
-   Acceptance: `test_try_lock_returns_false_on_oserror` in tests/test_integration_queue.py
-   monkeypatches `looptight.integration_queue.fcntl.flock` to raise `OSError` and asserts
-   `_try_lock(0)` returns `False`.
-
-2. `_unlock`'s `except OSError: pass` (integration_queue.py:103) has no direct test.
+1. `_unlock`'s `except OSError: pass` (integration_queue.py:103) has no direct test.
    The unlock path silently swallows OSError so a crash after acquiring the lock does not
    re-raise and mask the original error; a regression removing the guard would propagate.
    Evidence: src/looptight/integration_queue.py:103;
@@ -2520,7 +2511,7 @@ existing CLI session and makes no model or API calls of its own.
    monkeypatches `looptight.integration_queue.fcntl.flock` to raise `OSError` and asserts
    `_unlock(0)` returns without raising.
 
-3. `_remove_worker_worktree`'s `worktree.parent.rmdir()` `except OSError: pass` (swarm.py:234)
+2. `_remove_worker_worktree`'s `worktree.parent.rmdir()` `except OSError: pass` (swarm.py:234)
    has no direct test. When a sibling worktree occupies the same parent directory, `rmdir()`
    fails with ENOTEMPTY and must be silently swallowed; a regression removing the guard
    would abort the cleanup and leak state.
@@ -2529,7 +2520,7 @@ existing CLI session and makes no model or API calls of its own.
    tests/test_swarm.py monkeypatches `pathlib.Path.rmdir` to raise `OSError` after a
    successful worktree removal and asserts the function returns `returncode == 0`.
 
-4. `Checkpointer.snapshot()`'s `returncode != 0` early-return (checkpoint.py:77) has no direct
+3. `Checkpointer.snapshot()`'s `returncode != 0` early-return (checkpoint.py:77) has no direct
    test for the `git stash create` failure path. A stash failure (nothing to stash, locked index)
    returns `None`; a regression replacing the guard with an exception propagation would crash
    the verify loop instead of silently skipping the checkpoint.
