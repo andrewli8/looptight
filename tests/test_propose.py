@@ -1115,6 +1115,13 @@ def test_propose_respects_limit(tmp_path):
     assert len(propose(tmp_path, limit=5)) == 5
 
 
+def test_propose_limit_zero_returns_all_candidates(tmp_path):
+    body = "".join(f"# TODO: task {i}\n" for i in range(20))
+    _write(tmp_path, "src/a.py", body)
+    all_candidates = propose(tmp_path, limit=0)
+    assert len(all_candidates) == 20
+
+
 # --- cooldown suppression --------------------------------------------------
 
 

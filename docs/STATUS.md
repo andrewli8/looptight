@@ -2441,19 +2441,15 @@ existing CLI session and makes no model or API calls of its own.
   "Implement exactly one" and does not contain "at None" or "None" proves a candidate
   with no file location never produces a malformed directive. No production code change.
 
+- `propose(root, limit=0)`'s `else ranked` branch (`propose.py:53`) is locked by
+  `test_propose_limit_zero_returns_all_candidates` in `tests/test_propose.py`:
+  creating 20 TODO candidates and asserting `propose(root, limit=0)` returns all 20
+  proves the user-facing `--limit 0` ("see all of them") contract independently of
+  the CLI path. No production code change.
+
 ## Next
 
-1. `propose(root, limit=0)` returns all candidates (the `else ranked` branch at
-   `propose.py:53`) has no direct unit assertion — `test_propose_respects_limit`
-   tests `limit=5` only, and the unlimited path is exercised only through the CLI
-   integration path in `cmd_propose`. A direct test locks the user-facing
-   `--limit 0` ("see all of them") contract independently of the CLI.
-   Evidence: src/looptight/propose.py:53;
-   Acceptance: `test_propose_limit_zero_returns_all_candidates` in tests/test_propose.py
-   creates more candidates than any default limit and asserts `propose(root, limit=0)`
-   returns all of them without truncation.
-
-2. `trajectory._read`'s `isinstance(prior.get("entries"), list)` guard (trajectory.py:109)
+1. `trajectory._read`'s `isinstance(prior.get("entries"), list)` guard (trajectory.py:109)
    is not directly exercised: the corrupt-store test writes unparseable bytes, so `_read`
    returns `None` before the guard runs; the non-list-entries branch (valid JSON dict,
    wrong type for `entries`) is never reached. Without this guard, `list(non_list)` would
@@ -2463,7 +2459,7 @@ existing CLI session and makes no model or API calls of its own.
    writes a valid-schema trajectory JSON whose `entries` value is a string (not a list),
    calls `record`, and asserts a single-entry list is returned (not a TypeError).
 
-3. `RunResult.returncode` is threaded from `IterationResult.returncode` in both the
+2. `RunResult.returncode` is threaded from `IterationResult.returncode` in both the
    supply loop (loop.py:141, 176) and the delegate loop (loop.py:206), but no test
    asserts a non-None value propagates — `FakeAdapter` in conftest.py always returns
    `IterationResult` with no `returncode` (defaults to None). If the field were dropped
