@@ -37,6 +37,13 @@ def test_progress_none_when_unparseable():
     assert progress_signal(VerifyResult(passed=False, exit_code=1, output="kaboom")) is None
 
 
+def test_progress_signal_returns_none_for_passing_verify():
+    # metacog.py:49 — the `if verify.passed: return None` early exit has no direct
+    # unit test; a regression replacing it with a fallthrough would compute -0.0
+    # instead of None, silently changing the controller's "no signal, keep going" logic.
+    assert progress_signal(VerifyResult(passed=True, exit_code=0, output="0 failed")) is None
+
+
 # --- assess ----------------------------------------------------------------
 
 def test_patience_zero_always_continues():
