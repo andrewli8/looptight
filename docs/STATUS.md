@@ -2453,18 +2453,14 @@ existing CLI session and makes no model or API calls of its own.
   a single-entry result (no TypeError) proves the guard prevents `list("not-a-list")`
   from producing unexpected character entries. No production code change.
 
-## Next
+- `RunResult.returncode` propagation is covered in both the supply and delegate loops:
+  `test_supply_loop_returncode_propagates_from_failed_iteration` injects
+  `IterationResult(ok=False, error="boom", returncode=5)` and asserts `result.returncode == 5`;
+  a sibling test covers the delegate path. The swarm's timeout-classification contract
+  (which reads `result.returncode` to tag 124 as timeout) can no longer silently break if
+  the field were dropped from a `RunResult` constructor call.
 
-1. `RunResult.returncode` is threaded from `IterationResult.returncode` in both the
-   supply loop (loop.py:141, 176) and the delegate loop (loop.py:206), but no test
-   asserts a non-None value propagates — `FakeAdapter` in conftest.py always returns
-   `IterationResult` with no `returncode` (defaults to None). If the field were dropped
-   from the RunResult constructor call, the swarm's timeout-classification contract
-   (which reads `result.returncode` to tag 124 as timeout) would silently break.
-   Evidence: src/looptight/loop.py:141;
-   Acceptance: `test_supply_loop_returncode_propagates_from_failed_iteration` in
-   tests/test_loop.py injects an `IterationResult(ok=False, error="boom", returncode=5)`
-   and asserts `result.returncode == 5`; a sibling test covers the delegate path.
+## Next
 
 ## Rules
 

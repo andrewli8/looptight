@@ -376,3 +376,36 @@ def test_run_loop_passes_model_to_adapter(workdir):
     )
 
     assert received["model"] == "opus"  # spawned session uses the configured model
+
+
+def test_supply_loop_returncode_propagates_from_failed_iteration(workdir):
+    class ReturncodeAdapter(FakeAdapter):
+        def run_iteration(self, goal, context, workdir, model=None):
+            return IterationResult(ok=False, error="boom", returncode=5)
+
+    result = _run(ReturncodeAdapter(), _config(), workdir, pass_on=1)
+
+    assert result.stop_reason is StopReason.ERROR
+    assert result.returncode == 5
+
+
+def test_delegate_loop_returncode_propagates_from_failed_iteration(workdir):
+    class ReturncodeNativeAdapter(FakeAdapter):
+        def __init__(self):
+            super().__init__(supports_native=True)
+
+        def drive_native_loop(self, goal, verify, max_iterations, workdir, model=None):
+            return IterationResult(ok=False, error="boom", returncode=5)
+
+    result = run_loop(
+        "do it",
+        ReturncodeNativeAdapter(),
+        _config(),
+        workdir,
+        native=True,
+        verify_fn=make_verify(1),
+        checkpointer=Checkpointer(workdir, enabled=False),
+    )
+
+    assert result.stop_reason is StopReason.ERROR
+    assert result.returncode == 5
