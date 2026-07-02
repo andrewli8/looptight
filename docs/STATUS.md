@@ -2447,19 +2447,15 @@ existing CLI session and makes no model or API calls of its own.
   proves the user-facing `--limit 0` ("see all of them") contract independently of
   the CLI path. No production code change.
 
+- `trajectory.record`'s `isinstance(prior.get("entries"), list)` guard (`trajectory.py:109`)
+  is locked by `test_record_treats_non_list_entries_as_fresh_attempt` in `tests/test_trajectory.py`:
+  writing a valid-schema JSON with `entries` set to a string (not a list) and asserting
+  a single-entry result (no TypeError) proves the guard prevents `list("not-a-list")`
+  from producing unexpected character entries. No production code change.
+
 ## Next
 
-1. `trajectory._read`'s `isinstance(prior.get("entries"), list)` guard (trajectory.py:109)
-   is not directly exercised: the corrupt-store test writes unparseable bytes, so `_read`
-   returns `None` before the guard runs; the non-list-entries branch (valid JSON dict,
-   wrong type for `entries`) is never reached. Without this guard, `list(non_list)` would
-   raise `TypeError` on a future corrupt store.
-   Evidence: src/looptight/trajectory.py:109;
-   Acceptance: `test_record_treats_non_list_entries_as_fresh_attempt` in tests/test_trajectory.py
-   writes a valid-schema trajectory JSON whose `entries` value is a string (not a list),
-   calls `record`, and asserts a single-entry list is returned (not a TypeError).
-
-2. `RunResult.returncode` is threaded from `IterationResult.returncode` in both the
+1. `RunResult.returncode` is threaded from `IterationResult.returncode` in both the
    supply loop (loop.py:141, 176) and the delegate loop (loop.py:206), but no test
    asserts a non-None value propagates — `FakeAdapter` in conftest.py always returns
    `IterationResult` with no `returncode` (defaults to None). If the field were dropped

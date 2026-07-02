@@ -122,6 +122,21 @@ def test_trajectory_read_returns_none_for_wrong_schema_version(tmp_path):
     assert trajectory._read(path) is None
 
 
+def test_record_treats_non_list_entries_as_fresh_attempt(tmp_path):
+    repo = _repo(tmp_path)
+    path = trajectory._path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Valid JSON and correct schema_version, but entries is a string instead of a list.
+    # The isinstance guard at trajectory.py:109 must prevent list("string") from running.
+    path.write_text(
+        '{"schema_version": 1, "command": "pytest -q", "updated_at": 1000.0,'
+        ' "entries": "not-a-list"}\n',
+        encoding="utf-8",
+    )
+    fresh = trajectory.record(repo, "pytest -q", -2.0, set(), passed=False)
+    assert len(fresh) == 1  # non-list entries treated as absent -> fresh attempt
+
+
 def test_trajectory_path_git_sets_terminal_prompt_env(tmp_path):
     # _path's `git rev-parse --git-dir` must pass GIT_TERMINAL_PROMPT=0 so a
     # headless `looptight verify --patience` cannot block on a credential prompt.
