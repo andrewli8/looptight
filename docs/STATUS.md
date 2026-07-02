@@ -2545,11 +2545,16 @@ existing CLI session and makes no model or API calls of its own.
   verify" in the error — a distinct path from the existing `exit 1` test (which fails
   the worktree verify at line 629, never reaching the root verify).
 
+- The planner's integration merge-commit failure path (`swarm.py:664`) is directly
+  covered: `test_plan_next_tasks_fails_when_integration_merge_commit_fails` in
+  `tests/test_swarm.py` patches `_git` to fail only when called with `root` and
+  `args[:1] == ("commit",)`, letting the worktree commit and integration verify succeed
+  but failing the root merge commit at line 662, asserting `result.status == "failed"`
+  with the commit error in the error string.
+
 ## Next
 
-1. The planner's integration merge-commit failure path is directly covered: `plan_next_tasks` commits the merge on root at line 662; line 664 is unreachable by the existing test (which fails the worktree commit at line 636, returning before the root commit). Evidence: `src/looptight/swarm.py:664`; Acceptance: `test_plan_next_tasks_fails_when_integration_merge_commit_fails` in tests/test_swarm.py patches `_git` to fail only when `("commit",)` is called with `root` (not the worktree), asserts `result.status == "failed"` with a commit-error in the error, and all existing planner tests still pass.
-
-2. `from_task_file` continuation break on an indented section header is directly covered: the guard at discovery.py:606 breaks when a body continuation line (indented, so not broken at line 604) itself starts with `## ` or a numbered item; the existing adjacent-items test reaches only line 604 (the next item is not indented, so `nxt[:1] not in (" ", "\t")` fires first). Evidence: `src/looptight/discovery.py:606`; Acceptance: `test_from_task_file_breaks_continuation_on_indented_section_header` in tests/test_propose.py writes a task whose body has an indented `  ## New Section` line, asserts the parsed title is truncated before that line, and the section header is not included in the task body.
+1. `from_task_file` continuation break on an indented section header is directly covered: the guard at discovery.py:606 breaks when a body continuation line (indented, so not broken at line 604) itself starts with `## ` or a numbered item; the existing adjacent-items test reaches only line 604 (the next item is not indented, so `nxt[:1] not in (" ", "\t")` fires first). Evidence: `src/looptight/discovery.py:606`; Acceptance: `test_from_task_file_breaks_continuation_on_indented_section_header` in tests/test_propose.py writes a task whose body has an indented `  ## New Section` line, asserts the parsed title is truncated before that line, and the section header is not included in the task body.
 
 ## Rules
 

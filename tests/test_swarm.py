@@ -494,6 +494,32 @@ def test_plan_next_tasks_fails_when_integration_verify_fails(tmp_path, monkeypat
     assert "planner integration verify" in (result.error or "")
 
 
+def test_plan_next_tasks_fails_when_integration_merge_commit_fails(tmp_path, monkeypatch):
+    # plan_next_tasks commits the merge on root at line 662; line 664 is unreachable by
+    # the existing commit-fails test (which fails the worktree commit at line 636, returning
+    # before the root commit). This test lets the worktree commit and integration verify
+    # succeed but fails only the root merge commit, covering swarm.py:664.
+    _repo(tmp_path)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "docs")
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: PlanningAdapter())
+
+    real_git = swarm._git
+
+    def selective_git(workdir, *args):
+        if workdir == tmp_path and args[:1] == ("commit",):
+            return subprocess.CompletedProcess(["git"], 1, "", "integration merge commit broke")
+        return real_git(workdir, *args)
+
+    monkeypatch.setattr("looptight.swarm._git", selective_git)
+    result = plan_next_tasks(tmp_path, agent="fake", verify="exit 0")
+
+    assert result.status == "failed"
+    assert "integration merge commit broke" in (result.error or "")
+
+
 def test_plan_next_tasks_fails_when_planner_provider_fails(tmp_path, monkeypatch):
     # A planner provider that returns ok=False is a clean planning failure carrying the
     # provider error, not an accepted plan.
