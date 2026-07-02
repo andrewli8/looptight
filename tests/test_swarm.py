@@ -468,6 +468,32 @@ def test_plan_next_tasks_fails_when_plan_verify_fails(tmp_path, monkeypatch):
     assert "planner verify" in (result.error or "")
 
 
+def test_plan_next_tasks_fails_when_integration_verify_fails(tmp_path, monkeypatch):
+    # plan_next_tasks runs run_verify twice: in the planner worktree (line 629) and on
+    # root after merging (line 654). The existing "exit 1" test reaches only the worktree
+    # call (line 629). This test passes the worktree verify but fails the root integration
+    # verify, directly covering swarm.py:655's return PlanningResult("failed", ...).
+    _repo(tmp_path)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "docs")
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: PlanningAdapter())
+
+    from looptight.types import VerifyResult
+
+    def selective_verify(verify_cmd, workdir):
+        if workdir == tmp_path:
+            return VerifyResult(passed=False, exit_code=1, output="integration verify broke")
+        return VerifyResult(passed=True, exit_code=0)
+
+    monkeypatch.setattr("looptight.swarm.run_verify", selective_verify)
+    result = plan_next_tasks(tmp_path, agent="fake", verify="exit 0")
+
+    assert result.status == "failed"
+    assert "planner integration verify" in (result.error or "")
+
+
 def test_plan_next_tasks_fails_when_planner_provider_fails(tmp_path, monkeypatch):
     # A planner provider that returns ok=False is a clean planning failure carrying the
     # provider error, not an accepted plan.
