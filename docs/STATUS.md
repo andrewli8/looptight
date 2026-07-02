@@ -2508,19 +2508,16 @@ existing CLI session and makes no model or API calls of its own.
   list — a regression replacing the guard with exception propagation would crash the verify
   loop instead of silently skipping the checkpoint. No production code change.
 
+- `verify.py:109`'s `returncode in (126, 127)` launch-error guard now has regression
+  coverage for both codes: `test_non_executable_script_is_launch_error_not_test_failure`
+  in `tests/test_verify.py` creates a file without execute permission, calls `run_verify()`,
+  and asserts `result.error == "launch_error"` and `result.exit_code == 126` — a regression
+  narrowing the check to `== 127` would silently reclassify the permission error as a test
+  failure. No production code change.
+
 ## Next
 
-1. `verify.py:109` maps exit codes `126` and `127` to `"launch_error"`, but only
-   exit 127 (command not found) has a direct regression test (`test_missing_command_is_launch_error_not_test_failure`
-   in `tests/test_verify.py:85`). Exit 126 (file exists but is not executable) is
-   never exercised; a regression narrowing the check to `== 127` would silently
-   reclassify a permission error as a test failure.
-   Evidence: src/looptight/verify.py:109;
-   Acceptance: `test_exit_126_is_launch_error_not_test_failure` in `tests/test_verify.py`
-   creates a non-executable script, calls `verify()`, and asserts `result.error == "launch_error"`
-   and `result.exit_code == 126`.
-
-2. `checkpoint.py:80-89` has three outcomes for `snapshot()`: stash-SHA (dirty tree),
+1. `checkpoint.py:80-89` has three outcomes for `snapshot()`: stash-SHA (dirty tree),
    `None` (stash fails), and HEAD-SHA (clean tree). The clean-tree branch—where
    `stash create` succeeds with empty stdout and the code falls back to
    `rev-parse HEAD`—is the most common production case and has no test. A regression

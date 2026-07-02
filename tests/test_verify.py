@@ -90,6 +90,18 @@ def test_missing_command_is_launch_error_not_test_failure(tmp_path):
     assert result.error == "launch_error"
 
 
+@pytest.mark.skipif(os.name != "posix", reason="exit 126 is a POSIX shell concept")
+def test_non_executable_script_is_launch_error_not_test_failure(tmp_path):
+    script = tmp_path / "verify.sh"
+    script.write_text("#!/bin/sh\nexit 0\n")
+    # intentionally no chmod +x — the shell returns 126 for non-executable files
+    result = run_verify(str(script), tmp_path)
+    assert not result.passed
+    assert result.exit_code == 126
+    assert result.status == "error"
+    assert result.error == "launch_error"
+
+
 def test_ordinary_nonzero_exit_remains_test_failure(tmp_path):
     result = run_verify("exit 1", tmp_path)
     assert result.status == "fail"
