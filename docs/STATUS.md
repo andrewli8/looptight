@@ -2535,6 +2535,14 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `retry_after_from_error(None)` early-return branch is directly covered: the `if not error: return None` guard at limits.py:148 is never reached by the existing tests (both call it with non-None strings). Evidence: `src/looptight/limits.py:148`; Acceptance: `test_retry_after_from_error_returns_none_for_none_input` in tests/test_limits.py asserts `retry_after_from_error(None) is None`, passes alongside all existing limit tests.
+
+2. The planner's integration verify failure path is directly covered: `plan_next_tasks` runs `run_verify` twice — first in the worktree (line 629, covered by `exit 1` test) and then on the root after merging (line 654); line 655 is uncovered because the existing verify-fail test fails the worktree verify before the merge. Evidence: `src/looptight/swarm.py:655`; Acceptance: `test_plan_next_tasks_fails_when_integration_verify_fails` in tests/test_swarm.py patches `run_verify` to pass in the worktree but fail on the root, asserts `result.status == "failed"` with "planner integration verify" in the error, and all existing planner tests still pass.
+
+3. The planner's integration merge-commit failure path is directly covered: `plan_next_tasks` commits the merge on root at line 662; line 664 is unreachable by the existing test (which fails the worktree commit at line 636, returning before the root commit). Evidence: `src/looptight/swarm.py:664`; Acceptance: `test_plan_next_tasks_fails_when_integration_merge_commit_fails` in tests/test_swarm.py patches `_git` to fail only when `("commit",)` is called with `root` (not the worktree), asserts `result.status == "failed"` with a commit-error in the error, and all existing planner tests still pass.
+
+4. `from_task_file` continuation break on an indented section header is directly covered: the guard at discovery.py:606 breaks when a body continuation line (indented, so not broken at line 604) itself starts with `## ` or a numbered item; the existing adjacent-items test reaches only line 604 (the next item is not indented, so `nxt[:1] not in (" ", "\t")` fires first). Evidence: `src/looptight/discovery.py:606`; Acceptance: `test_from_task_file_breaks_continuation_on_indented_section_header` in tests/test_propose.py writes a task whose body has an indented `  ## New Section` line, asserts the parsed title is truncated before that line, and the section header is not included in the task body.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
