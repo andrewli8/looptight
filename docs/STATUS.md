@@ -2501,16 +2501,14 @@ existing CLI session and makes no model or API calls of its own.
   returns without raising — a regression removing the guard would abort the swarm run on a
   transient I/O error. No production code change.
 
-## Next
+- `Checkpointer.snapshot()`'s `returncode != 0` early-return (checkpoint.py:77) now has direct
+  regression coverage: `test_snapshot_returns_none_when_stash_create_fails` in
+  tests/test_checkpoint.py monkeypatches `_git` to return `returncode=1` for the stash-create
+  call and asserts `Checkpointer(repo).snapshot()` returns `None` with an empty `snapshots`
+  list — a regression replacing the guard with exception propagation would crash the verify
+  loop instead of silently skipping the checkpoint. No production code change.
 
-1. `Checkpointer.snapshot()`'s `returncode != 0` early-return (checkpoint.py:77) has no direct
-   test for the `git stash create` failure path. A stash failure (nothing to stash, locked index)
-   returns `None`; a regression replacing the guard with an exception propagation would crash
-   the verify loop instead of silently skipping the checkpoint.
-   Evidence: src/looptight/checkpoint.py:77;
-   Acceptance: `test_snapshot_returns_none_when_stash_create_fails` in tests/test_checkpoint.py
-   monkeypatches `subprocess.run` to return `returncode=1` for the stash-create call and
-   asserts `Checkpointer(repo).snapshot()` returns `None`.
+## Next
 
 ## Rules
 
