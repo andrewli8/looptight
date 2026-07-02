@@ -2460,21 +2460,16 @@ existing CLI session and makes no model or API calls of its own.
   (which reads `result.returncode` to tag 124 as timeout) can no longer silently break if
   the field were dropped from a `RunResult` constructor call.
 
+- `_changed_entries()` in `protocol_commands.py` now catches `OSError` around its
+  `subprocess.run(["git", "status", "--short"], ...)` call, matching every other git
+  subprocess call in the file. Previously, if git was absent from PATH, `looptight verify`
+  crashed with a `FileNotFoundError` traceback (via `_verify_policy_error` →
+  `_changed_entries`) while all other commands degraded gracefully. Covered by
+  `test_changed_entries_returns_none_on_oserror` in tests/test_cli.py.
+
 ## Next
 
-1. `_changed_entries()` in `protocol_commands.py:380` calls `subprocess.run(["git",
-   "status", "--short"], ...)` with no `try/except OSError`. Every sibling git call in
-   the file wraps the subprocess call, but this one does not. `looptight verify` calls
-   `_verify_policy_error` unconditionally, which calls `_changed_entries` — so if git is
-   absent from PATH, `looptight verify` crashes with a `FileNotFoundError` traceback
-   while all other commands degrade gracefully. The fix: add `try/except OSError: return
-   None` around the subprocess.run call, matching `_changed_files` in `hook.py:54`.
-   Evidence: src/looptight/protocol_commands.py:380;
-   Acceptance: `test_changed_entries_returns_none_on_oserror` in tests/test_cli.py
-   monkeypatches `subprocess.run` to raise `OSError("git not found")` and asserts
-   `_changed_entries(tmp_path)` returns `None` without raising.
-
-2. `trajectory._path()` at `trajectory.py:29` calls `subprocess.run(["git", "rev-parse",
+1. `trajectory._path()` at `trajectory.py:29` calls `subprocess.run(["git", "rev-parse",
    "--git-dir"], ...)` with no `try/except OSError`. Every sibling git call in the module
    that uses the result of `_path()` (`_read`, `_is_fresh`) already wraps its own call,
    but `_path` does not — so `trajectory.record()` (and via it `run_verify` with `--patience

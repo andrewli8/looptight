@@ -3652,3 +3652,17 @@ def test_verify_continues_despite_write_verdict_failure(tmp_path, monkeypatch, c
     out = capsys.readouterr().out
     data = json.loads(out)
     assert data["status"] == "pass"
+
+
+def test_changed_entries_returns_none_on_oserror(tmp_path, monkeypatch):
+    # protocol_commands.py:380 — _changed_entries' subprocess.run must catch OSError
+    # so `looptight verify` degrades gracefully when git is absent from PATH instead
+    # of crashing with a FileNotFoundError traceback (all sibling git calls do catch it).
+    from unittest.mock import patch
+
+    import looptight.protocol_commands as pc
+
+    with patch.object(pc.subprocess, "run", side_effect=OSError("git not found")):
+        result = pc._changed_entries(tmp_path)
+
+    assert result is None

@@ -377,14 +377,17 @@ def _changed_entries(workdir: Path) -> list[list[str]] | None:
     sides (`old -> new`); every other entry is a single path. The *count* of changed
     files is the number of entries (a rename is one file), while protected-path
     checks must scan every side — so the two concerns read this, not a flat list."""
-    result = subprocess.run(
-        ["git", "status", "--short"],
-        cwd=workdir,
-        env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "status", "--short"],
+            cwd=workdir,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return None
     if result.returncode != 0:
         return None
     entries: list[list[str]] = []
