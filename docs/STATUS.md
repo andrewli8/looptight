@@ -2474,20 +2474,14 @@ existing CLI session and makes no model or API calls of its own.
   now it degrades gracefully to `None`. Covered by
   `test_trajectory_path_returns_none_on_oserror` in tests/test_trajectory.py.
 
+- `test_next_json_contract_is_grounded_and_stable` now asserts `idea_id` and
+  `suggested_verify` are present in the task JSON, so a regression dropping either
+  always-present field from the serialized output is caught by the integration test
+  and not only by the internal unit test. No production code change.
+
 ## Next
 
-1. `test_next_json_contract_is_grounded_and_stable` in `tests/test_cli.py:602` asserts
-   `task["source"]`, `task["goal"]`, `task["evidence"]`, and `task["acceptance"]` but does
-   NOT assert `task["idea_id"]` or `task["suggested_verify"]`. `docs/SPEC.md` names both as
-   always-present task fields. A regression dropping either from the serialized JSON would not
-   be caught by this integration test (only the internal unit test in test_tasks.py would catch
-   it). The fix: add two assertions to the existing test — no production code change.
-   Evidence: tests/test_cli.py:620;
-   Acceptance: `test_next_json_contract_is_grounded_and_stable` in tests/test_cli.py contains
-   `assert "idea_id" in first["task"]` and `assert "suggested_verify" in first["task"]`
-   (or `assert first["task"]["suggested_verify"] is None`).
-
-2. `_count()` at `protocol_commands.py:938` returns `value if isinstance(value, int) else 0`
+1. `_count()` at `protocol_commands.py:938` returns `value if isinstance(value, int) else 0`
    when the coordinator counts dict has a non-int value for a key (e.g. a string from a future
    schema evolution). The `else 0` branch at line 941 has no direct test; only the `None`-dict
    and absent-key paths are exercised by existing tests. A regression dropping the isinstance

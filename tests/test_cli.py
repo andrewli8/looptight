@@ -621,6 +621,8 @@ def test_next_json_contract_is_grounded_and_stable(tmp_path, monkeypatch, capsys
     assert "fix the timeout" in first["task"]["goal"]
     assert first["task"]["evidence"] == "# TODO: fix the timeout"
     assert "Remove the marker" in first["task"]["acceptance"]
+    assert "idea_id" in first["task"]
+    assert "suggested_verify" in first["task"]
 
 
 def test_next_json_no_work_contract(tmp_path, monkeypatch, capsys):
