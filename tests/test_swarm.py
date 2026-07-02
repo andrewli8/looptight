@@ -1942,3 +1942,18 @@ def test_publish_state_swallows_write_oserror(tmp_path, monkeypatch):
 
     monkeypatch.setattr("looptight.swarm.write_state", lambda *a, **kw: (_ for _ in ()).throw(OSError("disk full")))
     _publish_state(tmp_path, [], "ok")  # must not raise
+
+
+def test_remove_worker_worktree_swallows_rmdir_oserror_on_non_empty_parent(tmp_path, monkeypatch):
+    # When a sibling worktree occupies the parent directory, rmdir() fails with
+    # ENOTEMPTY; the guard must swallow it so cleanup succeeds and returns 0.
+    root = tmp_path / "repo"
+    root.mkdir()
+    _repo(root)
+    worktree = tmp_path / "wt" / "w1"
+    worktree.parent.mkdir()
+    _git(root, "worktree", "add", "-q", "--detach", str(worktree))
+
+    monkeypatch.setattr(Path, "rmdir", lambda self: (_ for _ in ()).throw(OSError("not empty")))
+    result = swarm._remove_worker_worktree(root, worktree)
+    assert result.returncode == 0

@@ -2503,16 +2503,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `_remove_worker_worktree`'s `worktree.parent.rmdir()` `except OSError: pass` (swarm.py:234)
-   has no direct test. When a sibling worktree occupies the same parent directory, `rmdir()`
-   fails with ENOTEMPTY and must be silently swallowed; a regression removing the guard
-   would abort the cleanup and leak state.
-   Evidence: src/looptight/swarm.py:234;
-   Acceptance: `test_remove_worker_worktree_swallows_rmdir_oserror_on_non_empty_parent` in
-   tests/test_swarm.py monkeypatches `pathlib.Path.rmdir` to raise `OSError` after a
-   successful worktree removal and asserts the function returns `returncode == 0`.
-
-2. `Checkpointer.snapshot()`'s `returncode != 0` early-return (checkpoint.py:77) has no direct
+1. `Checkpointer.snapshot()`'s `returncode != 0` early-return (checkpoint.py:77) has no direct
    test for the `git stash create` failure path. A stash failure (nothing to stash, locked index)
    returns `None`; a regression replacing the guard with an exception propagation would crash
    the verify loop instead of silently skipping the checkpoint.
