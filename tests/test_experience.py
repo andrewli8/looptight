@@ -186,6 +186,13 @@ def test_landed_counts_returns_empty_when_git_not_found(tmp_path):
         assert landed_counts(tmp_path, "HEAD") == {}
 
 
+def test_landed_category_counts_returns_empty_when_git_not_found(tmp_path):
+    # When git is not on PATH, _git() catches OSError and returns returncode=127;
+    # the returncode != 0 guard at experience.py:61 must return {} without propagating.
+    with patch("looptight.experience.subprocess.run", side_effect=OSError("git not found")):
+        assert landed_category_counts(tmp_path, "HEAD") == {}
+
+
 def test_experience_git_sets_terminal_prompt_env(tmp_path):
     # _git() in experience.py must pass GIT_TERMINAL_PROMPT=0 so a headless
     # git log call cannot hang waiting for a credential prompt.

@@ -2489,29 +2489,15 @@ existing CLI session and makes no model or API calls of its own.
   tests/test_metacog.py asserts `None` when `passed=True`, guarding the early-exit
   against a fallthrough that would silently compute `-0.0` and change the controller.
 
+- `landed_category_counts`'s `if result.returncode != 0: return {}` (experience.py:61) now
+  has direct regression coverage: `test_landed_category_counts_returns_empty_when_git_not_found`
+  in tests/test_experience.py monkeypatches `subprocess.run` to raise `OSError` and asserts
+  `landed_category_counts(tmp_path, "HEAD") == {}` — sibling of the existing
+  `test_landed_counts_returns_empty_when_git_not_found`. No production code change.
+
 ## Next
 
-1. `landed_category_counts`'s `if result.returncode != 0: return {}` (experience.py:61) has no
-   direct test. The sibling `landed_counts` has `test_landed_counts_returns_empty_when_git_not_found`
-   which monkeypatches `subprocess.run` to raise `OSError`; `landed_category_counts` lacks a
-   matching test — a regression dropping the guard would propagate a bad returncode's stdout
-   into the counter.
-   Evidence: src/looptight/experience.py:61;
-   Acceptance: `test_landed_category_counts_returns_empty_when_git_not_found` in
-   tests/test_experience.py monkeypatches `subprocess.run` to raise `OSError` and asserts
-   `landed_category_counts(tmp_path, "HEAD") == {}`.
-
-2. `landed_category_counts`'s `if result.returncode != 0: return {}` (experience.py:61) has no
-   direct test. The sibling `landed_counts` has `test_landed_counts_returns_empty_when_git_not_found`
-   which monkeypatches `subprocess.run` to raise `OSError`; `landed_category_counts` lacks a
-   matching test — a regression dropping the guard would propagate a bad returncode's stdout
-   into the counter.
-   Evidence: src/looptight/experience.py:61;
-   Acceptance: `test_landed_category_counts_returns_empty_when_git_not_found` in
-   tests/test_experience.py monkeypatches `subprocess.run` to raise `OSError` and asserts
-   `landed_category_counts(tmp_path, "HEAD") == {}`.
-
-3. `_publish_state`'s `except OSError: pass` (swarm.py:191) is uncovered. A failing `write_state`
+1. `_publish_state`'s `except OSError: pass` (swarm.py:191) is uncovered. A failing `write_state`
    call (disk full, read-only FS) must be silently swallowed because observability is best-effort;
    a regression removing the try/except would abort the swarm run on a transient I/O error.
    Evidence: src/looptight/swarm.py:191;
