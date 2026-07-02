@@ -16,6 +16,7 @@ from looptight.integration_queue import (
     Publisher,
     _is_ancestor,
     _try_lock,
+    _unlock,
     git_common_dir,
     integration_worktree,
     prepare_integration_worktree,
@@ -556,3 +557,10 @@ def test_try_lock_returns_false_on_oserror(monkeypatch):
 
     monkeypatch.setattr(iq.fcntl, "flock", lambda fd, op: (_ for _ in ()).throw(OSError("locked")))
     assert _try_lock(0) is False
+
+
+def test_unlock_swallows_oserror(monkeypatch):
+    import looptight.integration_queue as iq
+
+    monkeypatch.setattr(iq.fcntl, "flock", lambda fd, op: (_ for _ in ()).throw(OSError("unlock failed")))
+    _unlock(0)  # must not raise
