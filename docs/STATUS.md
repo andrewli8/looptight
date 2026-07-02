@@ -2486,6 +2486,33 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `progress_signal`'s `if verify.passed: return None` early exit (metacog.py:49) has no direct
+   unit test. All 5 existing unit tests call it with `passed=False`. A regression replacing the
+   early exit with a fallthrough would silently compute `-0.0` instead of `None`, changing the
+   controller's "no signal, keep going" behavior.
+   Evidence: src/looptight/metacog.py:49;
+   Acceptance: `test_progress_signal_returns_none_for_passing_verify` in tests/test_metacog.py
+   calls `progress_signal(VerifyResult(passed=True, exit_code=0, output="0 failed"))` and
+   asserts the result is `None`.
+
+2. `landed_category_counts`'s `if result.returncode != 0: return {}` (experience.py:61) has no
+   direct test. The sibling `landed_counts` has `test_landed_counts_returns_empty_when_git_not_found`
+   which monkeypatches `subprocess.run` to raise `OSError`; `landed_category_counts` lacks a
+   matching test — a regression dropping the guard would propagate a bad returncode's stdout
+   into the counter.
+   Evidence: src/looptight/experience.py:61;
+   Acceptance: `test_landed_category_counts_returns_empty_when_git_not_found` in
+   tests/test_experience.py monkeypatches `subprocess.run` to raise `OSError` and asserts
+   `landed_category_counts(tmp_path, "HEAD") == {}`.
+
+3. `_publish_state`'s `except OSError: pass` (swarm.py:191) is uncovered. A failing `write_state`
+   call (disk full, read-only FS) must be silently swallowed because observability is best-effort;
+   a regression removing the try/except would abort the swarm run on a transient I/O error.
+   Evidence: src/looptight/swarm.py:191;
+   Acceptance: `test_publish_state_swallows_write_oserror` in tests/test_swarm.py monkeypatches
+   `looptight.swarm.write_state` to raise `OSError` and asserts `_publish_state(tmp_path, [], "ok")`
+   returns without raising.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
