@@ -209,3 +209,14 @@ def test_experience_git_sets_terminal_prompt_env(tmp_path):
 
     assert "env" in captured_kwargs, "_git must pass an explicit env"
     assert captured_kwargs["env"].get("GIT_TERMINAL_PROMPT") == "0"
+
+
+def test_landed_counts_ignores_bare_landed_token(tmp_path):
+    # A one-token trailer line "landed" passes the "landed" in line guard but
+    # line.split()[0] would yield "landed" as the idea key — a synthetic key that
+    # could skew proposal ranking. The function must ignore it (return {}).
+    with patch(
+        "looptight.experience.subprocess.run",
+        return_value=subprocess.CompletedProcess(["git"], 0, stdout="landed\n", stderr=""),
+    ):
+        assert landed_counts(tmp_path, "HEAD") == {}

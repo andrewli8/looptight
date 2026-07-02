@@ -2521,16 +2521,14 @@ existing CLI session and makes no model or API calls of its own.
   makes no modifications, calls `cp.snapshot()`, and asserts the returned SHA equals the
   HEAD commit SHA and appears in `cp.snapshots`.
 
-## Next
+- `experience.py:landed_counts` no longer accepts a bare one-token `"landed"` line as a
+  valid idea trailer: the loop now requires `len(parts) >= 2 and parts[1] == "landed"`,
+  matching `landed_category_counts`'s three-part check. A bare `"landed"` trailer had
+  produced `{"landed": 1}` in `landed_counts`, skewing proposal ranking with a synthetic
+  key. Fixed and covered by `test_landed_counts_ignores_bare_landed_token` in
+  `tests/test_experience.py`.
 
-3. `experience.py:49` extracts `idea = line.split()[0]` after the guard `"landed" not in line`.
-   A one-token line `"landed"` passes the guard (the word is present) and produces
-   `idea = "landed"`—polluting `landed_counts` with a synthetic key that could skew
-   proposal ranking. No test covers this degenerate trailer format.
-   Evidence: src/looptight/experience.py:49;
-   Acceptance: `test_landed_counts_ignores_bare_landed_token` in `tests/test_experience.py`
-   monkeypatches `_git` to return `stdout="landed\n"` and asserts
-   `landed_counts(tmp_path, "HEAD") == {}` (no `"landed"` key in the result).
+## Next
 
 4. `discovery.py:156-166` uses a `seen: set[Path]` to deduplicate files found by both
    the directory sweep and the colocated `_js_test_files` sweep. No test places a

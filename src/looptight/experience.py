@@ -43,10 +43,10 @@ def landed_counts(root: Path, target_ref: str, *, limit: int = 500) -> dict[str,
         return {}
     counts: dict[str, int] = {}
     for line in result.stdout.splitlines():
-        line = line.strip()
-        if not line or "landed" not in line:
+        parts = line.strip().split()
+        if len(parts) < 2 or parts[1] != "landed":
             continue
-        idea = line.split()[0]
+        idea = parts[0]
         counts[idea] = counts.get(idea, 0) + 1
     return counts
 
