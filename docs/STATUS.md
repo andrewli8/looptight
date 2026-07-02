@@ -2515,18 +2515,13 @@ existing CLI session and makes no model or API calls of its own.
   narrowing the check to `== 127` would silently reclassify the permission error as a test
   failure. No production code change.
 
-## Next
+- `checkpoint.py:80-89`'s clean-tree branch of `snapshot()` (where `stash create` returns
+  empty stdout and the code falls back to `rev-parse HEAD`) now has direct coverage:
+  `test_snapshot_on_clean_tree_returns_head_sha` initialises a real repo with one commit,
+  makes no modifications, calls `cp.snapshot()`, and asserts the returned SHA equals the
+  HEAD commit SHA and appears in `cp.snapshots`.
 
-1. `checkpoint.py:80-89` has three outcomes for `snapshot()`: stash-SHA (dirty tree),
-   `None` (stash fails), and HEAD-SHA (clean tree). The clean-tree branch—where
-   `stash create` succeeds with empty stdout and the code falls back to
-   `rev-parse HEAD`—is the most common production case and has no test. A regression
-   dropping the fallback would make `snapshot()` return `None` on every unmodified
-   iteration without failing any existing test.
-   Evidence: src/looptight/checkpoint.py:80;
-   Acceptance: `test_snapshot_on_clean_tree_returns_head_sha` in `tests/test_checkpoint.py`
-   initialises a repo with one commit, makes no modifications, calls `cp.snapshot()`,
-   and asserts the returned SHA equals the HEAD commit SHA and appears in `cp.snapshots`.
+## Next
 
 3. `experience.py:49` extracts `idea = line.split()[0]` after the guard `"landed" not in line`.
    A one-token line `"landed"` passes the guard (the word is present) and produces

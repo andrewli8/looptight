@@ -85,6 +85,26 @@ def test_restore_returns_false_when_enabled_but_no_snapshots(tmp_path):
     assert cp.restore() is False
 
 
+def test_snapshot_on_clean_tree_returns_head_sha(tmp_path):
+    """snapshot() on an unmodified repo returns the HEAD commit SHA."""
+    _init_repo(tmp_path)
+    cp = Checkpointer(tmp_path)
+    assert cp.enabled
+
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=str(tmp_path),
+        capture_output=True,
+        text=True,
+    )
+    head_sha = result.stdout.strip()
+    assert head_sha  # sanity: repo has a commit
+
+    sha = cp.snapshot()
+    assert sha == head_sha
+    assert sha in cp.snapshots
+
+
 def test_checkpointer_is_a_noop_when_git_cannot_launch(tmp_path, monkeypatch):
     def fail_to_launch(*args, **kwargs):
         raise FileNotFoundError("git is not installed")
