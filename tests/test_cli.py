@@ -3668,3 +3668,15 @@ def test_changed_entries_returns_none_on_oserror(tmp_path, monkeypatch):
         result = pc._changed_entries(tmp_path)
 
     assert result is None
+
+
+def test_count_non_int_value_returns_zero():
+    # protocol_commands.py:945 — the `else 0` branch when a counts dict has a non-int
+    # value (e.g. from future schema evolution) was never directly tested; a regression
+    # dropping the isinstance guard would silently pass the raw value to status JSON.
+    from looptight.protocol_commands import _count
+
+    assert _count({"k": "oops"}, "k") == 0
+    assert _count({"k": 5}, "k") == 5
+    assert _count(None, "k") == 0
+    assert _count({"k": 3}, "missing") == 0

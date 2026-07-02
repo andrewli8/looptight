@@ -2479,17 +2479,12 @@ existing CLI session and makes no model or API calls of its own.
   always-present field from the serialized output is caught by the integration test
   and not only by the internal unit test. No production code change.
 
-## Next
+- `_count()`'s `else 0` branch (`protocol_commands.py:945`) now has direct coverage:
+  `test_count_non_int_value_returns_zero` in tests/test_cli.py imports `_count`
+  and asserts a non-int value (e.g. `"oops"`) returns `0`, guarding the isinstance
+  guard against silent regression. The None-dict and absent-key paths are also pinned.
 
-1. `_count()` at `protocol_commands.py:938` returns `value if isinstance(value, int) else 0`
-   when the coordinator counts dict has a non-int value for a key (e.g. a string from a future
-   schema evolution). The `else 0` branch at line 941 has no direct test; only the `None`-dict
-   and absent-key paths are exercised by existing tests. A regression dropping the isinstance
-   guard would silently pass a non-int through to the status JSON.
-   Evidence: src/looptight/protocol_commands.py:938;
-   Acceptance: `test_count_non_int_value_returns_zero` in tests/test_cli.py imports
-   `_count` from `looptight.protocol_commands`, calls `_count({"k": "oops"}, "k")`, and
-   asserts the result is `0`.
+## Next
 
 ## Rules
 
