@@ -6,7 +6,7 @@ import subprocess
 from unittest.mock import patch
 
 from looptight.propose import Candidate
-from looptight.tasks import _has_dirty_git_worktree, _summary_and_evidence, next_task
+from looptight.tasks import _grounded_goal, _has_dirty_git_worktree, _summary_and_evidence, next_task
 
 
 def test_has_dirty_git_worktree_sets_terminal_prompt_env(tmp_path):
@@ -77,6 +77,13 @@ def test_summary_and_evidence_falls_back_to_detail_without_marker():
     summary, evidence = _summary_and_evidence(candidate)
     assert summary == "# TODO: fix the timeout"
     assert evidence == "# TODO: fix the timeout"
+
+
+def test_grounded_goal_without_location_omits_at_clause():
+    result = _grounded_goal("Fix the parser", None)
+    assert "Implement exactly one" in result
+    assert "at None" not in result
+    assert "None" not in result
 
 
 def test_next_task_attaches_idea_id(tmp_path):

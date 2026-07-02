@@ -2435,19 +2435,15 @@ existing CLI session and makes no model or API calls of its own.
   `connection.close()` was called proves a `^C` during schema init never leaks the DB handle.
   No production code change.
 
+- `_grounded_goal(summary, location=None)`'s `where = ""` branch (`tasks.py:72`) is locked by
+  `test_grounded_goal_without_location_omits_at_clause` in `tests/test_tasks.py`:
+  calling `_grounded_goal("Fix the parser", None)` and asserting the result contains
+  "Implement exactly one" and does not contain "at None" or "None" proves a candidate
+  with no file location never produces a malformed directive. No production code change.
+
 ## Next
 
-1. `_grounded_goal(summary, location=None)` has no direct unit test — the `where = ""`
-   branch at `tasks.py:72` is exercised only through `next_task` integration tests that
-   always supply a non-None location. A direct test would lock that no "at None" text
-   ever appears in a task directive for a candidate with no file location (e.g., a
-   skipped-test candidate whose source file cannot be pinpointed).
-   Evidence: src/looptight/tasks.py:72;
-   Acceptance: `test_grounded_goal_without_location_omits_at_clause` in tests/test_tasks.py
-   imports `_grounded_goal`, calls it with `location=None`, and asserts the result
-   contains "Implement exactly one" and does not contain "at None" or "None".
-
-2. `propose(root, limit=0)` returns all candidates (the `else ranked` branch at
+1. `propose(root, limit=0)` returns all candidates (the `else ranked` branch at
    `propose.py:53`) has no direct unit assertion — `test_propose_respects_limit`
    tests `limit=5` only, and the unlimited path is exercised only through the CLI
    integration path in `cmd_propose`. A direct test locks the user-facing
@@ -2457,7 +2453,7 @@ existing CLI session and makes no model or API calls of its own.
    creates more candidates than any default limit and asserts `propose(root, limit=0)`
    returns all of them without truncation.
 
-3. `trajectory._read`'s `isinstance(prior.get("entries"), list)` guard (trajectory.py:109)
+2. `trajectory._read`'s `isinstance(prior.get("entries"), list)` guard (trajectory.py:109)
    is not directly exercised: the corrupt-store test writes unparseable bytes, so `_read`
    returns `None` before the guard runs; the non-list-entries branch (valid JSON dict,
    wrong type for `entries`) is never reached. Without this guard, `list(non_list)` would
@@ -2467,7 +2463,7 @@ existing CLI session and makes no model or API calls of its own.
    writes a valid-schema trajectory JSON whose `entries` value is a string (not a list),
    calls `record`, and asserts a single-entry list is returned (not a TypeError).
 
-4. `RunResult.returncode` is threaded from `IterationResult.returncode` in both the
+3. `RunResult.returncode` is threaded from `IterationResult.returncode` in both the
    supply loop (loop.py:141, 176) and the delegate loop (loop.py:206), but no test
    asserts a non-None value propagates — `FakeAdapter` in conftest.py always returns
    `IterationResult` with no `returncode` (defaults to None). If the field were dropped
