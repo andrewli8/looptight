@@ -2528,17 +2528,12 @@ existing CLI session and makes no model or API calls of its own.
   key. Fixed and covered by `test_landed_counts_ignores_bare_landed_token` in
   `tests/test_experience.py`.
 
-## Next
+- `discovery.py:_js_discovery_files`'s `seen` deduplication guard now has direct coverage:
+  `test_js_discovery_files_does_not_duplicate_colocated_test` in `tests/test_propose.py`
+  creates `src/util.test.ts` (matched by both the `src/` sweep and `_js_test_files`),
+  calls `_js_discovery_files(tmp_path)`, and asserts the path appears exactly once.
 
-4. `discovery.py:156-166` uses a `seen: set[Path]` to deduplicate files found by both
-   the directory sweep and the colocated `_js_test_files` sweep. No test places a
-   `*.test.ts` file under `src/` (hit by both sweeps) and asserts it appears exactly
-   once; a regression removing the `seen` guard would produce duplicate entries that
-   cause duplicate task proposals.
-   Evidence: src/looptight/discovery.py:156;
-   Acceptance: `test_js_discovery_files_does_not_duplicate_colocated_test` in
-   `tests/test_propose.py` (or a new `tests/test_discovery.py`) creates a `src/util.test.ts`,
-   calls `_js_discovery_files(tmp_path)`, and asserts the path appears exactly once.
+## Next
 
 ## Rules
 

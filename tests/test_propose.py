@@ -1552,6 +1552,26 @@ def test_from_lint_subprocess_sets_git_terminal_prompt_env(tmp_path):
     assert captured_kwargs["env"].get("GIT_TERMINAL_PROMPT") == "0"
 
 
+def test_js_discovery_files_does_not_duplicate_colocated_test(tmp_path, monkeypatch):
+    # src/util.test.ts is matched by both the src/ directory sweep and the colocated
+    # _js_test_files sweep. The seen-set guard must emit it exactly once.
+    import looptight.discovery as disc
+
+    src = tmp_path / "src"
+    src.mkdir()
+    colocated = src / "util.test.ts"
+    colocated.write_text("// placeholder\n")
+
+    # Bypass git check-ignore so the test works outside a git repo.
+    monkeypatch.setattr(disc, "_not_ignored", lambda root, paths: paths)
+
+    result = disc._js_discovery_files(tmp_path)
+    assert result.count(colocated) == 1, (
+        f"colocated test file appeared {result.count(colocated)} times; "
+        "the seen-set guard must deduplicate it"
+    )
+
+
 def test_files_with_exts_missing_subdir_returns_empty(tmp_path):
     from looptight.discovery import _files_with_exts
 
