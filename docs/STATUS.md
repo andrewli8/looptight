@@ -2462,6 +2462,51 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_changed_entries()` in `protocol_commands.py:380` calls `subprocess.run(["git",
+   "status", "--short"], ...)` with no `try/except OSError`. Every sibling git call in
+   the file wraps the subprocess call, but this one does not. `looptight verify` calls
+   `_verify_policy_error` unconditionally, which calls `_changed_entries` — so if git is
+   absent from PATH, `looptight verify` crashes with a `FileNotFoundError` traceback
+   while all other commands degrade gracefully. The fix: add `try/except OSError: return
+   None` around the subprocess.run call, matching `_changed_files` in `hook.py:54`.
+   Evidence: src/looptight/protocol_commands.py:380;
+   Acceptance: `test_changed_entries_returns_none_on_oserror` in tests/test_cli.py
+   monkeypatches `subprocess.run` to raise `OSError("git not found")` and asserts
+   `_changed_entries(tmp_path)` returns `None` without raising.
+
+2. `trajectory._path()` at `trajectory.py:29` calls `subprocess.run(["git", "rev-parse",
+   "--git-dir"], ...)` with no `try/except OSError`. Every sibling git call in the module
+   that uses the result of `_path()` (`_read`, `_is_fresh`) already wraps its own call,
+   but `_path` does not — so `trajectory.record()` (and via it `run_verify` with `--patience
+   N > 0`) crashes with `FileNotFoundError` when git is absent from PATH, instead of
+   silently returning `None`. The fix: add `try/except OSError: return None` around the
+   subprocess.run call in `_path`, matching the documented "noop outside git" contract.
+   Evidence: src/looptight/trajectory.py:29;
+   Acceptance: `test_trajectory_path_returns_none_on_oserror` in tests/test_trajectory.py
+   monkeypatches `trajectory.subprocess.run` to raise `OSError` and asserts `_path(tmp_path)`
+   returns `None` without raising.
+
+3. `test_next_json_contract_is_grounded_and_stable` in `tests/test_cli.py:602` asserts
+   `task["source"]`, `task["goal"]`, `task["evidence"]`, and `task["acceptance"]` but does
+   NOT assert `task["idea_id"]` or `task["suggested_verify"]`. `docs/SPEC.md` names both as
+   always-present task fields. A regression dropping either from the serialized JSON would not
+   be caught by this integration test (only the internal unit test in test_tasks.py would catch
+   it). The fix: add two assertions to the existing test — no production code change.
+   Evidence: tests/test_cli.py:620;
+   Acceptance: `test_next_json_contract_is_grounded_and_stable` in tests/test_cli.py contains
+   `assert "idea_id" in first["task"]` and `assert "suggested_verify" in first["task"]`
+   (or `assert first["task"]["suggested_verify"] is None`).
+
+4. `_count()` at `protocol_commands.py:938` returns `value if isinstance(value, int) else 0`
+   when the coordinator counts dict has a non-int value for a key (e.g. a string from a future
+   schema evolution). The `else 0` branch at line 941 has no direct test; only the `None`-dict
+   and absent-key paths are exercised by existing tests. A regression dropping the isinstance
+   guard would silently pass a non-int through to the status JSON.
+   Evidence: src/looptight/protocol_commands.py:938;
+   Acceptance: `test_count_non_int_value_returns_zero` in tests/test_cli.py imports
+   `_count` from `looptight.protocol_commands`, calls `_count({"k": "oops"}, "k")`, and
+   asserts the result is `0`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
