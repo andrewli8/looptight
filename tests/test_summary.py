@@ -29,6 +29,11 @@ def test_summary_has_readable_iterations_and_result():
     assert "✓ done · 2 iterations" in text  # proper plural
 
 
+def test_summary_renders_singular_iteration():
+    # The n != 1 guard at summary.py:74 must produce "1 iteration" without a trailing 's'.
+    assert summary._iterations(1) == "1 iteration"
+
+
 def test_summary_shows_stop_reasons():
     assert "iteration cap" in summary.render(_result(StopReason.ITERATION_CAP))
     assert "no measurable progress" in summary.render(_result(StopReason.NO_PROGRESS))

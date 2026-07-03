@@ -2570,16 +2570,13 @@ existing CLI session and makes no model or API calls of its own.
   `_grounded_goal("Cover retry path", "src/tasks.py:72")` and asserts `"at src/tasks.py:72"`
   is in the result — the `where = f" at {location}"` branch at tasks.py:72 previously exercised
   only indirectly through `next_task` tests that never asserted on the goal text.
+- `summary._iterations(1)` singular form has direct coverage: `test_summary_renders_singular_iteration`
+  in tests/test_summary.py asserts `summary._iterations(1) == "1 iteration"` — the `n != 1` guard at
+  summary.py:74 that prevents a trailing 's', previously exercised only indirectly.
 
 ## Next
 
-1. `summary._iterations(1)` singular form has no direct assertion: the `n != 1` guard at summary.py:74
-   produces `"1 iteration"` (no trailing 's'), but every existing test uses 2+ iterations and asserts
-   `"2 iterations"` — the singular branch is exercised only indirectly. Evidence: `src/looptight/summary.py:74`;
-   Acceptance: `test_summary_renders_singular_iteration` in tests/test_summary.py renders a 1-iteration
-   RunResult and asserts `"1 iteration"` (not `"1 iterations"`) in the output.
-
-2. `summary._tail()` with `stop_reason=ERROR` and `error=None` falls back to bare status text (summary.py:35),
+1. `summary._tail()` with `stop_reason=ERROR` and `error=None` falls back to bare status text (summary.py:35),
    but every existing test that exercises `StopReason.ERROR` also sets a non-None error string — the fallback
    path where error detail is absent is untested. Evidence: `src/looptight/summary.py:35`;
    Acceptance: `test_summary_tail_error_without_message_omits_detail` in tests/test_summary.py renders
