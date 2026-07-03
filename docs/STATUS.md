@@ -2581,24 +2581,21 @@ existing CLI session and makes no model or API calls of its own.
   `test_statusline_uses_cwd_key_when_workspace_is_absent` in tests/test_cli.py passes `{"cwd": str(tmp_path)}`
   on stdin (no workspace key) and asserts `statusline` reads swarm state from that path — the
   `candidate = candidate or data.get("cwd")` branch at commands.py:597, previously untested.
+- `read_goal` returns `None` when `"iteration": null` appears in a goal file: `int(data.get("iteration", 0))`
+  raises `TypeError` (get() returns `None`, not the default 0), already caught by the widened try block
+  at goal.py:65; `test_read_goal_returns_none_when_iteration_is_null` in tests/test_goal.py verifies
+  the specific path.
 
 ## Next
 
-1. `read_goal` silently returns `None` when `"iteration": null` appears in a goal file (same
-   class of bug as the recently fixed `max_iterations: null`): `int(data.get("iteration", 0))`
-   at goal.py:67 becomes `int(None)` which raises `TypeError`, now caught by the widened try
-   block — but no test verifies the `iteration: null` path specifically. Evidence: `src/looptight/goal.py:67`;
-   Acceptance: `test_read_goal_returns_none_when_iteration_is_null` in tests/test_goal.py writes
-   a goal JSON with `"iteration": null` and asserts `read_goal(workdir)` returns `None` without raising.
-
-2. `_host_is_loopback` parses bracketed IPv6 hosts via `raw[1:].split("]", 1)[0]`; the case of
+1. `_host_is_loopback` parses bracketed IPv6 hosts via `raw[1:].split("]", 1)[0]`; the case of
    `[::1]` without a trailing `:port` is handled by this branch but no test exercises it — only
    `[::1]:8765` is covered. A future refactor of the splitting logic could break the portless case
    silently. Evidence: `src/looptight/ui.py:395`;
    Acceptance: `test_host_is_loopback_accepts_bracketed_ipv6_without_port` in tests/test_ui.py
    calls `_host_is_loopback("[::1]")` and asserts the result is `True`.
 
-3. `_optional_int` in config.py raises `ValueError` for a float TOML value such as
+2. `_optional_int` in config.py raises `ValueError` for a float TOML value such as
    `max_changed_files = 3.5` (valid TOML but not a nonnegative integer): `isinstance(3.5, int)`
    is `False`, triggering the guard at config.py:186. The existing rejection tests cover strings,
    negatives, and booleans — a float is untested, so this branch is silently uncovered. Evidence:
@@ -2606,7 +2603,7 @@ existing CLI session and makes no model or API calls of its own.
    Acceptance: `test_load_config_rejects_float_max_changed_files` in tests/test_config.py writes
    `max_changed_files = 3.5` and asserts `load_config` raises `ConfigError`.
 
-4. `trajectory.record` resets to a fresh attempt when `task` changes (covered for `"idea-A"` →
+3. `trajectory.record` resets to a fresh attempt when `task` changes (covered for `"idea-A"` →
    `"idea-B"`), but the transition from a prior stored with `task: null` to a new call with
    `task="idea-A"` (or vice versa) is not tested. `prior.get("task")` returns `None` when the
    key holds JSON null; `None != "idea-A"` is True, so the reset fires — but this path has no
