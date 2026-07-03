@@ -2613,15 +2613,10 @@ existing CLI session and makes no model or API calls of its own.
   `test_coordination_line_coordinator_scope_appends_suffix` in `tests/test_cli.py`
   covering both branches of `_coordination_line` in `commands.py:483`.
 
-## Next
+- Added `test_doctor_coordinator_state_active_and_not_git` in `tests/test_cli.py`
+  covering both branches of `_doctor_coordinator_state` in `commands.py:492`.
 
-1. `_doctor_coordinator_state` in `commands.py` has no test: the two-line function returns
-   `"active"` when `git_ready` is True and `"not a git repo"` when False, but no test
-   exercises either branch.
-   Evidence: `src/looptight/commands.py:492`;
-   Acceptance: `test_doctor_coordinator_state_active_and_not_git` in `tests/test_cli.py`
-   passes, calling `_doctor_coordinator_state(tmp_path, True)` (expects `"active"`) and
-   `_doctor_coordinator_state(tmp_path, False)` (expects `"not a git repo"`).
+## Next
 
 ## Rules
 

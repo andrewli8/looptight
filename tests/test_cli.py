@@ -3741,6 +3741,15 @@ def test_ensure_pycache_ignored_leaves_existing_gitignore_untouched(tmp_path):
     assert out.getvalue() == "", "unexpected console output when .gitignore already exists"
 
 
+def test_doctor_coordinator_state_active_and_not_git(tmp_path):
+    # commands.py:492 — _doctor_coordinator_state returns "active" when git is
+    # ready and "not a git repo" when it is not; test both branches directly.
+    from looptight.commands import _doctor_coordinator_state
+
+    assert _doctor_coordinator_state(tmp_path, True) == "active"
+    assert _doctor_coordinator_state(tmp_path, False) == "not a git repo"
+
+
 def test_coordination_line_none_scope_returns_label_only(tmp_path, monkeypatch):
     # commands.py:483 — when coordination_scope returns "none", _coordination_line
     # must return just the label with no suffix appended.
