@@ -2584,13 +2584,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `ui._session_panel` with a status value that is not `"session"` or `"goal"` returns `""` (guard at
-   ui.py:114), but no test exercises this: every test either uses one of those two statuses or passes
-   no task list — so a regression removing the guard would not be caught. Evidence: `src/looptight/ui.py:114`;
-   Acceptance: `test_session_panel_returns_empty_for_non_session_or_goal_status` in tests/test_ui.py calls
-   `_session_panel` with `status="running"` and asserts the result is `""`.
-
-2. `read_goal` propagates an uncaught `TypeError` when `"max_iterations": null` appears in a goal file:
+1. `read_goal` propagates an uncaught `TypeError` when `"max_iterations": null` appears in a goal file:
    `dict.get(key, default)` returns `None` (not the default) when the key is present with a JSON `null`
    value, so `int(data.get("max_iterations", 0))` at goal.py:66 becomes `int(None)` which raises
    `TypeError` — not caught by the `except (OSError, ValueError)` guard at goal.py:56, meaning the whole

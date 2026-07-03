@@ -915,3 +915,15 @@ def test_session_panel_returns_empty_when_task_has_no_goal_or_id():
         "workers": [],
     }
     assert ui._session_panel(state) == ""
+
+
+def test_session_panel_returns_empty_for_non_session_or_goal_status():
+    # ui.py:114 — the `if status not in ("session", "goal")` guard — is
+    # exercised here: a state with a valid task list but status="running"
+    # must return "" so the session overlay never fires for worker states.
+    state = {
+        "manager": {"status": "running"},
+        "tasks": [{"goal": "do something", "id": "abc123"}],
+        "workers": [],
+    }
+    assert ui._session_panel(state) == ""
