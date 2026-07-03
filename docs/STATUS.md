@@ -2573,17 +2573,14 @@ existing CLI session and makes no model or API calls of its own.
 - `summary._iterations(1)` singular form has direct coverage: `test_summary_renders_singular_iteration`
   in tests/test_summary.py asserts `summary._iterations(1) == "1 iteration"` — the `n != 1` guard at
   summary.py:74 that prevents a trailing 's', previously exercised only indirectly.
+- `summary._tail()` with `stop_reason=ERROR` and `error=None` has direct coverage:
+  `test_summary_tail_error_without_message_omits_detail` in tests/test_summary.py asserts
+  `_tail(result) == "stopped: error"` — confirming no `: <detail>` suffix is appended when error is
+  absent (summary.py:35-37 fallback path), previously exercised only with a non-None error string.
 
 ## Next
 
-1. `summary._tail()` with `stop_reason=ERROR` and `error=None` falls back to bare status text (summary.py:35),
-   but every existing test that exercises `StopReason.ERROR` also sets a non-None error string — the fallback
-   path where error detail is absent is untested. Evidence: `src/looptight/summary.py:35`;
-   Acceptance: `test_summary_tail_error_without_message_omits_detail` in tests/test_summary.py renders
-   `RunResult(stop_reason=StopReason.ERROR, error=None)` and asserts the error-label word appears without
-   a colon-prefixed detail suffix.
-
-3. `cmd_statusline`'s third repo-dir fallback (`data.get("cwd")`) is untested: the two existing tests
+1. `cmd_statusline`'s third repo-dir fallback (`data.get("cwd")`) is untested: the two existing tests
    use `workspace.current_dir` and `workspace.project_dir`; no test passes a top-level `{"cwd": "..."}` key,
    leaving the `candidate = candidate or data.get("cwd")` branch at commands.py:597 uncovered.
    Evidence: `src/looptight/commands.py:597`;

@@ -71,6 +71,16 @@ def test_summary_surfaces_error_message():
     assert "error" not in summary.render(_result(StopReason.SUCCESS))
 
 
+def test_summary_tail_error_without_message_omits_detail():
+    # When stop_reason=ERROR but error=None the _tail fallback (summary.py:37) returns the bare
+    # reason text without an appended ": <detail>" suffix from result.error.
+    result = RunResult(goal="fix", agent="claude", mode="supply", stop_reason=StopReason.ERROR, error=None)
+    tail = summary._tail(result)
+    assert "error" in tail
+    # The tail must equal the bare reason text — no extra detail appended.
+    assert tail == "stopped: error"
+
+
 def test_summary_includes_diffstat():
     result = RunResult(
         goal="fix",
