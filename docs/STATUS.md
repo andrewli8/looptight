@@ -2596,17 +2596,14 @@ existing CLI session and makes no model or API calls of its own.
   seeds two entries with `task=None`, then records with `task="new-idea"` and asserts length 1
   — `prior.get("task")` returns `None` from JSON null; `None != "new-idea"` fires the reset in
   `_is_fresh` (trajectory.py:77), a path that `test_record_resets_on_changed_task` did not reach.
+- `main([])`'s no-subcommand path (`cli.py:394-396`) is directly covered:
+  `test_main_prints_help_and_returns_zero_when_no_subcommand` in tests/test_cli.py calls
+  `main([])` and asserts return value 0, exercising the `if not args.command: print_help();
+  return 0` branch that all prior CLI tests bypassed by always supplying a subcommand.
 
 ## Next
 
-1. `main()` in `cli.py` has no test for the no-subcommand path: `if not args.command:
-   parser.print_help(); return 0` (cli.py:394-396) exits 0 but lines 395-396 are not
-   covered. `main([])` reaches those lines, but no existing test calls it without a subcommand.
-   Evidence: `src/looptight/cli.py:395`;
-   Acceptance: `test_main_prints_help_and_returns_zero_when_no_subcommand` in tests/test_cli.py
-   calls `main([])` and asserts return value is 0.
-
-2. `run_daemon` in `daemon.py` has no test for `should_stop()` returning True before the
+1. `run_daemon` in `daemon.py` has no test for `should_stop()` returning True before the
    first cycle: line 127 (`break`) is uncovered because every existing test runs at least one
    cycle before the predicate fires. A run with `should_stop=lambda: True` immediately should
    yield `report.cycles == 0` without calling `next_fn`.
@@ -2614,7 +2611,7 @@ existing CLI session and makes no model or API calls of its own.
    Acceptance: `test_daemon_stops_immediately_if_predicate_is_true_on_first_check` in
    tests/test_daemon.py asserts `report.cycles == 0` and confirms `next_fn` was never called.
 
-3. `_enclosing_test_name` in `discovery.py` has no test for the `break` at line 489: when a
+2. `_enclosing_test_name` in `discovery.py` has no test for the `break` at line 489: when a
    decorator line (`@`) is followed by a non-empty, non-decorator, non-def line (e.g. a module
    assignment), the loop breaks and falls through. All existing tests reach either the
    decorator→def path or the backward-scan path; the break branch (lines 488-489) is uncovered.

@@ -243,6 +243,11 @@ def test_main_handles_keyboard_interrupt_cleanly(monkeypatch, capsys):
     assert "interrupted" in capsys.readouterr().out.lower()
 
 
+def test_main_prints_help_and_returns_zero_when_no_subcommand(capsys):
+    # cli.py:394-396: if not args.command → print_help → return 0
+    assert main([]) == 0
+
+
 def test_run_banner_omits_budget(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr("looptight.commands.detect_agent", lambda *a, **k: "claude")
