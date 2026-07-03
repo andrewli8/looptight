@@ -86,6 +86,11 @@ def test_grounded_goal_without_location_omits_at_clause():
     assert "None" not in result
 
 
+def test_grounded_goal_with_location_includes_at_clause():
+    result = _grounded_goal("Cover retry path", "src/tasks.py:72")
+    assert "at src/tasks.py:72" in result
+
+
 def test_next_task_attaches_idea_id(tmp_path):
     cand = Candidate(title="fix E501: line too long", source="lint",
                      location="src/looptight/foo.py:10", suggested_verify=None,

@@ -2565,6 +2565,12 @@ existing CLI session and makes no model or API calls of its own.
   exercising the `re.match(r"\d+[.)]\s+", nxt_stripped)` branch of the discovery.py:605 guard
   (the sibling of the `## ` header branch covered by the test above).
 
+- `_grounded_goal` with a non-None location is directly covered:
+  `test_grounded_goal_with_location_includes_at_clause` in tests/test_tasks.py calls
+  `_grounded_goal("Cover retry path", "src/tasks.py:72")` and asserts `"at src/tasks.py:72"`
+  is in the result — the `where = f" at {location}"` branch at tasks.py:72 previously exercised
+  only indirectly through `next_task` tests that never asserted on the goal text.
+
 ## Next
 
 - `_not_ignored`'s `returncode not in (0, 1)` passthrough (discovery.py:105) is directly covered:
@@ -2572,12 +2578,6 @@ existing CLI session and makes no model or API calls of its own.
   monkeypatches `subprocess.run` to return `CompletedProcess(returncode=128)` and asserts
   `_not_ignored` returns all input paths unchanged — the sibling of the OSError and TimeoutExpired tests.
 
-3. `_grounded_goal` with a non-None location has no direct assertion: `test_grounded_goal_without_location_omits_at_clause`
-   in tests/test_tasks.py tests only the None path; the with-location path (`where = f" at {location}"` at tasks.py:72)
-   is exercised only indirectly through `next_task` tests that never assert on the goal text.
-   Evidence: `src/looptight/tasks.py:72`;
-   Acceptance: `test_grounded_goal_with_location_includes_at_clause` in tests/test_tasks.py calls
-   `_grounded_goal("Cover retry path", "src/tasks.py:72")` and asserts `"at src/tasks.py:72"` is in the result.
 
 ## Rules
 
