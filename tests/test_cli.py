@@ -3739,3 +3739,13 @@ def test_ensure_pycache_ignored_leaves_existing_gitignore_untouched(tmp_path):
     _ensure_pycache_ignored(tmp_path, Console(file=out))
     assert gitignore.read_text(encoding="utf-8") == original, ".gitignore was modified"
     assert out.getvalue() == "", "unexpected console output when .gitignore already exists"
+
+
+def test_unquote_git_path_strips_quotes_and_leaves_plain_paths():
+    # protocol_commands.py:415 — git wraps paths containing special characters in
+    # double-quotes; _unquote_git_path must strip exactly those quotes and leave
+    # already-unquoted paths unchanged.
+    from looptight.protocol_commands import _unquote_git_path
+
+    assert _unquote_git_path('"path with spaces"') == "path with spaces"
+    assert _unquote_git_path("plain/path") == "plain/path"

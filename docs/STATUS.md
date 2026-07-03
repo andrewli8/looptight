@@ -2606,18 +2606,12 @@ existing CLI session and makes no model or API calls of its own.
   while confirming the `run_cycle` function was never called — the first-check-exits path
   the existing `test_daemon_halts_when_should_stop_returns_true` did not reach.
 
+- Added `test_unquote_git_path_strips_quotes_and_leaves_plain_paths` in `tests/test_cli.py`
+  covering both branches of `_unquote_git_path` in `protocol_commands.py:415`.
+
 ## Next
 
-1. `_unquote_git_path` in `protocol_commands.py` has no test: the function strips surrounding
-   double-quotes that git adds when a path contains special characters, but neither the quoted
-   path (returns the inner string) nor the unquoted path (returns the original) branch is
-   covered by any test.
-   Evidence: `src/looptight/protocol_commands.py:415`;
-   Acceptance: `test_unquote_git_path_strips_quotes_and_leaves_plain_paths` in
-   `tests/test_cli.py` passes, calling `_unquote_git_path` with `'"path with spaces"'`
-   (expects `"path with spaces"`) and with `"plain/path"` (expects `"plain/path"`).
-
-2. `_coordination_line` in `commands.py` has no test: the function computes the `doctor`
+1. `_coordination_line` in `commands.py` has no test: the function computes the `doctor`
    coordination line from `coordination_scope`, but neither the `"none"` path (which returns
    just the label) nor the `"coordinator"` / `"file-claims"` path (which appends the
    cross-machine-unsupported suffix) is exercised by any test.
