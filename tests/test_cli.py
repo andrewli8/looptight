@@ -2926,6 +2926,30 @@ def test_statusline_uses_project_dir_when_current_dir_absent(tmp_path, monkeypat
     assert "verified" in out
 
 
+def test_statusline_uses_cwd_key_when_workspace_is_absent(tmp_path, monkeypatch, capsys):
+    # commands.py:597: candidate = candidate or data.get("cwd") — third fallback, no workspace key.
+    import io
+
+    from looptight.ui import write_state
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    write_state(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "manager": {"status": "running"},
+            "tasks": [],
+            "workers": [{"number": 1, "task_id": "t3", "status": "running", "error": None}],
+        },
+    )
+    payload = json.dumps({"cwd": str(tmp_path)})
+    monkeypatch.setattr("sys.stdin", io.StringIO(payload))
+    assert main(["statusline"]) == 0
+    out = capsys.readouterr().out.strip()
+    assert out.splitlines()[0].startswith("looptight:")
+    assert "running" in out
+
+
 def test_statusline_tolerates_stdin_read_oserror(monkeypatch, capsys):
     # commands.py:587-588: OSError/ValueError from sys.stdin.read() must recover to raw="".
     import types

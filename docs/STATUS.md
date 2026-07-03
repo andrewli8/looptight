@@ -2577,24 +2577,20 @@ existing CLI session and makes no model or API calls of its own.
   `test_summary_tail_error_without_message_omits_detail` in tests/test_summary.py asserts
   `_tail(result) == "stopped: error"` — confirming no `: <detail>` suffix is appended when error is
   absent (summary.py:35-37 fallback path), previously exercised only with a non-None error string.
+- `cmd_statusline`'s third repo-dir fallback (`data.get("cwd")`) has direct coverage:
+  `test_statusline_uses_cwd_key_when_workspace_is_absent` in tests/test_cli.py passes `{"cwd": str(tmp_path)}`
+  on stdin (no workspace key) and asserts `statusline` reads swarm state from that path — the
+  `candidate = candidate or data.get("cwd")` branch at commands.py:597, previously untested.
 
 ## Next
 
-1. `cmd_statusline`'s third repo-dir fallback (`data.get("cwd")`) is untested: the two existing tests
-   use `workspace.current_dir` and `workspace.project_dir`; no test passes a top-level `{"cwd": "..."}` key,
-   leaving the `candidate = candidate or data.get("cwd")` branch at commands.py:597 uncovered.
-   Evidence: `src/looptight/commands.py:597`;
-   Acceptance: `test_statusline_uses_cwd_key_when_workspace_is_absent` in tests/test_cli.py passes
-   `{"cwd": str(tmp_path)}` on stdin (no workspace key) and asserts `statusline` reads swarm state from
-   `tmp_path` correctly.
-
-4. `ui._session_panel` with a status value that is not `"session"` or `"goal"` returns `""` (guard at
+1. `ui._session_panel` with a status value that is not `"session"` or `"goal"` returns `""` (guard at
    ui.py:114), but no test exercises this: every test either uses one of those two statuses or passes
    no task list — so a regression removing the guard would not be caught. Evidence: `src/looptight/ui.py:114`;
    Acceptance: `test_session_panel_returns_empty_for_non_session_or_goal_status` in tests/test_ui.py calls
    `_session_panel` with `status="running"` and asserts the result is `""`.
 
-5. `read_goal` propagates an uncaught `TypeError` when `"max_iterations": null` appears in a goal file:
+2. `read_goal` propagates an uncaught `TypeError` when `"max_iterations": null` appears in a goal file:
    `dict.get(key, default)` returns `None` (not the default) when the key is present with a JSON `null`
    value, so `int(data.get("max_iterations", 0))` at goal.py:66 becomes `int(None)` which raises
    `TypeError` — not caught by the `except (OSError, ValueError)` guard at goal.py:56, meaning the whole
