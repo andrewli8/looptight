@@ -270,6 +270,27 @@ def test_daemon_halts_when_should_stop_returns_true():
     assert report.cycles == 2
 
 
+def test_daemon_stops_immediately_if_predicate_is_true_on_first_check():
+    # daemon.py:127 — should_stop() returning True before the first cycle yields cycles=0
+    # and never calls run_cycle.
+    called = {"count": 0}
+
+    def never_call(root, **kwargs):
+        called["count"] += 1
+        return _result(REASON_OK)
+
+    report = run_daemon(
+        Path("."),
+        agent="claude",
+        config=_config(),
+        workers=1,
+        run_cycle=never_call,
+        should_stop=lambda: True,
+    )
+    assert report.cycles == 0
+    assert called["count"] == 0
+
+
 def test_daemon_survives_an_exception_from_a_cycle():
     boom = {"raised": False}
 

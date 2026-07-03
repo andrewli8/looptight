@@ -2600,18 +2600,15 @@ existing CLI session and makes no model or API calls of its own.
   `test_main_prints_help_and_returns_zero_when_no_subcommand` in tests/test_cli.py calls
   `main([])` and asserts return value 0, exercising the `if not args.command: print_help();
   return 0` branch that all prior CLI tests bypassed by always supplying a subcommand.
+- `run_daemon`'s `should_stop()` break before the first cycle (daemon.py:127) is directly
+  covered: `test_daemon_stops_immediately_if_predicate_is_true_on_first_check` in
+  tests/test_daemon.py passes `should_stop=lambda: True` and asserts `report.cycles == 0`
+  while confirming the `run_cycle` function was never called — the first-check-exits path
+  the existing `test_daemon_halts_when_should_stop_returns_true` did not reach.
 
 ## Next
 
-1. `run_daemon` in `daemon.py` has no test for `should_stop()` returning True before the
-   first cycle: line 127 (`break`) is uncovered because every existing test runs at least one
-   cycle before the predicate fires. A run with `should_stop=lambda: True` immediately should
-   yield `report.cycles == 0` without calling `next_fn`.
-   Evidence: `src/looptight/daemon.py:127`;
-   Acceptance: `test_daemon_stops_immediately_if_predicate_is_true_on_first_check` in
-   tests/test_daemon.py asserts `report.cycles == 0` and confirms `next_fn` was never called.
-
-2. `_enclosing_test_name` in `discovery.py` has no test for the `break` at line 489: when a
+1. `_enclosing_test_name` in `discovery.py` has no test for the `break` at line 489: when a
    decorator line (`@`) is followed by a non-empty, non-decorator, non-def line (e.g. a module
    assignment), the loop breaks and falls through. All existing tests reach either the
    decorator→def path or the backward-scan path; the break branch (lines 488-489) is uncovered.
