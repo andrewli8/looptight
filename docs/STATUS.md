@@ -2599,6 +2599,30 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `main()` in `cli.py` has no test for the no-subcommand path: `if not args.command:
+   parser.print_help(); return 0` (cli.py:394-396) exits 0 but lines 395-396 are not
+   covered. `main([])` reaches those lines, but no existing test calls it without a subcommand.
+   Evidence: `src/looptight/cli.py:395`;
+   Acceptance: `test_main_prints_help_and_returns_zero_when_no_subcommand` in tests/test_cli.py
+   calls `main([])` and asserts return value is 0.
+
+2. `run_daemon` in `daemon.py` has no test for `should_stop()` returning True before the
+   first cycle: line 127 (`break`) is uncovered because every existing test runs at least one
+   cycle before the predicate fires. A run with `should_stop=lambda: True` immediately should
+   yield `report.cycles == 0` without calling `next_fn`.
+   Evidence: `src/looptight/daemon.py:127`;
+   Acceptance: `test_daemon_stops_immediately_if_predicate_is_true_on_first_check` in
+   tests/test_daemon.py asserts `report.cycles == 0` and confirms `next_fn` was never called.
+
+3. `_enclosing_test_name` in `discovery.py` has no test for the `break` at line 489: when a
+   decorator line (`@`) is followed by a non-empty, non-decorator, non-def line (e.g. a module
+   assignment), the loop breaks and falls through. All existing tests reach either the
+   decorator→def path or the backward-scan path; the break branch (lines 488-489) is uncovered.
+   Evidence: `src/looptight/discovery.py:488`;
+   Acceptance: `test_enclosing_test_name_breaks_on_non_decorator_non_def_line` in
+   tests/test_propose.py passes lines where `@skip` is followed by a bare assignment and
+   asserts the function returns None (no def found after the decorator).
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
