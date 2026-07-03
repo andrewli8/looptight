@@ -1639,3 +1639,16 @@ def test_files_with_exts_missing_subdir_returns_empty(tmp_path):
     from looptight.discovery import _files_with_exts
 
     assert _files_with_exts(tmp_path, "no_such_dir", (".py",)) == []
+
+
+def test_enclosing_test_name_breaks_on_non_decorator_non_def_line():
+    # When @skip is followed by a bare assignment (non-empty, non-decorator, non-def),
+    # the forward scan breaks at discovery.py:489 without finding a def.
+    # The backward scan from idx=0 finds no def either, so the function returns None.
+    from looptight.discovery import _enclosing_test_name
+
+    lines = ["@pytest.mark.skip\n", "SOME_CONSTANT = 42\n", "def test_below():\n"]
+    result = _enclosing_test_name(lines, 0)
+    assert result is None, (
+        f"expected None when @skip is followed by a bare assignment, got {result!r}"
+    )

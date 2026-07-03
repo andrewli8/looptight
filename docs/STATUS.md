@@ -2608,15 +2608,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `_enclosing_test_name` in `discovery.py` has no test for the `break` at line 489: when a
-   decorator line (`@`) is followed by a non-empty, non-decorator, non-def line (e.g. a module
-   assignment), the loop breaks and falls through. All existing tests reach either the
-   decorator→def path or the backward-scan path; the break branch (lines 488-489) is uncovered.
-   Evidence: `src/looptight/discovery.py:488`;
-   Acceptance: `test_enclosing_test_name_breaks_on_non_decorator_non_def_line` in
-   tests/test_propose.py passes lines where `@skip` is followed by a bare assignment and
-   asserts the function returns None (no def found after the decorator).
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
