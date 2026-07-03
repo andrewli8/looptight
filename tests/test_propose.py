@@ -363,6 +363,30 @@ def test_python_skipped_tests_in_one_file_have_distinct_idea_ids(tmp_path):
     assert "test_beta" in by_title[1]   # imperative skip names its enclosing test
 
 
+def test_from_task_file_breaks_continuation_on_indented_section_header(tmp_path):
+    # An indented ` ## New Section` line is a continuation candidate (starts with a
+    # space, so line 603's non-indent guard does not fire), but discovery.py:605 must
+    # break on it before appending — so the section header is not included in the body.
+    from looptight.discovery import from_task_file
+
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "T.md").write_text(
+        "## Next\n\n"
+        "1. Do the thing. Evidence: docs/T.md:1; Acceptance: verify it\n"
+        "   More description here\n"
+        "   ## New Section\n"
+        "   Not part of this task\n"
+    )
+    candidates = from_task_file(tmp_path, "docs/T.md", next_section_only=True)
+    assert len(candidates) == 1
+    c = candidates[0]
+    assert "New Section" not in c.title
+    assert "New Section" not in (c.detail or "")
+    assert "Not part of this task" not in (c.detail or "")
+    assert c.acceptance.strip().startswith("verify it")
+
+
 def test_adjacent_numbered_items_without_blank_line_parse_separately(tmp_path):
     # The numbered-item continuation parser breaks at the next numbered item, so two
     # adjacent `## Next` items with no blank line between them are two tasks, not one.

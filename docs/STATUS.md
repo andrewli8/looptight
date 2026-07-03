@@ -2552,9 +2552,13 @@ existing CLI session and makes no model or API calls of its own.
   but failing the root merge commit at line 662, asserting `result.status == "failed"`
   with the commit error in the error string.
 
-## Next
+- `from_task_file` continuation break on an indented section header is directly covered:
+  `test_from_task_file_breaks_continuation_on_indented_section_header` in tests/test_propose.py
+  writes a task whose body has an indented ` ## New Section` continuation line and asserts the
+  section header and everything after it are not included in the parsed title or detail, while
+  the preceding content is retained — directly exercising the discovery.py:605 guard.
 
-1. `from_task_file` continuation break on an indented section header is directly covered: the guard at discovery.py:606 breaks when a body continuation line (indented, so not broken at line 604) itself starts with `## ` or a numbered item; the existing adjacent-items test reaches only line 604 (the next item is not indented, so `nxt[:1] not in (" ", "\t")` fires first). Evidence: `src/looptight/discovery.py:606`; Acceptance: `test_from_task_file_breaks_continuation_on_indented_section_header` in tests/test_propose.py writes a task whose body has an indented `  ## New Section` line, asserts the parsed title is truncated before that line, and the section header is not included in the task body.
+## Next
 
 ## Rules
 
