@@ -3741,6 +3741,29 @@ def test_ensure_pycache_ignored_leaves_existing_gitignore_untouched(tmp_path):
     assert out.getvalue() == "", "unexpected console output when .gitignore already exists"
 
 
+def test_coordination_line_none_scope_returns_label_only(tmp_path, monkeypatch):
+    # commands.py:483 — when coordination_scope returns "none", _coordination_line
+    # must return just the label with no suffix appended.
+    from looptight import commands
+    from looptight.commands import _coordination_line
+
+    monkeypatch.setattr(commands, "coordination_scope", lambda _: "none")
+    result = _coordination_line(tmp_path)
+    assert result == "not a git repo"
+    assert "cross-machine" not in result
+
+
+def test_coordination_line_coordinator_scope_appends_suffix(tmp_path, monkeypatch):
+    # commands.py:483 — when coordination_scope returns a non-"none" value,
+    # _coordination_line must append the cross-machine-unsupported suffix.
+    from looptight import commands
+    from looptight.commands import _coordination_line
+
+    monkeypatch.setattr(commands, "coordination_scope", lambda _: "coordinator")
+    result = _coordination_line(tmp_path)
+    assert "cross-machine sharing is unsupported" in result
+
+
 def test_unquote_git_path_strips_quotes_and_leaves_plain_paths():
     # protocol_commands.py:415 — git wraps paths containing special characters in
     # double-quotes; _unquote_git_path must strip exactly those quotes and leave

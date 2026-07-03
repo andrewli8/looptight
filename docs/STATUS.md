@@ -2609,18 +2609,13 @@ existing CLI session and makes no model or API calls of its own.
 - Added `test_unquote_git_path_strips_quotes_and_leaves_plain_paths` in `tests/test_cli.py`
   covering both branches of `_unquote_git_path` in `protocol_commands.py:415`.
 
+- Added `test_coordination_line_none_scope_returns_label_only` and
+  `test_coordination_line_coordinator_scope_appends_suffix` in `tests/test_cli.py`
+  covering both branches of `_coordination_line` in `commands.py:483`.
+
 ## Next
 
-1. `_coordination_line` in `commands.py` has no test: the function computes the `doctor`
-   coordination line from `coordination_scope`, but neither the `"none"` path (which returns
-   just the label) nor the `"coordinator"` / `"file-claims"` path (which appends the
-   cross-machine-unsupported suffix) is exercised by any test.
-   Evidence: `src/looptight/commands.py:483`;
-   Acceptance: `test_coordination_line_none_scope_returns_label_only` and
-   `test_coordination_line_coordinator_scope_appends_suffix` in `tests/test_cli.py` pass,
-   monkeypatching `coordination_scope` to each value and asserting the returned string.
-
-3. `_doctor_coordinator_state` in `commands.py` has no test: the two-line function returns
+1. `_doctor_coordinator_state` in `commands.py` has no test: the two-line function returns
    `"active"` when `git_ready` is True and `"not a git repo"` when False, but no test
    exercises either branch.
    Evidence: `src/looptight/commands.py:492`;
