@@ -2591,17 +2591,13 @@ existing CLI session and makes no model or API calls of its own.
 - `_optional_int` rejects a float `max_changed_files = 3.5`: `isinstance(3.5, int)` is `False`,
   triggering the guard at config.py:186; `test_load_config_rejects_float_max_changed_files` in
   tests/test_config.py verifies the previously-untested float branch.
+- `trajectory.record`'s `None → string` task-transition reset is directly covered:
+  `test_record_resets_when_task_transitions_from_none_to_a_string` in tests/test_trajectory.py
+  seeds two entries with `task=None`, then records with `task="new-idea"` and asserts length 1
+  — `prior.get("task")` returns `None` from JSON null; `None != "new-idea"` fires the reset in
+  `_is_fresh` (trajectory.py:77), a path that `test_record_resets_on_changed_task` did not reach.
 
 ## Next
-
-1. `trajectory.record` resets to a fresh attempt when `task` changes (covered for `"idea-A"` →
-   `"idea-B"`), but the transition from a prior stored with `task: null` to a new call with
-   `task="idea-A"` (or vice versa) is not tested. `prior.get("task")` returns `None` when the
-   key holds JSON null; `None != "idea-A"` is True, so the reset fires — but this path has no
-   test. Evidence: `src/looptight/trajectory.py:78`;
-   Acceptance: `test_record_resets_when_task_transitions_from_none_to_a_string` in
-   tests/test_trajectory.py seeds a prior entry with `task=None`, then records with
-   `task="new-idea"` and asserts the returned list has length 1 (fresh attempt).
 
 ## Rules
 
