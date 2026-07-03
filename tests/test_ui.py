@@ -32,6 +32,12 @@ def test_host_is_loopback_accepts_loopback_and_rejects_remote():
     assert not ui._host_is_loopback("attacker.test:8765")
 
 
+def test_host_is_loopback_accepts_bracketed_ipv6_without_port():
+    # ui.py:397-398 — raw[1:].split("]", 1)[0] extracts "::1" from "[::1]" even
+    # when there is no trailing ":port"; the portless case was previously untested.
+    assert ui._host_is_loopback("[::1]")
+
+
 def test_do_get_rejects_a_non_loopback_host(tmp_path):
     # DNS-rebinding hardening: a request whose Host is a remote domain (rebound to 127.0.0.1)
     # must be refused, even though it reached the loopback socket.
