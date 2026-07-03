@@ -2584,15 +2584,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `read_goal` propagates an uncaught `TypeError` when `"max_iterations": null` appears in a goal file:
-   `dict.get(key, default)` returns `None` (not the default) when the key is present with a JSON `null`
-   value, so `int(data.get("max_iterations", 0))` at goal.py:66 becomes `int(None)` which raises
-   `TypeError` — not caught by the `except (OSError, ValueError)` guard at goal.py:56, meaning the whole
-   call propagates instead of returning `None`. Fix: widen the guard to include `TypeError` (or use
-   `int(data.get("max_iterations") or 0)`). Evidence: `src/looptight/goal.py:66`;
-   Acceptance: `test_read_goal_returns_none_when_max_iterations_is_null` in tests/test_goal.py writes a
-   goal JSON with `"max_iterations": null` and asserts `read_goal(workdir)` returns `None` without raising.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

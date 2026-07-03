@@ -99,6 +99,20 @@ def test_read_goal_returns_none_when_json_is_not_a_dict(tmp_path):
     assert read_goal(repo) is None
 
 
+def test_read_goal_returns_none_when_max_iterations_is_null(tmp_path):
+    # goal.py:66 — int(data.get("max_iterations", 0)) raises TypeError when the
+    # key is present with JSON null (get() returns None, not the default 0).
+    # read_goal must return None rather than propagate the TypeError.
+    repo = _repo(tmp_path)
+    path = goal_path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps({"schema_version": 1, "vision": "x", "max_iterations": None}),
+        encoding="utf-8",
+    )
+    assert read_goal(repo) is None
+
+
 def test_goal_next_without_a_goal_reports_no_goal(tmp_path):
     from looptight.goal import goal_next
 

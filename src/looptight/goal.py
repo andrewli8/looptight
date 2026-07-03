@@ -53,19 +53,19 @@ def read_goal(workdir: Path) -> Goal | None:
         return None
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        # ValueError covers both json.JSONDecodeError and a non-UTF-8 file's
-        # UnicodeDecodeError, so an unreadable goal yields None per the contract.
+        if not isinstance(data, dict) or data.get("schema_version") != SCHEMA_VERSION:
+            return None
+        return Goal(
+            vision=str(data.get("vision", "")),
+            done_check=data.get("done_check"),
+            continuous=bool(data.get("continuous", False)),
+            max_iterations=int(data.get("max_iterations", 0)),
+            iteration=int(data.get("iteration", 0)),
+        )
+    except (OSError, ValueError, TypeError):
+        # ValueError covers json.JSONDecodeError and UnicodeDecodeError.
+        # TypeError is raised when a JSON null coerces via int() (e.g. max_iterations: null).
         return None
-    if not isinstance(data, dict) or data.get("schema_version") != SCHEMA_VERSION:
-        return None
-    return Goal(
-        vision=str(data.get("vision", "")),
-        done_check=data.get("done_check"),
-        continuous=bool(data.get("continuous", False)),
-        max_iterations=int(data.get("max_iterations", 0)),
-        iteration=int(data.get("iteration", 0)),
-    )
 
 
 def write_goal(workdir: Path, goal: Goal) -> None:
