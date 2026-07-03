@@ -2588,18 +2588,13 @@ existing CLI session and makes no model or API calls of its own.
 - `_host_is_loopback("[::1]")` (bracketed IPv6 without port) is covered:
   `test_host_is_loopback_accepts_bracketed_ipv6_without_port` in tests/test_ui.py asserts `True`
   — the `raw[1:].split("]", 1)[0]` branch at ui.py:397-398 previously exercised only with a port.
+- `_optional_int` rejects a float `max_changed_files = 3.5`: `isinstance(3.5, int)` is `False`,
+  triggering the guard at config.py:186; `test_load_config_rejects_float_max_changed_files` in
+  tests/test_config.py verifies the previously-untested float branch.
 
 ## Next
 
-1. `_optional_int` in config.py raises `ValueError` for a float TOML value such as
-   `max_changed_files = 3.5` (valid TOML but not a nonnegative integer): `isinstance(3.5, int)`
-   is `False`, triggering the guard at config.py:186. The existing rejection tests cover strings,
-   negatives, and booleans — a float is untested, so this branch is silently uncovered. Evidence:
-   `src/looptight/config.py:186`;
-   Acceptance: `test_load_config_rejects_float_max_changed_files` in tests/test_config.py writes
-   `max_changed_files = 3.5` and asserts `load_config` raises `ConfigError`.
-
-2. `trajectory.record` resets to a fresh attempt when `task` changes (covered for `"idea-A"` →
+1. `trajectory.record` resets to a fresh attempt when `task` changes (covered for `"idea-A"` →
    `"idea-B"`), but the transition from a prior stored with `task: null` to a new call with
    `task="idea-A"` (or vice versa) is not tested. `prior.get("task")` returns `None` when the
    key holds JSON null; `None != "idea-A"` is True, so the reset fires — but this path has no

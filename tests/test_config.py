@@ -218,6 +218,19 @@ def test_load_config_rejects_bool_for_max_changed_files(tmp_path):
     assert "max_changed_files" in str(exc.value)
 
 
+def test_load_config_rejects_float_max_changed_files(tmp_path):
+    # config.py:186 — isinstance(3.5, int) is False (float is not int), so
+    # _optional_int raises ValueError; the float branch was previously untested.
+    path = tmp_path / ".looptight.toml"
+    path.write_text("max_changed_files = 3.5\n", encoding="utf-8")
+
+    with pytest.raises(ConfigError) as exc:
+        load_config(path)
+
+    assert str(path) in str(exc.value)
+    assert "max_changed_files" in str(exc.value)
+
+
 def test_load_config_rejects_empty_string_in_protected_paths(tmp_path):
     path = tmp_path / ".looptight.toml"
     path.write_text('protected_paths = [""]\n', encoding="utf-8")
