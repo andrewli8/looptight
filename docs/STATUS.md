@@ -2558,21 +2558,19 @@ existing CLI session and makes no model or API calls of its own.
   section header and everything after it are not included in the parsed title or detail, while
   the preceding content is retained — directly exercising the discovery.py:605 guard.
 
+- `from_task_file` continuation break on an indented numbered item is directly covered:
+  `test_from_task_file_breaks_continuation_on_indented_numbered_item` in tests/test_propose.py
+  writes a task whose body has an indented `   1. Sub-item` continuation line and asserts
+  the sub-item and everything after it are not included in the parsed title or detail —
+  exercising the `re.match(r"\d+[.)]\s+", nxt_stripped)` branch of the discovery.py:605 guard
+  (the sibling of the `## ` header branch covered by the test above).
+
 ## Next
 
 - `_not_ignored`'s `returncode not in (0, 1)` passthrough (discovery.py:105) is directly covered:
   `test_not_ignored_falls_through_on_unexpected_git_returncode` in tests/test_propose.py
   monkeypatches `subprocess.run` to return `CompletedProcess(returncode=128)` and asserts
   `_not_ignored` returns all input paths unchanged — the sibling of the OSError and TimeoutExpired tests.
-
-1. `from_task_file` continuation break on an indented numbered item (discovery.py:605) is not covered:
-   the `re.match(r"\d+[.)]\s+", nxt_stripped)` branch of the same `if` at line 605 is triggered only
-   when an indented continuation line begins with a numbered item marker; the sibling `## ` test
-   (just added at tests/test_propose.py:366) covers the header branch of the same OR condition but not
-   this one. Evidence: `src/looptight/discovery.py:605`;
-   Acceptance: `test_from_task_file_breaks_continuation_on_indented_numbered_item` in tests/test_propose.py
-   writes a task whose body has an indented `   1. Sub-item` continuation line and asserts it is not
-   included in the parsed body.
 
 3. `_grounded_goal` with a non-None location has no direct assertion: `test_grounded_goal_without_location_omits_at_clause`
    in tests/test_tasks.py tests only the None path; the with-location path (`where = f" at {location}"` at tasks.py:72)

@@ -387,6 +387,29 @@ def test_from_task_file_breaks_continuation_on_indented_section_header(tmp_path)
     assert c.acceptance.strip().startswith("verify it")
 
 
+def test_from_task_file_breaks_continuation_on_indented_numbered_item(tmp_path):
+    # An indented `   1. Sub-item` line passes the indent guard (discovery.py:603)
+    # but discovery.py:605 must break on the numbered-item regex before appending, so a
+    # sub-list item is not folded into the parent task's body.
+    from looptight.discovery import from_task_file
+
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "T.md").write_text(
+        "## Next\n\n"
+        "1. Do the thing. Evidence: docs/T.md:1; Acceptance: verify it\n"
+        "   More description here\n"
+        "   1. Sub-item not part of body\n"
+        "   Also not included\n"
+    )
+    candidates = from_task_file(tmp_path, "docs/T.md", next_section_only=True)
+    assert len(candidates) == 1
+    c = candidates[0]
+    assert "Sub-item" not in c.title
+    assert "Sub-item" not in (c.detail or "")
+    assert c.acceptance.strip().startswith("verify it")
+
+
 def test_adjacent_numbered_items_without_blank_line_parse_separately(tmp_path):
     # The numbered-item continuation parser breaks at the next numbered item, so two
     # adjacent `## Next` items with no blank line between them are two tasks, not one.
