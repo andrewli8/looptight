@@ -2573,11 +2573,32 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-- `_not_ignored`'s `returncode not in (0, 1)` passthrough (discovery.py:105) is directly covered:
-  `test_not_ignored_falls_through_on_unexpected_git_returncode` in tests/test_propose.py
-  monkeypatches `subprocess.run` to return `CompletedProcess(returncode=128)` and asserts
-  `_not_ignored` returns all input paths unchanged — the sibling of the OSError and TimeoutExpired tests.
+1. `summary._iterations(1)` singular form has no direct assertion: the `n != 1` guard at summary.py:74
+   produces `"1 iteration"` (no trailing 's'), but every existing test uses 2+ iterations and asserts
+   `"2 iterations"` — the singular branch is exercised only indirectly. Evidence: `src/looptight/summary.py:74`;
+   Acceptance: `test_summary_renders_singular_iteration` in tests/test_summary.py renders a 1-iteration
+   RunResult and asserts `"1 iteration"` (not `"1 iterations"`) in the output.
 
+2. `summary._tail()` with `stop_reason=ERROR` and `error=None` falls back to bare status text (summary.py:35),
+   but every existing test that exercises `StopReason.ERROR` also sets a non-None error string — the fallback
+   path where error detail is absent is untested. Evidence: `src/looptight/summary.py:35`;
+   Acceptance: `test_summary_tail_error_without_message_omits_detail` in tests/test_summary.py renders
+   `RunResult(stop_reason=StopReason.ERROR, error=None)` and asserts the error-label word appears without
+   a colon-prefixed detail suffix.
+
+3. `cmd_statusline`'s third repo-dir fallback (`data.get("cwd")`) is untested: the two existing tests
+   use `workspace.current_dir` and `workspace.project_dir`; no test passes a top-level `{"cwd": "..."}` key,
+   leaving the `candidate = candidate or data.get("cwd")` branch at commands.py:597 uncovered.
+   Evidence: `src/looptight/commands.py:597`;
+   Acceptance: `test_statusline_uses_cwd_key_when_workspace_is_absent` in tests/test_cli.py passes
+   `{"cwd": str(tmp_path)}` on stdin (no workspace key) and asserts `statusline` reads swarm state from
+   `tmp_path` correctly.
+
+4. `ui._session_panel` with a status value that is not `"session"` or `"goal"` returns `""` (guard at
+   ui.py:114), but no test exercises this: every test either uses one of those two statuses or passes
+   no task list — so a regression removing the guard would not be caught. Evidence: `src/looptight/ui.py:114`;
+   Acceptance: `test_session_panel_returns_empty_for_non_session_or_goal_status` in tests/test_ui.py calls
+   `_session_panel` with `status="running"` and asserts the result is `""`.
 
 ## Rules
 
