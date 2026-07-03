@@ -2560,14 +2560,12 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `_not_ignored`'s `returncode not in (0, 1)` passthrough at discovery.py:105 has no direct test:
-   the existing sibling tests cover OSError (line 829 of test_propose.py) and TimeoutExpired (line 839)
-   but not an unexpected git exit code such as 128 (not a git repo). Evidence: `src/looptight/discovery.py:105`;
-   Acceptance: `test_not_ignored_falls_through_on_unexpected_git_returncode` in tests/test_propose.py
-   monkeypatches `subprocess.run` to return `CompletedProcess` with `returncode=128` and asserts
-   `_not_ignored` returns all input paths unchanged.
+- `_not_ignored`'s `returncode not in (0, 1)` passthrough (discovery.py:105) is directly covered:
+  `test_not_ignored_falls_through_on_unexpected_git_returncode` in tests/test_propose.py
+  monkeypatches `subprocess.run` to return `CompletedProcess(returncode=128)` and asserts
+  `_not_ignored` returns all input paths unchanged — the sibling of the OSError and TimeoutExpired tests.
 
-2. `from_task_file` continuation break on an indented numbered item (discovery.py:605) is not covered:
+1. `from_task_file` continuation break on an indented numbered item (discovery.py:605) is not covered:
    the `re.match(r"\d+[.)]\s+", nxt_stripped)` branch of the same `if` at line 605 is triggered only
    when an indented continuation line begins with a numbered item marker; the sibling `## ` test
    (just added at tests/test_propose.py:366) covers the header branch of the same OR condition but not

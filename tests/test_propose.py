@@ -853,6 +853,22 @@ def test_not_ignored_falls_through_on_timeout(tmp_path, monkeypatch):
     assert disc._not_ignored(tmp_path, paths) == paths
 
 
+def test_not_ignored_falls_through_on_unexpected_git_returncode(tmp_path, monkeypatch):
+    # When git check-ignore exits with a code other than 0 (some ignored) or 1
+    # (none ignored) — e.g. 128 when called outside a git repo — _not_ignored must
+    # return all input paths unchanged so discovery never silently drops candidates.
+    import subprocess as _subprocess
+    import looptight.discovery as disc
+
+    paths = [tmp_path / "a.py", tmp_path / "b.py"]
+    monkeypatch.setattr(
+        disc.subprocess,
+        "run",
+        lambda *a, **kw: _subprocess.CompletedProcess(["git", "check-ignore"], 128, "", ""),
+    )
+    assert disc._not_ignored(tmp_path, paths) == paths
+
+
 def test_not_ignored_falls_through_when_path_outside_root(tmp_path):
     # When a path cannot be made relative to root (e.g. on a different drive or
     # outside the tree), _not_ignored returns the original list unchanged rather
