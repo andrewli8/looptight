@@ -2608,16 +2608,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `_ensure_pycache_ignored` in `commands.py` has no test: both branches (`.gitignore`
-   already exists → no-op; `.gitignore` absent → write it) are uncovered, so a regression
-   that skips the write or accidentally overwrites a user's `.gitignore` would go undetected.
-   Evidence: `src/looptight/commands.py:66`;
-   Acceptance: `test_ensure_pycache_ignored_writes_gitignore_when_absent` and
-   `test_ensure_pycache_ignored_leaves_existing_gitignore_untouched` in `tests/test_cli.py`
-   pass, calling `_ensure_pycache_ignored` directly with a tmp_path that has no `.gitignore`
-   and one that does.
-
-2. `_unquote_git_path` in `protocol_commands.py` has no test: the function strips surrounding
+1. `_unquote_git_path` in `protocol_commands.py` has no test: the function strips surrounding
    double-quotes that git adds when a path contains special characters, but neither the quoted
    path (returns the inner string) nor the unquoted path (returns the original) branch is
    covered by any test.
@@ -2626,7 +2617,7 @@ existing CLI session and makes no model or API calls of its own.
    `tests/test_cli.py` passes, calling `_unquote_git_path` with `'"path with spaces"'`
    (expects `"path with spaces"`) and with `"plain/path"` (expects `"plain/path"`).
 
-3. `_coordination_line` in `commands.py` has no test: the function computes the `doctor`
+2. `_coordination_line` in `commands.py` has no test: the function computes the `doctor`
    coordination line from `coordination_scope`, but neither the `"none"` path (which returns
    just the label) nor the `"coordinator"` / `"file-claims"` path (which appends the
    cross-machine-unsupported suffix) is exercised by any test.
@@ -2635,7 +2626,7 @@ existing CLI session and makes no model or API calls of its own.
    `test_coordination_line_coordinator_scope_appends_suffix` in `tests/test_cli.py` pass,
    monkeypatching `coordination_scope` to each value and asserting the returned string.
 
-4. `_doctor_coordinator_state` in `commands.py` has no test: the two-line function returns
+3. `_doctor_coordinator_state` in `commands.py` has no test: the two-line function returns
    `"active"` when `git_ready` is True and `"not a git repo"` when False, but no test
    exercises either branch.
    Evidence: `src/looptight/commands.py:492`;

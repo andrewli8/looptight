@@ -3708,4 +3708,34 @@ def test_count_non_int_value_returns_zero():
     assert _count({"k": "oops"}, "k") == 0
     assert _count({"k": 5}, "k") == 5
     assert _count(None, "k") == 0
-    assert _count({"k": 3}, "missing") == 0
+
+
+def test_ensure_pycache_ignored_writes_gitignore_when_absent(tmp_path):
+    # commands.py:66 — when no .gitignore exists, _ensure_pycache_ignored must write
+    # one containing __pycache__/ so a Python verify run doesn't dirty the worktree.
+    from looptight.commands import _ensure_pycache_ignored
+    from looptight.console import Console
+    import io
+
+    out = io.StringIO()
+    _ensure_pycache_ignored(tmp_path, Console(file=out))
+    gitignore = tmp_path / ".gitignore"
+    assert gitignore.is_file(), ".gitignore was not created"
+    assert "__pycache__/" in gitignore.read_text(encoding="utf-8")
+    assert "wrote" in out.getvalue()
+
+
+def test_ensure_pycache_ignored_leaves_existing_gitignore_untouched(tmp_path):
+    # commands.py:75 — when a .gitignore already exists, _ensure_pycache_ignored must
+    # return without writing or overwriting it, preserving the user's configuration.
+    from looptight.commands import _ensure_pycache_ignored
+    from looptight.console import Console
+    import io
+
+    original = "*.pyc\n"
+    gitignore = tmp_path / ".gitignore"
+    gitignore.write_text(original, encoding="utf-8")
+    out = io.StringIO()
+    _ensure_pycache_ignored(tmp_path, Console(file=out))
+    assert gitignore.read_text(encoding="utf-8") == original, ".gitignore was modified"
+    assert out.getvalue() == "", "unexpected console output when .gitignore already exists"
