@@ -2827,6 +2827,22 @@ def test_status_watch_parser_accepts_flags():
     assert args.watch is True and args.interval == 5.0
 
 
+def test_cmd_status_watch_delegates_to_watch_status(tmp_path, monkeypatch):
+    # The three _watch_status tests call it directly and never reach the branch
+    # at protocol_commands.py:549 inside cmd_status. Drive it via the CLI so the
+    # watch=True arm (lines 549-550) is covered.
+    from unittest.mock import MagicMock
+
+    import looptight.protocol_commands as pc
+
+    monkeypatch.chdir(tmp_path)
+    called = MagicMock()
+    monkeypatch.setattr(pc, "_watch_status", called)
+    ret = main(["status", "--watch"])
+    assert called.call_count == 1
+    assert ret == 0
+
+
 def test_watch_status_renders_one_tick_without_sleeping(tmp_path, capsys):
     from looptight.console import Console
     from looptight.protocol_commands import _watch_status

@@ -2618,8 +2618,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-3. Cover `cmd_status --watch` entry via `cmd_status` — the three existing watch tests call `_watch_status` directly and never reach the branch at protocol_commands.py:549 inside `cmd_status`. Evidence: `src/looptight/protocol_commands.py:549` Acceptance: `test_cmd_status_watch_delegates_to_watch_status` passes and lines 549-550 are no longer reported missed.
-
 4. Cover `swarm._git()` OSError fallback — sibling of the integration_queue and experience OSError guard tests; the same pattern was added to every other module but swarm.py:217 remains uncovered. Evidence: `src/looptight/swarm.py:217` Acceptance: `test_swarm_git_oserror_returns_127` passes and line 217 is no longer reported missed.
 
 ## Rules
