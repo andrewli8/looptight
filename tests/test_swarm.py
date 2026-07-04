@@ -2009,3 +2009,16 @@ def test_remove_worker_worktree_swallows_rmdir_oserror_on_non_empty_parent(tmp_p
     monkeypatch.setattr(Path, "rmdir", lambda self: (_ for _ in ()).throw(OSError("not empty")))
     result = swarm._remove_worker_worktree(root, worktree)
     assert result.returncode == 0
+
+
+def test_swarm_git_oserror_returns_127(tmp_path, monkeypatch):
+    # swarm._git()'s except OSError branch (swarm.py:217) converts a launch
+    # failure into a CompletedProcess with returncode 127 and the error in stderr,
+    # so callers that check returncode always get a valid object instead of an exception.
+    monkeypatch.setattr(
+        "looptight.swarm.subprocess.run",
+        lambda *a, **kw: (_ for _ in ()).throw(OSError("git not found")),
+    )
+    result = swarm._git(tmp_path, "status")
+    assert result.returncode == 127
+    assert "git not found" in result.stderr

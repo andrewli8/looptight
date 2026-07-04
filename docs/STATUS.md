@@ -2616,9 +2616,13 @@ existing CLI session and makes no model or API calls of its own.
 - Added `test_doctor_coordinator_state_active_and_not_git` in `tests/test_cli.py`
   covering both branches of `_doctor_coordinator_state` in `commands.py:492`.
 
-## Next
+- `swarm._git()`'s `except OSError` branch (`swarm.py:217`) is covered:
+  `test_swarm_git_oserror_returns_127` in tests/test_swarm.py monkeypatches
+  `looptight.swarm.subprocess.run` to raise `OSError` and asserts `returncode == 127`
+  and the error message in `stderr` — sibling of the same guard in `integration_queue`,
+  `experience`, `checkpoint`, `tasks`, and `discovery`.
 
-4. Cover `swarm._git()` OSError fallback — sibling of the integration_queue and experience OSError guard tests; the same pattern was added to every other module but swarm.py:217 remains uncovered. Evidence: `src/looptight/swarm.py:217` Acceptance: `test_swarm_git_oserror_returns_127` passes and line 217 is no longer reported missed.
+## Next
 
 ## Rules
 
