@@ -3394,6 +3394,18 @@ def test_verify_json_without_patience_has_no_stall_key(tmp_path, monkeypatch, ca
     assert "stall" not in json.loads(capsys.readouterr().out)
 
 
+def test_stall_signal_returns_none_when_patience_is_zero(tmp_path):
+    # protocol_commands.py:116 — patience <= 0 returns None immediately without
+    # touching the trajectory or importing metacog; guards the early-return guard.
+    import looptight.protocol_commands as pc
+
+    result = pc._stall_signal(tmp_path, "true", object(), patience=0)
+    assert result is None
+
+    result = pc._stall_signal(tmp_path, "true", object(), patience=-1)
+    assert result is None
+
+
 def test_task_source_health_counts_discoverable_signals(tmp_path):
     # Auto-discovered TODOs/skips are looptight's primary task source. A repo with
     # discoverable work is a healthy task source, even without a configured tasks

@@ -2663,17 +2663,14 @@ existing CLI session and makes no model or API calls of its own.
   `test_coordinator_activation_not_git_and_active_branches` in test_cli.py asserts
   `workspace=="not_git"` returns `"not_git"` immediately and a non-None `_git_common_dir`
   returns `"active"` — the two previously-deletable paths are now guarded.
+- `_stall_signal`'s `patience <= 0` early-return (`protocol_commands.py:116`) now has direct
+  unit coverage: `test_stall_signal_returns_none_when_patience_is_zero` in test_cli.py calls
+  the function with `patience=0` and `patience=-1` and asserts `None` is returned in both
+  cases — the guard can no longer be silently removed.
 
 ## Next
 
-1. Cover `_stall_signal`'s `patience <= 0` early-return — `protocol_commands.py:116` returns
-   `None` immediately when patience is zero or negative; only tested via the CLI path in
-   `test_verify_json_without_patience_has_no_stall_key` (which exercises `cmd_verify`,
-   not the function directly). A direct unit test would catch a removed guard. Evidence:
-   `src/looptight/protocol_commands.py:116`
-   Acceptance: `test_stall_signal_returns_none_when_patience_is_zero` passes.
-
-2. Cover `_unquote_git_path` directly — `protocol_commands.py:415` strips surrounding
+1. Cover `_unquote_git_path` directly — `protocol_commands.py:415` strips surrounding
    double-quotes from git-quoted paths; only reached via `_changed_entries`/`_changed_file_list`,
    never called in a focused test. A direct test asserting both quoted and unquoted forms
    guards against breakage in the rename-detection flow. Evidence:
