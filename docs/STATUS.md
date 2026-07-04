@@ -2682,9 +2682,14 @@ existing CLI session and makes no model or API calls of its own.
   asserts `_publish_via_queue` returns "failed" — the incomplete-publication path can
   no longer be silently broken.
 
-## Next
+- `_prepare_workers`'s worktree-add-fail (`swarm.py:345`) and branch-switch-fail
+  (`swarm.py:357-359`) paths are covered: `test_prepare_workers_worktree_add_fail_surfaces_error`
+  and `test_prepare_workers_branch_switch_fail_surfaces_error` in `tests/test_swarm.py`
+  monkeypatch `_git` to return nonzero for `worktree add` and `switch -c` respectively,
+  asserting `run_swarm` surfaces the error and no workers are started. No production
+  code change.
 
-2. `_prepare_workers`'s worktree-add-fail (line 345) and branch-switch-fail (lines 358-359) paths are uncovered: the suite never exercises the guards that stop the swarm when `git worktree add` or `git switch -c` fail. Evidence: src/looptight/swarm.py:345; Acceptance: two new tests in tests/test_swarm.py monkeypatch `_git` so one call returns nonzero, asserting `run_swarm` surfaces the error.
+## Next
 
 ## Rules
 

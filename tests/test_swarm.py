@@ -289,6 +289,50 @@ def test_swarm_fails_worker_when_change_detection_fails(tmp_path, monkeypatch):
     assert result.workers[0].error == "cannot inspect changes"
 
 
+def test_prepare_workers_worktree_add_fail_surfaces_error(tmp_path, monkeypatch):
+    # _prepare_workers line 345: if `git worktree add` fails, run_swarm returns the
+    # error immediately — no workers are started.
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+    real_git = swarm._git
+
+    def selective_git(root, *args):
+        if args[:2] == ("worktree", "add"):
+            return subprocess.CompletedProcess(["git"], 1, "", "no disk space")
+        return real_git(root, *args)
+
+    monkeypatch.setattr("looptight.swarm._git", selective_git)
+    result = run_swarm(
+        tmp_path, agent="fake", config=Config(verify="exit 0", max_iterations=1), workers=1
+    )
+
+    assert result.error is not None
+    assert "no disk space" in result.error
+    assert result.workers == ()
+
+
+def test_prepare_workers_branch_switch_fail_surfaces_error(tmp_path, monkeypatch):
+    # _prepare_workers lines 357-359: if `git switch -c` fails after the worktree is
+    # created, run_swarm removes the worktree and returns the error.
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+    real_git = swarm._git
+
+    def selective_git(root, *args):
+        if args[:2] == ("switch", "-q") and "-c" in args:
+            return subprocess.CompletedProcess(["git"], 1, "", "ref conflict")
+        return real_git(root, *args)
+
+    monkeypatch.setattr("looptight.swarm._git", selective_git)
+    result = run_swarm(
+        tmp_path, agent="fake", config=Config(verify="exit 0", max_iterations=1), workers=1
+    )
+
+    assert result.error is not None
+    assert "ref conflict" in result.error
+    assert result.workers == ()
+
+
 def test_worker_changed_paths_returns_none_on_git_failure(tmp_path, monkeypatch):
     # _worker_changed_paths lines 321-322: when git diff or ls-files fails,
     # return (None, error_message) instead of propagating — the swarm-level
