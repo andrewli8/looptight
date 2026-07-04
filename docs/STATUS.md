@@ -2667,15 +2667,13 @@ existing CLI session and makes no model or API calls of its own.
   unit coverage: `test_stall_signal_returns_none_when_patience_is_zero` in test_cli.py calls
   the function with `patience=0` and `patience=-1` and asserts `None` is returned in both
   cases — the guard can no longer be silently removed.
+- `_unquote_git_path` (`protocol_commands.py:415`) now has direct unit coverage:
+  `test_unquote_git_path_strips_surrounding_quotes_and_passes_unquoted` asserts
+  that double-quoted paths are stripped, unquoted paths pass through, and edge cases
+  (single `"` char, empty string) are handled — the quoted-path branch in the
+  rename-detection flow can no longer be silently broken.
 
 ## Next
-
-1. Cover `_unquote_git_path` directly — `protocol_commands.py:415` strips surrounding
-   double-quotes from git-quoted paths; only reached via `_changed_entries`/`_changed_file_list`,
-   never called in a focused test. A direct test asserting both quoted and unquoted forms
-   guards against breakage in the rename-detection flow. Evidence:
-   `src/looptight/protocol_commands.py:415`
-   Acceptance: `test_unquote_git_path_strips_surrounding_quotes_and_passes_unquoted` passes.
 
 ## Rules
 

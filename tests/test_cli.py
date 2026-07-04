@@ -1911,6 +1911,18 @@ def test_changed_entries_skips_short_git_status_lines(tmp_path, monkeypatch):
     assert entries == [["src/a.py"]]  # the short "??" line is skipped, normal line kept
 
 
+def test_unquote_git_path_strips_surrounding_quotes_and_passes_unquoted():
+    # protocol_commands.py:415 — git quotes paths containing special chars in "...";
+    # the function must strip the outer double-quotes and pass unquoted paths through.
+    from looptight.protocol_commands import _unquote_git_path
+
+    assert _unquote_git_path('"path with spaces.py"') == "path with spaces.py"
+    assert _unquote_git_path('"src/a.py"') == "src/a.py"
+    assert _unquote_git_path("plain.py") == "plain.py"
+    assert _unquote_git_path('"') == '"'  # single quote char — not stripped (len < 2 rule)
+    assert _unquote_git_path("") == ""
+
+
 def test_verify_json_refuses_glob_protected_path_changes(tmp_path, monkeypatch, capsys):
     # A glob pattern in protected_paths must actually protect matching files, not
     # silently fail open (the `*` implies globbing).
