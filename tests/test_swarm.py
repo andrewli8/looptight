@@ -289,6 +289,57 @@ def test_swarm_fails_worker_when_change_detection_fails(tmp_path, monkeypatch):
     assert result.workers[0].error == "cannot inspect changes"
 
 
+def test_worker_changed_paths_returns_none_on_git_failure(tmp_path, monkeypatch):
+    # _worker_changed_paths lines 321-322: when git diff or ls-files fails,
+    # return (None, error_message) instead of propagating — the swarm-level
+    # wrapper that calls this function marks the worker failed with the error.
+    from subprocess import CompletedProcess
+
+    from looptight.swarm import _worker_changed_paths
+
+    monkeypatch.setattr(
+        "looptight.swarm._git",
+        lambda workdir, *args, **kwargs: CompletedProcess(
+            list(args), returncode=128, stdout="", stderr="not a git repository"
+        ),
+    )
+    worker = Worker(
+        number=1,
+        task={"id": "t1", "goal": "fix it"},
+        branch="lt/swarm/w1",
+        worktree=tmp_path,
+        base="abc123",
+    )
+    paths, error = _worker_changed_paths(worker)
+    assert paths is None
+    assert error == "not a git repository"
+
+
+def test_worker_changed_paths_returns_fallback_message_when_stderr_empty(tmp_path, monkeypatch):
+    # When git fails but stderr is empty, the fallback "could not inspect worker changes"
+    # is returned so the caller always gets a non-empty error string.
+    from subprocess import CompletedProcess
+
+    from looptight.swarm import _worker_changed_paths
+
+    monkeypatch.setattr(
+        "looptight.swarm._git",
+        lambda workdir, *args, **kwargs: CompletedProcess(
+            list(args), returncode=1, stdout="", stderr=""
+        ),
+    )
+    worker = Worker(
+        number=1,
+        task={"id": "t1", "goal": "fix it"},
+        branch="lt/swarm/w1",
+        worktree=tmp_path,
+        base="abc123",
+    )
+    paths, error = _worker_changed_paths(worker)
+    assert paths is None
+    assert error == "could not inspect worker changes"
+
+
 class RateLimitedAdapter(EditingAdapter):
     def run_iteration(self, goal, context, workdir, model=None):
         return IterationResult(
