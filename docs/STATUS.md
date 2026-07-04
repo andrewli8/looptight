@@ -2624,6 +2624,14 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Cover `read_goal`'s `path is None` guard — `write_goal` has `test_write_goal_raises_outside_git` but `read_goal` has no equivalent outside-git test; goal.py:52 branch is genuinely uncovered. Evidence: `src/looptight/goal.py:52` Acceptance: `test_read_goal_returns_none_outside_git` passes and `goal.py:52` is no longer reported uncovered.
+
+2. Cover `_string_list`'s blank-item guard — the non-array case is tested by `test_load_config_rejects_non_array_tasks`, but `tasks = [""]` (valid array, blank item) hits the `not item.strip()` branch at config.py:194 which has no test. Evidence: `src/looptight/config.py:194` Acceptance: `test_load_config_rejects_blank_string_in_tasks` passes and config.py:194's `not item.strip()` arm is directly covered.
+
+3. Cover `_parse_relative_reset`'s non-positive-seconds return — all parametrized test cases use positive wait times; `"retry after 0"` returns `None` (limits.py:87) but no test exercises the `seconds > 0` guard's false branch. Evidence: `src/looptight/limits.py:87` Acceptance: `test_parse_relative_reset_returns_none_for_zero_seconds` passes, asserting `classify_limit("retry after 0")` falls back to backoff.
+
+4. Cover coordinator migration when `runs` table is absent — `test_migrate_v3_to_v4_adds_owner_column` tests a v3 DB that has `runs` but no `owner` column; the `table is None` early-exit at coordinator.py:124 has no test (a re-applied or partial migration skips silently). Evidence: `src/looptight/coordinator.py:123` Acceptance: `test_migrate_v3_to_v4_skips_gracefully_when_runs_table_absent` passes, asserting `open` succeeds on a DB missing the `runs` table.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
