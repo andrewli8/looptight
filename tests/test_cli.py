@@ -3696,6 +3696,23 @@ def test_humanize_status_passes_non_string_values_through():
     assert humanize_status(True) is True
 
 
+def test_goal_descriptor_covers_all_branch_combinations():
+    # goal_descriptor (protocol_commands.py:534) has no unit test; its `continuous`
+    # and `max_iterations` suffixes could be removed without any existing test failing.
+    import types
+    from looptight.protocol_commands import goal_descriptor
+
+    def _g(continuous, max_iterations):
+        return types.SimpleNamespace(
+            vision="ship it", iteration=3, continuous=continuous, max_iterations=max_iterations
+        )
+
+    assert goal_descriptor(_g(False, 0)) == "goal: ship it (iteration 3)"
+    assert goal_descriptor(_g(True, 0)) == "goal: ship it (iteration 3, continuous)"
+    assert goal_descriptor(_g(False, 10)) == "goal: ship it (iteration 3, max 10)"
+    assert goal_descriptor(_g(True, 10)) == "goal: ship it (iteration 3, continuous, max 10)"
+
+
 def test_verify_continues_despite_write_verdict_failure(tmp_path, monkeypatch, capsys):
     # protocol_commands.py:57 swallows write_verdict errors so UI bookkeeping never
     # breaks verify. This test confirms a crashing write_verdict doesn't hide a pass.
