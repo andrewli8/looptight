@@ -2675,6 +2675,14 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_worker_changed_paths`'s git-failure path is not directly covered: the existing `test_swarm_fails_worker_when_change_detection_fails` mocks out the entire function, leaving lines 321-322 dead. Evidence: src/looptight/swarm.py:321; Acceptance: `test_worker_changed_paths_returns_none_on_git_failure` in tests/test_swarm.py calls `_worker_changed_paths` with a fake Worker whose `_git` returns nonzero, asserting `(None, <error>)`.
+
+2. `_prepare_workers`'s worktree-add-fail (line 345) and branch-switch-fail (lines 358-359) paths are uncovered: the suite never exercises the guards that stop the swarm when `git worktree add` or `git switch -c` fail. Evidence: src/looptight/swarm.py:345; Acceptance: two new tests in tests/test_swarm.py monkeypatch `_git` so one call returns nonzero, asserting `run_swarm` surfaces the error.
+
+3. `cmd_doctor`'s live-legacy-claim hint (line 452) is uncovered: the branch that prints `looptight migrate` is reached only when `has_live_claim` is True, but no test exercises that path. Evidence: src/looptight/commands.py:452; Acceptance: `test_doctor_shows_migrate_hint_when_live_legacy_claims_exist` in tests/test_cli.py monkeypatches `has_live_claim` to True and asserts the hint appears in human output.
+
+4. `_publish_via_queue`'s "failed" return (swarm.py:483) is uncovered: the path where a publication never reaches `complete` state causes the function to return "failed", but no test reaches that branch. Evidence: src/looptight/swarm.py:483; Acceptance: `test_publish_via_queue_returns_failed_when_publication_stays_incomplete` in tests/test_swarm.py stubs the coordinator so one publication stays in a non-complete state and asserts `_publish_via_queue` returns "failed".
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
