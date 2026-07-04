@@ -3424,6 +3424,15 @@ def test_task_source_health_recognizes_skipped_tests_without_todos(tmp_path):
     assert _task_source_health(tmp_path, ()) == "configured"
 
 
+def test_task_source_health_returns_configured_for_nonempty_config_tasks(tmp_path):
+    # The `if config_tasks: return "configured"` early-exit at protocol_commands.py:823
+    # is never reached by the other three tests (all pass `()`), so a regression
+    # removing it would be undetected.
+    from looptight.protocol_commands import _task_source_health
+
+    assert _task_source_health(tmp_path, ("TODO.md",)) == "configured"
+
+
 def test_propose_source_filter_empty_is_not_clean_tree(tmp_path, monkeypatch, capsys):
     # `propose --source lint` with no lint candidates but real todo candidates must
     # not claim a "clean tree" — that misleads the user into thinking there is no work.
