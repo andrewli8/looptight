@@ -2628,9 +2628,12 @@ existing CLI session and makes no model or API calls of its own.
   `test_write_goal_raises_outside_git`, which tests the same outside-git condition
   for the write path.
 
-## Next
+- `_string_list`'s blank-item guard (`config.py:194`) is covered:
+  `test_load_config_rejects_blank_string_in_tasks` in tests/test_config.py writes
+  `tasks = [""]` and asserts a `ConfigError` naming "tasks" — the `not item.strip()`
+  branch that `test_load_config_rejects_non_array_tasks` (non-array input) does not reach.
 
-2. Cover `_string_list`'s blank-item guard — the non-array case is tested by `test_load_config_rejects_non_array_tasks`, but `tasks = [""]` (valid array, blank item) hits the `not item.strip()` branch at config.py:194 which has no test. Evidence: `src/looptight/config.py:194` Acceptance: `test_load_config_rejects_blank_string_in_tasks` passes and config.py:194's `not item.strip()` arm is directly covered.
+## Next
 
 3. Cover `_parse_relative_reset`'s non-positive-seconds return — all parametrized test cases use positive wait times; `"retry after 0"` returns `None` (limits.py:87) but no test exercises the `seconds > 0` guard's false branch. Evidence: `src/looptight/limits.py:87` Acceptance: `test_parse_relative_reset_returns_none_for_zero_seconds` passes, asserting `classify_limit("retry after 0")` falls back to backoff.
 

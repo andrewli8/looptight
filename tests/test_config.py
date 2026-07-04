@@ -186,6 +186,17 @@ def test_load_config_rejects_non_array_tasks(tmp_path):
     assert "tasks" in str(exc.value)
 
 
+def test_load_config_rejects_blank_string_in_tasks(tmp_path):
+    # `tasks = [""]` is a valid TOML array but contains an empty string;
+    # _string_list's `not item.strip()` guard (config.py:194) must reject it
+    # so the task-file path never receives an empty filename.
+    path = tmp_path / ".looptight.toml"
+    path.write_text('tasks = [""]\n', encoding="utf-8")
+    with pytest.raises(ConfigError) as exc:
+        load_config(path)
+    assert "tasks" in str(exc.value)
+
+
 def test_load_config_rejects_string_max_changed_files(tmp_path):
     # A quoted number (`max_changed_files = "5"`) is a string, not an int; the guard
     # must reject it rather than later comparing a str to an int at enforcement time.
