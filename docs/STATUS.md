@@ -2618,8 +2618,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Cover codex/opencode `run_iteration` success paths — sibling of the failure test at `tests/test_adapters.py:263` which covers only the non-zero exit; success (returncode==0, returns ok=True) is never reached because `available_adapter_names()` skips absent binaries. Evidence: `src/looptight/adapters/codex.py:52`; `src/looptight/adapters/opencode.py:49` Acceptance: `test_codex_and_opencode_surface_success_as_ok` passes and lines 52/49 are no longer reported missed by coverage.
-
 2. Cover `ClaudeAdapter.run_iteration` success path and `_invoke` model branch — the `drive_native_loop` model test monkeypatches `_invoke` entirely so line 42 in the real `_invoke` is never reached; `run_iteration` success (ok=True, line 55) similarly has no direct test. Evidence: `src/looptight/adapters/claude.py:42`; `src/looptight/adapters/claude.py:55` Acceptance: `test_claude_run_iteration_returns_ok_on_zero_exit` and `test_claude_invoke_appends_model_when_set` both pass and lines 42 and 55 are no longer missed.
 
 3. Cover `cmd_status --watch` entry via `cmd_status` — the three existing watch tests call `_watch_status` directly and never reach the branch at protocol_commands.py:549 inside `cmd_status`. Evidence: `src/looptight/protocol_commands.py:549` Acceptance: `test_cmd_status_watch_delegates_to_watch_status` passes and lines 549-550 are no longer reported missed.

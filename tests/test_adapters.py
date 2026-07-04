@@ -260,6 +260,23 @@ def test_stop_active_processes_terminates_registered_processes():
             proc.kill()
 
 
+def test_codex_and_opencode_surface_success_as_ok(monkeypatch, tmp_path):
+    # The parametrized success test runs over available_adapter_names(), which skips
+    # codex/opencode when not on PATH, leaving their zero-exit ok=True path uncovered.
+    from looptight.adapters.codex import CodexAdapter
+    from looptight.adapters.opencode import OpencodeAdapter
+
+    def fake_run_command(cmd, workdir, *, timeout_s=None):
+        return subprocess.CompletedProcess(cmd, 0, "agent finished successfully", "")
+
+    for name, adapter in (("codex", CodexAdapter()), ("opencode", OpencodeAdapter())):
+        monkeypatch.setattr(f"looptight.adapters.{name}.run_command", fake_run_command)
+        result = adapter.run_iteration("fix it", "", tmp_path)
+        assert result.ok is True
+        assert result.error is None
+        assert "agent finished" in result.transcript
+
+
 def test_codex_and_opencode_surface_nonzero_exit_as_failure(monkeypatch, tmp_path):
     # The parametrized failure test runs over available_adapter_names(), which skips
     # codex/opencode when not on PATH, leaving their non-zero-exit failure path uncovered.
