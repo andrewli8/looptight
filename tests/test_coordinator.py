@@ -531,6 +531,35 @@ def test_migration_v3_to_v4_adds_owner_column(tmp_path):
     coord.close()
 
 
+def test_migrate_v3_to_v4_skips_gracefully_when_runs_table_absent(tmp_path):
+    # A partial or re-applied migration may present a v3 DB where the `runs` table was
+    # never created. _migrate_3_to_4 guards with `if table is not None` (coordinator.py:124)
+    # and must skip the ALTER silently, still bumping to v4, so Coordinator.open succeeds.
+    repo = _repo(tmp_path / "repo")
+    path = coordinator_path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    raw = sqlite3.connect(path)
+    raw.executescript(
+        """CREATE TABLE tasks (
+            id INTEGER PRIMARY KEY, fingerprint TEXT NOT NULL UNIQUE, payload TEXT NOT NULL,
+            state TEXT NOT NULL CHECK (state IN ('queued','leased','complete','failed')),
+            attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0)
+        );
+        CREATE TABLE experience (
+            id INTEGER PRIMARY KEY, idea_id TEXT NOT NULL, outcome TEXT NOT NULL,
+            recorded_at REAL NOT NULL, reason TEXT NOT NULL DEFAULT ''
+        );
+        PRAGMA user_version = 3;"""
+        # No `runs` table — simulates the absent-table branch in _migrate_3_to_4.
+    )
+    raw.close()
+
+    coord = Coordinator.open(repo)
+    assert coord is not None, "open should succeed even when `runs` table is absent"
+    assert coord.connection.execute("PRAGMA user_version").fetchone()[0] == 4
+    coord.close()
+
+
 def test_open_rejects_a_newer_unsupported_schema_version(tmp_path):
     # A DB written by a *newer* looptight (user_version beyond SCHEMA_VERSION, e.g. after
     # a downgrade) must fail to open with a clean CoordinatorUnavailable carrying an upgrade

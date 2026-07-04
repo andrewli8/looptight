@@ -2637,10 +2637,12 @@ existing CLI session and makes no model or API calls of its own.
   calls `classify_limit("usage limit reached, retry after 0 seconds")` and asserts
   `signal.retry_after_s is None` — the `seconds > 0` guard's false branch, previously
   exercised only by positive wait times in all parametrized cases.
+- `_migrate_3_to_4`'s `table is None` early-exit (`coordinator.py:124`) is covered:
+  `test_migrate_v3_to_v4_skips_gracefully_when_runs_table_absent` in test_coordinator.py
+  opens a v3 DB without a `runs` table and asserts `Coordinator.open` succeeds and the
+  DB is at version 4 — the silent-skip path a re-applied or partial migration hits.
 
 ## Next
-
-4. Cover coordinator migration when `runs` table is absent — `test_migrate_v3_to_v4_adds_owner_column` tests a v3 DB that has `runs` but no `owner` column; the `table is None` early-exit at coordinator.py:124 has no test (a re-applied or partial migration skips silently). Evidence: `src/looptight/coordinator.py:123` Acceptance: `test_migrate_v3_to_v4_skips_gracefully_when_runs_table_absent` passes, asserting `open` succeeds on a DB missing the `runs` table.
 
 ## Rules
 
