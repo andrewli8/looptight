@@ -2644,6 +2644,36 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Cover `_task_source_health`'s non-empty `config_tasks` short-circuit — all three
+   existing direct tests call it with an empty tuple `()`; the `if config_tasks: return
+   "configured"` early-exit at protocol_commands.py:823 is never reached directly, so a
+   regression removing it would not be caught. Evidence: `src/looptight/protocol_commands.py:823`
+   Acceptance: `test_task_source_health_returns_configured_for_nonempty_config_tasks` passes,
+   calling `_task_source_health(tmp_path, ("TODO.md",))` on an empty directory and asserting
+   `"configured"`.
+
+2. Cover `goal_descriptor`'s conditional branches — the function (protocol_commands.py:534)
+   has no unit test at all; its `continuous` suffix and `max_iterations` suffix can be
+   removed without any direct test failing. Evidence: `src/looptight/protocol_commands.py:534`
+   Acceptance: `test_goal_descriptor_covers_all_branch_combinations` passes, asserting that
+   `continuous=True` adds `, continuous`, `max_iterations=10` adds `, max 10`, and neither
+   flag leaves a clean `(iteration N)` label.
+
+3. Cover `humanized_checks`'s join-and-humanize contract — protocol_commands.py:529 has no
+   direct unit test; only `humanize_status` alone is tested, but their composition (dot-
+   separator join, `not_git` → `"not a git repo"` rewrite, passthrough for other tokens)
+   has no assertion that would catch a regression. Evidence: `src/looptight/protocol_commands.py:529`
+   Acceptance: `test_humanized_checks_joins_tokens_and_rewrites_not_git` passes, asserting
+   the ` · `-joined output and that `not_git` is humanized while `"configured"` passes through.
+
+4. Cover `_readiness_remediation`'s four higher-priority branches — only the `agent=missing`
+   branch has a direct unit test (`test_readiness_remediation_for_missing_agent`); the
+   `verify=missing`, `git=not_git`, `git=dirty`, and `task_sources=missing` returns lack
+   one, so any of those guard-and-return lines could be deleted without the direct test
+   suite catching it. Evidence: `src/looptight/protocol_commands.py:836`
+   Acceptance: `test_readiness_remediation_priority_branches` passes, asserting each of
+   the four returns matches its documented string.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
