@@ -2073,3 +2073,55 @@ def test_swarm_git_oserror_returns_127(tmp_path, monkeypatch):
     result = swarm._git(tmp_path, "status")
     assert result.returncode == 127
     assert "git not found" in result.stderr
+
+
+def test_publish_via_queue_returns_failed_when_publication_stays_incomplete(tmp_path, monkeypatch):
+    # _publish_via_queue line 483: when Publisher.reconcile() runs but at least one
+    # enqueued publication never reaches "complete" state, the function returns "failed".
+    from dataclasses import dataclass
+    from looptight.swarm import _publish_via_queue
+
+    _repo(tmp_path)
+
+    @dataclass
+    class _FakePublication:
+        state: str
+
+    class _FakeCoordinator:
+        def enqueue_publication(self, integration_id, remote, remote_ref):
+            return "pub-id-1"
+
+        def publication(self, pub_id):
+            return _FakePublication(state="queued")  # never "complete"
+
+        def close(self):
+            pass
+
+    class _FakeCoordinatorClass:
+        @staticmethod
+        def open(root, **kw):
+            return _FakeCoordinator()
+
+    class _NoOpPublisher:
+        def __init__(self, coordinator, lock_timeout_s=None):
+            pass
+
+        def reconcile(self, root):
+            pass  # publications stay incomplete
+
+    monkeypatch.setattr("looptight.swarm.Coordinator", _FakeCoordinatorClass)
+    monkeypatch.setattr("looptight.swarm.Publisher", _NoOpPublisher)
+
+    worker = Worker(
+        number=1,
+        task={"id": "t1", "goal": "fix it"},
+        branch="lt/swarm/w1",
+        worktree=tmp_path,
+        base="HEAD",
+        status="merged",
+        run_id="run-1",
+    )
+    worker.integration_id = "integ-id-1"
+
+    result = _publish_via_queue(tmp_path, [worker])
+    assert result == "failed"
