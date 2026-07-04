@@ -80,6 +80,12 @@ def test_write_goal_raises_outside_git(tmp_path):
         write_goal(tmp_path, Goal(vision="x"))
 
 
+def test_read_goal_returns_none_outside_git(tmp_path):
+    # goal_path returns None outside a Git repo (goal.py:52); read_goal must
+    # return None via the `if path is None` guard, not raise AttributeError.
+    assert read_goal(tmp_path) is None
+
+
 def test_read_goal_returns_none_on_non_utf8_file(tmp_path):
     # An unreadable (non-UTF-8) goal file must yield None, not raise: the
     # contract promises None when the state is unreadable.

@@ -2622,9 +2622,13 @@ existing CLI session and makes no model or API calls of its own.
   and the error message in `stderr` — sibling of the same guard in `integration_queue`,
   `experience`, `checkpoint`, `tasks`, and `discovery`.
 
-## Next
+- `read_goal`'s `path is None` guard (`goal.py:52`) is covered:
+  `test_read_goal_returns_none_outside_git` in tests/test_goal.py calls `read_goal`
+  on a non-git `tmp_path` and asserts it returns `None` — sibling of
+  `test_write_goal_raises_outside_git`, which tests the same outside-git condition
+  for the write path.
 
-1. Cover `read_goal`'s `path is None` guard — `write_goal` has `test_write_goal_raises_outside_git` but `read_goal` has no equivalent outside-git test; goal.py:52 branch is genuinely uncovered. Evidence: `src/looptight/goal.py:52` Acceptance: `test_read_goal_returns_none_outside_git` passes and `goal.py:52` is no longer reported uncovered.
+## Next
 
 2. Cover `_string_list`'s blank-item guard — the non-array case is tested by `test_load_config_rejects_non_array_tasks`, but `tasks = [""]` (valid array, blank item) hits the `not item.strip()` branch at config.py:194 which has no test. Evidence: `src/looptight/config.py:194` Acceptance: `test_load_config_rejects_blank_string_in_tasks` passes and config.py:194's `not item.strip()` arm is directly covered.
 
