@@ -3773,6 +3773,17 @@ def test_count_non_int_value_returns_zero():
     assert _count(None, "k") == 0
 
 
+def test_concurrency_remediation_priority_branches():
+    # protocol_commands.py:948 — _concurrency_remediation has four guard-and-return
+    # branches; all lack a direct test so any can be deleted without failing the suite.
+    from looptight.protocol_commands import _concurrency_remediation
+
+    assert _concurrency_remediation("not_git", False, "safe") == "run inside a Git repository"
+    assert _concurrency_remediation("clean", True, "unsafe") == "wait for legacy claims to expire or clear them, then run `looptight migrate`"
+    assert _concurrency_remediation("clean", False, "degraded") == "wait for active coordinator work to drain"
+    assert _concurrency_remediation("clean", False, "safe") == "none"
+
+
 def test_ensure_pycache_ignored_writes_gitignore_when_absent(tmp_path):
     # commands.py:66 — when no .gitignore exists, _ensure_pycache_ignored must write
     # one containing __pycache__/ so a Python verify run doesn't dirty the worktree.

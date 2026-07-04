@@ -2656,15 +2656,17 @@ existing CLI session and makes no model or API calls of its own.
   `git=dirty`, `task_sources=missing`) are directly covered by
   `test_readiness_remediation_priority_branches` in test_cli.py — any of those four guard lines
   can no longer be deleted silently.
+- `_concurrency_remediation`'s four branches (`not_git`, `legacy_claims`, `degraded`, `"none"`
+  fallback) are directly covered by `test_concurrency_remediation_priority_branches` in
+  test_cli.py — all four guard-and-return lines can no longer be deleted silently.
 
 ## Next
 
-1. Cover `_concurrency_remediation`'s four branches — `not_git`, `legacy_claims`, `degraded`,
-   and the `"none"` fallback all lack a direct unit test; any branch can be deleted without
-   failing. The function is pure (no subprocess, no git, no coordinator). Evidence:
-   `src/looptight/protocol_commands.py:948`
-   Acceptance: `test_concurrency_remediation_priority_branches` passes, asserting each
-   of the four returns matches its documented string.
+1. Cover `_coordinator_activation`'s `not_git` and `active` branches — only the `unknown`
+   case (when `_git_common_dir` fails) has a direct test (`test_coordinator_activation_returns_unknown_when_git_common_dir_fails`);
+   the `not_git` → `"not_git"` and `active` → `"active"` returns are untested directly and
+   can be deleted without failing. Evidence: `src/looptight/protocol_commands.py:798`
+   Acceptance: `test_coordinator_activation_not_git_and_active_branches` passes.
 
 2. Cover `_coordinator_activation`'s `not_git` and `active` branches — only the `unknown`
    case (when `_git_common_dir` fails) has a direct test (`test_coordinator_activation_returns_unknown_when_git_common_dir_fails`);
