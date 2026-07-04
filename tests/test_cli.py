@@ -3520,6 +3520,19 @@ def test_coordinator_activation_returns_unknown_when_git_common_dir_fails(tmp_pa
     assert result == "unknown"
 
 
+def test_coordinator_activation_not_git_and_active_branches(tmp_path, monkeypatch):
+    import looptight.protocol_commands as pc
+
+    # not_git branch: workspace=="not_git" returns immediately without calling git
+    result = pc._coordinator_activation(tmp_path, "not_git")
+    assert result == "not_git"
+
+    # active branch: workspace is not "not_git" and _git_common_dir returns a path
+    monkeypatch.setattr(pc, "_git_common_dir", lambda _path: tmp_path / ".git")
+    result = pc._coordinator_activation(tmp_path, "clean")
+    assert result == "active"
+
+
 def test_cmd_status_git_sets_terminal_prompt_env(tmp_path, monkeypatch, capsys):
     # cmd_status's `git status --porcelain` must pass GIT_TERMINAL_PROMPT=0 so
     # `looptight status` cannot block on a credential prompt in a headless session.

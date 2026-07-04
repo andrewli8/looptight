@@ -2659,29 +2659,21 @@ existing CLI session and makes no model or API calls of its own.
 - `_concurrency_remediation`'s four branches (`not_git`, `legacy_claims`, `degraded`, `"none"`
   fallback) are directly covered by `test_concurrency_remediation_priority_branches` in
   test_cli.py — all four guard-and-return lines can no longer be deleted silently.
+- `_coordinator_activation`'s `not_git` and `active` branches now have direct unit coverage:
+  `test_coordinator_activation_not_git_and_active_branches` in test_cli.py asserts
+  `workspace=="not_git"` returns `"not_git"` immediately and a non-None `_git_common_dir`
+  returns `"active"` — the two previously-deletable paths are now guarded.
 
 ## Next
 
-1. Cover `_coordinator_activation`'s `not_git` and `active` branches — only the `unknown`
-   case (when `_git_common_dir` fails) has a direct test (`test_coordinator_activation_returns_unknown_when_git_common_dir_fails`);
-   the `not_git` → `"not_git"` and `active` → `"active"` returns are untested directly and
-   can be deleted without failing. Evidence: `src/looptight/protocol_commands.py:798`
-   Acceptance: `test_coordinator_activation_not_git_and_active_branches` passes.
-
-2. Cover `_coordinator_activation`'s `not_git` and `active` branches — only the `unknown`
-   case (when `_git_common_dir` fails) has a direct test (`test_coordinator_activation_returns_unknown_when_git_common_dir_fails`);
-   the `not_git` → `"not_git"` and `active` → `"active"` returns are untested directly and
-   can be deleted without failing. Evidence: `src/looptight/protocol_commands.py:798`
-   Acceptance: `test_coordinator_activation_not_git_and_active_branches` passes.
-
-3. Cover `_stall_signal`'s `patience <= 0` early-return — `protocol_commands.py:116` returns
+1. Cover `_stall_signal`'s `patience <= 0` early-return — `protocol_commands.py:116` returns
    `None` immediately when patience is zero or negative; only tested via the CLI path in
    `test_verify_json_without_patience_has_no_stall_key` (which exercises `cmd_verify`,
    not the function directly). A direct unit test would catch a removed guard. Evidence:
    `src/looptight/protocol_commands.py:116`
    Acceptance: `test_stall_signal_returns_none_when_patience_is_zero` passes.
 
-4. Cover `_unquote_git_path` directly — `protocol_commands.py:415` strips surrounding
+2. Cover `_unquote_git_path` directly — `protocol_commands.py:415` strips surrounding
    double-quotes from git-quoted paths; only reached via `_changed_entries`/`_changed_file_list`,
    never called in a focused test. A direct test asserting both quoted and unquoted forms
    guards against breakage in the rename-detection flow. Evidence:
