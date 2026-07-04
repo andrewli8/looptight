@@ -2618,8 +2618,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-2. Cover `ClaudeAdapter.run_iteration` success path and `_invoke` model branch — the `drive_native_loop` model test monkeypatches `_invoke` entirely so line 42 in the real `_invoke` is never reached; `run_iteration` success (ok=True, line 55) similarly has no direct test. Evidence: `src/looptight/adapters/claude.py:42`; `src/looptight/adapters/claude.py:55` Acceptance: `test_claude_run_iteration_returns_ok_on_zero_exit` and `test_claude_invoke_appends_model_when_set` both pass and lines 42 and 55 are no longer missed.
-
 3. Cover `cmd_status --watch` entry via `cmd_status` — the three existing watch tests call `_watch_status` directly and never reach the branch at protocol_commands.py:549 inside `cmd_status`. Evidence: `src/looptight/protocol_commands.py:549` Acceptance: `test_cmd_status_watch_delegates_to_watch_status` passes and lines 549-550 are no longer reported missed.
 
 4. Cover `swarm._git()` OSError fallback — sibling of the integration_queue and experience OSError guard tests; the same pattern was added to every other module but swarm.py:217 remains uncovered. Evidence: `src/looptight/swarm.py:217` Acceptance: `test_swarm_git_oserror_returns_127` passes and line 217 is no longer reported missed.

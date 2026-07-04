@@ -142,6 +142,36 @@ def test_claude_parse_matches_recorded_cli_output():
     assert "paginate()" in _parse_result(fixture.read_text())
 
 
+def test_claude_run_iteration_returns_ok_on_zero_exit(monkeypatch, tmp_path):
+    # run_iteration's ok=True branch (claude.py:55) is never reached by the parametrized
+    # tests because those skip claude when not on PATH; drive it directly via _invoke mock.
+    def fake_invoke(self, prompt, workdir, model):
+        return subprocess.CompletedProcess(
+            args=[], returncode=0, stdout='{"result": "all good"}', stderr=""
+        )
+
+    monkeypatch.setattr(ClaudeAdapter, "_invoke", fake_invoke)
+    result = ClaudeAdapter().run_iteration("fix the bug", "", tmp_path)
+    assert result.ok is True
+    assert result.error is None
+    assert result.transcript == "all good"
+
+
+def test_claude_invoke_appends_model_when_set(monkeypatch, tmp_path):
+    # The model branch in _invoke (claude.py:42) is never reached because the drive_native_loop
+    # model test monkeypatches _invoke itself, bypassing the real implementation.
+    captured = {}
+
+    def fake_run_command(cmd, workdir, *, timeout_s=None):
+        captured["cmd"] = cmd
+        return subprocess.CompletedProcess(cmd, 0, '{"result": "ok"}', "")
+
+    monkeypatch.setattr("looptight.adapters.claude.run_command", fake_run_command)
+    ClaudeAdapter()._invoke("do the thing", tmp_path, "opus")
+    assert "--model" in captured["cmd"]
+    assert "opus" in captured["cmd"]
+
+
 def test_claude_builds_goal_prompt_for_native_loop(monkeypatch):
     # drive_native_loop should phrase the goal as a /goal condition over verify.
     captured = {}
