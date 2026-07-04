@@ -422,6 +422,33 @@ def test_run_done_check_oserror_returns_false(tmp_path, monkeypatch):
     assert run_done_check(tmp_path, "true") is False
 
 
+def test_run_done_check_passes_timeout_kwarg(tmp_path, monkeypatch):
+    _repo(tmp_path)
+    captured = {}
+
+    import subprocess as _sp
+
+    def fake_run(*args, **kwargs):
+        captured.update(kwargs)
+        return _sp.CompletedProcess(args, 0)
+
+    monkeypatch.setattr("looptight.goal.subprocess.run", fake_run)
+    run_done_check(tmp_path, "true")
+    assert "timeout" in captured
+
+
+def test_run_done_check_timeout_returns_false(tmp_path, monkeypatch):
+    _repo(tmp_path)
+
+    import subprocess as _sp
+
+    monkeypatch.setattr(
+        "looptight.goal.subprocess.run",
+        lambda *a, **kw: (_ for _ in ()).throw(_sp.TimeoutExpired("cmd", 60.0)),
+    )
+    assert run_done_check(tmp_path, "true") is False
+
+
 def test_goal_driver_recipe_includes_loop_hint_for_claude(tmp_path, monkeypatch):
     from looptight.protocol_commands import _goal_driver_recipe
 

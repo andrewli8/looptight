@@ -2688,16 +2688,19 @@ existing CLI session and makes no model or API calls of its own.
   monkeypatch `_git` to return nonzero for `worktree add` and `switch -c` respectively,
   asserting `run_swarm` surfaces the error and no workers are started. No production
   code change.
+- `run_done_check` now has a `timeout` parameter (default 60 s) and catches
+  `subprocess.TimeoutExpired`, returning `False`, so a hanging done-check predicate
+  can never block the goal loop or daemon indefinitely; covered by
+  `test_run_done_check_passes_timeout_kwarg` and `test_run_done_check_timeout_returns_false`
+  in tests/test_goal.py.
 
 ## Next
 
-1. `run_done_check` has no timeout: a hanging done-check (slow git fetch, network call, credential prompt) blocks the goal loop forever, including inside `looptight daemon`. `run_verify` already has an explicit `timeout_s` parameter and a `TimeoutExpired` handler; done-check needs the same guard. Evidence: `src/looptight/goal.py:97`; Acceptance: `subprocess.run` in `run_done_check` passes a `timeout` argument, a `TimeoutExpired` is caught and returns `False`, and a test in `tests/test_goal.py` asserts both the timeout kwarg and the fallback return value.
+1. `subprocess.Popen` in `run_verify` passes no `env=`, so a verify command that internally calls git (e.g. `git diff --check && pytest`) can hang on a credential prompt in headless/daemon mode — a 600s stall per iteration. Every other git-touching subprocess in the codebase (`checkpoint.py`, `experience.py`, `integration_queue.py`, `swarm.py`, `tasks.py`, `discovery.py`) passes `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}`. Evidence: `src/looptight/verify.py:76`; Acceptance: `Popen` in `run_verify` passes `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}`, and a test in `tests/test_verify.py` patches `Popen` and asserts the env key is present.
 
-2. `subprocess.Popen` in `run_verify` passes no `env=`, so a verify command that internally calls git (e.g. `git diff --check && pytest`) can hang on a credential prompt in headless/daemon mode — a 600s stall per iteration. Every other git-touching subprocess in the codebase (`checkpoint.py`, `experience.py`, `integration_queue.py`, `swarm.py`, `tasks.py`, `discovery.py`) passes `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}`. Evidence: `src/looptight/verify.py:76`; Acceptance: `Popen` in `run_verify` passes `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}`, and a test in `tests/test_verify.py` patches `Popen` and asserts the env key is present.
+2. `_stall_signal`'s `result.passed or not entries` guard at line 132 has no direct test: a passing verify result should return `None` immediately, but only the `patience <= 0` early-return (line 116) has a direct test. A regression deleting line 132 would leave no test failure. Evidence: `src/looptight/protocol_commands.py:132`; Acceptance: a test in `tests/test_cli.py` calls `_stall_signal` with a mock `result` whose `.passed` is `True`, asserts `None` is returned, and a second call with `result.passed=False` and no trajectory entries also returns `None`.
 
-3. `_stall_signal`'s `result.passed or not entries` guard at line 132 has no direct test: a passing verify result should return `None` immediately, but only the `patience <= 0` early-return (line 116) has a direct test. A regression deleting line 132 would leave no test failure. Evidence: `src/looptight/protocol_commands.py:132`; Acceptance: a test in `tests/test_cli.py` calls `_stall_signal` with a mock `result` whose `.passed` is `True`, asserts `None` is returned, and a second call with `result.passed=False` and no trajectory entries also returns `None`.
-
-4. `next --json` ConfigError JSON envelope is not tested: the generic handler in `cli.py:450` emits `{"error": "config_error"}` for any command that lets `ConfigError` propagate, but `tests/test_cli.py:1718` only covers `status` and `doctor`. A refactor that moves ConfigError handling into `cmd_next` could silently break the contract. Evidence: `src/looptight/cli.py:450`; `tests/test_cli.py:1718`; Acceptance: the existing loop at line 1718 includes `"next"`, a git repo is initialized in the fixture so `cmd_next` reaches `load_config`, and the test asserts exit 2 with `{"error": "config_error"}` in stdout.
+3. `next --json` ConfigError JSON envelope is not tested: the generic handler in `cli.py:450` emits `{"error": "config_error"}` for any command that lets `ConfigError` propagate, but `tests/test_cli.py:1718` only covers `status` and `doctor`. A refactor that moves ConfigError handling into `cmd_next` could silently break the contract. Evidence: `src/looptight/cli.py:450`; `tests/test_cli.py:1718`; Acceptance: the existing loop at line 1718 includes `"next"`, a git repo is initialized in the fixture so `cmd_next` reaches `load_config`, and the test asserts exit 2 with `{"error": "config_error"}` in stdout.
 
 ## Rules
 

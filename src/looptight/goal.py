@@ -85,7 +85,7 @@ def clear_goal(workdir: Path) -> bool:
     return True
 
 
-def run_done_check(workdir: Path, command: str) -> bool:
+def run_done_check(workdir: Path, command: str, *, timeout: float = 60.0) -> bool:
     """Run a goal's --done command and return True on exit 0. Makes no model call.
 
     The command is a predicate: only its exit code matters, so its stdout/stderr are
@@ -95,9 +95,10 @@ def run_done_check(workdir: Path, command: str) -> bool:
     """
     try:
         result = subprocess.run(
-            command, shell=True, cwd=str(workdir), check=False, capture_output=True
+            command, shell=True, cwd=str(workdir), check=False, capture_output=True,
+            timeout=timeout,
         )
-    except OSError:
+    except (OSError, subprocess.TimeoutExpired):
         return False
     return result.returncode == 0
 
