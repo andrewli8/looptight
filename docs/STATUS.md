@@ -2632,10 +2632,13 @@ existing CLI session and makes no model or API calls of its own.
   `test_load_config_rejects_blank_string_in_tasks` in tests/test_config.py writes
   `tasks = [""]` and asserts a `ConfigError` naming "tasks" — the `not item.strip()`
   branch that `test_load_config_rejects_non_array_tasks` (non-array input) does not reach.
+- `_parse_relative_reset`'s non-positive-seconds return (`limits.py:87`) is covered:
+  `test_parse_relative_reset_returns_none_for_zero_seconds` in tests/test_limits.py
+  calls `classify_limit("usage limit reached, retry after 0 seconds")` and asserts
+  `signal.retry_after_s is None` — the `seconds > 0` guard's false branch, previously
+  exercised only by positive wait times in all parametrized cases.
 
 ## Next
-
-3. Cover `_parse_relative_reset`'s non-positive-seconds return — all parametrized test cases use positive wait times; `"retry after 0"` returns `None` (limits.py:87) but no test exercises the `seconds > 0` guard's false branch. Evidence: `src/looptight/limits.py:87` Acceptance: `test_parse_relative_reset_returns_none_for_zero_seconds` passes, asserting `classify_limit("retry after 0")` falls back to backoff.
 
 4. Cover coordinator migration when `runs` table is absent — `test_migrate_v3_to_v4_adds_owner_column` tests a v3 DB that has `runs` but no `owner` column; the `table is None` early-exit at coordinator.py:124 has no test (a re-applied or partial migration skips silently). Evidence: `src/looptight/coordinator.py:123` Acceptance: `test_migrate_v3_to_v4_skips_gracefully_when_runs_table_absent` passes, asserting `open` succeeds on a DB missing the `runs` table.
 

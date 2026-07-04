@@ -166,3 +166,11 @@ def test_classify_limit_uses_default_1_second_for_unrecognized_unit():
     signal = classify_limit("rate limit; retry after 5 fortnights")
     assert signal is not None
     assert signal.retry_after_s == 5.0
+
+
+def test_parse_relative_reset_returns_none_for_zero_seconds():
+    # "retry after 0" parses to seconds=0.0; the `seconds > 0` guard returns None,
+    # so classify_limit falls back to a LimitSignal with no retry_after_s.
+    signal = classify_limit("usage limit reached, retry after 0 seconds")
+    assert signal is not None
+    assert signal.retry_after_s is None
