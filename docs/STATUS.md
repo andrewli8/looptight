@@ -2618,6 +2618,22 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Cover codex/opencode `run_iteration` success paths: `test_codex_and_opencode_surface_success_as_ok` in `tests/test_adapters.py` monkeypatches `run_command` to return exit 0 for both adapters and asserts `result.ok is True` and `result.returncode == 0` — the sibling of the failure-path test added at line 263, left out because `available_adapter_names()` skips absent binaries.
+Evidence: `src/looptight/adapters/codex.py:52`; `src/looptight/adapters/opencode.py:49`
+Acceptance: `test_codex_and_opencode_surface_success_as_ok` is a new passing test asserting `result.ok is True` for each adapter; coverage report no longer shows lines 52/49 as missed.
+
+2. Cover `ClaudeAdapter.run_iteration` success path and `_invoke` model branch: two new tests in `tests/test_adapters.py` — `test_claude_run_iteration_returns_ok_on_zero_exit` monkeypatches `_invoke` to return exit 0 and asserts `result.ok is True`; `test_claude_invoke_appends_model_when_set` drives `_invoke` directly and asserts `--model opus` in the command — sibling of the existing `drive_native_loop` model test which monkeypatches `_invoke` and never reaches line 42.
+Evidence: `src/looptight/adapters/claude.py:42`; `src/looptight/adapters/claude.py:55`
+Acceptance: Both new tests pass; lines 42 and 55 are no longer reported missed.
+
+3. Cover `cmd_status --watch` entry in `cmd_status`: `test_cmd_status_watch_delegates_to_watch_status` in `tests/test_cli.py` monkeypatches `_watch_status` to a no-op and runs `cmd_status(args_with_watch_true, console)`, asserting `_watch_status` was called exactly once and return code is 0 — the three watch-status tests call `_watch_status` directly and never reach lines 549-550 of `cmd_status`.
+Evidence: `src/looptight/protocol_commands.py:549`
+Acceptance: The new test passes; lines 549-550 are no longer reported missed.
+
+4. Cover `swarm._git()` OSError fallback: `test_swarm_git_oserror_returns_127` in `tests/test_swarm.py` monkeypatches `subprocess.run` to raise `OSError("no git")` and calls `_git(root, "status")`, asserting the result has `returncode == 127` and `"no git"` in `stderr` — sibling of the `integration_queue` and `experience` OSError tests, closing the last module in the uniform non-interactive-git pattern.
+Evidence: `src/looptight/swarm.py:217`
+Acceptance: The new test passes; line 217 is no longer reported missed.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
