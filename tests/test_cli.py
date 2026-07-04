@@ -3696,6 +3696,16 @@ def test_humanize_status_passes_non_string_values_through():
     assert humanize_status(True) is True
 
 
+def test_humanized_checks_joins_tokens_and_rewrites_not_git():
+    # humanized_checks (protocol_commands.py:529) has no direct unit test;
+    # only humanize_status alone is covered, leaving the ` · `-join and the
+    # not_git rewrite unguarded against regression.
+    from looptight.protocol_commands import humanized_checks
+
+    result = humanized_checks({"git": "not_git", "verify": "configured"})
+    assert result == "git not a git repo · verify configured"
+
+
 def test_goal_descriptor_covers_all_branch_combinations():
     # goal_descriptor (protocol_commands.py:534) has no unit test; its `continuous`
     # and `max_iterations` suffixes could be removed without any existing test failing.

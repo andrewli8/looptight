@@ -2649,17 +2649,13 @@ existing CLI session and makes no model or API calls of its own.
   `test_goal_descriptor_covers_all_branch_combinations` asserts all four combinations of
   `continuous`/`max_iterations` — neither flag (clean `(iteration N)` label), `continuous`
   alone, `max_iterations` alone, and both — so the suffixes cannot be silently removed.
+- `humanized_checks`'s join-and-humanize contract (`protocol_commands.py:529`) is covered:
+  `test_humanized_checks_joins_tokens_and_rewrites_not_git` asserts the ` · `-joined output
+  and that `not_git` is humanized to "not a git repo" while `"configured"` passes through.
 
 ## Next
 
-1. Cover `humanized_checks`'s join-and-humanize contract — protocol_commands.py:529 has no
-   direct unit test; only `humanize_status` alone is tested, but their composition (dot-
-   separator join, `not_git` → `"not a git repo"` rewrite, passthrough for other tokens)
-   has no assertion that would catch a regression. Evidence: `src/looptight/protocol_commands.py:529`
-   Acceptance: `test_humanized_checks_joins_tokens_and_rewrites_not_git` passes, asserting
-   the ` · `-joined output and that `not_git` is humanized while `"configured"` passes through.
-
-2. Cover `_readiness_remediation`'s four higher-priority branches — only the `agent=missing`
+1. Cover `_readiness_remediation`'s four higher-priority branches — only the `agent=missing`
    branch has a direct unit test (`test_readiness_remediation_for_missing_agent`); the
    `verify=missing`, `git=not_git`, `git=dirty`, and `task_sources=missing` returns lack
    one, so any of those guard-and-return lines could be deleted without the direct test
