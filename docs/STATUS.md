@@ -2652,16 +2652,12 @@ existing CLI session and makes no model or API calls of its own.
 - `humanized_checks`'s join-and-humanize contract (`protocol_commands.py:529`) is covered:
   `test_humanized_checks_joins_tokens_and_rewrites_not_git` asserts the ` · `-joined output
   and that `not_git` is humanized to "not a git repo" while `"configured"` passes through.
+- `_readiness_remediation`'s four higher-priority branches (`verify=missing`, `git=not_git`,
+  `git=dirty`, `task_sources=missing`) are directly covered by
+  `test_readiness_remediation_priority_branches` in test_cli.py — any of those four guard lines
+  can no longer be deleted silently.
 
 ## Next
-
-1. Cover `_readiness_remediation`'s four higher-priority branches — only the `agent=missing`
-   branch has a direct unit test (`test_readiness_remediation_for_missing_agent`); the
-   `verify=missing`, `git=not_git`, `git=dirty`, and `task_sources=missing` returns lack
-   one, so any of those guard-and-return lines could be deleted without the direct test
-   suite catching it. Evidence: `src/looptight/protocol_commands.py:836`
-   Acceptance: `test_readiness_remediation_priority_branches` passes, asserting each of
-   the four returns matches its documented string.
 
 ## Rules
 

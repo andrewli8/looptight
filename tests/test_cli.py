@@ -1206,6 +1206,17 @@ def test_readiness_remediation_for_missing_agent():
     assert _readiness_remediation(checks, "fallback") == "install a supported agent CLI"
 
 
+def test_readiness_remediation_priority_branches():
+    from looptight.protocol_commands import _readiness_remediation
+
+    base = {"verify": "configured", "git": "clean", "task_sources": "configured", "agent": "ok"}
+
+    assert _readiness_remediation({**base, "verify": "missing"}, "fb") == "run `looptight init`"
+    assert _readiness_remediation({**base, "git": "not_git"}, "fb") == "run inside a Git repository"
+    assert _readiness_remediation({**base, "git": "dirty"}, "fb") == "review changes and run `looptight verify --json`"
+    assert _readiness_remediation({**base, "task_sources": "missing"}, "fb") == "add grounded tasks or configure `tasks` in .looptight.toml"
+
+
 def test_status_readiness_reports_partial_repo_with_remediation(
     tmp_path, monkeypatch, capsys
 ):
