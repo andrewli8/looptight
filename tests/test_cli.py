@@ -1614,6 +1614,21 @@ def test_doctor_omits_hints_when_prerequisites_present(tmp_path, monkeypatch, ca
     assert "hint:" not in out  # both present → existing lines unchanged
 
 
+def test_doctor_shows_migrate_hint_when_live_legacy_claims_exist(tmp_path, monkeypatch, capsys):
+    # cmd_doctor line 452: the `looptight migrate` hint only prints when
+    # has_live_claim is True and the workspace is a git repo (git_ready=True).
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "x", "--allow-empty"],
+        cwd=tmp_path, check=True,
+    )
+    monkeypatch.setattr("looptight.commands.has_live_claim", lambda *a, **k: True)
+    main(["doctor"])
+    out = capsys.readouterr().out
+    assert "looptight migrate" in out
+
+
 def test_doctor_guides_setup_without_writing_or_starting_agents(
     tmp_path, monkeypatch, capsys
 ):
