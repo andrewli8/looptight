@@ -2659,6 +2659,33 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Cover `_concurrency_remediation`'s four branches — `not_git`, `legacy_claims`, `degraded`,
+   and the `"none"` fallback all lack a direct unit test; any branch can be deleted without
+   failing. The function is pure (no subprocess, no git, no coordinator). Evidence:
+   `src/looptight/protocol_commands.py:948`
+   Acceptance: `test_concurrency_remediation_priority_branches` passes, asserting each
+   of the four returns matches its documented string.
+
+2. Cover `_coordinator_activation`'s `not_git` and `active` branches — only the `unknown`
+   case (when `_git_common_dir` fails) has a direct test (`test_coordinator_activation_returns_unknown_when_git_common_dir_fails`);
+   the `not_git` → `"not_git"` and `active` → `"active"` returns are untested directly and
+   can be deleted without failing. Evidence: `src/looptight/protocol_commands.py:798`
+   Acceptance: `test_coordinator_activation_not_git_and_active_branches` passes.
+
+3. Cover `_stall_signal`'s `patience <= 0` early-return — `protocol_commands.py:116` returns
+   `None` immediately when patience is zero or negative; only tested via the CLI path in
+   `test_verify_json_without_patience_has_no_stall_key` (which exercises `cmd_verify`,
+   not the function directly). A direct unit test would catch a removed guard. Evidence:
+   `src/looptight/protocol_commands.py:116`
+   Acceptance: `test_stall_signal_returns_none_when_patience_is_zero` passes.
+
+4. Cover `_unquote_git_path` directly — `protocol_commands.py:415` strips surrounding
+   double-quotes from git-quoted paths; only reached via `_changed_entries`/`_changed_file_list`,
+   never called in a focused test. A direct test asserting both quoted and unquoted forms
+   guards against breakage in the rename-detection flow. Evidence:
+   `src/looptight/protocol_commands.py:415`
+   Acceptance: `test_unquote_git_path_strips_surrounding_quotes_and_passes_unquoted` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
