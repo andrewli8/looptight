@@ -674,6 +674,31 @@ def test_plan_next_tasks_fails_when_planner_provider_fails(tmp_path, monkeypatch
     assert "planner provider crashed" in (result.error or "")
 
 
+def test_plan_next_tasks_fails_when_push_fails(tmp_path, monkeypatch):
+    # plan_next_tasks lines 670-672: when push=True and git push exits non-zero after a
+    # successful planner merge, the function returns a "failed" PlanningResult carrying
+    # the push error. The selective_git wrapper lets every git call through except "push".
+    _repo(tmp_path)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "docs")
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: PlanningAdapter())
+
+    real_git = swarm._git
+
+    def selective_git(workdir, *args):
+        if args[:1] == ("push",):
+            return subprocess.CompletedProcess(["git", "push"], 1, "", "push rejected: non-fast-forward")
+        return real_git(workdir, *args)
+
+    monkeypatch.setattr("looptight.swarm._git", selective_git)
+    result = plan_next_tasks(tmp_path, agent="fake", verify="exit 0", push=True)
+
+    assert result.status == "failed"
+    assert "push rejected" in (result.error or "") or "could not push" in (result.error or "")
+
+
 def test_plan_next_tasks_fails_gracefully_outside_a_git_repo(tmp_path):
     # The continuous-swarm planner needs a Git repo with a commit; outside one it returns a
     # clear PlanningResult failure rather than crashing (the daemon must keep its footing).
