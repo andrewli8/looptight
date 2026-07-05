@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Iterator
 
 from .claims import MARKER_NAME, has_live_claim
+from .fsutil import atomic_write_text
 
 SCHEMA_VERSION = 4
 
@@ -378,8 +379,8 @@ class Coordinator:
             raise MigrationBlocked(
                 "live legacy claims exist; finish or let them expire first"
             )
-        marker.write_text(
-            json.dumps({"schema_version": SCHEMA_VERSION}, sort_keys=True), encoding="utf-8"
+        atomic_write_text(
+            marker, json.dumps({"schema_version": SCHEMA_VERSION}, sort_keys=True)
         )
 
     @contextmanager

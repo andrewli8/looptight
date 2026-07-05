@@ -2712,19 +2712,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `activate_from_legacy` (coordinator.py:381) writes the coordinator activation
-   marker non-atomically via `marker.write_text(...)`. A crash mid-write leaves an
-   empty file that satisfies `marker.exists()` but contains no valid JSON — and,
-   crucially, a subsequent idempotent `activate_from_legacy` call returns early (line
-   375: `if marker.exists(): return`), so the marker is never repaired. Switch to
-   `atomic_write_text`, matching the pattern applied to `write_config` (config.py:240).
-   Evidence: `src/looptight/coordinator.py:381`;
-   Acceptance: `test_activate_from_legacy_atomic_write_cleans_up_on_failure` in
-   `tests/test_coordinator.py` monkeypatches `os.replace` to raise, asserts the call
-   raises, and asserts no `.tmp` or empty marker remains — proving the re-entrancy
-   guard (line 375) cannot be tripped by a half-written marker.
-
-2. `_area`'s `return candidate.source` fallback (idea_eval.py:54) has no direct unit
+1. `_area`'s `return candidate.source` fallback (idea_eval.py:54) has no direct unit
    test: the branch fires when a candidate's `detail` field names no `Evidence:` anchor,
    but the existing `test_area_no_colon_ref_and_top_level_file_branches` covers only
    the `refs`-populated path. The fallback is the flexibility metric's denominator for

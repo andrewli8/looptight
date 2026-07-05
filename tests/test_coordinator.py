@@ -575,6 +575,32 @@ def test_open_rejects_a_newer_unsupported_schema_version(tmp_path):
         Coordinator.open(repo)
 
 
+def test_activate_from_legacy_atomic_write_cleans_up_on_failure(tmp_path, monkeypatch):
+    from looptight.claims import MARKER_NAME
+
+    repo = _repo(tmp_path / "repo")
+    coord = Coordinator.open(repo)
+    assert coord is not None
+
+    marker = coord.path.parent / MARKER_NAME
+    tmp_file = marker.with_suffix(marker.suffix + ".tmp")
+
+    def boom(src, dst):
+        raise OSError("injected failure")
+
+    monkeypatch.setattr("looptight.fsutil.os.replace", boom)
+
+    try:
+        coord.activate_from_legacy()
+    except OSError:
+        pass
+    else:
+        raise AssertionError("OSError should have been re-raised")
+
+    assert not tmp_file.exists(), "stale .tmp must be removed on failure"
+    assert not marker.exists(), "marker must not exist after a failed write"
+
+
 def test_coordination_scope_reports_three_states(tmp_path):
     from looptight.claims import MARKER_NAME
     from looptight.coordinator import coordination_scope, coordinator_path
