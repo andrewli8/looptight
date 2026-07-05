@@ -2765,17 +2765,15 @@ existing CLI session and makes no model or API calls of its own.
   trailer and asserts the function returns the full 40-hex HEAD SHA — a regression
   dropping the return is now caught.
 
-## Next
+- The `except Exception: pass` guarding `coordinator.record_failure` in the conflict path
+  of `Integrator._apply` (integration_queue.py:300-301) is directly covered:
+  `test_apply_swallows_record_failure_exception_on_conflict` in
+  tests/test_integration_queue.py creates a real merge conflict, sets an `idea_id` to
+  trigger the advisory-recording branch, monkeypatches `record_failure` to raise
+  `RuntimeError`, and asserts the outcome is still `"conflict"` — a regression removing
+  the try/except is now caught.
 
-1. The `except Exception: pass` guarding `coordinator.record_failure` in the conflict
-   path of `Integrator._apply` (integration_queue.py:300-301) is uncovered: if the
-   coordinator raises during advisory recording, the silent-pass guard must absorb it so
-   a clean conflict outcome is still returned — a regression removing the try/except
-   would crash the integration on a transient coordinator error.
-   Evidence: src/looptight/integration_queue.py:300
-   Acceptance: `test_apply_swallows_record_failure_exception_on_conflict` in
-   tests/test_integration_queue.py monkeypatches `coordinator.record_failure` to raise
-   and asserts the integration outcome is still "conflict" with no exception propagated.
+## Next
 
 ## Rules
 

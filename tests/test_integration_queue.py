@@ -566,6 +566,37 @@ def test_unlock_swallows_oserror(monkeypatch):
     _unlock(0)  # must not raise
 
 
+def test_apply_swallows_record_failure_exception_on_conflict(tmp_path, monkeypatch):
+    # If record_failure raises during a merge conflict, the silent-pass guard must
+    # absorb it so the integration still returns "conflict" cleanly (integration_queue.py:300-301).
+    repo = _repo(tmp_path / "r")
+    (repo / "f.txt").write_text("base\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "base")
+    _git(repo, "checkout", "-q", "-b", "cand")
+    (repo / "f.txt").write_text("candidate\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "candidate change")
+    candidate = _git(repo, "rev-parse", "HEAD").stdout.strip()
+    _git(repo, "checkout", "-q", "main")
+    (repo / "f.txt").write_text("mainline\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "main change")
+
+    db = Coordinator.open(repo)
+    run = db.start_run("worker")
+    lease = db.claim([{"id": "t1", "idea_id": "idea-conflict", "source": "metacog"}], run.id, ttl_s=60)
+    db.enqueue_integration(lease, "refs/heads/main", candidate)
+
+    def boom(*a, **k):
+        raise RuntimeError("db locked")
+
+    monkeypatch.setattr(db, "record_failure", boom)
+    outcome = Integrator(db).run_next(repo, "exit 0")
+
+    assert outcome.status == "conflict"  # record_failure exception must not propagate
+
+
 def test_committed_result_in_worktree_returns_sha_when_trailer_present(tmp_path):
     # _committed_result_in_worktree's success path (integration_queue.py:197) was never
     # exercised: when the worktree HEAD commit carries the integration trailer the function
