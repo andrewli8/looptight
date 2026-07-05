@@ -2710,6 +2710,16 @@ existing CLI session and makes no model or API calls of its own.
   a regression changing the `cap is not None` guard at `discovery.py:628` to `cap > 0`
   would be caught before silently mis-scoring `score_status_next` batches.
 
+- The grounding gate in `from_task_file` now scans only the task text before
+  `Acceptance:` for evidence anchors. Previously it scanned the full text, so an
+  acceptance clause that mentioned `` `Evidence:` `` (a backtick-delimited word, e.g.
+  "a candidate whose detail has no `Evidence:` marker") followed by any later backtick
+  span caused the regex to capture the intervening text as a false non-resolving anchor
+  — silently dropping a task whose real `Evidence:` path was valid. Root cause of the
+  current `## Next` item having `groundedness: 0.0`; covered by
+  `test_from_status_next_grounding_gate_ignores_evidence_mentions_in_acceptance` in
+  `tests/test_propose.py`.
+
 ## Next
 
 1. `_area`'s `return candidate.source` fallback (idea_eval.py:54) has no direct unit

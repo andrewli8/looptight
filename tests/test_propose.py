@@ -1027,6 +1027,30 @@ def test_from_status_next_rejects_fabricated_evidence_but_keeps_real_and_unancho
     assert not any("Busywork" in t for t in titles)
 
 
+def test_from_status_next_grounding_gate_ignores_evidence_mentions_in_acceptance(tmp_path):
+    # Regression: evidence_is_truthful was called on the full task text including the
+    # Acceptance clause.  When the acceptance contains a backtick-delimited `Evidence:`
+    # (e.g. "a candidate whose detail has no `Evidence:` marker") followed by another
+    # backtick-span (e.g. `candidate.source`), the regex captures the intervening text as
+    # a false evidence anchor that doesn't resolve, and the grounding gate drops the task
+    # even though the real Evidence: path resolves fine.
+    _write(tmp_path, "src/real.py", "# real\n")
+    _write(
+        tmp_path,
+        "docs/STATUS.md",
+        "## Next\n\n"
+        "1. Cover the fallback. Evidence: `src/real.py:1`;\n"
+        "   Acceptance: call `fn` with a candidate whose detail has no `Evidence:` marker\n"
+        "   and assert the return value equals `candidate.source`.\n",
+    )
+
+    candidates = from_status_next(tmp_path)
+    assert len(candidates) == 1, (
+        "task with `Evidence:` mention in acceptance was wrongly dropped by grounding gate"
+    )
+    assert candidates[0].title.startswith("Cover the fallback")
+
+
 def test_from_status_next_returns_only_first_six_executable_tasks(tmp_path):
     tasks = "".join(
         f"{number}. Task {number}. Acceptance: task {number} passes.\n"

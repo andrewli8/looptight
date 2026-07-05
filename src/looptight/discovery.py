@@ -612,7 +612,7 @@ def from_task_file(
         task_text, marker, acceptance = text.partition("Acceptance:")
         if not marker or not task_text.strip() or not acceptance.strip():
             continue
-        if enforce_truthful_evidence and not evidence_is_truthful(root, text):
+        if enforce_truthful_evidence and not evidence_is_truthful(root, task_text):
             continue  # claims evidence that does not resolve: a grounding-gate drop
         out.append(
             Candidate(
