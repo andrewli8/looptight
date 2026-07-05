@@ -2727,6 +2727,32 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_area`'s position-stripping branch (`idea_eval.py:51`) has no direct unit test: the
+   `if ":" in refs[0]` path — the common case where a ref carries a line suffix like
+   `src/a.py:10` — is only indirectly exercised, so a regression replacing `rsplit(":", 1)[0]`
+   with the wrong expression would not be caught.
+   Evidence: `src/looptight/idea_eval.py:51`;
+   Acceptance: `test_area_with_colon_ref_strips_to_parent_dir` in tests/test_idea_eval.py
+   calls `_area` with a candidate whose detail names a ref with a line suffix and
+   asserts the returned area is the parent directory ("src").
+
+2. `rank_with_model`'s curated-source guard (`ranking.py:57`) sets `factor = 1.0` when
+   `c.source in _CURATED_SOURCES`, but no test directly asserts that a curated candidate's
+   score equals its base weight when a `Model` with failure data for that source exists.
+   A regression changing the guard could silently reorder curated tasks below automated ones.
+   Evidence: `src/looptight/ranking.py:57`;
+   Acceptance: `test_rank_with_model_curated_source_factor_is_one` in tests/test_propose.py
+   calls `rank_with_model` with a `task-file` candidate and a `Model` where
+   `category_failed={"task-file": 10}`, and asserts the returned score equals 70.0.
+
+3. The CHANGELOG `[Unreleased]` Fixed section omits the grounding-gate regression:
+   false anchors from backtick-delimited code spans (`_EVIDENCE_RE` lookbehind fix and
+   `from_task_file` pre-Acceptance scoping) silently dropped valid tasks.
+   Evidence: `CHANGELOG.md:7`;
+   Acceptance: `test_changelog_records_evidence_refs_grounding_gate_fix` in
+   tests/test_docs.py asserts that the `[Unreleased]` section mentions the grounding
+   gate fix, failing before CHANGELOG.md is updated.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
