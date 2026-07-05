@@ -109,6 +109,15 @@ All notable changes to looptight are recorded here. The format follows
   (this project's own `docs/STATUS.md` writes them that way, as do LLM-generated
   tasks), so this affected the common case. The swarm planner's own grounding
   check had the same defect and is fixed alongside it.
+- Two root causes of a grounding-gate regression that silently dropped valid
+  tasks are fixed. First, `_EVIDENCE_RE` in `grounding.py` gained a negative
+  lookbehind so a backtick code span containing `Evidence:` (e.g., a task
+  description that writes `` `Evidence:` anchor``) is no longer captured as a
+  false anchor — previously the intervening text was treated as a non-resolving
+  path and the whole task was dropped. Second, `from_task_file` now applies the
+  pre-Acceptance scoping rule: the grounding check covers only the task text
+  before `Acceptance:`, not the full entry, so a file path mentioned only in
+  the acceptance criterion cannot cause a valid, grounded task to be rejected.
 - `detect_verify` no longer claims `npm test` for the `npm init` placeholder
   script (`echo "Error: no test specified" && exit 1`). That command always
   fails, so a fresh JS repo would get a verify that can never pass — the loop

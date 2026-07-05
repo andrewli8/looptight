@@ -2734,22 +2734,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. The CHANGELOG `[Unreleased]` Fixed section omits the grounding-gate regression:
-   false anchors from backtick-delimited code spans (`_EVIDENCE_RE` lookbehind fix and
-   `from_task_file` pre-Acceptance scoping) silently dropped valid tasks.
-   Evidence: `CHANGELOG.md:7`;
-   Acceptance: `test_changelog_records_evidence_refs_grounding_gate_fix` in
-   tests/test_docs.py asserts that the `[Unreleased]` section mentions the grounding
-   gate fix, failing before CHANGELOG.md is updated.
-
-3. The CHANGELOG `[Unreleased]` Fixed section omits the grounding-gate regression:
-   false anchors from backtick-delimited code spans (`_EVIDENCE_RE` lookbehind fix and
-   `from_task_file` pre-Acceptance scoping) silently dropped valid tasks.
-   Evidence: `CHANGELOG.md:7`;
-   Acceptance: `test_changelog_records_evidence_refs_grounding_gate_fix` in
-   tests/test_docs.py asserts that the `[Unreleased]` section mentions the grounding
-   gate fix, failing before CHANGELOG.md is updated.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

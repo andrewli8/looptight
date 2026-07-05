@@ -325,3 +325,23 @@ def test_pull_request_template_reinforces_the_gate():
     text = (_ROOT / ".github" / "pull_request_template.md").read_text(encoding="utf-8")
     assert "looptight verify" in text, "PR template does not remind contributors to verify"
     assert "ruff check" in text, "PR template does not mention the lint gate"
+
+
+def test_changelog_records_evidence_refs_grounding_gate_fix():
+    # Two root causes of the grounding-gate regression must be in [Unreleased]:
+    # 1. _EVIDENCE_RE lookbehind: backtick code spans containing `Evidence:` were
+    #    captured as false anchors and silently dropped valid tasks.
+    # 2. from_task_file pre-Acceptance scoping: the grounding check now covers only
+    #    the task text before Acceptance:, so a path in the acceptance criterion
+    #    cannot veto an otherwise-valid task.
+    changelog = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    _, _, after = changelog.partition("## [Unreleased]")
+    unreleased, _, _ = after.partition("## [0.1.0]")
+    assert "_EVIDENCE_RE" in unreleased, (
+        "CHANGELOG [Unreleased] does not document the _EVIDENCE_RE lookbehind fix "
+        "that prevented backtick code spans from yielding false grounding-gate anchors"
+    )
+    assert "pre-Acceptance" in unreleased, (
+        "CHANGELOG [Unreleased] does not document the from_task_file pre-Acceptance "
+        "scoping fix that prevented acceptance-criterion paths from dropping valid tasks"
+    )
