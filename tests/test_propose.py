@@ -1041,6 +1041,23 @@ def test_from_status_next_returns_only_first_six_executable_tasks(tmp_path):
     ]
 
 
+def test_from_status_next_cap_none_returns_all_items_beyond_default_cap(tmp_path):
+    # discovery.py:628 — the `cap is not None` guard means cap=None reads the true uncapped
+    # count; score_status_next relies on this to score raw batches honestly. A regression
+    # changing the guard to `cap > 0` would silently cap at 6 and mis-report groundedness.
+    tasks = "".join(
+        f"{number}. Task {number}. Acceptance: task {number} passes.\n"
+        for number in range(1, 9)
+    )
+    _write(tmp_path, "docs/STATUS.md", f"## Next\n\n{tasks}")
+
+    all_candidates = from_status_next(tmp_path, cap=None)
+    assert len(all_candidates) == 8  # all 8 returned when cap is None
+
+    capped_candidates = from_status_next(tmp_path)
+    assert len(capped_candidates) == 6  # default cap=6 still applies
+
+
 def test_from_lint_finds_ruff_violations(tmp_path):
     if shutil.which("ruff") is None:
         import pytest

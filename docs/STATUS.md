@@ -2703,10 +2703,14 @@ existing CLI session and makes no model or API calls of its own.
   expected keys ("kind", "failures", "trajectory", "summary", "persisted", "total_failures") are
   present in `as_dict()["escalation"]`, so a regression dropping a key from `Escalation.as_dict()`
   would be caught rather than silently breaking `run --json` consumers.
+- `from_status_next(cap=None)` uncapped behavior is pinned:
+  `test_from_status_next_cap_none_returns_all_items_beyond_default_cap` in
+  `tests/test_propose.py` writes 8 tasks to STATUS.md, asserts `from_status_next(root,
+  cap=None)` returns all 8, and `from_status_next(root)` returns 6 (the default cap), so
+  a regression changing the `cap is not None` guard at `discovery.py:628` to `cap > 0`
+  would be caught before silently mis-scoring `score_status_next` batches.
 
 ## Next
-
-1. `from_status_next(cap=None)` returning more than 6 items is never tested: the `cap is not None` guard at `src/looptight/discovery.py:628` makes `cap=None` read the uncapped raw count, which `score_status_next` relies on to score batches honestly. No test writes more than 6 tasks and verifies the full set is returned; a regression changing the guard to `cap > 0` would silently cap `score_status_next` at 6 and report incorrect groundedness. Evidence: `src/looptight/discovery.py:628`; Acceptance: a new test in `tests/test_propose.py` writes 8 tasks (each with `Acceptance:`) to a STATUS.md, calls `from_status_next(root, cap=None)` and asserts 8 items, then calls `from_status_next(root)` and asserts 6; `uv run pytest -q tests/test_propose.py` passes.
 
 ## Rules
 
