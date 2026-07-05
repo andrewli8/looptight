@@ -117,6 +117,13 @@ def test_area_no_colon_ref_and_top_level_file_branches():
     assert _area(top_level) == "README.md"
 
 
+def test_area_with_colon_ref_strips_to_parent_dir():
+    # idea_eval.py:51: the `if ":" in refs[0]` branch strips the position suffix
+    # with rsplit(":", 1)[0]; a ref like "src/a.py:10" should yield area "src".
+    with_line = _candidate("T", "T. Evidence: src/a.py:10; Acceptance: x")
+    assert _area(with_line) == "src"
+
+
 def test_area_returns_source_when_candidate_has_no_refs():
     # The fallback branch (idea_eval.py:54): when a candidate's detail names no
     # Evidence: anchor, _area returns candidate.source (the task source label).

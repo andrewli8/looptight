@@ -2725,18 +2725,13 @@ existing CLI session and makes no model or API calls of its own.
   `test_from_status_next_grounding_gate_ignores_evidence_mentions_in_acceptance` in
   `tests/test_propose.py`.
 
+- `_area`'s position-stripping branch (`idea_eval.py:51`) now has direct coverage:
+  `test_area_with_colon_ref_strips_to_parent_dir` in tests/test_idea_eval.py asserts
+  that a ref with a line suffix (`src/a.py:10`) returns area "src".
+
 ## Next
 
-1. `_area`'s position-stripping branch (`idea_eval.py:51`) has no direct unit test: the
-   `if ":" in refs[0]` path — the common case where a ref carries a line suffix like
-   `src/a.py:10` — is only indirectly exercised, so a regression replacing `rsplit(":", 1)[0]`
-   with the wrong expression would not be caught.
-   Evidence: `src/looptight/idea_eval.py:51`;
-   Acceptance: `test_area_with_colon_ref_strips_to_parent_dir` in tests/test_idea_eval.py
-   calls `_area` with a candidate whose detail names a ref with a line suffix and
-   asserts the returned area is the parent directory ("src").
-
-2. `rank_with_model`'s curated-source guard (`ranking.py:57`) sets `factor = 1.0` when
+1. `rank_with_model`'s curated-source guard (`ranking.py:57`) sets `factor = 1.0` when
    `c.source in _CURATED_SOURCES`, but no test directly asserts that a curated candidate's
    score equals its base weight when a `Model` with failure data for that source exists.
    A regression changing the guard could silently reorder curated tasks below automated ones.
