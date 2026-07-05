@@ -2739,18 +2739,14 @@ existing CLI session and makes no model or API calls of its own.
   is called even if `start_run`, `heartbeat`, `reap_abandoned`, or `claim` raises —
   matching `propose.py`'s identical pattern. Covered by
   `test_next_task_closes_coordinator_on_exception` in test_tasks.py.
+- `on_cycle`'s `else: detail = ""` arm (commands.py:304) now has direct coverage:
+  `test_daemon_cli_on_cycle_detail_empty_branch` in tests/test_cli.py passes a
+  `DaemonCycle` with `outcome="idle"` and `merged=0`, exercising the branch that
+  was unreachable by the prior test's fault+merged cycles.
 
 ## Next
 
-1. `on_cycle` detail="" branch (commands.py:304) is uncovered: the existing
-   `test_daemon_cli_renders_cycle_outcomes_and_stop_summary` exercises `merged=2`
-   (line 302) and `fault+error` (line 300) but never a cycle with `outcome="idle"`
-   and `merged=0`, leaving the `else: detail = ""` arm unreachable.
-   Evidence: src/looptight/commands.py:304
-   Acceptance: `test_daemon_cli_on_cycle_detail_empty_branch` in tests/test_cli.py
-   passes and the line is covered.
-
-2. `run_swarm` direct guard returns (swarm.py:688, 690, 694) are uncovered: CLI
+1. `run_swarm` direct guard returns (swarm.py:688, 690, 694) are uncovered: CLI
    argparse rejects bad flags before reaching `run_swarm`, so the `workers`-range,
    no-verify, and agent-unavailable guards inside the function itself have no direct
    unit coverage.
@@ -2759,7 +2755,7 @@ existing CLI session and makes no model or API calls of its own.
    with out-of-range workers, empty verify, and unavailable agent, each asserting
    the returned `SwarmResult.reason` matches the guard message.
 
-3. `Checkpointer.save()` empty-sha branch (checkpoint.py:88) is uncovered: when
+2. `Checkpointer.save()` empty-sha branch (checkpoint.py:88) is uncovered: when
    `git rev-parse HEAD` exits 0 but prints an empty line, `sha` is `""` and the
    guard `if not sha: return None` fires but is never exercised.
    Evidence: src/looptight/checkpoint.py:88

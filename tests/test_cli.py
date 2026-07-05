@@ -2863,6 +2863,26 @@ def test_daemon_cli_rejects_too_many_workers_and_missing_verify(tmp_path, monkey
     assert code == 2 and "verify" in capsys.readouterr().out.lower()
 
 
+def test_daemon_cli_on_cycle_detail_empty_branch(tmp_path, monkeypatch, capsys):
+    """on_cycle's `else: detail = ""` arm (commands.py:304) fires when merged=0 and not a fault."""
+    from looptight.daemon import DaemonCycle, DaemonReport
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+
+    def fake_run_daemon(root, *, on_cycle=None, on_fault=None, **kwargs):
+        on_cycle(DaemonCycle(1, "idle", "ok", 0, None, 60.0))
+        return DaemonReport(cycles=1, progress=0, idle=1, faults=0, last_reason="ok")
+
+    monkeypatch.setattr("looptight.commands.run_daemon", fake_run_daemon)
+    code = main(["daemon", "--headless", "--agent", "claude", "--verify", "exit 0", "--max-cycles", "1"])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "cycle 1" in out and "idle" in out
+    # The empty-detail arm produces no trailing annotation after the outcome.
+    assert "next in 60s" in out
+
+
 def test_status_watch_parser_accepts_flags():
     args = build_parser().parse_args(["status", "--watch", "--interval", "5"])
     assert args.watch is True and args.interval == 5.0
