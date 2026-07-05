@@ -2743,19 +2743,15 @@ existing CLI session and makes no model or API calls of its own.
   `test_daemon_cli_on_cycle_detail_empty_branch` in tests/test_cli.py passes a
   `DaemonCycle` with `outcome="idle"` and `merged=0`, exercising the branch that
   was unreachable by the prior test's fault+merged cycles.
+- `run_swarm`'s defense-in-depth guards (swarm.py:688, 690, 694) now have direct
+  unit coverage: `test_run_swarm_guard_out_of_range_workers`, `test_run_swarm_guard_no_verify`,
+  and `test_run_swarm_guard_agent_unavailable` in test_swarm.py call `run_swarm`
+  directly with workers=0, empty verify, and an unavailable adapter respectively,
+  proving each guard fires independently of the CLI pre-validation.
 
 ## Next
 
-1. `run_swarm` direct guard returns (swarm.py:688, 690, 694) are uncovered: CLI
-   argparse rejects bad flags before reaching `run_swarm`, so the `workers`-range,
-   no-verify, and agent-unavailable guards inside the function itself have no direct
-   unit coverage.
-   Evidence: src/looptight/swarm.py:688
-   Acceptance: Three new tests in tests/test_swarm.py call `run_swarm` directly
-   with out-of-range workers, empty verify, and unavailable agent, each asserting
-   the returned `SwarmResult.reason` matches the guard message.
-
-2. `Checkpointer.save()` empty-sha branch (checkpoint.py:88) is uncovered: when
+1. `Checkpointer.save()` empty-sha branch (checkpoint.py:88) is uncovered: when
    `git rev-parse HEAD` exits 0 but prints an empty line, `sha` is `""` and the
    guard `if not sha: return None` fires but is never exercised.
    Evidence: src/looptight/checkpoint.py:88

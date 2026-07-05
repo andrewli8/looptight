@@ -198,6 +198,36 @@ def test_swarm_parser_accepts_explicit_continuous_rounds():
     assert args.max_rounds == 7
 
 
+def test_run_swarm_guard_out_of_range_workers(tmp_path):
+    """run_swarm line 688: workers < 1 or > MAX_WORKERS returns the guard error directly."""
+    _repo(tmp_path)
+    result = run_swarm(tmp_path, agent="fake", config=Config(verify="exit 0"), workers=0)
+    assert result.error is not None and "workers must be between" in result.error
+    assert result.workers == ()
+
+
+def test_run_swarm_guard_no_verify(tmp_path):
+    """run_swarm line 690: empty verify string returns the guard error directly."""
+    _repo(tmp_path)
+    result = run_swarm(tmp_path, agent="fake", config=Config(verify=""), workers=1)
+    assert result.error == "no verify command configured"
+    assert result.workers == ()
+
+
+def test_run_swarm_guard_agent_unavailable(tmp_path, monkeypatch):
+    """run_swarm line 694: an adapter whose is_available() is False returns the guard error."""
+    _repo(tmp_path)
+
+    class UnavailableAdapter(EditingAdapter):
+        def is_available(self) -> bool:
+            return False
+
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: UnavailableAdapter())
+    result = run_swarm(tmp_path, agent="missingagent", config=Config(verify="exit 0"), workers=1)
+    assert result.error is not None and "missingagent" in result.error and "not available" in result.error
+    assert result.workers == ()
+
+
 def test_swarm_refuses_dirty_invoking_worktree(tmp_path):
     _repo(tmp_path)
     (tmp_path / "uncommitted.txt").write_text("unsafe", encoding="utf-8")
