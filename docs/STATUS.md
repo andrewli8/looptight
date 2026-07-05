@@ -2696,6 +2696,12 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `summary.render()` never exercises `StopReason.NO_VERIFY` or `StopReason.AGENT_UNAVAILABLE`: `_REASON_TEXT` in `summary.py` defines 7 stop-reason entries, but `test_summary_shows_stop_reasons` at `tests/test_summary.py:37` only asserts on ITERATION_CAP, NO_PROGRESS, and ESCALATED. A regression silently changing "no verify command (no verify, no loop)" or "no coding agent found on PATH" to a snake_case fallback would not be caught. Evidence: `src/looptight/summary.py:18`; Acceptance: new tests in `tests/test_summary.py` call `summary.render()` with `stop_reason=StopReason.NO_VERIFY` and `stop_reason=StopReason.AGENT_UNAVAILABLE`, asserting the expected human-readable phrases appear in the output; `uv run pytest -q tests/test_summary.py` passes.
+
+2. `RunResult.as_dict()` escalation branch is untested: the conditional at `src/looptight/types.py:168` (`self.escalation.as_dict() if self.escalation else None`) serializes escalation data into the `run --json` envelope, but the CLI test at `tests/test_cli.py:3354` only exercises the None branch. A regression removing a key from `Escalation.as_dict()` would silently break the documented JSON contract. Evidence: `src/looptight/types.py:168`; Acceptance: a new test creates a `RunResult` with a non-None `Escalation` and asserts `result.as_dict()["escalation"]` is a dict containing "kind", "failures", "trajectory", "summary", "persisted", and "total_failures"; `uv run pytest -q` passes.
+
+3. `from_status_next(cap=None)` returning more than 6 items is never tested: the `cap is not None` guard at `src/looptight/discovery.py:628` makes `cap=None` read the uncapped raw count, which `score_status_next` relies on to score batches honestly. No test writes more than 6 tasks and verifies the full set is returned; a regression changing the guard to `cap > 0` would silently cap `score_status_next` at 6 and report incorrect groundedness. Evidence: `src/looptight/discovery.py:628`; Acceptance: a new test in `tests/test_propose.py` writes 8 tasks (each with `Acceptance:`) to a STATUS.md, calls `from_status_next(root, cap=None)` and asserts 8 items, then calls `from_status_next(root)` and asserts 6; `uv run pytest -q tests/test_propose.py` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
