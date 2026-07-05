@@ -2748,15 +2748,12 @@ existing CLI session and makes no model or API calls of its own.
   and `test_run_swarm_guard_agent_unavailable` in test_swarm.py call `run_swarm`
   directly with workers=0, empty verify, and an unavailable adapter respectively,
   proving each guard fires independently of the CLI pre-validation.
+- `Checkpointer.snapshot()`'s empty-sha branch (checkpoint.py:88) now has direct
+  coverage: `test_save_returns_none_when_git_returns_empty_sha` in test_checkpoint.py
+  mocks both `stash create` and `rev-parse HEAD` to return exit-0 with empty stdout,
+  confirming `snapshot()` returns `None` and appends nothing to `snapshots`.
 
 ## Next
-
-1. `Checkpointer.save()` empty-sha branch (checkpoint.py:88) is uncovered: when
-   `git rev-parse HEAD` exits 0 but prints an empty line, `sha` is `""` and the
-   guard `if not sha: return None` fires but is never exercised.
-   Evidence: src/looptight/checkpoint.py:88
-   Acceptance: `test_save_returns_none_when_git_returns_empty_sha` in
-   tests/test_checkpoint.py passes.
 
 ## Rules
 

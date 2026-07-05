@@ -180,3 +180,19 @@ def test_checkpoint_git_sets_git_terminal_prompt_env(tmp_path, monkeypatch):
 
     assert captured_env is not None
     assert captured_env.get("GIT_TERMINAL_PROMPT") == "0"
+
+
+def test_save_returns_none_when_git_returns_empty_sha(tmp_path, monkeypatch):
+    """checkpoint.py:88 — if not sha: return None when rev-parse exits 0 but prints nothing."""
+    _init_repo(tmp_path)
+    cp = Checkpointer(tmp_path)
+    responses = iter(
+        [
+            subprocess.CompletedProcess(["git", "stash"], 0, stdout="", stderr=""),
+            subprocess.CompletedProcess(["git", "rev-parse"], 0, stdout="", stderr=""),
+        ]
+    )
+    monkeypatch.setattr(checkpoint_module, "_git", lambda args, cwd: next(responses))
+
+    assert cp.snapshot() is None
+    assert cp.snapshots == []
