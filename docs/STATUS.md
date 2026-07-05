@@ -2735,17 +2735,12 @@ existing CLI session and makes no model or API calls of its own.
   coverage: `test_has_live_claim_true_when_unexpired_claim_exists` in test_claims.py
   creates a fresh claim at `now=0.0` and asserts `has_live_claim(root, now=1.0)` is
   `True` — sibling of the existing expired-claim False-branch test.
+- `tasks.py`'s coordinator block is now wrapped in `try/finally` so `coordinator.close()`
+  is called even if `start_run`, `heartbeat`, `reap_abandoned`, or `claim` raises —
+  matching `propose.py`'s identical pattern. Covered by
+  `test_next_task_closes_coordinator_on_exception` in test_tasks.py.
 
 ## Next
-
-1. `tasks.py` opens the coordinator without a `try/finally`, so an unexpected
-   exception in `coordinator.start_run`, `heartbeat`, `reap_abandoned`, or `claim`
-   skips `coordinator.close()` at line 178, leaking the SQLite connection. The same
-   module's sibling `propose.py` wraps the identical pattern in `try/finally`.
-   Evidence: `src/looptight/tasks.py:163`;
-   Acceptance: A new test patches one coordinator method to raise and asserts the
-   coordinator's `close()` method is still called, and the `next_task` function
-   surfaces the error rather than crashing the loop — failing before the fix.
 
 ## Rules
 

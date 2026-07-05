@@ -291,3 +291,40 @@ def test_has_dirty_git_worktree_returns_false_on_nonzero_returncode(tmp_path, mo
     assert _has_dirty_git_worktree(tmp_path) is False
 
 
+def test_next_task_closes_coordinator_on_exception(tmp_path):
+    # tasks.py opens the coordinator without try/finally, so an exception inside the
+    # coordinator block (start_run, heartbeat, reap_abandoned, claim) skips close(),
+    # leaking the SQLite connection. After the fix, close() must be called even on error.
+    import subprocess as _subprocess
+    import unittest.mock as _mock
+
+    from looptight.coordinator import Coordinator
+
+    _subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+
+    close_called = []
+    _real_open = Coordinator.open  # bound classmethod — captures current implementation
+
+    def patched_open(workdir):
+        coord = _real_open(workdir)
+        if coord is None:
+            return None
+        original_close = coord.close
+
+        def tracking_close():
+            close_called.append(True)
+            original_close()
+
+        coord.close = tracking_close
+        coord.heartbeat = lambda run_id: (_ for _ in ()).throw(RuntimeError("boom"))
+        return coord
+
+    with _mock.patch.object(Coordinator, "open", side_effect=patched_open):
+        try:
+            next_task(tmp_path, propose_fn=lambda w, limit=0: [])
+        except RuntimeError:
+            pass  # surfaced error is acceptable; close() must still have been called
+
+    assert close_called, "coordinator.close() must be called even when an exception is raised"
+
+
