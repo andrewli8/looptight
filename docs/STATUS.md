@@ -2755,6 +2755,36 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_initialize_schema`'s busy/locked retry loop is not covered: the `except
+   sqlite3.OperationalError` clause at coordinator.py:166 only retries when the error
+   message contains "locked" or "busy", but no test injects a "database is busy" error
+   and confirms the coordinator opens successfully on the second attempt — a regression
+   narrowing the guard would silently break multi-process coordination.
+   Evidence: src/looptight/coordinator.py:167
+   Acceptance: `test_initialize_schema_retries_on_busy_error` in tests/test_coordinator.py
+   monkeypatches the first `connection.execute` call to raise
+   `sqlite3.OperationalError("database is busy")` and asserts `Coordinator.open` succeeds.
+
+2. `_committed_result_in_worktree`'s success return (integration_queue.py:197) is never
+   exercised: the function returns the worktree HEAD SHA when the commit carries the
+   integration trailer, but no test puts a trailer commit in the worktree and verifies
+   the SHA is returned — a regression dropping the return would silently make crash
+   recovery always re-apply an already-committed integration.
+   Evidence: src/looptight/integration_queue.py:197
+   Acceptance: `test_committed_result_in_worktree_returns_sha_when_trailer_present` in
+   tests/test_integration_queue.py creates a real git worktree with a commit that carries
+   the `Looptight-Integration-ID` trailer and asserts the function returns a non-empty SHA.
+
+3. The `except Exception: pass` guarding `coordinator.record_failure` in the conflict
+   path of `Integrator._apply` (integration_queue.py:300-301) is uncovered: if the
+   coordinator raises during advisory recording, the silent-pass guard must absorb it so
+   a clean conflict outcome is still returned — a regression removing the try/except
+   would crash the integration on a transient coordinator error.
+   Evidence: src/looptight/integration_queue.py:300
+   Acceptance: `test_apply_swallows_record_failure_exception_on_conflict` in
+   tests/test_integration_queue.py monkeypatches `coordinator.record_failure` to raise
+   and asserts the integration outcome is still "conflict" with no exception propagated.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
