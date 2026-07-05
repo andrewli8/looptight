@@ -1297,6 +1297,15 @@ def test_rank_with_model_unknown_source_scores_zero():
     assert result[0].score == 0.0
 
 
+def test_rank_with_model_curated_source_factor_is_one():
+    # ranking.py:57: curated sources always use factor=1.0 so failure data
+    # cannot damp them; task-file base weight is 70.
+    c = _rc("task-file", "human task")
+    model = Model(category_failed={"task-file": 10})
+    result = rank_with_model([c], model)
+    assert result[0].score == 70.0
+
+
 # --- dedupe -------------------------------------------------------------------
 
 from looptight.ranking import dedupe  # noqa: E402
