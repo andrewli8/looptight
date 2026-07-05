@@ -2734,6 +2734,33 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_has_dirty_git_worktree` in `tasks.py` catches `OSError` and returns `False`
+   (fail-open: treat git-unavailable as a clean worktree so the loop continues),
+   but that policy is undocumented by any test — a future change to the except
+   branch could silently flip the behavior.
+   Evidence: `src/looptight/tasks.py:90`;
+   Acceptance: `test_has_dirty_git_worktree_returns_false_on_oserror` in
+   `tests/test_tasks.py` monkeypatches `subprocess.run` to raise `OSError` and
+   asserts the function returns `False`, failing before the test is added.
+
+2. `has_live_claim` in `claims.py` has only one direct unit test — the False branch
+   (all claims expired). The True branch (an unexpired claim is present) is never
+   exercised directly in `tests/test_claims.py`, leaving the primary use case of the
+   function without a unit-level pin.
+   Evidence: `tests/test_claims.py:128`;
+   Acceptance: `test_has_live_claim_true_when_unexpired_claim_exists` in
+   `tests/test_claims.py` creates a fresh claim at `now=0.0` and asserts
+   `has_live_claim(root, now=1.0)` is `True`, failing before the test is added.
+
+3. `tasks.py` opens the coordinator without a `try/finally`, so an unexpected
+   exception in `coordinator.start_run`, `heartbeat`, `reap_abandoned`, or `claim`
+   skips `coordinator.close()` at line 178, leaking the SQLite connection. The same
+   module's sibling `propose.py` wraps the identical pattern in `try/finally`.
+   Evidence: `src/looptight/tasks.py:163`;
+   Acceptance: A new test patches one coordinator method to raise and asserts the
+   coordinator's `close()` method is still called, and the `next_task` function
+   surfaces the error rather than crashing the loop — failing before the fix.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
