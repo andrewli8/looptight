@@ -564,3 +564,30 @@ def test_unlock_swallows_oserror(monkeypatch):
 
     monkeypatch.setattr(iq.fcntl, "flock", lambda fd, op: (_ for _ in ()).throw(OSError("unlock failed")))
     _unlock(0)  # must not raise
+
+
+def test_committed_result_in_worktree_returns_sha_when_trailer_present(tmp_path):
+    # _committed_result_in_worktree's success path (integration_queue.py:197) was never
+    # exercised: when the worktree HEAD commit carries the integration trailer the function
+    # returns the HEAD SHA, but a regression dropping that return would silently make crash
+    # recovery always re-apply an already-committed integration.
+    from looptight.integration_queue import _committed_result_in_worktree
+
+    repo = _repo(tmp_path / "r")
+    integration_id = "abc123test"
+    # Commit a file with the integration trailer in the commit message.
+    (repo / "result.txt").write_text("ok\n", encoding="utf-8")
+    _git(repo, "add", "result.txt")
+    _git(
+        repo, "commit", "-qm",
+        f"merge: looptight integration {integration_id}\n\nLooptight-Integration-ID: {integration_id}",
+    )
+    head_sha = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
+
+    result = _committed_result_in_worktree(repo, integration_id)
+
+    assert result == head_sha
+    assert len(result) == 40  # full SHA

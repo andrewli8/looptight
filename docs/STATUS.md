@@ -2759,19 +2759,15 @@ existing CLI session and makes no model or API calls of its own.
   `PRAGMA journal_mode` call and asserts `_initialize_schema` succeeds on retry without
   raising — a regression narrowing the guard is now caught.
 
+- `_committed_result_in_worktree`'s success return (integration_queue.py:197) is directly
+  covered: `test_committed_result_in_worktree_returns_sha_when_trailer_present` in
+  tests/test_integration_queue.py commits a file with the `Looptight-Integration-ID`
+  trailer and asserts the function returns the full 40-hex HEAD SHA — a regression
+  dropping the return is now caught.
+
 ## Next
 
-1. `_committed_result_in_worktree`'s success return (integration_queue.py:197) is never
-   exercised: the function returns the worktree HEAD SHA when the commit carries the
-   integration trailer, but no test puts a trailer commit in the worktree and verifies
-   the SHA is returned — a regression dropping the return would silently make crash
-   recovery always re-apply an already-committed integration.
-   Evidence: src/looptight/integration_queue.py:197
-   Acceptance: `test_committed_result_in_worktree_returns_sha_when_trailer_present` in
-   tests/test_integration_queue.py creates a real git worktree with a commit that carries
-   the `Looptight-Integration-ID` trailer and asserts the function returns a non-empty SHA.
-
-3. The `except Exception: pass` guarding `coordinator.record_failure` in the conflict
+1. The `except Exception: pass` guarding `coordinator.record_failure` in the conflict
    path of `Integrator._apply` (integration_queue.py:300-301) is uncovered: if the
    coordinator raises during advisory recording, the silent-pass guard must absorb it so
    a clean conflict outcome is still returned — a regression removing the try/except
