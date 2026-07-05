@@ -341,6 +341,23 @@ def test_prepare_workers_worktree_add_fail_surfaces_error(tmp_path, monkeypatch)
     assert result.workers == ()
 
 
+def test_prepare_workers_returns_error_when_no_git_commit(tmp_path, monkeypatch):
+    # _prepare_workers line 331: git rev-parse HEAD fails in a repo with no commits,
+    # so the guard returns the "requires a Git repository with at least one commit" error.
+    # An empty repo has a clean git status (passes _git_clean) but no HEAD ref.
+    _git(tmp_path, "init", "-q")
+    _git(tmp_path, "config", "user.name", "Looptight Test")
+    _git(tmp_path, "config", "user.email", "test@looptight.dev")
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+    result = run_swarm(
+        tmp_path, agent="fake", config=Config(verify="exit 0"), workers=1
+    )
+    assert result.error is not None
+    assert "Git repository" in result.error
+    assert "commit" in result.error
+    assert result.workers == ()
+
+
 def test_prepare_workers_branch_switch_fail_surfaces_error(tmp_path, monkeypatch):
     # _prepare_workers lines 357-359: if `git switch -c` fails after the worktree is
     # created, run_swarm removes the worktree and returns the error.

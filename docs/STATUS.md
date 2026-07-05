@@ -2773,28 +2773,27 @@ existing CLI session and makes no model or API calls of its own.
   `RuntimeError`, and asserts the outcome is still `"conflict"` — a regression removing
   the try/except is now caught.
 
+- `_prepare_workers` git-prerequisite guard is covered: `run_swarm` in an empty git repo
+  (no commits) reaches line 331 and returns "swarm requires a Git repository with at least
+  one commit". Covered by `test_prepare_workers_returns_error_when_no_git_commit` in
+  `tests/test_swarm.py`.
+
 ## Next
 
-1. `_prepare_workers` git-prerequisite guard is not covered: `run_swarm` called in a
-   git repo with no commits returns an error from line 331 but no test hits that line.
-   Evidence: `src/looptight/swarm.py:331`
-   Acceptance: `test_prepare_workers_returns_error_when_no_git_commit` added to
-   `tests/test_swarm.py` passes and `looptight verify` reports pass.
-
-2. `plan_next_tasks` push-fail path is not covered: when `push=True` and `git push`
+1. `plan_next_tasks` push-fail path is not covered: when `push=True` and `git push`
    fails after a successful planner merge, lines 670-672 return a failed result but no
    test reaches them.
    Evidence: `src/looptight/swarm.py:670`
    Acceptance: `test_plan_next_tasks_fails_when_push_fails` added to `tests/test_swarm.py`
    passes and `looptight verify` reports pass.
 
-3. `Coordinator._init_schema` busy-retry loop is not covered: lines 169-172 retry
+2. `Coordinator._init_schema` busy-retry loop is not covered: lines 169-172 retry
    on `database is locked` / `database is busy` but no test injects that error.
    Evidence: `src/looptight/coordinator.py:169`
    Acceptance: `test_coordinator_init_retries_on_database_locked` added to
    `tests/test_coordinator.py` passes and `looptight verify` reports pass.
 
-4. `next_task`'s file-claims path with existing candidates is not covered: when
+3. `next_task`'s file-claims path with existing candidates is not covered: when
    `claim_dir()` returns a non-None directory and tasks exist, line 186 calls
    `ClaimStore.select(tasks)` but no test exercises this non-coordinator code path.
    Evidence: `src/looptight/tasks.py:186`
