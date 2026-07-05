@@ -135,6 +135,16 @@ def test_has_live_claim_false_when_all_claims_expired(tmp_path):
     assert has_live_claim(root, now=_STALE_AFTER_S + 1) is False
 
 
+def test_has_live_claim_true_when_unexpired_claim_exists(tmp_path):
+    from looptight.claims import has_live_claim
+
+    root = tmp_path / "claims"
+    root.mkdir()
+    ClaimStore(root, "owner", now=0.0)._claim("t1")  # claimed at now=0
+    # Well within the stale window: the claim is still live.
+    assert has_live_claim(root, now=1.0) is True
+
+
 def test_select_returns_none_when_all_tasks_claimed_by_others(tmp_path):
     root = tmp_path / "claims"
     other = ClaimStore(root, "other", now=0.0)

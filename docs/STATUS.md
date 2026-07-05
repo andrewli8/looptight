@@ -2731,19 +2731,14 @@ existing CLI session and makes no model or API calls of its own.
 - `rank_with_model`'s curated-source factor (`ranking.py:57`) is pinned to exactly
   `base_weight * 1.0` by `test_rank_with_model_curated_source_factor_is_one` in
   tests/test_propose.py: a `task-file` candidate with `category_failed` data scores 70.0.
+- `has_live_claim`'s True branch (an unexpired claim is present) now has direct unit
+  coverage: `test_has_live_claim_true_when_unexpired_claim_exists` in test_claims.py
+  creates a fresh claim at `now=0.0` and asserts `has_live_claim(root, now=1.0)` is
+  `True` — sibling of the existing expired-claim False-branch test.
 
 ## Next
 
-1. `has_live_claim` in `claims.py` has only one direct unit test — the False branch
-   (all claims expired). The True branch (an unexpired claim is present) is never
-   exercised directly in `tests/test_claims.py`, leaving the primary use case of the
-   function without a unit-level pin.
-   Evidence: `tests/test_claims.py:128`;
-   Acceptance: `test_has_live_claim_true_when_unexpired_claim_exists` in
-   `tests/test_claims.py` creates a fresh claim at `now=0.0` and asserts
-   `has_live_claim(root, now=1.0)` is `True`, failing before the test is added.
-
-2. `tasks.py` opens the coordinator without a `try/finally`, so an unexpected
+1. `tasks.py` opens the coordinator without a `try/finally`, so an unexpected
    exception in `coordinator.start_run`, `heartbeat`, `reap_abandoned`, or `claim`
    skips `coordinator.close()` at line 178, leaking the SQLite connection. The same
    module's sibling `propose.py` wraps the identical pattern in `try/finally`.
