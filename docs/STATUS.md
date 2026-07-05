@@ -2698,12 +2698,15 @@ existing CLI session and makes no model or API calls of its own.
   in `tests/test_summary.py` assert the human-readable phrases ("no verify command (no verify, no
   loop)" and "no coding agent found on PATH") appear in the rendered summary, so a regression
   dropping these entries from `_REASON_TEXT` can no longer go silently undetected.
+- `RunResult.as_dict()` escalation branch is pinned: `test_run_result_as_dict_serializes_escalation_keys`
+  in `tests/test_summary.py` creates a `RunResult` with a non-None `Escalation` and asserts all
+  expected keys ("kind", "failures", "trajectory", "summary", "persisted", "total_failures") are
+  present in `as_dict()["escalation"]`, so a regression dropping a key from `Escalation.as_dict()`
+  would be caught rather than silently breaking `run --json` consumers.
 
 ## Next
 
-1. `RunResult.as_dict()` escalation branch is untested: the conditional at `src/looptight/types.py:168` (`self.escalation.as_dict() if self.escalation else None`) serializes escalation data into the `run --json` envelope, but the CLI test at `tests/test_cli.py:3354` only exercises the None branch. A regression removing a key from `Escalation.as_dict()` would silently break the documented JSON contract. Evidence: `src/looptight/types.py:168`; Acceptance: a new test creates a `RunResult` with a non-None `Escalation` and asserts `result.as_dict()["escalation"]` is a dict containing "kind", "failures", "trajectory", "summary", "persisted", and "total_failures"; `uv run pytest -q` passes.
-
-3. `from_status_next(cap=None)` returning more than 6 items is never tested: the `cap is not None` guard at `src/looptight/discovery.py:628` makes `cap=None` read the uncapped raw count, which `score_status_next` relies on to score batches honestly. No test writes more than 6 tasks and verifies the full set is returned; a regression changing the guard to `cap > 0` would silently cap `score_status_next` at 6 and report incorrect groundedness. Evidence: `src/looptight/discovery.py:628`; Acceptance: a new test in `tests/test_propose.py` writes 8 tasks (each with `Acceptance:`) to a STATUS.md, calls `from_status_next(root, cap=None)` and asserts 8 items, then calls `from_status_next(root)` and asserts 6; `uv run pytest -q tests/test_propose.py` passes.
+1. `from_status_next(cap=None)` returning more than 6 items is never tested: the `cap is not None` guard at `src/looptight/discovery.py:628` makes `cap=None` read the uncapped raw count, which `score_status_next` relies on to score batches honestly. No test writes more than 6 tasks and verifies the full set is returned; a regression changing the guard to `cap > 0` would silently cap `score_status_next` at 6 and report incorrect groundedness. Evidence: `src/looptight/discovery.py:628`; Acceptance: a new test in `tests/test_propose.py` writes 8 tasks (each with `Acceptance:`) to a STATUS.md, calls `from_status_next(root, cap=None)` and asserts 8 items, then calls `from_status_next(root)` and asserts 6; `uv run pytest -q tests/test_propose.py` passes.
 
 ## Rules
 

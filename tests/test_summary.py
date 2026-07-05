@@ -227,3 +227,34 @@ def test_render_rich_shows_escalation_evidence_in_rich_output():
     text = output.getvalue()
     assert "No progress across 2 tries. 1 failure never cleared." in text
     assert "tests/test_auth.py::test_login" in text
+
+
+def test_run_result_as_dict_serializes_escalation_keys():
+    # types.py:168 — the non-None escalation branch of RunResult.as_dict() must include
+    # all expected keys; a regression removing a key would silently break `run --json`.
+    from looptight.types import Escalation
+
+    esc = Escalation(
+        kind="escalated",
+        iterations=2,
+        trajectory=(-2.0, -2.0),
+        failures=("FAILED tests/test_auth.py::test_login - AssertionError",),
+        summary="No progress across 2 tries. 1 failure never cleared.",
+        persisted=True,
+        total_failures=1,
+    )
+    result = RunResult(
+        goal="fix auth",
+        agent="claude",
+        mode="supply",
+        stop_reason=StopReason.ESCALATED,
+        escalation=esc,
+    )
+    d = result.as_dict()
+    esc_dict = d["escalation"]
+    assert isinstance(esc_dict, dict)
+    for key in ("kind", "failures", "trajectory", "summary", "persisted", "total_failures"):
+        assert key in esc_dict, f"as_dict()['escalation'] missing key {key!r}"
+    assert esc_dict["kind"] == "escalated"
+    assert esc_dict["persisted"] is True
+    assert esc_dict["total_failures"] == 1
