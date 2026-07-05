@@ -2753,19 +2753,15 @@ existing CLI session and makes no model or API calls of its own.
   mocks both `stash create` and `rev-parse HEAD` to return exit-0 with empty stdout,
   confirming `snapshot()` returns `None` and appends nothing to `snapshots`.
 
+- `_initialize_schema`'s busy/locked retry loop is directly covered:
+  `test_initialize_schema_retries_on_busy_error` in tests/test_coordinator.py uses a
+  proxy wrapper to raise `sqlite3.OperationalError("database is busy")` on the first
+  `PRAGMA journal_mode` call and asserts `_initialize_schema` succeeds on retry without
+  raising — a regression narrowing the guard is now caught.
+
 ## Next
 
-1. `_initialize_schema`'s busy/locked retry loop is not covered: the `except
-   sqlite3.OperationalError` clause at coordinator.py:166 only retries when the error
-   message contains "locked" or "busy", but no test injects a "database is busy" error
-   and confirms the coordinator opens successfully on the second attempt — a regression
-   narrowing the guard would silently break multi-process coordination.
-   Evidence: src/looptight/coordinator.py:167
-   Acceptance: `test_initialize_schema_retries_on_busy_error` in tests/test_coordinator.py
-   monkeypatches the first `connection.execute` call to raise
-   `sqlite3.OperationalError("database is busy")` and asserts `Coordinator.open` succeeds.
-
-2. `_committed_result_in_worktree`'s success return (integration_queue.py:197) is never
+1. `_committed_result_in_worktree`'s success return (integration_queue.py:197) is never
    exercised: the function returns the worktree HEAD SHA when the commit carries the
    integration trailer, but no test puts a trailer commit in the worktree and verifies
    the SHA is returned — a regression dropping the return would silently make crash

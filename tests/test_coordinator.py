@@ -617,3 +617,42 @@ def test_coordination_scope_reports_three_states(tmp_path):
     marker.mkdir(parents=True, exist_ok=True)
     (marker / MARKER_NAME).write_text("{}", encoding="utf-8")
     assert coordination_scope(repo) == "coordinator"  # marker present
+
+
+def test_initialize_schema_retries_on_busy_error(tmp_path, monkeypatch):
+    # The busy/locked retry loop in _initialize_schema tolerates a transient "database
+    # is busy" OperationalError and retries until the connection succeeds.  A regression
+    # narrowing the guard (e.g. requiring "database is locked" literally) would silently
+    # break multi-process coordination by letting the error escape as CoordinatorUnavailable.
+    import looptight.coordinator as coord
+
+    monkeypatch.setattr(coord, "_INIT_RETRY_SLEEP_S", 0)  # no actual sleeping
+
+    # sqlite3.Connection.execute is a read-only C attribute; use a proxy wrapper instead.
+    journal_calls = [0]
+
+    class BusyOnFirstJournal:
+        def __init__(self, conn):
+            self._conn = conn
+
+        def execute(self, sql, *a, **kw):
+            if "journal_mode" in str(sql):
+                journal_calls[0] += 1
+                if journal_calls[0] == 1:
+                    raise sqlite3.OperationalError("database is busy")
+            return self._conn.execute(sql, *a, **kw)
+
+        def executescript(self, script):
+            return self._conn.executescript(script)
+
+        def __getattr__(self, name):
+            return getattr(self._conn, name)
+
+    conn = sqlite3.connect(str(tmp_path / "test.db"), isolation_level=None)
+    proxy = BusyOnFirstJournal(conn)
+    try:
+        coord._initialize_schema(proxy)  # must not raise despite first "busy" error
+    finally:
+        conn.close()
+
+    assert journal_calls[0] >= 2  # first call raised; second succeeded via retry
