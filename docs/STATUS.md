@@ -2696,8 +2696,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-3. `next --json` ConfigError JSON envelope is not tested: the generic handler in `cli.py:450` emits `{"error": "config_error"}` for any command that lets `ConfigError` propagate, but `tests/test_cli.py:1718` only covers `status` and `doctor`. A refactor that moves ConfigError handling into `cmd_next` could silently break the contract. Evidence: `src/looptight/cli.py:450`; `tests/test_cli.py:1718`; Acceptance: the existing loop at line 1718 includes `"next"`, a git repo is initialized in the fixture so `cmd_next` reaches `load_config`, and the test asserts exit 2 with `{"error": "config_error"}` in stdout.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

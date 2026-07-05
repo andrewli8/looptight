@@ -1712,10 +1712,13 @@ def test_json_commands_emit_a_json_envelope_on_config_error(tmp_path, monkeypatc
     # A malformed config must not break the --json contract: a --json command emits a
     # parseable error envelope, not a plain-text "config error" line that no JSON consumer
     # can read. The human path still prints the readable detail.
+    import subprocess as _sp
+
     monkeypatch.chdir(tmp_path)
+    _sp.run(["git", "init", "-q"], cwd=tmp_path, check=True)  # cmd_next needs a git repo to reach load_config
     (tmp_path / ".looptight.toml").write_text('verify = "pytest\n')  # unterminated string
 
-    for command in ("status", "doctor"):
+    for command in ("status", "doctor", "next"):
         assert main([command, "--json"]) == 2
         data = json.loads(capsys.readouterr().out)
         assert data["command"] == command
