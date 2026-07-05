@@ -2696,8 +2696,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-2. `_stall_signal`'s `result.passed or not entries` guard at line 132 has no direct test: a passing verify result should return `None` immediately, but only the `patience <= 0` early-return (line 116) has a direct test. A regression deleting line 132 would leave no test failure. Evidence: `src/looptight/protocol_commands.py:132`; Acceptance: a test in `tests/test_cli.py` calls `_stall_signal` with a mock `result` whose `.passed` is `True`, asserts `None` is returned, and a second call with `result.passed=False` and no trajectory entries also returns `None`.
-
 3. `next --json` ConfigError JSON envelope is not tested: the generic handler in `cli.py:450` emits `{"error": "config_error"}` for any command that lets `ConfigError` propagate, but `tests/test_cli.py:1718` only covers `status` and `doctor`. A refactor that moves ConfigError handling into `cmd_next` could silently break the contract. Evidence: `src/looptight/cli.py:450`; `tests/test_cli.py:1718`; Acceptance: the existing loop at line 1718 includes `"next"`, a git repo is initialized in the fixture so `cmd_next` reaches `load_config`, and the test asserts exit 2 with `{"error": "config_error"}` in stdout.
 
 ## Rules

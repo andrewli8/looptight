@@ -3433,6 +3433,31 @@ def test_stall_signal_returns_none_when_patience_is_zero(tmp_path):
     assert result is None
 
 
+def test_stall_signal_returns_none_on_passing_result(tmp_path):
+    # protocol_commands.py:132 — a passing verify result returns None immediately
+    # after recording (trajectory clears its file on pass). A regression removing
+    # this guard would cause stall logic to run on every pass.
+    import types
+
+    import looptight.protocol_commands as pc
+
+    passing = types.SimpleNamespace(passed=True, output="")
+    assert pc._stall_signal(tmp_path, "pytest", passing, patience=3) is None
+
+
+def test_stall_signal_returns_none_when_no_trajectory_entries(tmp_path):
+    # protocol_commands.py:132 — when trajectory.record returns [] (e.g. outside a
+    # git repo), the stall logic has nothing to assess and must return None rather
+    # than crashing on an empty history.
+    import types
+
+    import looptight.protocol_commands as pc
+
+    # tmp_path is not a git worktree, so trajectory.record returns []
+    failing = types.SimpleNamespace(passed=False, output="some failure output", score=None)
+    assert pc._stall_signal(tmp_path, "pytest", failing, patience=3) is None
+
+
 def test_task_source_health_counts_discoverable_signals(tmp_path):
     # Auto-discovered TODOs/skips are looptight's primary task source. A repo with
     # discoverable work is a healthy task source, even without a configured tasks
