@@ -128,6 +128,25 @@ def test_timeout_preserves_partial_verify_output(tmp_path):
     assert result.status == "timeout"
 
 
+def test_run_verify_sets_git_terminal_prompt(tmp_path, monkeypatch):
+    """Popen must receive GIT_TERMINAL_PROMPT=0 so headless git never blocks on a credential prompt."""
+    import subprocess as _subprocess
+    from unittest.mock import patch
+
+    captured_env = {}
+
+    original_popen = _subprocess.Popen
+
+    def fake_popen(*args, **kwargs):
+        captured_env.update(kwargs.get("env") or {})
+        return original_popen(*args, **kwargs)
+
+    with patch("looptight.verify.subprocess.Popen", side_effect=fake_popen):
+        run_verify("exit 0", tmp_path)
+
+    assert captured_env.get("GIT_TERMINAL_PROMPT") == "0"
+
+
 @pytest.mark.skipif(os.name != "posix", reason="posix process-group orphan test")
 def test_timeout_stops_delayed_child_process_work(tmp_path):
     # The Windows taskkill branch is covered by test_proctree; here we prove the

@@ -7,6 +7,7 @@ so the same machinery supports score-gated loops, not just pass/fail.
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess
 import time
@@ -81,6 +82,7 @@ def run_verify(
             stderr=subprocess.PIPE,
             text=True,
             errors="replace",  # verify output is untrusted bytes; never crash on bad UTF-8
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
             **new_process_group_kwargs(),
         )
         stdout, stderr = proc.communicate(timeout=timeout_s)
