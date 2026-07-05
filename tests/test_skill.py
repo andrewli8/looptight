@@ -54,6 +54,26 @@ def test_init_hints_at_install_skill_under_claude_code(tmp_path, monkeypatch, ca
     assert "install-skill" in capsys.readouterr().out
 
 
+def test_install_skill_atomic_write_cleans_up_on_os_replace_failure(tmp_path, monkeypatch):
+    path = skill_path(tmp_path)
+    tmp_file = path.with_suffix(".tmp")
+
+    def boom(src, dst):
+        raise OSError("injected failure")
+
+    monkeypatch.setattr("looptight.fsutil.os.replace", boom)
+
+    try:
+        install_skill(home=tmp_path)
+    except OSError:
+        pass
+    else:
+        raise AssertionError("OSError should have been re-raised")
+
+    assert not tmp_file.exists(), "stale .tmp must be removed on failure"
+    assert not path.exists(), "target must not exist after a failed write"
+
+
 def test_install_skill_tolerates_non_utf8_existing_file(tmp_path, monkeypatch, capsys):
     # A non-UTF-8 SKILL.md must not crash `install-skill`: the "already up to date"
     # read should treat an unreadable file as not-current and rewrite, matching the

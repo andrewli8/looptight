@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from looptight.fsutil import atomic_write_text
+
 SKILL_MD = """---
 name: looptight
 description: Use when the user wants a test-gated work loop, to burn down a backlog \
@@ -68,6 +70,5 @@ def skill_path(home: Path | None = None) -> Path:
 def install_skill(home: Path | None = None) -> Path:
     """Write the looptight skill for Claude Code and return its path."""
     path = skill_path(home)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(SKILL_MD, encoding="utf-8")
+    atomic_write_text(path, SKILL_MD)
     return path

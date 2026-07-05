@@ -2712,19 +2712,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `install_skill` writes SKILL.md non-atomically: a crash between `open()` and
-   close leaves a truncated `~/.claude/skills/looptight/SKILL.md`. Switch
-   `path.write_text(SKILL_MD, ...)` to `atomic_write_text(path, SKILL_MD)`, matching
-   the write pattern used by `settings.py`, `goal.py`, `config.py`, and
-   `integration.py`.
-   Evidence: `src/looptight/skill.py:72`;
-   Acceptance: `test_install_skill_atomic_write_cleans_up_on_os_replace_failure` in
-   `tests/test_skill.py` monkeypatches `os.replace` to raise `OSError`, asserts the
-   call raises, and asserts no `.tmp` remains — parallel to
-   `test_atomic_write_text_removes_tmp_and_reraises_on_os_replace_failure` in
-   `test_fsutil.py`.
-
-2. `activate_from_legacy` (coordinator.py:381) writes the coordinator activation
+1. `activate_from_legacy` (coordinator.py:381) writes the coordinator activation
    marker non-atomically via `marker.write_text(...)`. A crash mid-write leaves an
    empty file that satisfies `marker.exists()` but contains no valid JSON — and,
    crucially, a subsequent idempotent `activate_from_legacy` call returns early (line
@@ -2736,7 +2724,7 @@ existing CLI session and makes no model or API calls of its own.
    raises, and asserts no `.tmp` or empty marker remains — proving the re-entrancy
    guard (line 375) cannot be tripped by a half-written marker.
 
-3. `_area`'s `return candidate.source` fallback (idea_eval.py:54) has no direct unit
+2. `_area`'s `return candidate.source` fallback (idea_eval.py:54) has no direct unit
    test: the branch fires when a candidate's `detail` field names no `Evidence:` anchor,
    but the existing `test_area_no_colon_ref_and_top_level_file_branches` covers only
    the `refs`-populated path. The fallback is the flexibility metric's denominator for
