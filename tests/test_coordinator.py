@@ -656,3 +656,26 @@ def test_initialize_schema_retries_on_busy_error(tmp_path, monkeypatch):
         conn.close()
 
     assert journal_calls[0] >= 2  # first call raised; second succeeded via retry
+
+
+def test_coordinator_init_retries_on_database_locked(tmp_path, monkeypatch):
+    # _initialize_schema line 172: when every attempt raises "database is locked",
+    # the retry loop exhausts all _INIT_RETRY_ATTEMPTS and re-raises the last error.
+    # This covers the "raise last" branch that the existing busy-success test never reaches.
+    import looptight.coordinator as coord
+
+    monkeypatch.setattr(coord, "_INIT_RETRY_SLEEP_S", 0)
+    monkeypatch.setattr(coord, "_INIT_RETRY_ATTEMPTS", 3)
+
+    class AlwaysLocked:
+        def execute(self, sql, *a, **kw):
+            raise sqlite3.OperationalError("database is locked")
+
+        def executescript(self, script):
+            raise sqlite3.OperationalError("database is locked")
+
+        def __getattr__(self, name):
+            return getattr(sqlite3.connect(":memory:"), name)
+
+    with pytest.raises(sqlite3.OperationalError, match="locked"):
+        coord._initialize_schema(AlwaysLocked())

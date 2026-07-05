@@ -2783,17 +2783,16 @@ existing CLI session and makes no model or API calls of its own.
   ...)` carrying the push error. Covered by `test_plan_next_tasks_fails_when_push_fails` in
   `tests/test_swarm.py`.
 
+- `_initialize_schema` exhausted-retry path is covered: when every attempt raises
+  "database is locked", the retry loop exhausts all `_INIT_RETRY_ATTEMPTS` and re-raises
+  the last error at line 172. Covered by `test_coordinator_init_retries_on_database_locked`
+  in `tests/test_coordinator.py`.
+
 ## Next
 
-1. `Coordinator._init_schema` busy-retry loop is not covered: lines 169-172 retry
-   on `database is locked` / `database is busy` but no test injects that error.
-   Evidence: `src/looptight/coordinator.py:169`
-   Acceptance: `test_coordinator_init_retries_on_database_locked` added to
-   `tests/test_coordinator.py` passes and `looptight verify` reports pass.
-
-2. `next_task`'s file-claims path with existing candidates is not covered: when
+1. `next_task`'s file-claims path with existing candidates is not covered: when
    `claim_dir()` returns a non-None directory and tasks exist, line 186 calls
-   `ClaimStore.select(tasks)` but no test exercises this non-coordinator code path.
+   `ClaimStore.select(tasks)` but no test exercises this non-coordinator path.
    Evidence: `src/looptight/tasks.py:186`
    Acceptance: `test_next_task_file_claims_selects_from_candidates` added to
    `tests/test_tasks.py` passes and `looptight verify` reports pass.
