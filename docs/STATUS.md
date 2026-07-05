@@ -2710,27 +2710,22 @@ existing CLI session and makes no model or API calls of its own.
   a regression changing the `cap is not None` guard at `discovery.py:628` to `cap > 0`
   would be caught before silently mis-scoring `score_status_next` batches.
 
-- The grounding gate in `from_task_file` now scans only the task text before
-  `Acceptance:` for evidence anchors. Previously it scanned the full text, so an
-  acceptance clause that mentioned `` `Evidence:` `` (a backtick-delimited word, e.g.
-  "a candidate whose detail has no `Evidence:` marker") followed by any later backtick
-  span caused the regex to capture the intervening text as a false non-resolving anchor
-  — silently dropping a task whose real `Evidence:` path was valid. Root cause of the
-  current `## Next` item having `groundedness: 0.0`; covered by
+- `_EVIDENCE_RE` in `grounding.py` uses a negative lookbehind `(?<!`)` so a backtick-
+  preceded `Evidence:` (i.e., inside a code span such as `` `Evidence:` ``) is not
+  matched as an anchor marker. Previously, a task description that mentioned
+  `` `Evidence:` anchor`` (with a backtick-delimited follow-on token) caused the regex
+  to capture the intervening text as a false non-resolving anchor, silently dropping the
+  task from the grounded queue even when its real `Evidence:` path was valid. The
+  grounding gate in `from_task_file` now also scans only the task text before
+  `Acceptance:`, not the full text, for double protection. Both root causes of the prior
+  `## Next` item having `groundedness: 0.0`. `_area`'s `return candidate.source`
+  fallback (`idea_eval.py:54`) is covered by `test_area_returns_source_when_candidate_has_no_refs`;
+  the regex fix is covered by `test_evidence_refs_ignores_evidence_in_backtick_code_span`
+  in `tests/test_idea_eval.py` and
   `test_from_status_next_grounding_gate_ignores_evidence_mentions_in_acceptance` in
   `tests/test_propose.py`.
 
 ## Next
-
-1. `_area`'s `return candidate.source` fallback (idea_eval.py:54) has no direct unit
-   test: the branch fires when a candidate's `detail` field names no `Evidence:` anchor,
-   but the existing `test_area_no_colon_ref_and_top_level_file_branches` covers only
-   the `refs`-populated path. The fallback is the flexibility metric's denominator for
-   anchor-free tasks like a pure `Refactor` item and silently affects `score_status_next`.
-   Evidence: `src/looptight/idea_eval.py:54`;
-   Acceptance: `test_area_returns_source_when_candidate_has_no_refs` in
-   `tests/test_idea_eval.py` calls `_area` with a candidate whose detail has no
-   `Evidence:` marker and asserts the return value equals `candidate.source`.
 
 ## Rules
 

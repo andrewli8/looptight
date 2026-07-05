@@ -32,7 +32,10 @@ __all__ = [
 # of the path — or, when undecorated, a bare token that ends at the first
 # whitespace, ``;`` or ``,`` (which begin a following clause or prose). Cite
 # multiple files with multiple ``Evidence:`` markers, not a list.
-_EVIDENCE_RE = re.compile(r"\bEvidence:[\s*]*(?:`([^`]+)`|([^\s;,`*]+))")
+# The negative lookbehind ``(?<!`)`` prevents matching ``Evidence:`` when it is
+# itself inside a backtick code span (e.g. "names no ``Evidence:`` anchor"), which
+# would otherwise cause the regex to capture the following text as a false anchor.
+_EVIDENCE_RE = re.compile(r"(?<!`)\bEvidence:[\s*]*(?:`([^`]+)`|([^\s;,`*]+))")
 
 
 def strip_anchor_decoration(ref: str) -> str:

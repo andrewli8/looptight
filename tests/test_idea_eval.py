@@ -117,6 +117,25 @@ def test_area_no_colon_ref_and_top_level_file_branches():
     assert _area(top_level) == "README.md"
 
 
+def test_area_returns_source_when_candidate_has_no_refs():
+    # The fallback branch (idea_eval.py:54): when a candidate's detail names no
+    # Evidence: anchor, _area returns candidate.source (the task source label).
+    no_anchor = _candidate("Refactor everything", "Refactor everything. Acceptance: x")
+    assert _area(no_anchor) == no_anchor.source
+
+
+def test_evidence_refs_ignores_evidence_in_backtick_code_span():
+    # Regression: `Evidence:` inside a backtick code span (e.g. "names no `Evidence:`
+    # anchor") was matched by the regex, and the text up to the next backtick was
+    # captured as a false anchor.  The negative lookbehind (?<!`) guards against this.
+    cand = _candidate(
+        "T",
+        "T. The function names no `Evidence:` anchor here, but another `token`."
+        " Evidence: src/a.py:1; Acceptance: x",
+    )
+    assert evidence_refs(cand) == ["src/a.py:1"]
+
+
 def test_score_batch_rewards_a_grounded_diverse_bounded_batch(tmp_path):
     _repo_with_files(tmp_path)
     good = [
