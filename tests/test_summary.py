@@ -40,6 +40,20 @@ def test_summary_shows_stop_reasons():
     assert "human" in summary.render(_result(StopReason.ESCALATED))
 
 
+def test_summary_shows_no_verify_stop_reason():
+    # summary.py:18 — NO_VERIFY entry in _REASON_TEXT must produce the human-readable phrase,
+    # not the snake_case fallback from result.stop_reason.value.
+    text = summary.render(RunResult(goal="x", agent="claude", mode="supply", stop_reason=StopReason.NO_VERIFY))
+    assert "no verify command" in text
+
+
+def test_summary_shows_agent_unavailable_stop_reason():
+    # summary.py:19 — AGENT_UNAVAILABLE entry in _REASON_TEXT must produce the human-readable
+    # phrase, not "agent_unavailable", so the user knows to install or configure an agent.
+    text = summary.render(RunResult(goal="x", agent="claude", mode="supply", stop_reason=StopReason.AGENT_UNAVAILABLE))
+    assert "no coding agent found on PATH" in text
+
+
 def test_zero_iteration_summary_has_no_double_blank():
     # A run that fails before any iteration (e.g. the agent crashes) must not print two blank
     # lines between the header/banner and the conclusion.
