@@ -622,3 +622,18 @@ def test_committed_result_in_worktree_returns_sha_when_trailer_present(tmp_path)
 
     assert result == head_sha
     assert len(result) == 40  # full SHA
+
+
+def test_prepare_integration_worktree_rejects_escaped_path(tmp_path, monkeypatch):
+    # integration_queue.py:162 — the escaped-path guard must raise IntegrationError when
+    # integration_worktree() returns a path that resolves outside the coordinator integration
+    # directory. A regression removing the guard could allow a manipulated target_ref to place
+    # a worktree at an arbitrary filesystem path.
+    from looptight import integration_queue as iq
+
+    repo = _repo(tmp_path / "r")
+    escaped = tmp_path / "evil_escape"
+    monkeypatch.setattr(iq, "integration_worktree", lambda *_a, **_kw: escaped)
+
+    with pytest.raises(iq.IntegrationError, match="escaped"):
+        prepare_integration_worktree(repo, "refs/heads/main")

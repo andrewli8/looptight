@@ -2851,17 +2851,14 @@ existing CLI session and makes no model or API calls of its own.
   with exactly one call made — a regression widening the "locked"/"busy" guard to swallow other
   `OperationalError` variants would now be caught.
 
-## Next
+- `prepare_integration_worktree`'s escaped-path safety guard (`integration_queue.py:162`) is
+  directly covered: `test_prepare_integration_worktree_rejects_escaped_path` in
+  `tests/test_integration_queue.py` monkeypatches `integration_worktree` to return a path outside
+  the coordinator directory and asserts `IntegrationError` matching "escaped" is raised — a
+  regression removing the guard could allow a manipulated `target_ref` to place a worktree at an
+  arbitrary filesystem path.
 
-1. `prepare_integration_worktree`'s escaped-path safety guard (`integration_queue.py:162`) is
-   uncovered: the guard rejects a computed worktree path that resolves outside the coordinator
-   directory, but the branch has no test — a regression removing the guard could allow a manipulated
-   `target_ref` to place a worktree at an arbitrary path.
-   Evidence: `src/looptight/integration_queue.py:162`;
-   Acceptance: `test_prepare_integration_worktree_rejects_escaped_path` in
-   `tests/test_integration_queue.py` monkeypatches `integration_worktree` to return a path outside
-   the expected base and asserts `IntegrationError` with "escaped" is raised; `looptight verify
-   --json` returns `"pass"`.
+## Next
 
 3. `run_swarm`'s push-queue-failure return (`swarm.py:742`) is uncovered: when `push=True`,
    workers merged, and `_publish_via_queue` returns anything other than `"pushed"`, the result
