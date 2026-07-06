@@ -330,6 +330,16 @@ def test_has_grounded_work_returns_false_on_exception(tmp_path, monkeypatch):
     assert _hook._has_grounded_work(tmp_path) is False
 
 
+def test_has_grounded_work_returns_true_when_propose_finds_candidates(tmp_path, monkeypatch):
+    # The True path of _has_grounded_work (hook.py:127): when propose returns a
+    # non-empty list the function must return True.
+    import looptight.hook as _hook
+    import looptight.propose as _propose
+
+    monkeypatch.setattr(_propose, "propose", lambda *a, **kw: [object()])
+    assert _hook._has_grounded_work(tmp_path) is True
+
+
 # ── _drift_directive end-to-end coverage ──────────────────────────────────────
 
 
