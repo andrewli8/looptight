@@ -2864,17 +2864,13 @@ existing CLI session and makes no model or API calls of its own.
   `result.pushed == "failed"` — a regression removing the failure check would silently claim
   success even when commits failed to publish via the integration queue.
 
-## Next
+- `_planner_worktree`'s `git worktree add` failure return (`swarm.py:570`) is covered:
+  `test_plan_next_tasks_fails_when_planner_worktree_creation_fails` in `tests/test_swarm.py`
+  monkeypatches `_git` so `git worktree add` exits nonzero and asserts `plan_next_tasks`
+  returns `PlanningResult("failed", ...)` carrying the error — distinct from the git-prereq
+  failure at line 563. No production change.
 
-4. `_create_planner_worktree`'s `git worktree add` failure return (`swarm.py:570`) is uncovered:
-   when the planner worktree cannot be created (e.g., storage full), the function returns
-   `(None, None, error)` rather than raising — but that specific return has no test, distinct from
-   the git-prereq failure already covered at line 563.
-   Evidence: `src/looptight/swarm.py:570`;
-   Acceptance: `test_plan_next_tasks_fails_when_planner_worktree_creation_fails` in
-   `tests/test_swarm.py` monkeypatches `_git` so `git worktree add` exits nonzero and asserts
-   `plan_next_tasks` returns `PlanningResult("failed", ...)` carrying the error; `looptight
-   verify --json` returns `"pass"`.
+## Next
 
 ## Rules
 

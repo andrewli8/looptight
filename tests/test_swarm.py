@@ -707,6 +707,26 @@ def test_plan_next_tasks_fails_gracefully_outside_a_git_repo(tmp_path):
     assert "Git repository" in (result.error or "")
 
 
+def test_plan_next_tasks_fails_when_planner_worktree_creation_fails(tmp_path, monkeypatch):
+    # _create_planner_worktree's git worktree add failure return (swarm.py:570) is distinct
+    # from the git-prereq failure: rev-parse succeeds, but worktree add exits nonzero
+    # (e.g. storage full).  plan_next_tasks must return PlanningResult("failed", ...) carrying
+    # the stderr message rather than crashing.
+    _repo(tmp_path)
+    real_git = swarm._git
+
+    def selective_git(root, *args):
+        if args[:2] == ("worktree", "add"):
+            return subprocess.CompletedProcess(["git"], 1, "", "no space left on device")
+        return real_git(root, *args)
+
+    monkeypatch.setattr("looptight.swarm._git", selective_git)
+    result = plan_next_tasks(tmp_path, agent="fake", verify="exit 0")
+
+    assert result.status == "failed"
+    assert "no space left on device" in (result.error or "")
+
+
 def test_swarm_cli_continuous_prints_round_summary(tmp_path, monkeypatch, capsys):
     # Continuous mode prints a "continuous · N rounds · M plans · K resumes" summary.
     monkeypatch.chdir(tmp_path)
