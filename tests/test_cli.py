@@ -3955,3 +3955,35 @@ def test_unquote_git_path_strips_quotes_and_leaves_plain_paths():
 
     assert _unquote_git_path('"path with spaces"') == "path with spaces"
     assert _unquote_git_path("plain/path") == "plain/path"
+
+
+def test_status_reads_legacy_claims_when_coordinator_absent(tmp_path, monkeypatch, capsys):
+    # protocol_commands.py:593-595: the else branch runs when Coordinator.open returns None
+    # and claim_dir returns a path — exercises ClaimStore.summary on the legacy file path.
+    import looptight.protocol_commands as pc
+    from looptight.claims import ClaimStore
+
+    monkeypatch.chdir(tmp_path)
+
+    # Prepare a claim directory (no coordinator marker, so _fail_closed_if_migrated is silent)
+    claim_store_dir = tmp_path / "looptight" / "claims"
+    claim_store_dir.mkdir(parents=True)
+
+    # No coordinator — forces the else branch
+    monkeypatch.setattr(pc.Coordinator, "open", staticmethod(lambda p: None))
+
+    # claim_dir returns the prepared directory
+    monkeypatch.setattr(pc, "claim_dir", lambda p: claim_store_dir)
+
+    # Spy: track ClaimStore.summary calls
+    summary_calls: list = []
+    real_summary = ClaimStore.summary
+
+    def _spy(self):
+        summary_calls.append(True)
+        return real_summary(self)
+
+    monkeypatch.setattr(ClaimStore, "summary", _spy)
+
+    assert main(["status"]) == 0
+    assert summary_calls, "ClaimStore.summary was not called on the legacy path"

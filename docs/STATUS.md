@@ -2818,17 +2818,15 @@ existing CLI session and makes no model or API calls of its own.
   `memory_file(tmp_path)` on every registered adapter and asserts the result equals
   `tmp_path / adapter.memory_filename` — the filename join had no test across all three adapters.
 
+- `cmd_status`'s legacy file-claims fallback (`protocol_commands.py:595`) now has direct coverage:
+  `test_status_reads_legacy_claims_when_coordinator_absent` in `tests/test_cli.py` patches
+  `Coordinator.open` to return `None` and `claim_dir` to return a directory, then asserts
+  `cmd_status` returns 0 and that `ClaimStore.summary` was called — the else branch was unreachable
+  in tests because the coordinator activates in any git repo.
+
 ## Next
 
-1. `cmd_status`'s legacy file-claims fallback (`protocol_commands.py:595`) is uncovered: the branch
-   runs when `Coordinator.open` returns `None` and `claim_dir` returns a non-None path (non-coordinator
-   repo with an active legacy claim file), exercising `ClaimStore.summary`.
-   Evidence: `src/looptight/protocol_commands.py:595`
-   Acceptance: `test_status_reads_legacy_claims_when_coordinator_absent` in `tests/test_cli.py`
-   monkeypatches `Coordinator.open` to `None` and `claim_dir` to return a directory, then
-   asserts `cmd_status` returns 0 and calls `ClaimStore.summary` — passes and `looptight verify` reports pass.
-
-4. `_handler(root)`'s `log_message` override (`ui.py:440`) is uncovered: the one-line `return`
+1. `_handler(root)`'s `log_message` override (`ui.py:440`) is uncovered: the one-line `return`
    suppresses HTTP request logs but is never called in tests, leaving the suppressor unverified.
    Evidence: `src/looptight/ui.py:440`
    Acceptance: `test_handler_log_message_is_suppressed` in `tests/test_ui.py` instantiates the
