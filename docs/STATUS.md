@@ -2798,8 +2798,6 @@ existing CLI session and makes no model or API calls of its own.
   and asserts `detect_verify` returns `"dotnet test"` — joining the `.sln`/`.fsproj`/
   `.vbproj` siblings already in the suite.
 
-## Next
-
 - `claim_dir`'s `GIT_TERMINAL_PROMPT=0` invariant is now covered:
   `test_claim_dir_sets_terminal_prompt_env` in `tests/test_claims.py` patches
   `subprocess.run` and asserts the env key is present, matching the parallel guard
@@ -2808,6 +2806,37 @@ existing CLI session and makes no model or API calls of its own.
 - `ClaimStore._fail_closed_if_migrated` is now covered: `test_claim_store_select_raises_when_migrated`
   in `tests/test_claims.py` writes the coordinator migration marker, then asserts both
   `select` and `summary` raise `LegacyClaimsDisabled` — proving the fail-closed guard fires.
+
+## Next
+
+1. `process_group_kwargs()`'s Windows branch (`proctree.py:24`) is never exercised: on POSIX
+   the test always takes the first branch and the NT branch (`creationflags`) is dead in CI.
+   Evidence: `src/looptight/proctree.py:24`
+   Acceptance: `test_process_group_kwargs_returns_creationflags_on_nt` in `tests/test_proctree.py`
+   monkeypatches `proctree.os.name` to `"nt"` and asserts the returned dict carries
+   `subprocess.CREATE_NEW_PROCESS_GROUP` under `"creationflags"` — passes and `looptight verify` reports pass.
+
+2. `Adapter.memory_file()` (`adapters/base.py:140`) has no test: every adapter test exercises the
+   provider path but never the base `memory_file` helper, leaving the filename join uncovered.
+   Evidence: `src/looptight/adapters/base.py:140`
+   Acceptance: `test_adapter_memory_file_is_under_workdir` in `tests/test_adapters.py` calls
+   `memory_file(tmp_path)` on a concrete adapter and asserts the result equals
+   `tmp_path / adapter.memory_filename` — passes and `looptight verify` reports pass.
+
+3. `cmd_status`'s legacy file-claims fallback (`protocol_commands.py:595`) is uncovered: the branch
+   runs when `Coordinator.open` returns `None` and `claim_dir` returns a non-None path (non-coordinator
+   repo with an active legacy claim file), exercising `ClaimStore.summary`.
+   Evidence: `src/looptight/protocol_commands.py:595`
+   Acceptance: `test_status_reads_legacy_claims_when_coordinator_absent` in `tests/test_cli.py`
+   monkeypatches `Coordinator.open` to `None` and `claim_dir` to return a directory, then
+   asserts `cmd_status` returns 0 and calls `ClaimStore.summary` — passes and `looptight verify` reports pass.
+
+4. `_handler(root)`'s `log_message` override (`ui.py:440`) is uncovered: the one-line `return`
+   suppresses HTTP request logs but is never called in tests, leaving the suppressor unverified.
+   Evidence: `src/looptight/ui.py:440`
+   Acceptance: `test_handler_log_message_is_suppressed` in `tests/test_ui.py` instantiates the
+   handler class returned by `_handler(root)`, calls `log_message(...)`, and asserts no output
+   is written — passes and `looptight verify` reports pass.
 
 ## Rules
 
