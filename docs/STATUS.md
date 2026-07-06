@@ -2788,14 +2788,12 @@ existing CLI session and makes no model or API calls of its own.
   the last error at line 172. Covered by `test_coordinator_init_retries_on_database_locked`
   in `tests/test_coordinator.py`.
 
-## Next
+- `next_task`'s file-claims path with existing candidates is now covered:
+  `test_next_task_file_claims_selects_from_candidates` in `tests/test_tasks.py` mocks
+  `Coordinator.open` to return `None` and `claim_dir` to return a non-None directory,
+  then asserts `ClaimStore.select` picks the task and writes a claim file.
 
-1. `next_task`'s file-claims path with existing candidates is not covered: when
-   `claim_dir()` returns a non-None directory and tasks exist, line 186 calls
-   `ClaimStore.select(tasks)` but no test exercises this non-coordinator path.
-   Evidence: `src/looptight/tasks.py:186`
-   Acceptance: `test_next_task_file_claims_selects_from_candidates` added to
-   `tests/test_tasks.py` passes and `looptight verify` reports pass.
+## Next
 
 ## Rules
 

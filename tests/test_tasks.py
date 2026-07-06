@@ -328,3 +328,30 @@ def test_next_task_closes_coordinator_on_exception(tmp_path):
     assert close_called, "coordinator.close() must be called even when an exception is raised"
 
 
+def test_next_task_file_claims_selects_from_candidates(tmp_path):
+    # When Coordinator.open returns None but claim_dir yields a non-None directory,
+    # next_task must route through ClaimStore.select (the legacy file-claims path).
+    from unittest.mock import patch
+
+    cand = Candidate(
+        title="Fix the serializer",
+        source="status-next",
+        location="docs/STATUS.md:10",
+        suggested_verify=None,
+        score=0.0,
+        detail="Fix it. Evidence: src/serializer.py:1",
+        acceptance="test passes",
+    )
+    private_dir = tmp_path / "claims"
+
+    with patch("looptight.tasks.Coordinator.open", return_value=None), \
+         patch("looptight.tasks.claim_dir", return_value=private_dir):
+        result = next_task(tmp_path, propose_fn=lambda w, limit=0: [cand])
+
+    assert result.status == "task"
+    assert result.task is not None
+    assert result.task["source"] == "status-next"
+    # ClaimStore.select must have written a claim file to private_dir.
+    assert any(private_dir.glob("*.json"))
+
+
