@@ -933,3 +933,13 @@ def test_session_panel_returns_empty_for_non_session_or_goal_status():
         "workers": [],
     }
     assert ui._session_panel(state) == ""
+
+
+def test_handler_log_message_is_suppressed(tmp_path, capsys):
+    # ui.py:440: log_message overrides BaseHTTPRequestHandler's method with a bare
+    # return, silencing HTTP request logs.  The override has no direct test.
+    handler = object.__new__(ui._handler(tmp_path))
+    handler.log_message("GET %s %s", "/", "200")
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""

@@ -2824,14 +2824,12 @@ existing CLI session and makes no model or API calls of its own.
   `cmd_status` returns 0 and that `ClaimStore.summary` was called — the else branch was unreachable
   in tests because the coordinator activates in any git repo.
 
-## Next
+- `_handler(root)`'s `log_message` override (`ui.py:440`) now has direct coverage:
+  `test_handler_log_message_is_suppressed` in `tests/test_ui.py` instantiates the handler class,
+  calls `log_message(...)`, and asserts stdout and stderr are both empty — confirming HTTP request
+  logs are silenced rather than leaking to the terminal.
 
-1. `_handler(root)`'s `log_message` override (`ui.py:440`) is uncovered: the one-line `return`
-   suppresses HTTP request logs but is never called in tests, leaving the suppressor unverified.
-   Evidence: `src/looptight/ui.py:440`
-   Acceptance: `test_handler_log_message_is_suppressed` in `tests/test_ui.py` instantiates the
-   handler class returned by `_handler(root)`, calls `log_message(...)`, and asserts no output
-   is written — passes and `looptight verify` reports pass.
+## Next
 
 ## Rules
 
