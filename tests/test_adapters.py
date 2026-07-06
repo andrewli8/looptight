@@ -349,3 +349,9 @@ def test_agent_launch_failure_is_returned_as_iteration_error(name, monkeypatch, 
     assert result.ok is False
     assert result.error == f"{name} exited 127"
     assert "permission denied" in result.transcript
+
+
+@pytest.mark.parametrize("name", available_adapter_names())
+def test_adapter_memory_file_is_under_workdir(name, tmp_path):
+    adapter = get_adapter(name)
+    assert adapter.memory_file(tmp_path) == tmp_path / adapter.memory_filename

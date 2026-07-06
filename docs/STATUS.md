@@ -2813,16 +2813,14 @@ existing CLI session and makes no model or API calls of its own.
   `unittest.mock.patch` (avoiding the pytest/pathlib WindowsPath collision) and asserts the
   returned dict carries the flag — all three `new_process_group_kwargs` branches covered.
 
+- `Adapter.memory_file()` (`adapters/base.py:140`) now has direct coverage:
+  `test_adapter_memory_file_is_under_workdir` in `tests/test_adapters.py` calls
+  `memory_file(tmp_path)` on every registered adapter and asserts the result equals
+  `tmp_path / adapter.memory_filename` — the filename join had no test across all three adapters.
+
 ## Next
 
-1. `Adapter.memory_file()` (`adapters/base.py:140`) has no test: every adapter test exercises the
-   provider path but never the base `memory_file` helper, leaving the filename join uncovered.
-   Evidence: `src/looptight/adapters/base.py:140`
-   Acceptance: `test_adapter_memory_file_is_under_workdir` in `tests/test_adapters.py` calls
-   `memory_file(tmp_path)` on a concrete adapter and asserts the result equals
-   `tmp_path / adapter.memory_filename` — passes and `looptight verify` reports pass.
-
-3. `cmd_status`'s legacy file-claims fallback (`protocol_commands.py:595`) is uncovered: the branch
+1. `cmd_status`'s legacy file-claims fallback (`protocol_commands.py:595`) is uncovered: the branch
    runs when `Coordinator.open` returns `None` and `claim_dir` returns a non-None path (non-coordinator
    repo with an active legacy claim file), exercising `ClaimStore.summary`.
    Evidence: `src/looptight/protocol_commands.py:595`
