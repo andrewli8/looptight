@@ -161,6 +161,12 @@ def test_limit_wait_caps_named_reset_and_backs_off_otherwise():
     assert limit_wait(0, 1, 5, 100) == 5        # zero retry_after -> falls through to backoff
 
 
+def test_limit_wait_treats_negative_retry_after_as_backoff():
+    from looptight.limits import limit_wait
+    # negative retry_after must fall through to exponential backoff, not sleep for abs(retry_after)
+    assert limit_wait(-10, 1, base=5, cap=100) == 5.0
+
+
 def test_classify_limit_uses_default_1_second_for_unrecognized_unit():
     # "fortnights" is not in _UNIT_SECONDS, so the .get(..., 1.0) default fires
     signal = classify_limit("rate limit; retry after 5 fortnights")

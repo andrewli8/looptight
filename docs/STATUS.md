@@ -2879,14 +2879,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `limit_wait` (`limits.py:153`) is not tested for a negative `retry_after` value:
-   the `retry_after > 0` guard correctly falls through to backoff, but no test exercises it —
-   only `None` and `0` are covered. A careless simplification of the condition to `if retry_after:`
-   would cause `limit_wait(-30, ...)` to sleep 30 s instead of computing backoff.
-   Evidence: `src/looptight/limits.py:153`
-   Acceptance: `test_limit_wait_treats_negative_retry_after_as_backoff` in `tests/test_limits.py`
-   asserts `limit_wait(-10, 1, base=5, cap=100) == 5.0`; `looptight verify --json` returns `"pass"`.
-
 3. `run_hook`'s drift-at-cap branch (`hook.py:265`) has no test: when `drift` is non-None but
    `prior >= config.max_iterations`, the `if drift and prior < ...` condition is False and
    `decide` allows the stop. A regression changing `<` to `<=` or removing the cap check would
