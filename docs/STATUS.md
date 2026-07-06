@@ -2872,6 +2872,32 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `test_docs.py` has no assertion that SPEC's Output contract section mentions
+   `current_quality` or `idea_quality` — both documented there (`docs/SPEC.md:287,290`)
+   but not locked by any doc test, so a SPEC edit dropping either field name passes silently.
+   Evidence: `docs/SPEC.md:287`
+   Acceptance: `test_spec_output_contract_documents_current_quality_and_idea_quality` in
+   `tests/test_docs.py` splits SPEC at `## Output contract` and asserts both
+   `"current_quality"` and `"idea_quality"` appear; `looptight verify --json` returns `"pass"`.
+
+2. `limit_wait` (`limits.py:153`) is not tested for a negative `retry_after` value:
+   the `retry_after > 0` guard correctly falls through to backoff, but no test exercises it —
+   only `None` and `0` are covered. A careless simplification of the condition to `if retry_after:`
+   would cause `limit_wait(-30, ...)` to sleep 30 s instead of computing backoff.
+   Evidence: `src/looptight/limits.py:153`
+   Acceptance: `test_limit_wait_treats_negative_retry_after_as_backoff` in `tests/test_limits.py`
+   asserts `limit_wait(-10, 1, base=5, cap=100) == 5.0`; `looptight verify --json` returns `"pass"`.
+
+3. `run_hook`'s drift-at-cap branch (`hook.py:265`) has no test: when `drift` is non-None but
+   `prior >= config.max_iterations`, the `if drift and prior < ...` condition is False and
+   `decide` allows the stop. A regression changing `<` to `<=` or removing the cap check would
+   trap a session in a forced refocus loop at cap with no test to catch it.
+   Evidence: `src/looptight/hook.py:265`
+   Acceptance: `test_run_hook_allows_stop_when_drifted_but_at_iteration_cap` in
+   `tests/test_hook.py` pre-loads the count at `max_iterations`, sets `drift_fn` to return a
+   non-None reason, calls `run_hook`, and asserts the output is `None` (stop allowed);
+   `looptight verify --json` returns `"pass"`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
