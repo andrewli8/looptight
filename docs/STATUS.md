@@ -2858,16 +2858,13 @@ existing CLI session and makes no model or API calls of its own.
   regression removing the guard could allow a manipulated `target_ref` to place a worktree at an
   arbitrary filesystem path.
 
-## Next
+- `run_swarm`'s push-queue-failure return (`swarm.py:742`) is directly covered:
+  `test_run_swarm_returns_push_failed_when_publish_queue_fails` in `tests/test_swarm.py`
+  monkeypatches `_publish_via_queue` to return `"failed"` with a merged worker and asserts
+  `result.pushed == "failed"` — a regression removing the failure check would silently claim
+  success even when commits failed to publish via the integration queue.
 
-3. `run_swarm`'s push-queue-failure return (`swarm.py:742`) is uncovered: when `push=True`,
-   workers merged, and `_publish_via_queue` returns anything other than `"pushed"`, the result
-   carries `pushed="failed"` — but this path has no test; the `_publish_via_queue` failure is
-   tested in isolation, not through `run_swarm`.
-   Evidence: `src/looptight/swarm.py:742`;
-   Acceptance: `test_run_swarm_returns_push_failed_when_publish_queue_fails` in
-   `tests/test_swarm.py` monkeypatches `_publish_via_queue` to return `"failed"` with a merged
-   worker and asserts `result.pushed == "failed"`; `looptight verify --json` returns `"pass"`.
+## Next
 
 4. `_create_planner_worktree`'s `git worktree add` failure return (`swarm.py:570`) is uncovered:
    when the planner worktree cannot be created (e.g., storage full), the function returns

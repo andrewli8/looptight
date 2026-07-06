@@ -852,6 +852,27 @@ def test_swarm_no_work_removes_empty_run_directory(tmp_path, monkeypatch):
     assert list((tmp_path / ".git" / "looptight" / "swarm").iterdir()) == []
 
 
+def test_run_swarm_returns_push_failed_when_publish_queue_fails(tmp_path, monkeypatch):
+    # swarm.py:742 — when push=True, at least one worker merged, and _publish_via_queue
+    # returns anything other than "pushed", run_swarm returns SwarmResult with pushed="failed".
+    # A regression removing this check would silently claim success even when commits failed
+    # to publish via the integration queue.
+    _repo(tmp_path)
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: EditingAdapter())
+    monkeypatch.setattr("looptight.swarm._publish_via_queue", lambda *_a, **_kw: "failed")
+
+    result = run_swarm(
+        tmp_path,
+        agent="fake",
+        config=Config(verify="exit 0", max_iterations=1),
+        workers=1,
+        push=True,
+    )
+
+    assert result.pushed == "failed"
+    assert any(w.status == "merged" for w in result.workers)
+
+
 def test_swarm_rejects_worker_changes_outside_claimed_task_scope(tmp_path, monkeypatch):
     _repo(tmp_path)
     base = subprocess.run(
