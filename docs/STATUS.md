@@ -2795,6 +2795,30 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `claim_dir` passes `GIT_TERMINAL_PROMPT=0` to its `git rev-parse` call
+   (claims.py:50) but no test asserts the env key, unlike the parallel
+   `test_has_dirty_git_worktree_sets_terminal_prompt_env` for tasks.py. A headless
+   `looptight next` inside a credential-locked repo could block on a prompt from
+   `claim_dir` just as easily as from `_has_dirty_git_worktree`.
+   Evidence: `src/looptight/claims.py:50`
+   Acceptance: `test_claim_dir_sets_terminal_prompt_env` added to `tests/test_claims.py`
+   passes and `looptight verify` reports pass.
+
+2. `ClaimStore._fail_closed_if_migrated` (claims.py:79) raises `LegacyClaimsDisabled`
+   when the coordinator migration marker exists, but no test exercises this path for
+   either `select` or `summary`. The fail-closed guard is the only thing that prevents
+   the legacy file-claim mechanism from silently running after a repository migrates.
+   Evidence: `src/looptight/claims.py:79`
+   Acceptance: `test_claim_store_select_raises_when_migrated` added to
+   `tests/test_claims.py` passes and `looptight verify` reports pass.
+
+3. `detect_verify`'s .NET branch (detect.py:98) matches `.sln`/`.csproj`/`.fsproj`/
+   `.vbproj` files and returns `"dotnet test"`, but no test exercises it — unlike every
+   other branch in the function.
+   Evidence: `src/looptight/detect.py:98`
+   Acceptance: `test_detect_verify_dotnet_csproj` added to `tests/test_detect.py`
+   passes and `looptight verify` reports pass.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
