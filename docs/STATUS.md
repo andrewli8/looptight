@@ -2879,6 +2879,36 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `plan_next_tasks` in `swarm.py` does not test the `rev-parse HEAD` failure at
+   line 645: after a successful planner commit, `_git(worktree, "rev-parse", "HEAD")`
+   could fail (e.g., worktree removed mid-execution), but no test exercises this branch.
+   A regression that silently skips the guard would use an empty SHA for the merge step.
+   Evidence: `src/looptight/swarm.py:645`
+   Acceptance: `test_plan_next_tasks_fails_when_rev_parse_head_fails` in
+   `tests/test_swarm.py` monkeypatches `swarm._git` so `rev-parse HEAD` on the
+   worktree returns nonzero; asserts `result.status == "failed"` with a diagnostic
+   message; `looptight verify --json` returns `"pass"`.
+
+2. The integration merge commit failure path at `integration_queue.py:323-324` has no
+   test: when `_git(worktree, "commit", ...)` returns nonzero after a successful
+   `git merge`, the code resets and returns `"failed"`, but no test exercises it.
+   A regression removing the check would silently proceed with an uncommitted merge.
+   Evidence: `src/looptight/integration_queue.py:323`
+   Acceptance: `test_integration_commit_failure_resets_and_returns_failed` in
+   `tests/test_integration_queue.py` monkeypatches `_git` so the `commit` call returns
+   nonzero, runs `Integrator(db).run_next(...)`, and asserts `outcome.status == "failed"`;
+   `looptight verify --json` returns `"pass"`.
+
+3. The reconcile recovery branch at `integration_queue.py:363` is untested: when
+   `update-ref` fails but `_trailer_commit_on_ref` finds our commit already on the ref
+   (crashed after commit, before update-ref, and another process completed it), the code
+   returns `"complete"` with the found sha. No test covers this narrow recovery path.
+   Evidence: `src/looptight/integration_queue.py:363`
+   Acceptance: `test_reconcile_finds_commit_on_ref_via_trailer_after_failed_update_ref`
+   in `tests/test_integration_queue.py` sets up a scenario where `update-ref` fails but
+   the integration commit is already on the target ref; asserts `outcome.status == "complete"`;
+   `looptight verify --json` returns `"pass"`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
