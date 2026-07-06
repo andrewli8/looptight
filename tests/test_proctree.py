@@ -93,6 +93,22 @@ def test_stop_process_tree_uses_taskkill_when_os_is_nt(monkeypatch):
     assert not process.killed  # taskkill succeeded, so the fallback kill is unused
 
 
+def test_process_group_kwargs_returns_creationflags_on_nt():
+    # proctree.py:24 — Windows branch; always dead on POSIX CI.
+    # CREATE_NEW_PROCESS_GROUP is Windows-only (512); use unittest.mock.patch to avoid
+    # the pytest monkeypatch / pathlib.WindowsPath collision on Linux.
+    import looptight.proctree as _proctree
+    import os as _os
+    import unittest.mock as _mock
+
+    _FAKE_FLAG = 512
+    with _mock.patch.object(_os, "name", "nt"), \
+         _mock.patch.object(_proctree.subprocess, "CREATE_NEW_PROCESS_GROUP", _FAKE_FLAG,
+                            create=True):
+        result = new_process_group_kwargs()
+    assert result == {"creationflags": _FAKE_FLAG}
+
+
 def test_new_process_group_kwargs_fallback_for_unknown_os(monkeypatch):
     monkeypatch.setattr("looptight.proctree.os.name", "other")
     assert new_process_group_kwargs() == {}

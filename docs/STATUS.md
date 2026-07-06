@@ -2807,16 +2807,15 @@ existing CLI session and makes no model or API calls of its own.
   in `tests/test_claims.py` writes the coordinator migration marker, then asserts both
   `select` and `summary` raise `LegacyClaimsDisabled` — proving the fail-closed guard fires.
 
+- `new_process_group_kwargs()`'s Windows branch (`proctree.py:24`) is now covered:
+  `test_process_group_kwargs_returns_creationflags_on_nt` in `tests/test_proctree.py` patches
+  `os.name` to `"nt"` and `subprocess.CREATE_NEW_PROCESS_GROUP` to a sentinel via
+  `unittest.mock.patch` (avoiding the pytest/pathlib WindowsPath collision) and asserts the
+  returned dict carries the flag — all three `new_process_group_kwargs` branches covered.
+
 ## Next
 
-1. `process_group_kwargs()`'s Windows branch (`proctree.py:24`) is never exercised: on POSIX
-   the test always takes the first branch and the NT branch (`creationflags`) is dead in CI.
-   Evidence: `src/looptight/proctree.py:24`
-   Acceptance: `test_process_group_kwargs_returns_creationflags_on_nt` in `tests/test_proctree.py`
-   monkeypatches `proctree.os.name` to `"nt"` and asserts the returned dict carries
-   `subprocess.CREATE_NEW_PROCESS_GROUP` under `"creationflags"` — passes and `looptight verify` reports pass.
-
-2. `Adapter.memory_file()` (`adapters/base.py:140`) has no test: every adapter test exercises the
+1. `Adapter.memory_file()` (`adapters/base.py:140`) has no test: every adapter test exercises the
    provider path but never the base `memory_file` helper, leaving the filename join uncovered.
    Evidence: `src/looptight/adapters/base.py:140`
    Acceptance: `test_adapter_memory_file_is_under_workdir` in `tests/test_adapters.py` calls
