@@ -2800,13 +2800,9 @@ existing CLI session and makes no model or API calls of its own.
   `subprocess.run` and asserts the env key is present, matching the parallel guard
   for `_has_dirty_git_worktree` in `tests/test_tasks.py`.
 
-2. `ClaimStore._fail_closed_if_migrated` (claims.py:79) raises `LegacyClaimsDisabled`
-   when the coordinator migration marker exists, but no test exercises this path for
-   either `select` or `summary`. The fail-closed guard is the only thing that prevents
-   the legacy file-claim mechanism from silently running after a repository migrates.
-   Evidence: `src/looptight/claims.py:79`
-   Acceptance: `test_claim_store_select_raises_when_migrated` added to
-   `tests/test_claims.py` passes and `looptight verify` reports pass.
+- `ClaimStore._fail_closed_if_migrated` is now covered: `test_claim_store_select_raises_when_migrated`
+  in `tests/test_claims.py` writes the coordinator migration marker, then asserts both
+  `select` and `summary` raise `LegacyClaimsDisabled` — proving the fail-closed guard fires.
 
 3. `detect_verify`'s .NET branch (detect.py:98) matches `.sln`/`.csproj`/`.fsproj`/
    `.vbproj` files and returns `"dotnet test"`, but no test exercises it — unlike every

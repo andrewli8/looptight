@@ -188,3 +188,25 @@ def test_claim_dir_sets_terminal_prompt_env(tmp_path):
 
     assert "env" in captured, "claim_dir must pass an explicit env to subprocess.run"
     assert captured["env"].get("GIT_TERMINAL_PROMPT") == "0"
+
+
+def test_claim_store_select_raises_when_migrated(tmp_path):
+    # _fail_closed_if_migrated must raise LegacyClaimsDisabled when the coordinator
+    # migration marker exists — the only guard preventing legacy file claims from
+    # running silently after a repository migrates to the SQLite coordinator.
+    from looptight.claims import MARKER_NAME, LegacyClaimsDisabled
+
+    root = tmp_path / "claims"
+    root.mkdir(parents=True)
+    # The marker lives one level above the claims dir (i.e. under looptight/).
+    (root.parent / MARKER_NAME).write_text("{}", encoding="utf-8")
+
+    store = ClaimStore(root, "owner", now=0.0)
+
+    import pytest
+
+    with pytest.raises(LegacyClaimsDisabled):
+        store.select([_task("t1")])
+
+    with pytest.raises(LegacyClaimsDisabled):
+        store.summary()
