@@ -2879,16 +2879,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-3. `run_hook`'s drift-at-cap branch (`hook.py:265`) has no test: when `drift` is non-None but
-   `prior >= config.max_iterations`, the `if drift and prior < ...` condition is False and
-   `decide` allows the stop. A regression changing `<` to `<=` or removing the cap check would
-   trap a session in a forced refocus loop at cap with no test to catch it.
-   Evidence: `src/looptight/hook.py:265`
-   Acceptance: `test_run_hook_allows_stop_when_drifted_but_at_iteration_cap` in
-   `tests/test_hook.py` pre-loads the count at `max_iterations`, sets `drift_fn` to return a
-   non-None reason, calls `run_hook`, and asserts the output is `None` (stop allowed);
-   `looptight verify --json` returns `"pass"`.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

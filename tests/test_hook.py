@@ -266,6 +266,27 @@ def test_run_hook_tolerates_malformed_config(tmp_path):
     assert code == 0
 
 
+def test_run_hook_allows_stop_when_drifted_but_at_iteration_cap(tmp_path, monkeypatch):
+    # drift is detected but prior >= max_iterations — the cap wins and stop is allowed.
+    # Without this test a change from `<` to `<=` at hook.py:265 would trap the session.
+    import looptight.hook as _hook
+    max_iter = 2
+    monkeypatch.setattr(
+        _hook, "_config_for",
+        lambda cwd: Config(verify="pytest -q", continue_through_backlog=True, max_iterations=max_iter),
+    )
+    monkeypatch.setattr(_hook, "read_count", lambda path: max_iter)
+    event = json.dumps({"cwd": str(tmp_path), "session_id": "s_cap", "stop_hook_active": True})
+    output, code = run_hook(
+        event,
+        verify_fn=lambda c, w: _pass(),
+        drift_fn=lambda w: "looptight: refocus on src/foo.py",
+        work_fn=lambda w: True,
+    )
+    assert output is None
+    assert code == 0
+
+
 def test_run_hook_fails_open_when_continuation_state_cannot_be_saved(tmp_path, monkeypatch):
     write_config(Config(verify="pytest -q"), tmp_path)
     event = json.dumps({"cwd": str(tmp_path), "session_id": "s1"})
