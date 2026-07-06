@@ -699,6 +699,36 @@ def test_plan_next_tasks_fails_when_push_fails(tmp_path, monkeypatch):
     assert "push rejected" in (result.error or "") or "could not push" in (result.error or "")
 
 
+def test_plan_next_tasks_fails_when_rev_parse_head_fails(tmp_path, monkeypatch):
+    # swarm.py:644: after a successful planner commit, rev-parse HEAD on the worktree
+    # could fail (e.g. the worktree was removed mid-execution); plan_next_tasks must
+    # return PlanningResult("failed", ...) carrying the diagnostic rather than crashing.
+    _repo(tmp_path)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "STATUS.md").write_text("# Status\n", encoding="utf-8")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-qm", "docs")
+    monkeypatch.setattr("looptight.swarm.get_adapter", lambda name: PlanningAdapter())
+
+    real_git = swarm._git
+    state = {"committed": False}
+
+    def selective_git(root, *args):
+        result = real_git(root, *args)
+        if args[:1] == ("commit",) and result.returncode == 0:
+            state["committed"] = True
+            return result
+        if args == ("rev-parse", "HEAD") and state["committed"]:
+            return subprocess.CompletedProcess(["git"], 1, "", "fatal: not a git repository")
+        return result
+
+    monkeypatch.setattr("looptight.swarm._git", selective_git)
+    result = plan_next_tasks(tmp_path, agent="fake", verify="exit 0")
+
+    assert result.status == "failed"
+    assert "fatal: not a git repository" in (result.error or "") or "could not resolve planner commit" in (result.error or "")
+
+
 def test_plan_next_tasks_fails_gracefully_outside_a_git_repo(tmp_path):
     # The continuous-swarm planner needs a Git repo with a commit; outside one it returns a
     # clear PlanningResult failure rather than crashing (the daemon must keep its footing).
