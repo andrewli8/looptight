@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import socket
 import subprocess
+from unittest.mock import patch
 
 from looptight.claims import ClaimStore, claim_dir, owner_id
 
@@ -168,3 +169,22 @@ def test_claim_rejects_falsy_id_and_read_tolerates_corrupt_file(tmp_path):
     bad = root / "bad.json"
     bad.write_text("not json{", encoding="utf-8")
     assert ClaimStore._read(bad) == {}  # corrupt JSON degrades to an empty dict
+
+
+def test_claim_dir_sets_terminal_prompt_env(tmp_path):
+    # claim_dir must pass GIT_TERMINAL_PROMPT=0 to git so a headless `looptight next`
+    # inside a credential-locked repo can never block on a prompt — the same invariant
+    # that test_has_dirty_git_worktree_sets_terminal_prompt_env guards in tasks.py.
+    import looptight.claims as claims_mod
+
+    captured: dict = {}
+
+    def fake_run(cmd, **kwargs):
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(cmd, 0, stdout=".git\n", stderr="")
+
+    with patch.object(claims_mod.subprocess, "run", fake_run):
+        claim_dir(tmp_path)
+
+    assert "env" in captured, "claim_dir must pass an explicit env to subprocess.run"
+    assert captured["env"].get("GIT_TERMINAL_PROMPT") == "0"

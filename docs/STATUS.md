@@ -2795,14 +2795,10 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `claim_dir` passes `GIT_TERMINAL_PROMPT=0` to its `git rev-parse` call
-   (claims.py:50) but no test asserts the env key, unlike the parallel
-   `test_has_dirty_git_worktree_sets_terminal_prompt_env` for tasks.py. A headless
-   `looptight next` inside a credential-locked repo could block on a prompt from
-   `claim_dir` just as easily as from `_has_dirty_git_worktree`.
-   Evidence: `src/looptight/claims.py:50`
-   Acceptance: `test_claim_dir_sets_terminal_prompt_env` added to `tests/test_claims.py`
-   passes and `looptight verify` reports pass.
+- `claim_dir`'s `GIT_TERMINAL_PROMPT=0` invariant is now covered:
+  `test_claim_dir_sets_terminal_prompt_env` in `tests/test_claims.py` patches
+  `subprocess.run` and asserts the env key is present, matching the parallel guard
+  for `_has_dirty_git_worktree` in `tests/test_tasks.py`.
 
 2. `ClaimStore._fail_closed_if_migrated` (claims.py:79) raises `LegacyClaimsDisabled`
    when the coordinator migration marker exists, but no test exercises this path for
