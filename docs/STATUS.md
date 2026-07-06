@@ -2864,6 +2864,13 @@ existing CLI session and makes no model or API calls of its own.
   `result.pushed == "failed"` — a regression removing the failure check would silently claim
   success even when commits failed to publish via the integration queue.
 
+- SPEC output contract's `current_quality` and `idea_quality` field names are locked:
+  `test_spec_output_contract_documents_current_quality_and_idea_quality` in
+  `tests/test_docs.py` extracts the `## Output contract` section (splitting on `\n## ` so
+  backtick-wrapped `` `## Next` `` inside the text does not truncate the extract) and
+  asserts both names appear. A SPEC edit dropping either passes no further tests silently.
+  No production change.
+
 - `_planner_worktree`'s `git worktree add` failure return (`swarm.py:570`) is covered:
   `test_plan_next_tasks_fails_when_planner_worktree_creation_fails` in `tests/test_swarm.py`
   monkeypatches `_git` so `git worktree add` exits nonzero and asserts `plan_next_tasks`
@@ -2872,15 +2879,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `test_docs.py` has no assertion that SPEC's Output contract section mentions
-   `current_quality` or `idea_quality` — both documented there (`docs/SPEC.md:287,290`)
-   but not locked by any doc test, so a SPEC edit dropping either field name passes silently.
-   Evidence: `docs/SPEC.md:287`
-   Acceptance: `test_spec_output_contract_documents_current_quality_and_idea_quality` in
-   `tests/test_docs.py` splits SPEC at `## Output contract` and asserts both
-   `"current_quality"` and `"idea_quality"` appear; `looptight verify --json` returns `"pass"`.
-
-2. `limit_wait` (`limits.py:153`) is not tested for a negative `retry_after` value:
+1. `limit_wait` (`limits.py:153`) is not tested for a negative `retry_after` value:
    the `retry_after > 0` guard correctly falls through to backoff, but no test exercises it —
    only `None` and `0` are covered. A careless simplification of the condition to `if retry_after:`
    would cause `limit_wait(-30, ...)` to sleep 30 s instead of computing backoff.

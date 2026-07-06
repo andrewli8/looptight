@@ -232,6 +232,18 @@ def test_spec_output_contract_documents_verify_patience_stall():
     assert "stall" in output_contract
 
 
+def test_spec_output_contract_documents_current_quality_and_idea_quality():
+    # SPEC.md:287,290 documents current_quality (additive on no_work next) and
+    # idea_quality (additive on status --json); neither has a doc-test lock, so a
+    # SPEC edit dropping either field name passes silently.
+    # Split on "\n## " (with newline) so backtick-wrapped `## Next` inside the
+    # section text doesn't truncate the extract before idea_quality appears.
+    spec = (_ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
+    output_contract = spec.split("## Output contract", 1)[1].split("\n## ", 1)[0]
+    assert "current_quality" in output_contract
+    assert "idea_quality" in output_contract
+
+
 def test_changelog_unreleased_does_not_claim_solo_loop_runs_on_file_claims():
     # The coordinator is the claim store in any Git repo (tasks.py), per the Fix-B
     # model now in usage.md/architecture.md. The CHANGELOG [Unreleased] must not carry
