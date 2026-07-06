@@ -117,6 +117,12 @@ def test_detect_verify_dotnet(tmp_path):
     assert detect.detect_verify(tmp_path) == "dotnet test"
 
 
+def test_detect_verify_dotnet_csproj(tmp_path):
+    # detect.py:98 — .csproj glob matches inside the project root.
+    (tmp_path / "MyLib.csproj").write_text("<Project></Project>\n")
+    assert detect.detect_verify(tmp_path) == "dotnet test"
+
+
 def test_detect_verify_dotnet_csproj_only(tmp_path):
     (tmp_path / "MyLib.csproj").write_text("<Project></Project>\n")
     assert detect.detect_verify(tmp_path) == "dotnet test"

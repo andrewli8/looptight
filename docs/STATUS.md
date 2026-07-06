@@ -2793,6 +2793,11 @@ existing CLI session and makes no model or API calls of its own.
   `Coordinator.open` to return `None` and `claim_dir` to return a non-None directory,
   then asserts `ClaimStore.select` picks the task and writes a claim file.
 
+- `detect_verify`'s .NET branch (detect.py:98) has direct coverage:
+  `test_detect_verify_dotnet_csproj` in `tests/test_detect.py` creates a `.csproj` file
+  and asserts `detect_verify` returns `"dotnet test"` — joining the `.sln`/`.fsproj`/
+  `.vbproj` siblings already in the suite.
+
 ## Next
 
 - `claim_dir`'s `GIT_TERMINAL_PROMPT=0` invariant is now covered:
@@ -2803,13 +2808,6 @@ existing CLI session and makes no model or API calls of its own.
 - `ClaimStore._fail_closed_if_migrated` is now covered: `test_claim_store_select_raises_when_migrated`
   in `tests/test_claims.py` writes the coordinator migration marker, then asserts both
   `select` and `summary` raise `LegacyClaimsDisabled` — proving the fail-closed guard fires.
-
-3. `detect_verify`'s .NET branch (detect.py:98) matches `.sln`/`.csproj`/`.fsproj`/
-   `.vbproj` files and returns `"dotnet test"`, but no test exercises it — unlike every
-   other branch in the function.
-   Evidence: `src/looptight/detect.py:98`
-   Acceptance: `test_detect_verify_dotnet_csproj` added to `tests/test_detect.py`
-   passes and `looptight verify` reports pass.
 
 ## Rules
 
