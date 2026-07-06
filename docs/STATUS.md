@@ -2844,19 +2844,16 @@ existing CLI session and makes no model or API calls of its own.
   patches `subprocess.run` to return exit code 128 (bad ref) and asserts the function returns `{}`
   — the existing `git_not_found` test covered the OSError path but not the non-zero-exit path.
 
+- `_initialize_schema`'s non-locked/busy `OperationalError` re-raise (`coordinator.py:169`) is
+  directly covered: `test_initialize_schema_reraises_non_locked_operational_error` in
+  `tests/test_coordinator.py` uses a proxy connection that raises `OperationalError("disk I/O
+  error")` on the first `PRAGMA journal_mode` call and asserts the error propagates immediately
+  with exactly one call made — a regression widening the "locked"/"busy" guard to swallow other
+  `OperationalError` variants would now be caught.
+
 ## Next
 
-1. `_initialize_schema`'s non-locked/busy `OperationalError` re-raise (`coordinator.py:169`) is
-   uncovered: the guard distinguishes "retry on resource contention" from "fail on a real error"
-   (disk I/O, corrupt page), but the re-raise path has no test — a regression widening the
-   `"locked"/"busy"` check would silently swallow real errors.
-   Evidence: `src/looptight/coordinator.py:169`;
-   Acceptance: `test_initialize_schema_reraises_non_locked_operational_error` in
-   `tests/test_coordinator.py` patches the schema init to raise `OperationalError("disk I/O error")`
-   (no "locked"/"busy") and asserts it propagates without retry; `looptight verify --json` returns
-   `"pass"`.
-
-2. `prepare_integration_worktree`'s escaped-path safety guard (`integration_queue.py:162`) is
+1. `prepare_integration_worktree`'s escaped-path safety guard (`integration_queue.py:162`) is
    uncovered: the guard rejects a computed worktree path that resolves outside the coordinator
    directory, but the branch has no test — a regression removing the guard could allow a manipulated
    `target_ref` to place a worktree at an arbitrary path.

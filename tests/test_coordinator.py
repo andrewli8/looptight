@@ -679,3 +679,32 @@ def test_coordinator_init_retries_on_database_locked(tmp_path, monkeypatch):
 
     with pytest.raises(sqlite3.OperationalError, match="locked"):
         coord._initialize_schema(AlwaysLocked())
+
+
+def test_initialize_schema_reraises_non_locked_operational_error(tmp_path, monkeypatch):
+    # coordinator.py:169 — a non-locked/busy OperationalError (e.g. "disk I/O error")
+    # must propagate immediately without any retry. A regression that widens the
+    # "locked"/"busy" guard to swallow real errors would break on this test.
+    import looptight.coordinator as coord
+
+    monkeypatch.setattr(coord, "_INIT_RETRY_SLEEP_S", 0)
+
+    journal_calls = [0]
+
+    class DiskErrorOnJournal:
+        def execute(self, sql, *a, **kw):
+            if "journal_mode" in str(sql):
+                journal_calls[0] += 1
+                raise sqlite3.OperationalError("disk I/O error")
+            return sqlite3.connect(":memory:").execute(sql, *a, **kw)
+
+        def executescript(self, script):
+            return sqlite3.connect(":memory:").executescript(script)
+
+        def __getattr__(self, name):
+            return getattr(sqlite3.connect(":memory:"), name)
+
+    with pytest.raises(sqlite3.OperationalError, match="disk I/O error"):
+        coord._initialize_schema(DiskErrorOnJournal())
+
+    assert journal_calls[0] == 1  # raised immediately, no retry
