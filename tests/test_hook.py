@@ -300,6 +300,25 @@ def test_changed_files_returns_empty_on_nonzero_returncode(tmp_path, monkeypatch
     assert _hook._changed_files(tmp_path) == []
 
 
+def test_changed_files_sets_git_terminal_prompt_env(tmp_path, monkeypatch):
+    # _changed_files() in hook.py must pass GIT_TERMINAL_PROMPT=0 so a headless
+    # git call cannot hang waiting for a credential prompt.
+    import subprocess
+    import looptight.hook as _hook
+
+    captured_kwargs: dict = {}
+
+    def fake_run(cmd, **kwargs):
+        captured_kwargs.update(kwargs)
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setattr(_hook.subprocess, "run", fake_run)
+    _hook._changed_files(tmp_path)
+
+    assert "env" in captured_kwargs, "_changed_files must pass an explicit env"
+    assert captured_kwargs["env"].get("GIT_TERMINAL_PROMPT") == "0"
+
+
 def test_has_grounded_work_returns_false_on_exception(tmp_path, monkeypatch):
     import looptight.hook as _hook
     import looptight.propose as _propose

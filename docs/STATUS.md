@@ -2829,23 +2829,21 @@ existing CLI session and makes no model or API calls of its own.
   calls `log_message(...)`, and asserts stdout and stderr are both empty — confirming HTTP request
   logs are silenced rather than leaking to the terminal.
 
+- `_changed_files()` in `hook.py` (`hook.py:49`) sets `GIT_TERMINAL_PROMPT=0` in its subprocess env;
+  `test_changed_files_sets_git_terminal_prompt_env` in `tests/test_hook.py` now asserts this
+  invariant directly — sibling of the existing `test_not_ignored_git_sets_terminal_prompt_env`
+  and `test_has_dirty_git_worktree_sets_terminal_prompt_env` patterns.
+
 ## Next
 
-1. `_changed_files` in `src/looptight/hook.py` sets `GIT_TERMINAL_PROMPT=0` in its
-   subprocess env but has no test asserting this invariant — sibling of
-   `test_has_dirty_git_worktree_sets_terminal_prompt_env` in `tests/test_tasks.py`
-   and `test_not_ignored_git_sets_terminal_prompt_env` in `tests/test_propose.py`.
-   Evidence: src/looptight/hook.py:49
-   Acceptance: `test_changed_files_sets_git_terminal_prompt_env` in `tests/test_hook.py` passes.
-
-2. `_has_grounded_work` in `src/looptight/hook.py` only has its False/exception path
+1. `_has_grounded_work` in `src/looptight/hook.py` only has its False/exception path
    tested directly (`test_has_grounded_work_returns_false_on_exception`); the True path
    (when `propose` returns candidates) has no direct unit test.
    Evidence: src/looptight/hook.py:118
    Acceptance: `test_has_grounded_work_returns_true_when_propose_finds_candidates` in
    `tests/test_hook.py` passes.
 
-3. `landed_category_counts` in `src/looptight/experience.py` has an
+2. `landed_category_counts` in `src/looptight/experience.py` has an
    `if result.returncode != 0: return {}` branch with no direct test — sibling of
    `test_landed_counts_excludes_unmerged_branch` which covers the same guard in
    `landed_counts`.
