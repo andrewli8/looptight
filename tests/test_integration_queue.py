@@ -400,6 +400,53 @@ def test_integration_commit_failure_resets_and_returns_failed(tmp_path, monkeypa
     assert "gpg signing failed" in (outcome.error or "") or "integration commit failed" in (outcome.error or "")
 
 
+def test_reconcile_finds_commit_on_ref_via_trailer_after_failed_update_ref(tmp_path, monkeypatch):
+    # integration_queue.py:361-363: during crash recovery, if update-ref fails but
+    # _trailer_commit_on_ref finds our integration commit already reachable from the
+    # target ref (a racing process advanced the ref to our SHA), reconcile returns
+    # "complete" with the found SHA instead of "conflict".
+    import looptight.integration_queue as iq
+
+    repo, candidate = _repo_with_candidate(tmp_path)
+    db = Coordinator.open(repo)
+    run = db.start_run("worker")
+    lease = db.claim([{"id": "t1"}], run.id, ttl_s=60)
+    integration_id = db.enqueue_integration(lease, "refs/heads/main", candidate)
+
+    # Crash after the commit is durably recorded (result_sha in DB) but before update-ref.
+    with pytest.raises(InjectedCrash):
+        Integrator(db, crash_after="after_commit").run_next(repo, "exit 0")
+
+    record = db.integration(integration_id)
+    result_sha = record.result_sha
+    assert result_sha, "setup: crash_after='after_commit' must persist result_sha"
+
+    # Simulate: first trailer check (start of _reconcile_one) sees nothing; then update-ref
+    # fails (racing integrator already advanced the ref); then the second trailer check finds
+    # our commit (the racing process used our SHA, so we just return it).
+    real_git = iq._git
+    calls = {"trailer_n": 0}
+
+    def selective_trailer_check(root, ref, iid):
+        calls["trailer_n"] += 1
+        if calls["trailer_n"] == 1:
+            return None  # not yet on ref at the start of reconcile
+        return result_sha  # a racing process already advanced the ref to our commit
+
+    def selective_git(root, *args):
+        if args[:1] == ("update-ref",):
+            return subprocess.CompletedProcess(["git"], 1, "", "error: ref advanced concurrently")
+        return real_git(root, *args)
+
+    monkeypatch.setattr(iq, "_trailer_commit_on_ref", selective_trailer_check)
+    monkeypatch.setattr(iq, "_git", selective_git)
+    outcomes = Integrator(db).reconcile(repo, "exit 0")
+
+    assert len(outcomes) == 1
+    assert outcomes[0].status == "complete"
+    assert outcomes[0].result_sha == result_sha
+
+
 def test_run_record_requires_root_for_non_superseded(tmp_path):
     repo = _repo(tmp_path / "r")
     db = Coordinator.open(repo)

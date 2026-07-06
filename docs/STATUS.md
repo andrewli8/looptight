@@ -2890,17 +2890,14 @@ existing CLI session and makes no model or API calls of its own.
   regression removing the check would silently proceed with an uncommitted merge. No
   production change.
 
-## Next
+- The reconcile second-trailer-check branch at `integration_queue.py:361-363` is covered:
+  `test_reconcile_finds_commit_on_ref_via_trailer_after_failed_update_ref` in
+  `tests/test_integration_queue.py` crashes after_commit, then monkeypatches
+  `_trailer_commit_on_ref` (None on first call, result_sha on second) and `_git`
+  (update-ref fails), and asserts `outcome.status == "complete"` with the correct SHA —
+  the narrow path where a racing process advanced the ref to our commit. No production change.
 
-1. The reconcile recovery branch at `integration_queue.py:363` is untested: when
-   `update-ref` fails but `_trailer_commit_on_ref` finds our commit already on the ref
-   (crashed after commit, before update-ref, and another process completed it), the code
-   returns `"complete"` with the found sha. No test covers this narrow recovery path.
-   Evidence: `src/looptight/integration_queue.py:363`
-   Acceptance: `test_reconcile_finds_commit_on_ref_via_trailer_after_failed_update_ref`
-   in `tests/test_integration_queue.py` sets up a scenario where `update-ref` fails but
-   the integration commit is already on the target ref; asserts `outcome.status == "complete"`;
-   `looptight verify --json` returns `"pass"`.
+## Next
 
 ## Rules
 
