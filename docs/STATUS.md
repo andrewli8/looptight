@@ -2846,6 +2846,45 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_initialize_schema`'s non-locked/busy `OperationalError` re-raise (`coordinator.py:169`) is
+   uncovered: the guard distinguishes "retry on resource contention" from "fail on a real error"
+   (disk I/O, corrupt page), but the re-raise path has no test — a regression widening the
+   `"locked"/"busy"` check would silently swallow real errors.
+   Evidence: `src/looptight/coordinator.py:169`;
+   Acceptance: `test_initialize_schema_reraises_non_locked_operational_error` in
+   `tests/test_coordinator.py` patches the schema init to raise `OperationalError("disk I/O error")`
+   (no "locked"/"busy") and asserts it propagates without retry; `looptight verify --json` returns
+   `"pass"`.
+
+2. `prepare_integration_worktree`'s escaped-path safety guard (`integration_queue.py:162`) is
+   uncovered: the guard rejects a computed worktree path that resolves outside the coordinator
+   directory, but the branch has no test — a regression removing the guard could allow a manipulated
+   `target_ref` to place a worktree at an arbitrary path.
+   Evidence: `src/looptight/integration_queue.py:162`;
+   Acceptance: `test_prepare_integration_worktree_rejects_escaped_path` in
+   `tests/test_integration_queue.py` monkeypatches `integration_worktree` to return a path outside
+   the expected base and asserts `IntegrationError` with "escaped" is raised; `looptight verify
+   --json` returns `"pass"`.
+
+3. `run_swarm`'s push-queue-failure return (`swarm.py:742`) is uncovered: when `push=True`,
+   workers merged, and `_publish_via_queue` returns anything other than `"pushed"`, the result
+   carries `pushed="failed"` — but this path has no test; the `_publish_via_queue` failure is
+   tested in isolation, not through `run_swarm`.
+   Evidence: `src/looptight/swarm.py:742`;
+   Acceptance: `test_run_swarm_returns_push_failed_when_publish_queue_fails` in
+   `tests/test_swarm.py` monkeypatches `_publish_via_queue` to return `"failed"` with a merged
+   worker and asserts `result.pushed == "failed"`; `looptight verify --json` returns `"pass"`.
+
+4. `_create_planner_worktree`'s `git worktree add` failure return (`swarm.py:570`) is uncovered:
+   when the planner worktree cannot be created (e.g., storage full), the function returns
+   `(None, None, error)` rather than raising — but that specific return has no test, distinct from
+   the git-prereq failure already covered at line 563.
+   Evidence: `src/looptight/swarm.py:570`;
+   Acceptance: `test_plan_next_tasks_fails_when_planner_worktree_creation_fails` in
+   `tests/test_swarm.py` monkeypatches `_git` so `git worktree add` exits nonzero and asserts
+   `plan_next_tasks` returns `PlanningResult("failed", ...)` carrying the error; `looptight
+   verify --json` returns `"pass"`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
