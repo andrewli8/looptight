@@ -193,6 +193,16 @@ def test_landed_category_counts_returns_empty_when_git_not_found(tmp_path):
         assert landed_category_counts(tmp_path, "HEAD") == {}
 
 
+def test_landed_category_counts_returns_empty_on_nonzero_returncode(tmp_path):
+    # experience.py:61 guard: when git exits non-zero (e.g. bad ref → 128),
+    # landed_category_counts must return {} without raising.
+    with patch(
+        "looptight.experience.subprocess.run",
+        return_value=subprocess.CompletedProcess(["git"], 128, stdout="", stderr=""),
+    ):
+        assert landed_category_counts(tmp_path, "bad-ref") == {}
+
+
 def test_experience_git_sets_terminal_prompt_env(tmp_path):
     # _git() in experience.py must pass GIT_TERMINAL_PROMPT=0 so a headless
     # git log call cannot hang waiting for a credential prompt.

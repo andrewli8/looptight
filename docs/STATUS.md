@@ -2839,15 +2839,12 @@ existing CLI session and makes no model or API calls of its own.
   patches `propose` to return a non-empty list and asserts the function returns `True` — the
   existing test only covered the False/exception path.
 
-## Next
+- `landed_category_counts()` `returncode != 0` guard (`experience.py:61`) now has direct coverage:
+  `test_landed_category_counts_returns_empty_on_nonzero_returncode` in `tests/test_experience.py`
+  patches `subprocess.run` to return exit code 128 (bad ref) and asserts the function returns `{}`
+  — the existing `git_not_found` test covered the OSError path but not the non-zero-exit path.
 
-1. `landed_category_counts` in `src/looptight/experience.py` has an
-   `if result.returncode != 0: return {}` branch with no direct test — sibling of
-   `test_landed_counts_excludes_unmerged_branch` which covers the same guard in
-   `landed_counts`.
-   Evidence: src/looptight/experience.py:63
-   Acceptance: `test_landed_category_counts_returns_empty_on_nonzero_returncode` in
-   `tests/test_experience.py` passes.
+## Next
 
 ## Rules
 
