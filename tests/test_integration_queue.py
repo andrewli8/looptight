@@ -374,6 +374,32 @@ def test_integration_merge_conflict_aborts_and_retains(tmp_path):
     assert db.integration(integration_id).state == "conflict"
 
 
+def test_integration_commit_failure_resets_and_returns_failed(tmp_path, monkeypatch):
+    # integration_queue.py:322-324: when git commit fails after a successful merge and
+    # verify, the integrator resets the worktree and returns "failed" rather than
+    # silently proceeding with an uncommitted merge.
+    import looptight.integration_queue as iq
+
+    repo, candidate = _repo_with_candidate(tmp_path)
+    db = Coordinator.open(repo)
+    run = db.start_run("worker")
+    lease = db.claim([{"id": "t1"}], run.id, ttl_s=60)
+    db.enqueue_integration(lease, "refs/heads/main", candidate)
+
+    real_git = iq._git
+
+    def selective_git(root, *args):
+        if args[:1] == ("commit",):
+            return subprocess.CompletedProcess(["git"], 1, "", "error: gpg signing failed")
+        return real_git(root, *args)
+
+    monkeypatch.setattr(iq, "_git", selective_git)
+    outcome = Integrator(db).run_next(repo, "exit 0")
+
+    assert outcome.status == "failed"
+    assert "gpg signing failed" in (outcome.error or "") or "integration commit failed" in (outcome.error or "")
+
+
 def test_run_record_requires_root_for_non_superseded(tmp_path):
     repo = _repo(tmp_path / "r")
     db = Coordinator.open(repo)
