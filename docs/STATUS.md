@@ -2922,17 +2922,14 @@ existing CLI session and makes no model or API calls of its own.
   the guard would crash the daemon when signal restoration is not possible (e.g.
   not the main thread).
 
+- `Console.write()` custom `end` kwarg (`console.py:30`) is covered:
+  `test_console_write_respects_custom_end` in `tests/test_console.py` calls
+  `write("hello", end="")` and asserts no trailing newline — a regression dropping
+  the `end` parameter would produce `"hello\n"` and fail.
+
 ## Next
 
-1. Add a test for `Console.write()` with a custom `end` argument, matching the existing
-   `test_console_respects_custom_end` that covers `Console.print()`. The `write()` method
-   accepts an `end` kwarg (default `"\n"`) but no test exercises any non-default value, so
-   a regression silently dropping `end` would pass the suite.
-   Evidence: `src/looptight/console.py:30`
-   Acceptance: `python -m pytest tests/test_console.py -k custom_end` passes, including a new
-   case that calls `write("hello", end="")` and asserts no trailing newline appears.
-
-2. Add a direct unit test for `score_batch()` with an empty candidate list. The function
+1. Add a direct unit test for `score_batch()` with an empty candidate list. The function
    returns `BatchScore(size=0, bounded=False)` — the `bounded=False` is non-obvious since
    the threshold is `_MIN_TASKS=1` — and this is never exercised by the existing suite.
    Evidence: `src/looptight/idea_eval.py:83`

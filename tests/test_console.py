@@ -37,3 +37,11 @@ def test_console_respects_custom_end():
     Console(file=output).print("x", end="")
 
     assert output.getvalue() == "x"
+
+
+def test_console_write_respects_custom_end():
+    output = StringIO()
+
+    Console(file=output).write("hello", end="")
+
+    assert output.getvalue() == "hello"
