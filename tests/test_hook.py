@@ -478,3 +478,32 @@ def test_drift_directive_returns_none_when_on_task(tmp_path):
     _subprocess.run(["git", "add", "test_foo.py"], cwd=root, check=True, capture_output=True)
 
     assert _drift_directive(root) is None
+
+
+def test_drift_directive_returns_none_when_lease_has_empty_evidence(tmp_path):
+    # hook.py:109 — when a live lease exists but its evidence field is empty,
+    # evidence_refs("") returns [] and _off_task([], ...) is vacuously False,
+    # so _drift_directive returns None even if staged files are present.
+    # This path goes through the real coordinator (unlike the _off_task unit test)
+    # to pin the end-to-end behaviour.
+    from looptight.claims import owner_id
+    from looptight.coordinator import Coordinator
+    from looptight.hook import _drift_directive
+
+    root = _git_repo(tmp_path / "r")
+    coordinator = Coordinator.open(root)
+    assert coordinator is not None
+    owner = owner_id(root)
+    run = coordinator.start_run("session", owner=owner)
+    coordinator.claim(
+        [{"id": "t3", "idea_id": "ghi789", "evidence": "", "goal": "unconstrained task"}],
+        run.id,
+        ttl_s=60,
+    )
+    coordinator.close()
+
+    # Stage an unrelated file — with no evidence, drift cannot fire.
+    (root / "anything.py").write_text("pass", encoding="utf-8")
+    _subprocess.run(["git", "add", "anything.py"], cwd=root, check=True, capture_output=True)
+
+    assert _drift_directive(root) is None

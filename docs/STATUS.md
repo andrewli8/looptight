@@ -2925,15 +2925,9 @@ existing CLI session and makes no model or API calls of its own.
   `test_iteration_record_line_format` in `tests/test_summary.py`.
   Verified by `looptight verify` (pass).
 
-3. **`_drift_directive()` no-evidence lease path is untested end-to-end** — when a
-   coordinator lease exists but its `evidence` field is absent or empty,
-   `evidence_refs("")` returns `[]` and the function correctly returns `None`, but
-   no test drives this path through a real lease; the lower-level `_off_task` guard
-   is covered separately.
-   Evidence: `src/looptight/hook.py:109`
-   Acceptance: A test in `tests/test_hook.py` creates a real lease with an empty
-   `evidence` field, then calls `_drift_directive(root)` and asserts it returns
-   `None` (no drift fired despite the staged change).
+- `_drift_directive()` no-evidence lease path — pinned by
+  `test_drift_directive_returns_none_when_lease_has_empty_evidence` in
+  `tests/test_hook.py`. Verified by `looptight verify` (pass).
 
 4. **`cmd_daemon` signal-restore failure path is uncovered** — the `(ValueError,
    OSError): pass` clause at commands.py:359-360 (restoring signal handlers after
