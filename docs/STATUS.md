@@ -2939,13 +2939,15 @@ existing CLI session and makes no model or API calls of its own.
   `failed=={}`, `category_failed=={}`, `category_failure_reasons=={}` — a regression
   inverting the `if coordinator else {}` guard would raise `AttributeError` on `None`.
 
+- `detect_verify` poetry-lock gap (`detect.py:80`) is fixed:
+  `test_detect_verify_poetry_lock_prefers_poetry_run_pytest` in `tests/test_detect.py`
+  asserts that `pyproject.toml + poetry.lock` → `"poetry run pytest -q"` rather than
+  the bare `"pytest -q"` that `_VERIFY_RULES` would return — preventing a verify stall
+  in fresh poetry environments where pytest lives inside the venv.
+
 ## Next
 
-1. `detect_verify` returns `pytest -q` for a poetry-managed project (`pyproject.toml` + `poetry.lock`), where pytest lives inside the venv and is not on PATH — the same stall the `uv.lock` fix solved at line 80. Fix: intercept `poetry.lock` before `_VERIFY_RULES` and return `poetry run pytest -q`.
-   Evidence: `src/looptight/detect.py:80`
-   Acceptance: `test_detect_verify_poetry_lock_prefers_poetry_run_pytest` fails before the fix and passes after; `pyproject.toml + poetry.lock` → `"poetry run pytest -q"`.
-
-2. `detect_verify` returns `pytest -q` for a pdm-managed project (`pyproject.toml` + `pdm.lock`), where pytest lives inside the venv — same root cause as the `uv.lock`/`poetry.lock` gap. Fix: intercept `pdm.lock` and return `pdm run pytest -q`.
+1. `detect_verify` returns `pytest -q` for a pdm-managed project (`pyproject.toml` + `pdm.lock`), where pytest lives inside the venv — same root cause as the `uv.lock`/`poetry.lock` gap. Fix: intercept `pdm.lock` and return `pdm run pytest -q`.
    Evidence: `src/looptight/detect.py:80`
    Acceptance: `test_detect_verify_pdm_lock_prefers_pdm_run_pytest` fails before the fix and passes after; `pyproject.toml + pdm.lock` → `"pdm run pytest -q"`.
 
