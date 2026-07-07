@@ -396,3 +396,41 @@ def test_outcome_genuine_fault_with_merged_workers():
     outcome, merged = _outcome(result)
     assert outcome == "fault"
     assert merged == 1
+
+
+def test_cmd_daemon_signal_restore_exception_is_swallowed(tmp_path, monkeypatch, capsys):
+    # commands.py:358-360 — when signal.signal raises ValueError (e.g. not on the
+    # main thread or OS doesn't support the signal) during handler RESTORE in the
+    # finally block, the (ValueError, OSError): pass guard must swallow it so
+    # cmd_daemon exits cleanly. The registration path (lines 332-335) has the same
+    # guard but is exercised separately by raising on both registration attempts.
+    import signal as signal_mod
+
+    from looptight.cli import main
+    from looptight.daemon import DaemonReport
+    import looptight.commands as cmd_mod
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".looptight.toml").write_text(
+        'agent = "claude"\nverify = "true"\n', encoding="utf-8"
+    )
+
+    monkeypatch.setattr(cmd_mod, "run_daemon", lambda root, **kw: DaemonReport(
+        cycles=1, progress=1, idle=0, faults=0, last_reason="ok"
+    ))
+
+    # First two calls are the registration path — succeed and return a sentinel.
+    # Subsequent calls are the restore path — raise ValueError.
+    call_count = {"n": 0}
+    _sentinel = signal_mod.SIG_DFL
+
+    def fake_signal(sig, handler):
+        call_count["n"] += 1
+        if call_count["n"] <= 2:
+            return _sentinel  # registration succeeds
+        raise ValueError("not the main thread")  # restore raises
+
+    monkeypatch.setattr(cmd_mod.signal, "signal", fake_signal)
+
+    rc = main(["daemon", "--headless", "--agent", "claude", "--max-cycles", "1"])
+    assert rc == 0  # ValueError from restore is swallowed; daemon exits cleanly

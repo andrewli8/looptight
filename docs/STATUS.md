@@ -2915,6 +2915,13 @@ existing CLI session and makes no model or API calls of its own.
   `serve_ui`, and asserts `serve_forever` was called exactly once and the URL was
   printed — a regression removing the call would fail here. No production change.
 
+- `cmd_daemon`'s signal-restore `(ValueError, OSError): pass` clause
+  (`commands.py:359-360`) is covered: `test_cmd_daemon_signal_restore_exception_is_swallowed`
+  in `tests/test_daemon.py` lets registration succeed and makes restore calls raise
+  `ValueError`; asserts `cmd_daemon` exits with code 0 — so a regression removing
+  the guard would crash the daemon when signal restoration is not possible (e.g.
+  not the main thread).
+
 ## Next
 
 - `statusline()` idle fallthrough when task has empty goal and id — pinned by
@@ -2929,14 +2936,6 @@ existing CLI session and makes no model or API calls of its own.
   `test_drift_directive_returns_none_when_lease_has_empty_evidence` in
   `tests/test_hook.py`. Verified by `looptight verify` (pass).
 
-4. **`cmd_daemon` signal-restore failure path is uncovered** — the `(ValueError,
-   OSError): pass` clause at commands.py:359-360 (restoring signal handlers after
-   `run_daemon` completes) is never hit by any test; a parallel gap exists for the
-   registration path at lines 334-335.
-   Evidence: `src/looptight/commands.py:359`
-   Acceptance: A test in `tests/test_daemon.py` monkeypatches `signal.signal` to
-   raise `ValueError` only on the restore calls, runs `cmd_daemon`, and asserts it
-   exits without raising (the exception is swallowed).
 
 ## Rules
 
