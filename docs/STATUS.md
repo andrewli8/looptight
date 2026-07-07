@@ -2903,19 +2903,15 @@ existing CLI session and makes no model or API calls of its own.
   cmd_daemon returns 0 — a regression removing the guard would crash the daemon on a
   broken `--on-fault` hook subprocess call. No production change.
 
+- `interruptible_sleep` body (`commands.py:290-295`) is covered:
+  `test_daemon_cli_interruptible_sleep_executes_and_returns` in `tests/test_cli.py`
+  has `fake_run_daemon` call the `sleep` kwarg with 0.001 s (with `time.sleep`
+  monkeypatched) and asserts cmd_daemon returns 0 and `time.sleep` was invoked once —
+  exercising every line including the `time.sleep` call at line 295. No production change.
+
 ## Next
 
-1. Test `interruptible_sleep` via the `sleep` kwarg that `cmd_daemon` passes to
-   `run_daemon`. Lines 290-295 are never executed because all `run_daemon` mocks
-   ignore the `sleep` parameter; a bug there would leave the daemon unresponsive
-   to SIGTERM/SIGINT.
-   Evidence: `src/looptight/commands.py:290`
-   Acceptance: A new test `test_daemon_cli_interruptible_sleep_executes_and_returns`
-   in `tests/test_cli.py` has `fake_run_daemon` call `sleep(0.001)` (with
-   `looptight.commands.time.sleep` monkeypatched to a no-op), asserts cmd_daemon
-   returns 0 and does not block.
-
-3. Test `serve_ui` calls `server.serve_forever()`. Lines 450-454 of `ui.py` are
+1. Test `serve_ui` calls `server.serve_forever()`. Lines 450-454 of `ui.py` are
    never executed; all CLI tests mock `serve_ui` at the call site and never drive
    its body. A regression removing the `serve_forever` call would pass silently.
    Evidence: `src/looptight/ui.py:450`

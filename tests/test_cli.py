@@ -3989,6 +3989,36 @@ def test_status_reads_legacy_claims_when_coordinator_absent(tmp_path, monkeypatc
     assert summary_calls, "ClaimStore.summary was not called on the legacy path"
 
 
+def test_daemon_cli_interruptible_sleep_executes_and_returns(tmp_path, monkeypatch):
+    # commands.py:290-295 — interruptible_sleep is passed to run_daemon as the `sleep`
+    # kwarg but no existing test has fake_run_daemon call it. This test drives the
+    # function through a zero-remaining-time path so every line executes without blocking.
+    from looptight.daemon import DaemonReport
+    import looptight.commands as cmd_mod
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+
+    sleep_calls: list[float] = []
+    monkeypatch.setattr(cmd_mod.time, "sleep", lambda s: sleep_calls.append(s))
+
+    def fake_run_daemon(root, *, sleep=None, **kwargs):
+        # Call with a tiny positive duration so line 295 (time.sleep) is reached
+        # on the first iteration, then the deadline passes and the loop exits.
+        if sleep is not None:
+            sleep(0.001)
+        return DaemonReport(cycles=1, progress=0, idle=1, faults=0, last_reason="ok")
+
+    monkeypatch.setattr(cmd_mod, "run_daemon", fake_run_daemon)
+
+    code = main([
+        "daemon", "--headless", "--agent", "claude", "--verify", "exit 0", "--max-cycles", "1",
+    ])
+    assert code == 0
+    # time.sleep was called once (line 295) because the 0.001s budget wasn't exhausted yet.
+    assert sleep_calls, "interruptible_sleep must call time.sleep when deadline is in the future"
+
+
 def test_daemon_cli_fault_hook_subprocess_exception_is_swallowed(tmp_path, monkeypatch, capsys):
     # commands.py:327-328 — when the --on-fault subprocess.run call raises (e.g.
     # TimeoutExpired or OSError), the `except Exception: pass` guard must swallow
