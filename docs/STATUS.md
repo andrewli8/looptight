@@ -2966,14 +2966,12 @@ existing CLI session and makes no model or API calls of its own.
   known `BatchScore` and asserts all six fields (grounded/size, groundedness, areas, distinct,
   bounded) appear in the output string.
 
-1. `summary_text` in `experience.py:113` tests each data condition in isolation but never all
-   three (`failed`, `category_landed`, `category_failure_reasons`) non-empty together. A regression
-   that short-circuits after the first branch would not be caught by the existing suite.
-   Evidence: tests/test_experience.py:81; src/looptight/experience.py:113
-   Acceptance: a new test in `tests/test_experience.py` passes a `Model` with all three fields
-   non-empty and asserts all three corresponding output lines appear in `summary_text`.
+- `summary_text`'s three-branch path (`experience.py:113`) is now jointly covered:
+  `test_summary_text_with_all_three_conditions` in `tests/test_experience.py` passes a `Model`
+  with `failed`, `category_landed`, and `category_failure_reasons` all non-empty and asserts
+  all three output lines are present — a short-circuit regression would now fail.
 
-2. `detect_verify`'s deliberate non-detection of Ruby (`Gemfile`) and PHP (`composer.json`)
+1. `detect_verify`'s deliberate non-detection of Ruby (`Gemfile`) and PHP (`composer.json`)
    is documented in STATUS.md but no test guards the decision — a future change adding Ruby
    detection without realizing the documented omission would silently break the contract.
    Evidence: src/looptight/detect.py:54; docs/STATUS.md:856

@@ -124,6 +124,23 @@ def test_summary_text_surfaces_failure_modes_by_source():
     assert text.count("\n") <= 6  # still bounded
 
 
+def test_summary_text_with_all_three_conditions():
+    # experience.py:113 — each condition (failed, category_landed, category_failure_reasons)
+    # is tested in isolation but never all three non-empty together. A regression that adds an
+    # early `return` or short-circuits the loop after the first branch would be invisible to
+    # the existing suite. This test requires all three output lines to be present.
+    m = Model(
+        failed={"idea-x": 3},
+        category_landed={"todo": 4},
+        category_failure_reasons={"lint": "timeout"},
+    )
+    text = summary_text(m)
+    assert "idea-x" in text               # failed branch
+    assert "todo" in text                 # category_landed branch
+    assert "timeout" in text              # category_failure_reasons branch
+    assert text.count("\n") == 2          # exactly three lines (two separating newlines)
+
+
 def test_build_model_populates_category_landed_from_trailers(tmp_path):
     from looptight.experience import build_model
 
