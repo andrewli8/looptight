@@ -2941,6 +2941,17 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `detect_verify` returns `pytest -q` for a poetry-managed project (`pyproject.toml` + `poetry.lock`), where pytest lives inside the venv and is not on PATH — the same stall the `uv.lock` fix solved at line 80. Fix: intercept `poetry.lock` before `_VERIFY_RULES` and return `poetry run pytest -q`.
+   Evidence: `src/looptight/detect.py:80`
+   Acceptance: `test_detect_verify_poetry_lock_prefers_poetry_run_pytest` fails before the fix and passes after; `pyproject.toml + poetry.lock` → `"poetry run pytest -q"`.
+
+2. `detect_verify` returns `pytest -q` for a pdm-managed project (`pyproject.toml` + `pdm.lock`), where pytest lives inside the venv — same root cause as the `uv.lock`/`poetry.lock` gap. Fix: intercept `pdm.lock` and return `pdm run pytest -q`.
+   Evidence: `src/looptight/detect.py:80`
+   Acceptance: `test_detect_verify_pdm_lock_prefers_pdm_run_pytest` fails before the fix and passes after; `pyproject.toml + pdm.lock` → `"pdm run pytest -q"`.
+
+3. `_verifier_quality` in `protocol_commands.py` classifies `pdm run pytest` and `pdm run test` as `custom` (unknown quality), but `pdm run pytest` is unambiguously unit-level — the same evidence as `uv run pytest` or `poetry run pytest`, both of which return `unit`. Fix: add a `pdm run pytest` entry alongside `uv run pytest` and `poetry run pytest` in the quality table.
+   Evidence: `src/looptight/protocol_commands.py:850`
+   Acceptance: `test_verifier_quality_pdm_run_pytest_is_unit` fails before the fix and passes after; `_verifier_quality("pdm run pytest -q")` → `"unit"`.
 
 ## Rules
 
