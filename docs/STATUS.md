@@ -2924,17 +2924,21 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-- `statusline()` idle fallthrough when task has empty goal and id — pinned by
-  `test_statusline_idle_when_task_has_empty_goal_and_id` in `tests/test_ui.py`.
-  Verified by `looptight verify` (pass).
+1. **`trajectory._read`'s non-dict-JSON branch is uncovered** — the `not isinstance(data, dict)` guard at `trajectory.py:54` returns `None` when the stored JSON is valid but not a dict (e.g. `[]`); only the wrong-`schema_version` sibling branch is tested in `test_trajectory_read_returns_none_for_wrong_schema_version`.
+   Evidence: `src/looptight/trajectory.py:54`
+   Acceptance: `test_trajectory_read_returns_none_for_non_dict_json` in `tests/test_trajectory.py` writes `[]` to a temp path and asserts `_read(path) is None` without raising.
 
-- `IterationRecord.line()` direct unit test — pinned by
-  `test_iteration_record_line_format` in `tests/test_summary.py`.
-  Verified by `looptight verify` (pass).
+2. **`_session_panel`'s `not isinstance(tasks[0], dict)` guard is uncovered** — when `tasks[0]` is not a dict (e.g. a bare string), the guard at `ui.py:114` must return `""` instead of raising `AttributeError`; both existing tests (`test_session_panel_returns_empty_when_task_has_no_goal_or_id` and `test_session_panel_returns_empty_for_non_session_or_goal_status`) only pass well-formed dicts as `tasks[0]`.
+   Evidence: `src/looptight/ui.py:114`
+   Acceptance: `test_session_panel_returns_empty_when_task_is_not_a_dict` in `tests/test_ui.py` passes `tasks=["not a dict"]` and asserts `_session_panel(state) == ""`.
 
-- `_drift_directive()` no-evidence lease path — pinned by
-  `test_drift_directive_returns_none_when_lease_has_empty_evidence` in
-  `tests/test_hook.py`. Verified by `looptight verify` (pass).
+3. **`detect_agent` KNOWN_AGENTS loop success path is uncovered** — when `preferred` is `None` and a known agent IS on PATH, `detect_agent()` returns the first match from the `for name in KNOWN_AGENTS` loop (`detect.py:33-35`); existing tests only cover `preferred` given, none-on-PATH (loop exhaustion), and preferred-not-on-PATH.
+   Evidence: `src/looptight/detect.py:33`
+   Acceptance: `test_detect_agent_returns_first_known_agent_on_path` in `tests/test_detect.py` monkeypatches `shutil.which` to return a truthy path for `"claude"` and asserts `detect_agent()` returns `"claude"`.
+
+4. **`cmd_revert`'s `git status` OSError branch is uncovered** — when `subprocess.run` for `git status --porcelain` raises `OSError` at `commands.py:529`, `status` is set to `None` and `has_tracked_changes = True`; no test exercises this branch; the existing `test_revert_survives_oserror_when_listing_untracked` targets the later `git ls-files` call.
+   Evidence: `src/looptight/commands.py:529`
+   Acceptance: `test_revert_git_status_oserror_sets_has_tracked_changes` in `tests/test_cli.py` monkeypatches `subprocess.run` to raise `OSError` only for `git status`, asserts the command exits without raising and prints the confirmation prompt.
 
 
 ## Rules
