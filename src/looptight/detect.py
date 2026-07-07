@@ -81,6 +81,8 @@ def detect_verify(root: Path | None = None) -> str | None:
         return "uv run pytest -q"
     if (base / "pyproject.toml").is_file() and (base / "poetry.lock").is_file():
         return "poetry run pytest -q"
+    if (base / "pyproject.toml").is_file() and (base / "pdm.lock").is_file():
+        return "pdm run pytest -q"
 
     for marker, command in _VERIFY_RULES:
         if (base / marker).is_file():
