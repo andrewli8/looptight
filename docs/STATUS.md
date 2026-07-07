@@ -2924,10 +2924,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-4. **`cmd_revert`'s `git status` OSError branch is uncovered** — when `subprocess.run` for `git status --porcelain` raises `OSError` at `commands.py:529`, `status` is set to `None` and `has_tracked_changes = True`; no test exercises this branch; the existing `test_revert_survives_oserror_when_listing_untracked` targets the later `git ls-files` call.
-   Evidence: `src/looptight/commands.py:529`
-   Acceptance: `test_revert_git_status_oserror_sets_has_tracked_changes` in `tests/test_cli.py` monkeypatches `subprocess.run` to raise `OSError` only for `git status`, asserts the command exits without raising and prints the confirmation prompt.
-
 
 ## Rules
 

@@ -2212,6 +2212,27 @@ def test_improve_help_has_only_migration_compatibility(capsys):
     assert "--max-iterations" not in out
 
 
+def test_revert_git_status_oserror_sets_has_tracked_changes(tmp_path, monkeypatch, capsys):
+    # commands.py:529 — when subprocess.run for `git status --porcelain` raises
+    # OSError, status is set to None and has_tracked_changes becomes True; the
+    # command must print the confirmation prompt and return 0 (no crash).
+    import subprocess
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr("looptight.commands.is_git_repo", lambda *a, **k: True)
+
+    def fake_run(cmd, *a, **k):
+        if cmd[:2] == ["git", "status"]:
+            raise OSError("git not found")
+        return subprocess.CompletedProcess(cmd, 0)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert main(["revert"]) == 0
+    out = capsys.readouterr().out
+    assert "--yes" in out or "confirm" in out.lower() or "Re-run" in out
+
+
 def test_revert_survives_oserror_when_listing_untracked(tmp_path, monkeypatch, capsys):
     # The post-revert `git ls-files` (untracked notice) must not crash the
     # command if git can't be launched for it — the revert already succeeded.
