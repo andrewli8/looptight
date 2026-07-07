@@ -2899,6 +2899,33 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Verify `fault_hook`'s `except Exception: pass` is reachable in `cmd_daemon`.
+   The guard at lines 327-328 of `commands.py` is never triggered in any test —
+   a subprocess.run that raises (e.g. `TimeoutExpired`) is the missing case.
+   Evidence: `src/looptight/commands.py:327`
+   Acceptance: A new test `test_daemon_cli_fault_hook_subprocess_exception_is_swallowed`
+   in `tests/test_cli.py` monkeypatches `looptight.commands.subprocess.run` to raise
+   `OSError`, passes `--on-fault hook.sh` to cmd_daemon, and asserts exit code is 0.
+
+2. Test `interruptible_sleep` via the `sleep` kwarg that `cmd_daemon` passes to
+   `run_daemon`. Lines 290-295 are never executed because all `run_daemon` mocks
+   ignore the `sleep` parameter; a bug there would leave the daemon unresponsive
+   to SIGTERM/SIGINT.
+   Evidence: `src/looptight/commands.py:290`
+   Acceptance: A new test `test_daemon_cli_interruptible_sleep_executes_and_returns`
+   in `tests/test_cli.py` has `fake_run_daemon` call `sleep(0.001)` (with
+   `looptight.commands.time.sleep` monkeypatched to a no-op), asserts cmd_daemon
+   returns 0 and does not block.
+
+3. Test `serve_ui` calls `server.serve_forever()`. Lines 450-454 of `ui.py` are
+   never executed; all CLI tests mock `serve_ui` at the call site and never drive
+   its body. A regression removing the `serve_forever` call would pass silently.
+   Evidence: `src/looptight/ui.py:450`
+   Acceptance: A new test `test_serve_ui_starts_server_and_prints_url` in
+   `tests/test_ui.py` monkeypatches `ui.create_server` to return a mock with a
+   `serve_forever` spy and a fake `server_address`, calls `serve_ui(tmp_path)`,
+   and asserts `serve_forever` was called exactly once and the URL appears in stdout.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
