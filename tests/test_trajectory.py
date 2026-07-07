@@ -172,3 +172,13 @@ def test_trajectory_path_returns_none_on_oserror(tmp_path):
     with patch.object(trajectory.subprocess, "run", side_effect=OSError("git not found")):
         result = trajectory._path(tmp_path)
     assert result is None
+
+
+def test_trajectory_read_returns_none_for_non_dict_json(tmp_path):
+    # trajectory.py:54 — the `not isinstance(data, dict)` guard: valid JSON that
+    # is not a dict (e.g. an array) must return None without raising, just like
+    # the wrong-schema_version sibling branch. The two paths are distinct: a dict
+    # with wrong schema_version hits the second clause; a non-dict hits the first.
+    path = tmp_path / "traj.json"
+    path.write_text("[]", encoding="utf-8")
+    assert trajectory._read(path) is None

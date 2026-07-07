@@ -2924,10 +2924,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. **`trajectory._read`'s non-dict-JSON branch is uncovered** — the `not isinstance(data, dict)` guard at `trajectory.py:54` returns `None` when the stored JSON is valid but not a dict (e.g. `[]`); only the wrong-`schema_version` sibling branch is tested in `test_trajectory_read_returns_none_for_wrong_schema_version`.
-   Evidence: `src/looptight/trajectory.py:54`
-   Acceptance: `test_trajectory_read_returns_none_for_non_dict_json` in `tests/test_trajectory.py` writes `[]` to a temp path and asserts `_read(path) is None` without raising.
-
 2. **`_session_panel`'s `not isinstance(tasks[0], dict)` guard is uncovered** — when `tasks[0]` is not a dict (e.g. a bare string), the guard at `ui.py:114` must return `""` instead of raising `AttributeError`; both existing tests (`test_session_panel_returns_empty_when_task_has_no_goal_or_id` and `test_session_panel_returns_empty_for_non_session_or_goal_status`) only pass well-formed dicts as `tasks[0]`.
    Evidence: `src/looptight/ui.py:114`
    Acceptance: `test_session_panel_returns_empty_when_task_is_not_a_dict` in `tests/test_ui.py` passes `tasks=["not a dict"]` and asserts `_session_panel(state) == ""`.
