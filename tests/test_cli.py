@@ -604,6 +604,22 @@ def test_propose_eval_scores_the_generated_queue(tmp_path, monkeypatch, capsys):
     assert "groundedness" in capsys.readouterr().out
 
 
+def test_eval_line_formats_batch_score_fields():
+    # protocol_commands.py:184 — _eval_line has no direct unit test; it is reached
+    # only through cmd_propose --eval. This test pins all six output fields so a
+    # format-string regression is caught without going through the full CLI path.
+    from looptight.idea_eval import BatchScore
+    from looptight.protocol_commands import _eval_line
+
+    score = BatchScore(size=4, grounded=3, flexibility=2, distinct=4, bounded=True)
+    line = _eval_line(score)
+    assert "grounded 3/4" in line
+    assert "0.75" in line          # groundedness
+    assert "areas 2" in line
+    assert "distinct 4" in line
+    assert "bounded yes" in line
+
+
 def test_next_json_contract_is_grounded_and_stable(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
