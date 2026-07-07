@@ -258,3 +258,14 @@ def test_run_result_as_dict_serializes_escalation_keys():
     assert esc_dict["kind"] == "escalated"
     assert esc_dict["persisted"] is True
     assert esc_dict["total_failures"] == 1
+
+
+def test_iteration_record_line_format():
+    # types.py:93 — direct unit test for IterationRecord.line() so the exact
+    # "iteration N → verify: …" format is pinned independently of render().
+    rec_pass = IterationRecord(3, VerifyResult(passed=True, exit_code=0))
+    rec_fail = IterationRecord(7, VerifyResult(passed=False, exit_code=1))
+    assert "iteration 3" in rec_pass.line()
+    assert "PASS" in rec_pass.line()
+    assert "iteration 7" in rec_fail.line()
+    assert "FAIL" in rec_fail.line()

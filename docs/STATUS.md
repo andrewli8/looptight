@@ -2921,13 +2921,9 @@ existing CLI session and makes no model or API calls of its own.
   `test_statusline_idle_when_task_has_empty_goal_and_id` in `tests/test_ui.py`.
   Verified by `looptight verify` (pass).
 
-2. **`IterationRecord.line()` has no direct unit test** — the method at types.py:93
-   is exercised only indirectly through `render()` in `test_summary.py`; the exact
-   format string `"iteration N → verify: …"` is not directly pinned.
-   Evidence: `src/looptight/types.py:93`
-   Acceptance: A test in `tests/test_summary.py` (or a new `tests/test_types.py`)
-   calls `IterationRecord(3, VerifyResult(passed=True, exit_code=0)).line()` and
-   asserts the result contains both `"iteration 3"` and `"PASS"`.
+- `IterationRecord.line()` direct unit test — pinned by
+  `test_iteration_record_line_format` in `tests/test_summary.py`.
+  Verified by `looptight verify` (pass).
 
 3. **`_drift_directive()` no-evidence lease path is untested end-to-end** — when a
    coordinator lease exists but its `evidence` field is absent or empty,
