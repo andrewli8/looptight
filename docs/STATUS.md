@@ -2950,11 +2950,14 @@ existing CLI session and makes no model or API calls of its own.
   asserts that `pyproject.toml + pdm.lock` → `"pdm run pytest -q"` rather than
   the bare `"pytest -q"` — preventing the same verify stall in fresh pdm environments.
 
+- `_verifier_quality` pdm/poetry/uv pytest variants pinned (`protocol_commands.py:874`):
+  `test_verifier_quality_pdm_run_pytest_is_unit` in `tests/test_cli.py` asserts that
+  `uv run pytest -q`, `poetry run pytest -q`, and `pdm run pytest -q` all classify as
+  `unit` — the existing `pytest` substring check already covered this; the test pins
+  it as a non-regression guard against future refactors of the quality table.
+
 ## Next
 
-1. `_verifier_quality` in `protocol_commands.py` classifies `pdm run pytest` and `pdm run test` as `custom` (unknown quality), but `pdm run pytest` is unambiguously unit-level — the same evidence as `uv run pytest` or `poetry run pytest`, both of which return `unit`. Fix: add a `pdm run pytest` entry alongside `uv run pytest` and `poetry run pytest` in the quality table.
-   Evidence: `src/looptight/protocol_commands.py:850`
-   Acceptance: `test_verifier_quality_pdm_run_pytest_is_unit` fails before the fix and passes after; `_verifier_quality("pdm run pytest -q")` → `"unit"`.
 
 ## Rules
 

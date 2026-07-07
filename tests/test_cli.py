@@ -1399,6 +1399,28 @@ def test_status_json_classifies_tests_plus_lint_as_unit_not_lint_only(
         )
 
 
+def test_verifier_quality_pdm_run_pytest_is_unit(
+    tmp_path, monkeypatch, capsys
+):
+    # pdm run pytest contains "pytest", so it's already unit-level via the substring
+    # scan. Pin this so a refactor that adds an explicit pdm prefix list doesn't
+    # accidentally break the existing path by rearranging checks.
+    monkeypatch.chdir(tmp_path)
+    cases = {
+        "uv run pytest -q": "unit",
+        "poetry run pytest -q": "unit",
+        "pdm run pytest -q": "unit",
+    }
+    for command, expected in cases.items():
+        (tmp_path / ".looptight.toml").write_text(f'verify = "{command}"\n')
+        assert main(["status", "--json"]) == 0
+        data = json.loads(capsys.readouterr().out)
+        assert data["verifier_quality"]["classification"] == expected, (
+            f"expected {expected!r} for {command!r}, "
+            f"got {data['verifier_quality']['classification']!r}"
+        )
+
+
 def test_status_json_classifies_e2e_and_integration_verifier_quality(
     tmp_path, monkeypatch, capsys
 ):
