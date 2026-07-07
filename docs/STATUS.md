@@ -2924,10 +2924,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-3. **`detect_agent` KNOWN_AGENTS loop success path is uncovered** — when `preferred` is `None` and a known agent IS on PATH, `detect_agent()` returns the first match from the `for name in KNOWN_AGENTS` loop (`detect.py:33-35`); existing tests only cover `preferred` given, none-on-PATH (loop exhaustion), and preferred-not-on-PATH.
-   Evidence: `src/looptight/detect.py:33`
-   Acceptance: `test_detect_agent_returns_first_known_agent_on_path` in `tests/test_detect.py` monkeypatches `shutil.which` to return a truthy path for `"claude"` and asserts `detect_agent()` returns `"claude"`.
-
 4. **`cmd_revert`'s `git status` OSError branch is uncovered** — when `subprocess.run` for `git status --porcelain` raises `OSError` at `commands.py:529`, `status` is set to `None` and `has_tracked_changes = True`; no test exercises this branch; the existing `test_revert_survives_oserror_when_listing_untracked` targets the later `git ls-files` call.
    Evidence: `src/looptight/commands.py:529`
    Acceptance: `test_revert_git_status_oserror_sets_has_tracked_changes` in `tests/test_cli.py` monkeypatches `subprocess.run` to raise `OSError` only for `git status`, asserts the command exits without raising and prints the confirmation prompt.

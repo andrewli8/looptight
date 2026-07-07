@@ -330,3 +330,10 @@ def test_detect_agent_preferred_not_on_path_returns_none_not_fallback(monkeypatc
     # None rather than falling through to pick a different available agent.
     monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/claude" if name == "claude" else None)
     assert detect.detect_agent("codex") is None
+
+
+def test_detect_agent_returns_first_known_agent_on_path(monkeypatch):
+    # detect.py:33-35 — when preferred is None and "claude" (first in KNOWN_AGENTS)
+    # is on PATH, the loop returns it immediately without checking further entries.
+    monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/claude" if name == "claude" else None)
+    assert detect.detect_agent() == "claude"
