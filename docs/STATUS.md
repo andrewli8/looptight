@@ -2971,16 +2971,7 @@ existing CLI session and makes no model or API calls of its own.
   with `failed`, `category_landed`, and `category_failure_reasons` all non-empty and asserts
   all three output lines are present — a short-circuit regression would now fail.
 
-1. `from_task_file`'s empty-goal-text guard (`discovery.py:613`) is untested — an item whose
-   text before `Acceptance:` is blank (e.g. `"1. Acceptance: it passes."`) should be silently
-   dropped, but no test confirms this; a regression dropping the `not task_text.strip()` check
-   would emit a task with an empty title undetected.
-   Evidence: src/looptight/discovery.py:613
-   Acceptance: one new test in `tests/test_propose.py` creates a STATUS.md whose `## Next`
-   section contains only `"1. Acceptance: it passes."` (no goal text before `Acceptance:`) and
-   asserts `from_status_next` returns `[]`.
-
-2. `from_status_next` with a file that exists but contains no `## Next` heading is untested —
+1. `from_status_next` with a file that exists but contains no `## Next` heading is untested —
    the only "returns empty" test (`test_from_status_next_absent_file_is_empty`) covers an absent
    file; `discovery.py:577` initializes `in_next = False` when `next_section_only=True` and only
    flips it on encountering `## Next`, so a file with only other headings should also return `[]`,

@@ -1006,6 +1006,15 @@ def test_from_status_next_rejects_task_without_acceptance(tmp_path):
     assert from_status_next(tmp_path) == []
 
 
+def test_from_status_next_drops_item_with_empty_goal_text(tmp_path):
+    # discovery.py:613 guards `not task_text.strip()`: an item starting directly
+    # with "Acceptance:" (nothing before it) must be dropped silently so an empty
+    # title can never reach the loop.
+    _write(tmp_path, "docs/STATUS.md", "## Next\n\n1. Acceptance: it passes.\n")
+
+    assert from_status_next(tmp_path) == []
+
+
 def test_from_status_next_rejects_fabricated_evidence_but_keeps_real_and_unanchored(tmp_path):
     # The live grounding gate: a generated task that CLAIMS evidence which does not
     # resolve is dropped (the busywork trap), while a task with resolving evidence and
