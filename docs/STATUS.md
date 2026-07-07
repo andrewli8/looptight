@@ -2924,6 +2924,28 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Add a test for `Console.write()` with a custom `end` argument, matching the existing
+   `test_console_respects_custom_end` that covers `Console.print()`. The `write()` method
+   accepts an `end` kwarg (default `"\n"`) but no test exercises any non-default value, so
+   a regression silently dropping `end` would pass the suite.
+   Evidence: `src/looptight/console.py:30`
+   Acceptance: `python -m pytest tests/test_console.py -k custom_end` passes, including a new
+   case that calls `write("hello", end="")` and asserts no trailing newline appears.
+
+2. Add a direct unit test for `score_batch()` with an empty candidate list. The function
+   returns `BatchScore(size=0, bounded=False)` — the `bounded=False` is non-obvious since
+   the threshold is `_MIN_TASKS=1` — and this is never exercised by the existing suite.
+   Evidence: `src/looptight/idea_eval.py:83`
+   Acceptance: `python -m pytest tests/test_idea_eval.py -k empty` passes with a new test
+   that calls `score_batch(root, [])` and asserts `size==0`, `bounded==False`, `grounded==0`.
+
+3. Add a direct unit test for `build_model()` with `coordinator=None`. The guard at line 87
+   (`coordinator.recent_failures(...) if coordinator else {}`) silently produces empty dicts
+   when no coordinator is available, but is not tested; a regression inverting the guard
+   would raise `AttributeError` on `None`.
+   Evidence: `src/looptight/experience.py:87`
+   Acceptance: `python -m pytest tests/test_experience.py -k coordinator_none` passes with
+   a new test confirming `model.failed == {}` and `model.category_failed == {}`.
 
 ## Rules
 
