@@ -2917,6 +2917,43 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. **`statusline()` silent idle fallthrough when task has empty goal and id** — when
+   `tasks[0]` has both `goal` and `id` as empty strings the `if goal:` branch at
+   line 181 is skipped and the function returns `"looptight: idle"`, but no
+   `statusline` test exercises this specific path (only `_session_panel` has the
+   analogous test).
+   Evidence: `src/looptight/ui.py:181`
+   Acceptance: A new test in `tests/test_ui.py` asserts
+   `statusline({"tasks": [{"goal": "", "id": ""}], "workers": []})` returns
+   `"looptight: idle"`, pinning the defined fallback behaviour.
+
+2. **`IterationRecord.line()` has no direct unit test** — the method at types.py:93
+   is exercised only indirectly through `render()` in `test_summary.py`; the exact
+   format string `"iteration N → verify: …"` is not directly pinned.
+   Evidence: `src/looptight/types.py:93`
+   Acceptance: A test in `tests/test_summary.py` (or a new `tests/test_types.py`)
+   calls `IterationRecord(3, VerifyResult(passed=True, exit_code=0)).line()` and
+   asserts the result contains both `"iteration 3"` and `"PASS"`.
+
+3. **`_drift_directive()` no-evidence lease path is untested end-to-end** — when a
+   coordinator lease exists but its `evidence` field is absent or empty,
+   `evidence_refs("")` returns `[]` and the function correctly returns `None`, but
+   no test drives this path through a real lease; the lower-level `_off_task` guard
+   is covered separately.
+   Evidence: `src/looptight/hook.py:109`
+   Acceptance: A test in `tests/test_hook.py` creates a real lease with an empty
+   `evidence` field, then calls `_drift_directive(root)` and asserts it returns
+   `None` (no drift fired despite the staged change).
+
+4. **`cmd_daemon` signal-restore failure path is uncovered** — the `(ValueError,
+   OSError): pass` clause at commands.py:359-360 (restoring signal handlers after
+   `run_daemon` completes) is never hit by any test; a parallel gap exists for the
+   registration path at lines 334-335.
+   Evidence: `src/looptight/commands.py:359`
+   Acceptance: A test in `tests/test_daemon.py` monkeypatches `signal.signal` to
+   raise `ValueError` only on the restore calls, runs `cmd_daemon`, and asserts it
+   exits without raising (the exception is swallowed).
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
