@@ -3987,3 +3987,31 @@ def test_status_reads_legacy_claims_when_coordinator_absent(tmp_path, monkeypatc
 
     assert main(["status"]) == 0
     assert summary_calls, "ClaimStore.summary was not called on the legacy path"
+
+
+def test_daemon_cli_fault_hook_subprocess_exception_is_swallowed(tmp_path, monkeypatch, capsys):
+    # commands.py:327-328 — when the --on-fault subprocess.run call raises (e.g.
+    # TimeoutExpired or OSError), the `except Exception: pass` guard must swallow
+    # it so a broken notification hook never crashes the daemon.
+    from looptight.daemon import DaemonReport
+    import looptight.commands as cmd_mod
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+
+    def fake_run_daemon(root, *, on_fault=None, on_cycle=None, **kwargs):
+        # Trigger the fault hook so commands.py:327 is exercised.
+        if on_fault is not None:
+            on_fault({"cycle": 1, "reason": "error", "backoff_s": 5, "last_error": "boom"})
+        return DaemonReport(cycles=1, progress=0, idle=0, faults=1, last_reason="error")
+
+    monkeypatch.setattr(cmd_mod, "run_daemon", fake_run_daemon)
+    # Make subprocess.run raise OSError — this exercises the except handler.
+    monkeypatch.setattr(cmd_mod.subprocess, "run", lambda *a, **kw: (_ for _ in ()).throw(OSError("hook failed")))
+
+    code = main([
+        "daemon", "--headless", "--agent", "claude", "--verify", "exit 0",
+        "--max-cycles", "1", "--on-fault", "hook.sh",
+    ])
+    # The OSError from the hook must be swallowed; daemon must exit cleanly.
+    assert code == 0

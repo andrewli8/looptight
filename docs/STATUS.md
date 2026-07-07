@@ -2897,17 +2897,15 @@ existing CLI session and makes no model or API calls of its own.
   (update-ref fails), and asserts `outcome.status == "complete"` with the correct SHA —
   the narrow path where a racing process advanced the ref to our commit. No production change.
 
+- `fault_hook`'s `except Exception: pass` guard (`commands.py:327-328`) is covered:
+  `test_daemon_cli_fault_hook_subprocess_exception_is_swallowed` in `tests/test_cli.py`
+  monkeypatches `looptight.commands.subprocess.run` to raise `OSError` and verifies
+  cmd_daemon returns 0 — a regression removing the guard would crash the daemon on a
+  broken `--on-fault` hook subprocess call. No production change.
+
 ## Next
 
-1. Verify `fault_hook`'s `except Exception: pass` is reachable in `cmd_daemon`.
-   The guard at lines 327-328 of `commands.py` is never triggered in any test —
-   a subprocess.run that raises (e.g. `TimeoutExpired`) is the missing case.
-   Evidence: `src/looptight/commands.py:327`
-   Acceptance: A new test `test_daemon_cli_fault_hook_subprocess_exception_is_swallowed`
-   in `tests/test_cli.py` monkeypatches `looptight.commands.subprocess.run` to raise
-   `OSError`, passes `--on-fault hook.sh` to cmd_daemon, and asserts exit code is 0.
-
-2. Test `interruptible_sleep` via the `sleep` kwarg that `cmd_daemon` passes to
+1. Test `interruptible_sleep` via the `sleep` kwarg that `cmd_daemon` passes to
    `run_daemon`. Lines 290-295 are never executed because all `run_daemon` mocks
    ignore the `sleep` parameter; a bug there would leave the daemon unresponsive
    to SIGTERM/SIGINT.
