@@ -2971,6 +2971,43 @@ existing CLI session and makes no model or API calls of its own.
   with `failed`, `category_landed`, and `category_failure_reasons` all non-empty and asserts
   all three output lines are present — a short-circuit regression would now fail.
 
+1. `from_task_file`'s empty-goal-text guard (`discovery.py:613`) is untested — an item whose
+   text before `Acceptance:` is blank (e.g. `"1. Acceptance: it passes."`) should be silently
+   dropped, but no test confirms this; a regression dropping the `not task_text.strip()` check
+   would emit a task with an empty title undetected.
+   Evidence: src/looptight/discovery.py:613
+   Acceptance: one new test in `tests/test_propose.py` creates a STATUS.md whose `## Next`
+   section contains only `"1. Acceptance: it passes."` (no goal text before `Acceptance:`) and
+   asserts `from_status_next` returns `[]`.
+
+2. `from_status_next` with a file that exists but contains no `## Next` heading is untested —
+   the only "returns empty" test (`test_from_status_next_absent_file_is_empty`) covers an absent
+   file; `discovery.py:577` initializes `in_next = False` when `next_section_only=True` and only
+   flips it on encountering `## Next`, so a file with only other headings should also return `[]`,
+   but no test guards this.
+   Evidence: src/looptight/discovery.py:577
+   Acceptance: one new test in `tests/test_propose.py` creates a STATUS.md with only a
+   `## Rules` section (no `## Next`) and asserts `from_status_next` returns `[]`.
+
+3. `_positive_int` and `_non_negative_int` call `int(value)` without guarding `ValueError`
+   (`cli.py:62`, `cli.py:56`) — a non-numeric argument like `--workers abc` raises bare
+   `ValueError` instead of `argparse.ArgumentTypeError`, so argparse prints the private function
+   name in the error (`invalid _positive_int value`). The existing validators test only range
+   violations; no test passes a non-numeric string.
+   Evidence: src/looptight/cli.py:62
+   Acceptance: a new test calls `_positive_int("abc")` and `_non_negative_int("xyz")` and asserts
+   each raises `argparse.ArgumentTypeError` (not `ValueError`); then the implementation wraps
+   `int(value)` in a try/except to make the test pass.
+
+4. `_stall_signal`'s `STOP_NO_PROGRESS` branch (`protocol_commands.py:139`) is exercised by
+   `test_metacog.py` in isolation but never through `cmd_verify`'s JSON output path — the only
+   end-to-end patience test creates a stuck sequence that always reaches `ESCALATE`, leaving the
+   `StopReason.NO_PROGRESS` path (the "improved then plateaued" case) unprotected against
+   regression in the JSON response shape.
+   Evidence: src/looptight/protocol_commands.py:139
+   Acceptance: one new test in `tests/test_cli.py` monkeypatches `assess` to return
+   `Decision.STOP_NO_PROGRESS`, calls `cmd_verify --json`, and asserts the JSON output contains
+   `"decision": "stop_no_progress"` under the `stall` key without an `escalation` key.
 
 ## Rules
 
