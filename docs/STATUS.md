@@ -2958,6 +2958,34 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `landed_counts`'s nonzero-returncode guard (`experience.py:42`) has no direct test — its
+   mirror `landed_category_counts` has `test_landed_category_counts_returns_empty_on_nonzero_returncode`
+   but `landed_counts` does not. Add `test_landed_counts_returns_empty_on_nonzero_returncode`
+   mirroring the existing test at `tests/test_experience.py:206`.
+   Evidence: tests/test_experience.py:206; src/looptight/experience.py:42
+   Acceptance: a new test monkeypatches `subprocess.run` to return `returncode=128` and asserts
+   `landed_counts` returns `{}` — a mutation dropping the guard would fail the test.
+
+2. `_eval_line` in `protocol_commands.py:184` has no direct unit test; it is only reached through
+   `cmd_propose --eval`. Add `test_eval_line_formats_batch_score_fields` that calls `_eval_line`
+   with a known `BatchScore` and asserts all six fields appear in the output.
+   Evidence: src/looptight/protocol_commands.py:184
+   Acceptance: a new test in `tests/test_cli.py` creates a `BatchScore` and calls `_eval_line`
+   directly, asserting `grounded`, the `groundedness` value, `areas`, `distinct`, and `bounded` appear.
+
+3. `summary_text` in `experience.py:113` tests each data condition in isolation but never all
+   three (`failed`, `category_landed`, `category_failure_reasons`) non-empty together. A regression
+   that short-circuits after the first branch would not be caught by the existing suite.
+   Evidence: tests/test_experience.py:81; src/looptight/experience.py:113
+   Acceptance: a new test in `tests/test_experience.py` passes a `Model` with all three fields
+   non-empty and asserts all three corresponding output lines appear in `summary_text`.
+
+4. `detect_verify`'s deliberate non-detection of Ruby (`Gemfile`) and PHP (`composer.json`)
+   is documented in STATUS.md but no test guards the decision — a future change adding Ruby
+   detection without realizing the documented omission would silently break the contract.
+   Evidence: src/looptight/detect.py:54; docs/STATUS.md:856
+   Acceptance: two new tests in `tests/test_detect.py` each create a `tmp_path` with only a
+   `Gemfile` (resp. `composer.json`) and assert `detect_verify` returns `None`.
 
 ## Rules
 
