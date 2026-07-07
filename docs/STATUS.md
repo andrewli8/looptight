@@ -2933,15 +2933,14 @@ existing CLI session and makes no model or API calls of its own.
   `bounded==False` — documenting that the empty case fails the lower bound
   (`_MIN_TASKS=1`) rather than vacuously passing.
 
+- `build_model()` `coordinator=None` guard (`experience.py:87`) is covered:
+  `test_build_model_coordinator_none_produces_empty_failure_dicts` in
+  `tests/test_experience.py` calls `build_model(..., None, ...)` and asserts
+  `failed=={}`, `category_failed=={}`, `category_failure_reasons=={}` — a regression
+  inverting the `if coordinator else {}` guard would raise `AttributeError` on `None`.
+
 ## Next
 
-1. Add a direct unit test for `build_model()` with `coordinator=None`. The guard at line 87
-   (`coordinator.recent_failures(...) if coordinator else {}`) silently produces empty dicts
-   when no coordinator is available, but is not tested; a regression inverting the guard
-   would raise `AttributeError` on `None`.
-   Evidence: `src/looptight/experience.py:87`
-   Acceptance: `python -m pytest tests/test_experience.py -k coordinator_none` passes with
-   a new test confirming `model.failed == {}` and `model.category_failed == {}`.
 
 ## Rules
 
