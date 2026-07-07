@@ -119,6 +119,13 @@ def test_statusline_idle_when_truly_empty():
     assert ui.statusline({"workers": [], "tasks": []}) == "looptight: idle"
 
 
+def test_statusline_idle_when_task_has_empty_goal_and_id():
+    # ui.py:181 — when tasks[0] is present but both "goal" and "id" are empty
+    # strings, the `if goal:` branch is skipped and the function returns
+    # "looptight: idle". Pinned here so a regression changing the fallback is caught.
+    assert ui.statusline({"tasks": [{"goal": "", "id": ""}], "workers": []}) == "looptight: idle"
+
+
 def test_verdict_round_trips_and_degrades(tmp_path):
     assert ui.read_verdict(tmp_path) is None  # absent
     ui.write_verdict(tmp_path, "pass")

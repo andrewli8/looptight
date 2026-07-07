@@ -2917,15 +2917,9 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. **`statusline()` silent idle fallthrough when task has empty goal and id** — when
-   `tasks[0]` has both `goal` and `id` as empty strings the `if goal:` branch at
-   line 181 is skipped and the function returns `"looptight: idle"`, but no
-   `statusline` test exercises this specific path (only `_session_panel` has the
-   analogous test).
-   Evidence: `src/looptight/ui.py:181`
-   Acceptance: A new test in `tests/test_ui.py` asserts
-   `statusline({"tasks": [{"goal": "", "id": ""}], "workers": []})` returns
-   `"looptight: idle"`, pinning the defined fallback behaviour.
+- `statusline()` idle fallthrough when task has empty goal and id — pinned by
+  `test_statusline_idle_when_task_has_empty_goal_and_id` in `tests/test_ui.py`.
+  Verified by `looptight verify` (pass).
 
 2. **`IterationRecord.line()` has no direct unit test** — the method at types.py:93
    is exercised only indirectly through `render()` in `test_summary.py`; the exact
