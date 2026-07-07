@@ -2927,16 +2927,15 @@ existing CLI session and makes no model or API calls of its own.
   `write("hello", end="")` and asserts no trailing newline — a regression dropping
   the `end` parameter would produce `"hello\n"` and fail.
 
+- `score_batch()` empty-input behavior (`idea_eval.py:83`) is covered:
+  `test_score_batch_empty_candidates_pins_all_zero_fields` in `tests/test_idea_eval.py`
+  calls `score_batch(tmp_path, [])` and asserts `size==0`, `grounded==0`,
+  `bounded==False` — documenting that the empty case fails the lower bound
+  (`_MIN_TASKS=1`) rather than vacuously passing.
+
 ## Next
 
-1. Add a direct unit test for `score_batch()` with an empty candidate list. The function
-   returns `BatchScore(size=0, bounded=False)` — the `bounded=False` is non-obvious since
-   the threshold is `_MIN_TASKS=1` — and this is never exercised by the existing suite.
-   Evidence: `src/looptight/idea_eval.py:83`
-   Acceptance: `python -m pytest tests/test_idea_eval.py -k empty` passes with a new test
-   that calls `score_batch(root, [])` and asserts `size==0`, `bounded==False`, `grounded==0`.
-
-3. Add a direct unit test for `build_model()` with `coordinator=None`. The guard at line 87
+1. Add a direct unit test for `build_model()` with `coordinator=None`. The guard at line 87
    (`coordinator.recent_failures(...) if coordinator else {}`) silently produces empty dicts
    when no coordinator is available, but is not tested; a regression inverting the guard
    would raise `AttributeError` on `None`.

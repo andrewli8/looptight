@@ -178,6 +178,13 @@ def test_score_batch_flags_an_unbounded_batch(tmp_path):
     assert score_batch(tmp_path, []).bounded is False  # empty is not a valid batch
 
 
+def test_score_batch_empty_candidates_pins_all_zero_fields(tmp_path):
+    result = score_batch(tmp_path, [])
+    assert result.size == 0
+    assert result.grounded == 0
+    assert result.bounded is False  # _MIN_TASKS=1, so empty fails the lower bound
+
+
 def test_good_batch_outscores_busywork_on_groundedness(tmp_path):
     # The discriminator the eval exists for: a grounded batch must score strictly
     # higher on groundedness than plausible-looking busywork.
