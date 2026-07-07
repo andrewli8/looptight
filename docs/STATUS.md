@@ -2909,16 +2909,13 @@ existing CLI session and makes no model or API calls of its own.
   monkeypatched) and asserts cmd_daemon returns 0 and `time.sleep` was invoked once —
   exercising every line including the `time.sleep` call at line 295. No production change.
 
-## Next
+- `serve_ui` body (`ui.py:450-454`) is covered:
+  `test_serve_ui_starts_server_and_prints_url` in `tests/test_ui.py` monkeypatches
+  `ui.create_server` to return a fake server with a `serve_forever` spy, calls
+  `serve_ui`, and asserts `serve_forever` was called exactly once and the URL was
+  printed — a regression removing the call would fail here. No production change.
 
-1. Test `serve_ui` calls `server.serve_forever()`. Lines 450-454 of `ui.py` are
-   never executed; all CLI tests mock `serve_ui` at the call site and never drive
-   its body. A regression removing the `serve_forever` call would pass silently.
-   Evidence: `src/looptight/ui.py:450`
-   Acceptance: A new test `test_serve_ui_starts_server_and_prints_url` in
-   `tests/test_ui.py` monkeypatches `ui.create_server` to return a mock with a
-   `serve_forever` spy and a fake `server_address`, calls `serve_ui(tmp_path)`,
-   and asserts `serve_forever` was called exactly once and the URL appears in stdout.
+## Next
 
 ## Rules
 

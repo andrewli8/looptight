@@ -943,3 +943,30 @@ def test_handler_log_message_is_suppressed(tmp_path, capsys):
     captured = capsys.readouterr()
     assert captured.out == ""
     assert captured.err == ""
+
+
+def test_serve_ui_starts_server_and_prints_url(tmp_path, monkeypatch, capsys):
+    # ui.py:450-454 — serve_ui's body is never driven directly; CLI tests mock
+    # serve_ui at the call site. This test verifies serve_forever is called once
+    # and the loopback URL is printed to stdout.
+    serve_calls: list = []
+
+    class FakeServer:
+        server_address = ("127.0.0.1", 8765)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            pass
+
+        def serve_forever(self):
+            serve_calls.append(True)
+
+    monkeypatch.setattr(ui, "create_server", lambda root, port=8765: FakeServer())
+
+    ui.serve_ui(tmp_path, port=8765)
+
+    assert len(serve_calls) == 1, "serve_forever must be called exactly once"
+    out = capsys.readouterr().out
+    assert "http://127.0.0.1:8765" in out
