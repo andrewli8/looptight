@@ -328,6 +328,18 @@ def test_detect_verify_none(tmp_path):
     assert detect.detect_verify(tmp_path) is None
 
 
+def test_detect_verify_ruby_gemfile_returns_none(tmp_path):
+    # Ruby (Gemfile) is deliberately not supported; no test runner is inferred.
+    (tmp_path / "Gemfile").write_text('source "https://rubygems.org"\ngem "rspec"\n')
+    assert detect.detect_verify(tmp_path) is None
+
+
+def test_detect_verify_php_composer_returns_none(tmp_path):
+    # PHP (composer.json) is deliberately not supported; no test runner is inferred.
+    (tmp_path / "composer.json").write_text('{"require": {"php": ">=8.0"}}\n')
+    assert detect.detect_verify(tmp_path) is None
+
+
 def test_detect_agent_prefers_known_order(monkeypatch):
     monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/codex" if name == "codex" else None)
     assert detect.detect_agent() == "codex"

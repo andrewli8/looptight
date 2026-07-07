@@ -2971,12 +2971,6 @@ existing CLI session and makes no model or API calls of its own.
   with `failed`, `category_landed`, and `category_failure_reasons` all non-empty and asserts
   all three output lines are present — a short-circuit regression would now fail.
 
-1. `detect_verify`'s deliberate non-detection of Ruby (`Gemfile`) and PHP (`composer.json`)
-   is documented in STATUS.md but no test guards the decision — a future change adding Ruby
-   detection without realizing the documented omission would silently break the contract.
-   Evidence: src/looptight/detect.py:54; docs/STATUS.md:856
-   Acceptance: two new tests in `tests/test_detect.py` each create a `tmp_path` with only a
-   `Gemfile` (resp. `composer.json`) and assert `detect_verify` returns `None`.
 
 ## Rules
 
