@@ -2924,10 +2924,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-2. **`_session_panel`'s `not isinstance(tasks[0], dict)` guard is uncovered** — when `tasks[0]` is not a dict (e.g. a bare string), the guard at `ui.py:114` must return `""` instead of raising `AttributeError`; both existing tests (`test_session_panel_returns_empty_when_task_has_no_goal_or_id` and `test_session_panel_returns_empty_for_non_session_or_goal_status`) only pass well-formed dicts as `tasks[0]`.
-   Evidence: `src/looptight/ui.py:114`
-   Acceptance: `test_session_panel_returns_empty_when_task_is_not_a_dict` in `tests/test_ui.py` passes `tasks=["not a dict"]` and asserts `_session_panel(state) == ""`.
-
 3. **`detect_agent` KNOWN_AGENTS loop success path is uncovered** — when `preferred` is `None` and a known agent IS on PATH, `detect_agent()` returns the first match from the `for name in KNOWN_AGENTS` loop (`detect.py:33-35`); existing tests only cover `preferred` given, none-on-PATH (loop exhaustion), and preferred-not-on-PATH.
    Evidence: `src/looptight/detect.py:33`
    Acceptance: `test_detect_agent_returns_first_known_agent_on_path` in `tests/test_detect.py` monkeypatches `shutil.which` to return a truthy path for `"claude"` and asserts `detect_agent()` returns `"claude"`.

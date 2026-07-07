@@ -942,6 +942,18 @@ def test_session_panel_returns_empty_for_non_session_or_goal_status():
     assert ui._session_panel(state) == ""
 
 
+def test_session_panel_returns_empty_when_task_is_not_a_dict():
+    # ui.py:114 — the `not isinstance(tasks[0], dict)` guard — a tasks list
+    # containing a bare string instead of a dict must return "" rather than
+    # raising AttributeError when .get() is called on a non-dict.
+    state = {
+        "manager": {"status": "session"},
+        "tasks": ["not a dict"],
+        "workers": [],
+    }
+    assert ui._session_panel(state) == ""
+
+
 def test_handler_log_message_is_suppressed(tmp_path, capsys):
     # ui.py:440: log_message overrides BaseHTTPRequestHandler's method with a bare
     # return, silencing HTTP request logs.  The override has no direct test.
