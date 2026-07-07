@@ -2958,15 +2958,11 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `landed_counts`'s nonzero-returncode guard (`experience.py:42`) has no direct test — its
-   mirror `landed_category_counts` has `test_landed_category_counts_returns_empty_on_nonzero_returncode`
-   but `landed_counts` does not. Add `test_landed_counts_returns_empty_on_nonzero_returncode`
-   mirroring the existing test at `tests/test_experience.py:206`.
-   Evidence: tests/test_experience.py:206; src/looptight/experience.py:42
-   Acceptance: a new test monkeypatches `subprocess.run` to return `returncode=128` and asserts
-   `landed_counts` returns `{}` — a mutation dropping the guard would fail the test.
+- `landed_counts`'s nonzero-returncode guard (`experience.py:42`) now has direct coverage:
+  `test_landed_counts_returns_empty_on_nonzero_returncode` in `tests/test_experience.py` mirrors
+  the `landed_category_counts` sibling test — a mutation dropping the guard fails the test.
 
-2. `_eval_line` in `protocol_commands.py:184` has no direct unit test; it is only reached through
+1. `_eval_line` in `protocol_commands.py:184` has no direct unit test; it is only reached through
    `cmd_propose --eval`. Add `test_eval_line_formats_batch_score_fields` that calls `_eval_line`
    with a known `BatchScore` and asserts all six fields appear in the output.
    Evidence: src/looptight/protocol_commands.py:184
