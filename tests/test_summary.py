@@ -229,6 +229,35 @@ def test_render_rich_shows_escalation_evidence_in_rich_output():
     assert "tests/test_auth.py::test_login" in text
 
 
+def test_render_rich_shows_truncated_failure_overflow():
+    # summary.py:48 — `_escalation_lines()` appends "… and N more" when total_failures exceeds
+    # the shown list. `render()` exercises this in test_summary_indicates_truncated_failure_list,
+    # but `render_rich()` calls the same helper and the overflow line must appear there too.
+    from looptight.types import Escalation
+
+    shown = [f"FAILED a::t{i}" for i in range(10)]
+    esc = Escalation(
+        kind="escalated",
+        iterations=3,
+        trajectory=(-2.0, -2.0, -2.0),
+        failures=tuple(shown),
+        summary="No progress across 3 tries. 13 failures never cleared.",
+        persisted=True,
+        total_failures=13,
+    )
+    output = StringIO()
+    result = RunResult(
+        goal="x",
+        agent="claude",
+        mode="supply",
+        stop_reason=StopReason.ESCALATED,
+        iterations=(IterationRecord(1, VerifyResult(passed=False, exit_code=1)),),
+        escalation=esc,
+    )
+    summary.render_rich(result, Console(file=output))
+    assert "… and 3 more" in output.getvalue()
+
+
 def test_run_result_as_dict_serializes_escalation_keys():
     # types.py:168 — the non-None escalation branch of RunResult.as_dict() must include
     # all expected keys; a regression removing a key would silently break `run --json`.

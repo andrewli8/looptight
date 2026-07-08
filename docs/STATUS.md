@@ -2990,19 +2990,15 @@ existing CLI session and makes no model or API calls of its own.
   double blank line — the already-newline-terminated case that uses `separator=""`, sibling to
   the empty-partial and no-trailing-newline cases already tested.
 
+- `render_rich`'s `"… and N more"` overflow line (`summary.py:48`) is now covered:
+  `test_render_rich_shows_truncated_failure_overflow` in `tests/test_summary.py` calls
+  `render_rich` with `total_failures=13, failures=(10 items)` and asserts `"… and 3 more"` in
+  the output — the `render_rich` path was previously untested for the overflow branch; only
+  `render()` exercised `_escalation_lines` with a hidden count.
+
 ## Next
 
-1. `render_rich` does not assert the "… and N more" overflow line when `total_failures >
-   len(failures)`: `_escalation_lines()` is shared by `render()` and `render_rich()`, but the
-   truncation branch (`summary.py:48`) is only exercised through `render()` in
-   `test_summary_indicates_truncated_failure_list`. A mutation removing `if hidden > 0` from
-   `_escalation_lines` would pass unseen by `render_rich` callers.
-   Evidence: `src/looptight/summary.py:48`; sibling test: `tests/test_summary.py:173`.
-   Acceptance: `test_render_rich_shows_truncated_failure_overflow` in `tests/test_summary.py`
-   calls `render_rich` with `total_failures=13, failures=(10 items)` and asserts `"… and 3 more"`
-   in captured output; no production change, passes after adding the test.
-
-2. `_session_panel` goal mode with a verify string is untested: `render_state_panel` checks
+1. `_session_panel` goal mode with a verify string is untested: `render_state_panel` checks
    `"verify: pass" in panel` only for `status="session"`. The `goal` branch at `ui.py:773` uses
    no verify key, so the `if isinstance(verify, str) and verify: line += …` path at `ui.py:121`
    is only mutation-visible for session mode. A refactor guarding the suffix on `status ==
