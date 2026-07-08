@@ -3052,16 +3052,17 @@ existing CLI session and makes no model or API calls of its own.
   guard); `test_daemon_cli_signal_registration_error_is_ignored` patches
   `signal.signal` to raise `ValueError` and asserts `cmd_daemon` still returns 0.
 
-## Next
+- `_idea_directive` now calls `planning_goal(model)` instead of the static
+  `PLANNING_GOAL`: it opens the coordinator, calls `build_model(workdir, "HEAD",
+  coordinator, cooldown_s=24*3600)`, and passes the result to `planning_goal` so
+  local failure records and category yields reach the planning prompt. Without
+  history (empty model), `planning_goal` returns the static constant unchanged.
+  `test_idea_directive_injects_experience_when_coordinator_has_failures` seeds one
+  failure and asserts "Recently-failed" appears in the prompt;
+  `test_idea_directive_equals_planning_goal_without_failure_history` asserts the
+  prompt equals `PLANNING_GOAL` when the coordinator is fresh.
 
-1. `_idea_directive` passes the static `PLANNING_GOAL` to the host agent even
-   when coordinator experience (failed ideas, category yields) is available; the
-   swarm's continuous planner already calls `planning_goal(model)`. The
-   session-native loop never injects experience feedback into the planning prompt.
-   Evidence: `src/looptight/tasks.py:112`
-   Acceptance: A test proves that when the coordinator has local failure records,
-   `_idea_directive(workdir)` returns a `prompt` that includes the failure note
-   ("Recently-failed"); without history the prompt equals the static `PLANNING_GOAL`.
+## Next
 
 ## Rules
 

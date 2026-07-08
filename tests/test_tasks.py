@@ -262,6 +262,40 @@ def test_idea_directive_carries_quality_feedback(tmp_path):
     assert _idea_directive(tmp_path)["current_quality"] is None
 
 
+def test_idea_directive_injects_experience_when_coordinator_has_failures(tmp_path):
+    # tasks.py:112 — when the coordinator has local failure records, _idea_directive
+    # must return a `prompt` that includes the experience note ("Recently-failed"),
+    # not the static PLANNING_GOAL.  Without this, the session-native loop never
+    # injects feedback into the planning prompt even when the swarm already does so.
+    from looptight.coordinator import Coordinator
+    from looptight.prompts import PLANNING_GOAL
+    from looptight.tasks import _idea_directive
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+
+    coord = Coordinator.open(tmp_path)
+    assert coord is not None
+    coord.record_failure("abc123", "status-next", reason="test")
+    coord.close()
+
+    directive = _idea_directive(tmp_path)
+    assert "Recently-failed" in directive["prompt"]
+    assert directive["prompt"] != PLANNING_GOAL
+
+
+def test_idea_directive_equals_planning_goal_without_failure_history(tmp_path):
+    # tasks.py:112 — when there is no failure history and no landed outcomes,
+    # _idea_directive must return the static PLANNING_GOAL unchanged (planning_goal
+    # with an empty model degrades gracefully).
+    from looptight.prompts import PLANNING_GOAL
+    from looptight.tasks import _idea_directive
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+
+    directive = _idea_directive(tmp_path)
+    assert directive["prompt"] == PLANNING_GOAL
+
+
 def test_has_dirty_git_worktree_returns_false_on_oserror(tmp_path, monkeypatch):
     # When the git subprocess cannot be launched (OSError), _has_dirty_git_worktree
     # must return False rather than propagating the exception, so next_task can

@@ -12,7 +12,7 @@ from typing import Callable, cast
 from .claims import ClaimStore, claim_dir, owner_id
 from .coordinator import Coordinator, current_run_id
 from .idea_identity import idea_id
-from .prompts import IDEA_DIRECTIVE_ACTION, PLANNING_GOAL
+from .prompts import IDEA_DIRECTIVE_ACTION, PLANNING_GOAL, planning_goal
 from .propose import Candidate, propose
 
 ProposeFn = Callable[..., list[Candidate]]
@@ -99,6 +99,7 @@ def _idea_directive(workdir: Path) -> dict[str, object]:
     are still in ``## Next`` (or ``null`` when none), so the host can see how its prior
     generation landed and aim higher.
     """
+    from .experience import build_model
     from .idea_eval import score_status_next
 
     batch = score_status_next(workdir)
@@ -107,9 +108,17 @@ def _idea_directive(workdir: Path) -> dict[str, object]:
         if batch.size
         else None
     )
+    prompt: str = PLANNING_GOAL
+    coordinator = Coordinator.open(workdir)
+    if coordinator is not None:
+        try:
+            model = build_model(workdir, "HEAD", coordinator, cooldown_s=24 * 3600.0)
+            prompt = planning_goal(model)
+        finally:
+            coordinator.close()
     return {
         "action": IDEA_DIRECTIVE_ACTION,
-        "prompt": PLANNING_GOAL,
+        "prompt": prompt,
         "max_tasks": 6,
         "current_quality": current_quality,
     }
