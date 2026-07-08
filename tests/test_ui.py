@@ -968,6 +968,19 @@ def test_session_panel_returns_empty_when_task_is_not_a_dict():
     assert ui._session_panel(state) == ""
 
 
+def test_session_panel_goal_mode_appends_verify_suffix():
+    # ui.py:121 — the `if isinstance(verify, str) and verify: line += f" · verify: {verify}"`
+    # branch is exercised for status="session" by test_render_state_panel_shows_the_session_loop,
+    # but NOT for status="goal". A refactor adding `if status == "session":` before the suffix
+    # would silently drop the badge for goal mode without breaking any existing test.
+    state = {
+        "manager": {"status": "goal", "verify": "pass"},
+        "tasks": [{"goal": "ship it"}],
+    }
+    result = ui._session_panel(state)
+    assert result == "goal: ship it · verify: pass"
+
+
 def test_handler_log_message_is_suppressed(tmp_path, capsys):
     # ui.py:440: log_message overrides BaseHTTPRequestHandler's method with a bare
     # return, silencing HTTP request logs.  The override has no direct test.

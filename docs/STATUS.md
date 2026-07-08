@@ -2996,20 +2996,14 @@ existing CLI session and makes no model or API calls of its own.
   the output — the `render_rich` path was previously untested for the overflow branch; only
   `render()` exercised `_escalation_lines` with a hidden count.
 
+- `_session_panel` goal mode with verify suffix (`ui.py:121`) is now covered:
+  `test_session_panel_goal_mode_appends_verify_suffix` in `tests/test_ui.py` asserts
+  `"goal: ship it · verify: pass"` — the verify-append branch was only mutation-visible for
+  session mode; a guard narrowing it to session would break goal silently.
+
 ## Next
 
-1. `_session_panel` goal mode with a verify string is untested: `render_state_panel` checks
-   `"verify: pass" in panel` only for `status="session"`. The `goal` branch at `ui.py:773` uses
-   no verify key, so the `if isinstance(verify, str) and verify: line += …` path at `ui.py:121`
-   is only mutation-visible for session mode. A refactor guarding the suffix on `status ==
-   "session"` would silently break goal mode.
-   Evidence: `src/looptight/ui.py:121`; sibling test: `tests/test_ui.py:773`.
-   Acceptance: `test_session_panel_goal_mode_appends_verify_suffix` in `tests/test_ui.py`
-   calls `ui._session_panel({"manager": {"status": "goal", "verify": "pass"}, "tasks":
-   [{"goal": "ship it"}]})` and asserts `"goal: ship it · verify: pass"` in the result;
-   no production change.
-
-3. `detect_verify` conftest-only detection for `test/` (singular dir) is not directly tested:
+1. `detect_verify` conftest-only detection for `test/` (singular dir) is not directly tested:
    `test_detect_verify_pytest_from_conftest_only` covers root-level `conftest.py`, and
    `test_detect_verify_pytest_from_tests_dir` covers `tests/conftest.py`, but the analogous
    `test/conftest.py` (singular) path through `detect.py:121` is untested. The third loop
