@@ -475,6 +475,26 @@ def test_js_skip_inside_multiline_block_comment_is_ignored(tmp_path):
     assert candidates[0].location == "tests/a.test.js:5"
 
 
+def test_jsdoc_star_prefix_skip_inside_block_comment_is_ignored(tmp_path):
+    # A JSDoc-style ` * it.skip(...)` continuation line (star-prefixed, as written by
+    # editors inside /** */ blocks) sits inside a block comment and must not surface as a
+    # candidate. The caller's in_block tracking at discovery.py:538 already skips these
+    # before _js_skip_candidate is called; the `"*"` in the startswith guard is dead code.
+    from looptight.discovery import from_skipped_tests
+
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "a.test.js").write_text(
+        "/**\n"
+        ' * it.skip("documented but not real", () => {});\n'
+        " */\n"
+        'it.skip("real skip", () => {});\n'
+    )
+    candidates = from_skipped_tests(tmp_path)
+    assert len(candidates) == 1  # only the real it.skip, not the JSDoc line
+    assert candidates[0].location == "tests/a.test.js:4"
+
+
 def test_from_lint_skips_unparseable_output_lines(tmp_path, monkeypatch):
     # ruff (quiet+concise) emits only `loc:col: CODE msg` lines, but from_lint must ignore
     # any line that does not match (a future format change or a stray warning) rather than

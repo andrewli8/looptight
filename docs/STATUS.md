@@ -3012,16 +3012,14 @@ existing CLI session and makes no model or API calls of its own.
   script still returns `"bun test"` and not `"npm test"`. Two new tests cover the standalone
   lock-file case and the mixed bun.lockb+package.json case.
 
+- Dead `"*"` prefix guard removed from `_js_skip_candidate` (`discovery.py:444`): the `"*"`
+  element was unreachable because the caller's `in_block` skip at `discovery.py:538` already
+  `continue`s before calling `_js_skip_candidate` for any block-comment continuation line.
+  `test_jsdoc_star_prefix_skip_inside_block_comment_is_ignored` documents and pins this.
+
 ## Next
 
-1. Remove the dead `"*"` prefix guard from `_js_skip_candidate`
-   Evidence: `src/looptight/discovery.py:444`
-   Acceptance: the `"*"` element is removed from the `startswith(("//", "*", "/*"))`
-   guard; a new test confirms that a JSDoc-style ` * it.skip("…")` block-comment
-   continuation line is not surfaced by `from_skipped_tests` (the caller's
-   `in_block` skip at `discovery.py:538` already excludes it); pytest and ruff pass.
-
-2. Pass `_body` instead of `line` to `_js_skip_candidate` so inline block-comment
+1. Pass `_body` instead of `line` to `_js_skip_candidate` so inline block-comment
    prefixes do not cause false negatives
    Evidence: `src/looptight/discovery.py:545`
    Acceptance: a new test shows that `/* eslint-disable */ it.skip("test", () => {})`
