@@ -3064,6 +3064,12 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Cover the `python -m looptight` entry point. Evidence: src/looptight/__main__.py:5; Acceptance: a test using `subprocess.run(["python", "-m", "looptight", "--help"])` asserts exit code 0, and `__main__.py` reaches 100% line coverage.
+
+2. Add CLI test for `init --integrate` idempotency. Evidence: src/looptight/commands.py:136; Acceptance: `test_init_integrate_reports_already_installed_on_rerun` in `tests/test_cli.py` calls `main(["init", "--integrate"])` twice in the same dir and asserts the second call's output contains "already installed".
+
+3. Explicitly test `propose()` coordinator-None fallback path. Evidence: src/looptight/propose.py:51; Acceptance: a test in `tests/test_propose.py` monkeypatches `Coordinator.open` to return `None` in a git-backed tmpdir and asserts `propose()` returns a non-empty ranked candidate list without error.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
