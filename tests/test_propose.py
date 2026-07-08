@@ -495,6 +495,23 @@ def test_jsdoc_star_prefix_skip_inside_block_comment_is_ignored(tmp_path):
     assert candidates[0].location == "tests/a.test.js:4"
 
 
+def test_inline_block_comment_before_skip_is_surfaced(tmp_path):
+    # `/* eslint-disable */ it.skip(...)` is a real skip with a leading inline comment.
+    # When the original `line` is passed to _js_skip_candidate, stripped.startswith("/*")
+    # returns True and the candidate is falsely dropped. The fix: pass _body (the
+    # comment-stripped code from _js_line_comment) so the guard never fires on real code.
+    from looptight.discovery import from_skipped_tests
+
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "a.test.js").write_text(
+        '/* eslint-disable */ it.skip("real skip", () => {});\n'
+    )
+    candidates = from_skipped_tests(tmp_path)
+    assert len(candidates) == 1
+    assert candidates[0].location == "tests/a.test.js:1"
+
+
 def test_from_lint_skips_unparseable_output_lines(tmp_path, monkeypatch):
     # ruff (quiet+concise) emits only `loc:col: CODE msg` lines, but from_lint must ignore
     # any line that does not match (a future format change or a stray warning) rather than

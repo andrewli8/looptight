@@ -441,12 +441,10 @@ _JS_SKIP_NAME_RE = re.compile(
 def _js_skip_candidate(root: Path, path: Path, lineno: int, line: str) -> Candidate | None:
     """Build a `skipped-test` candidate from a JS/TS skip marker, or None."""
     stripped = line.strip()
-    if stripped.startswith(("//", "/*")):  # comment-only line, not code
-        return None
-    # Strip string literals (via _code_only) AND any trailing // or /* comment, so a
-    # skip marker mentioned in a comment on a code line is not a false hit. A // or /*
-    # surviving in code-only text is a real comment (strings are already removed).
+    # Strip string literals, then closed inline /* ... */ blocks (so `/* eslint-disable */
+    # it.skip(...)` is not falsely rejected), then any remaining // or unclosed /* comment.
     code = _code_only(line)
+    code = re.sub(r"/\*.*?\*/", "", code)
     for marker in ("//", "/*"):
         cut = code.find(marker)
         if cut != -1:

@@ -3017,16 +3017,13 @@ existing CLI session and makes no model or API calls of its own.
   `continue`s before calling `_js_skip_candidate` for any block-comment continuation line.
   `test_jsdoc_star_prefix_skip_inside_block_comment_is_ignored` documents and pins this.
 
-## Next
+- False-negative bug fixed in `_js_skip_candidate` (`discovery.py:444`): a line like
+  `/* eslint-disable */ it.skip(...)` was falsely rejected by `startswith("/*")`. The fix
+  strips closed inline `/* ... */` blocks via `re.sub(r"/\*.*?\*/", "", code)` before
+  trailing-comment truncation, then removes the now-unnecessary `startswith` guard entirely.
+  `test_inline_block_comment_before_skip_is_surfaced` pins the corrected behaviour.
 
-1. Pass `_body` instead of `line` to `_js_skip_candidate` so inline block-comment
-   prefixes do not cause false negatives
-   Evidence: `src/looptight/discovery.py:545`
-   Acceptance: a new test shows that `/* eslint-disable */ it.skip("test", () => {})`
-   IS surfaced by `from_skipped_tests` (currently rejected by the `startswith("/*")`
-   guard in `_js_skip_candidate` because the original line is passed); after the fix
-   the entire `startswith(("//", "*", "/*"))` guard in `_js_skip_candidate` becomes
-   dead and is removed; pytest and ruff pass.
+## Next
 
 ## Rules
 
