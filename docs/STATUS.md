@@ -3069,11 +3069,15 @@ existing CLI session and makes no model or API calls of its own.
   in-process with `main` mocked to return 0, covering the line that was previously
   unreachable under pytest.
 
+- `init --integrate` idempotency now CLI-tested:
+  `test_init_integrate_reports_already_installed_on_rerun` calls
+  `main(["init", "--integrate"])` twice in the same directory and asserts the
+  second call prints "already installed", covering the `else` branch at
+  `commands.py:136` that was only exercised at the module level before.
+
 ## Next
 
-1. Add CLI test for `init --integrate` idempotency. Evidence: src/looptight/commands.py:136; Acceptance: `test_init_integrate_reports_already_installed_on_rerun` in `tests/test_cli.py` calls `main(["init", "--integrate"])` twice in the same dir and asserts the second call's output contains "already installed".
-
-2. Explicitly test `propose()` coordinator-None fallback path. Evidence: src/looptight/propose.py:51; Acceptance: a test in `tests/test_propose.py` monkeypatches `Coordinator.open` to return `None` in a git-backed tmpdir and asserts `propose()` returns a non-empty ranked candidate list without error.
+1. Explicitly test `propose()` coordinator-None fallback path. Evidence: src/looptight/propose.py:51; Acceptance: a test in `tests/test_propose.py` monkeypatches `Coordinator.open` to return `None` in a git-backed tmpdir and asserts `propose()` returns a non-empty ranked candidate list without error.
 
 ## Rules
 

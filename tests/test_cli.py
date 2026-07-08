@@ -4231,3 +4231,19 @@ def test_main_module_if_name_block_is_covered():
         with pytest.raises(SystemExit) as exc_info:
             runpy.run_module("looptight", run_name="__main__", alter_sys=True)
     assert exc_info.value.code == 0
+
+
+def test_init_integrate_reports_already_installed_on_rerun(tmp_path, monkeypatch, capsys):
+    # commands.py:136 — when init --integrate is re-run in a directory where session
+    # and goal loops are already present, state is "already installed" not "installed".
+    # Without this test, a regression dropping the `else` branch or changing the
+    # state string would be invisible to the suite.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".looptight.toml").write_text('verify = "pytest -q"\n')
+
+    assert main(["init", "--integrate"]) == 0
+    capsys.readouterr()  # discard first-run output
+
+    assert main(["init", "--integrate"]) == 0
+    out = capsys.readouterr().out
+    assert "already installed" in out
