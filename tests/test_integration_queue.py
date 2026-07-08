@@ -710,3 +710,75 @@ def test_prepare_integration_worktree_rejects_escaped_path(tmp_path, monkeypatch
 
     with pytest.raises(iq.IntegrationError, match="escaped"):
         prepare_integration_worktree(repo, "refs/heads/main")
+
+
+def test_prepare_integration_worktree_raises_when_worktree_add_fails(tmp_path, monkeypatch):
+    # integration_queue.py:167 — IntegrationError is raised when `git worktree add` returns
+    # a nonzero exit code.  A regression removing the check would silently proceed with a
+    # non-existent or corrupt worktree.
+    import subprocess as sp
+    from looptight import integration_queue as iq
+
+    repo = _repo(tmp_path / "r")
+    original_git = iq._git
+    call_count = [0]
+
+    def fail_on_add(root, *args):
+        call_count[0] += 1
+        # First call is rev-parse --verify (must succeed); second is worktree add (fail it).
+        if args and args[0] == "worktree":
+            return sp.CompletedProcess([], 1, "", "")
+        return original_git(root, *args)
+
+    monkeypatch.setattr(iq, "_git", fail_on_add)
+    with pytest.raises(iq.IntegrationError, match="could not create integration worktree"):
+        prepare_integration_worktree(repo, "refs/heads/main")
+
+
+def test_prepare_integration_worktree_raises_for_cross_repo_worktree(tmp_path, monkeypatch):
+    # integration_queue.py:169 — IntegrationError is raised when the integration worktree's
+    # git common dir does not match the repository's common dir (a cross-repo contamination
+    # that would silently reset the wrong repository's worktree without this guard).
+    from looptight import integration_queue as iq
+
+    repo = _repo(tmp_path / "r")
+    real_git_common_dir = iq.git_common_dir
+    # First call creates the worktree so the path exists.
+    prepare_integration_worktree(repo, "refs/heads/main")
+    worktree_path = integration_worktree(repo, "refs/heads/main")
+    assert worktree_path.exists()
+
+    # Patch git_common_dir to return a foreign path when queried for the worktree path.
+    fake_foreign = tmp_path / "foreign"
+
+    def patched_git_common_dir(root):
+        if root == worktree_path:
+            return fake_foreign
+        return real_git_common_dir(root)
+
+    monkeypatch.setattr(iq, "git_common_dir", patched_git_common_dir)
+    with pytest.raises(iq.IntegrationError, match="different repository"):
+        prepare_integration_worktree(repo, "refs/heads/main")
+
+
+def test_prepare_integration_worktree_raises_when_reset_fails(tmp_path, monkeypatch):
+    # integration_queue.py:174 — IntegrationError is raised when `git reset --hard` fails on
+    # a reused integration worktree.  A regression removing the check could leave the worktree
+    # in a stale or corrupted state and proceed with a bad integration base.
+    import subprocess as sp
+    from looptight import integration_queue as iq
+
+    repo = _repo(tmp_path / "r")
+    # First call creates the worktree successfully so path.exists() is True on the next call.
+    prepare_integration_worktree(repo, "refs/heads/main")
+
+    original_git = iq._git
+
+    def fail_reset(root, *args):
+        if args and args[0] == "reset":
+            return sp.CompletedProcess([], 1, "", "")
+        return original_git(root, *args)
+
+    monkeypatch.setattr(iq, "_git", fail_reset)
+    with pytest.raises(iq.IntegrationError, match="could not reset integration worktree"):
+        prepare_integration_worktree(repo, "refs/heads/main")

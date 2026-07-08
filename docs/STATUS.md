@@ -3037,15 +3037,15 @@ existing CLI session and makes no model or API calls of its own.
   one candidate. Dropping the `"/*"` arm promotes the second into a false positive, failing
   the test. No production code change.
 
-## Next
+- `_prepare_integration_worktree`'s three error paths (worktree-add failure, cross-repo
+  detection, reset failure) at `integration_queue.py:167`/169/174 now have direct regression
+  coverage: `test_prepare_integration_worktree_raises_when_worktree_add_fails`,
+  `test_prepare_integration_worktree_raises_for_cross_repo_worktree`, and
+  `test_prepare_integration_worktree_raises_when_reset_fails` in `tests/test_integration_queue.py`
+  each monkeypatch `_git` or `git_common_dir` to trigger the path and assert the correct
+  `IntegrationError`; `integration_queue.py` is now at 100% line coverage.
 
-1. `_prepare_integration_worktree`'s three error paths at lines 167, 169, and 174
-   in `integration_queue.py` (worktree-add failure, cross-repo detection, reset
-   failure) are uncovered — a regression silently removing any guard would pass CI.
-   Evidence: `src/looptight/integration_queue.py:167`
-   Acceptance: Three new tests in `tests/test_integration_queue.py`, each
-   monkeypatching `_git` or `git_common_dir` to trigger one path, assert the
-   correct `IntegrationError` is raised, and drive line coverage from 99% to 100%.
+## Next
 
 2. `cmd_daemon`'s `request_stop` signal-handler body (lines 283-285) and the
    `(ValueError, OSError)` guard on signal registration (lines 334-335) are
