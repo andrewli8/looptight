@@ -3009,6 +3009,30 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Add Bun lock-file detection to `detect_verify`
+   Evidence: `src/looptight/detect.py:58`
+   Acceptance: `detect_verify` returns `"bun test"` for a directory containing only
+   `bun.lockb`; a directory with both `bun.lockb` and a `package.json` carrying a
+   real test script also returns `"bun test"` (Bun check precedes the npm branch);
+   a new test `test_detect_verify_bun_lockb_returns_bun_test` exists in
+   `tests/test_detect.py` and passes.
+
+2. Remove the dead `"*"` prefix guard from `_js_skip_candidate`
+   Evidence: `src/looptight/discovery.py:444`
+   Acceptance: the `"*"` element is removed from the `startswith(("//", "*", "/*"))`
+   guard; a new test confirms that a JSDoc-style ` * it.skip("…")` block-comment
+   continuation line is not surfaced by `from_skipped_tests` (the caller's
+   `in_block` skip at `discovery.py:538` already excludes it); pytest and ruff pass.
+
+3. Pass `_body` instead of `line` to `_js_skip_candidate` so inline block-comment
+   prefixes do not cause false negatives
+   Evidence: `src/looptight/discovery.py:545`
+   Acceptance: a new test shows that `/* eslint-disable */ it.skip("test", () => {})`
+   IS surfaced by `from_skipped_tests` (currently rejected by the `startswith("/*")`
+   guard in `_js_skip_candidate` because the original line is passed); after the fix
+   the entire `startswith(("//", "*", "/*"))` guard in `_js_skip_candidate` becomes
+   dead and is removed; pytest and ruff pass.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
