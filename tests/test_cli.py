@@ -1375,13 +1375,18 @@ def test_status_json_classifies_detected_runners_as_unit(
 def test_status_json_classifies_bun_node_test_and_mocha_as_unit(
     tmp_path, monkeypatch, capsys
 ):
-    # bun test, node --test, and mocha are mainstream unambiguous test runners
-    # that must classify as `unit`, not `custom/unknown`.
+    # bun test, node --test, mocha, pnpm test, and yarn test are mainstream
+    # unambiguous test runners that must classify as `unit`, not `custom/unknown`.
+    # pnpm/yarn: removing either from the unit list in protocol_commands.py:877
+    # would cause affected projects to land in `custom/unknown`, suppressing the
+    # `unit`-tier risk message — this test is the mutation guard.
     monkeypatch.chdir(tmp_path)
     cases = {
         "bun test": "unit",
         "node --test": "unit",
         "mocha": "unit",
+        "pnpm test": "unit",
+        "yarn test": "unit",
     }
     for command, expected in cases.items():
         (tmp_path / ".looptight.toml").write_text(f'verify = "{command}"\n')
