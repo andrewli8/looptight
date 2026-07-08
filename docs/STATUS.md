@@ -2967,14 +2967,10 @@ existing CLI session and makes no model or API calls of its own.
   without `--done`, calls `goal check --json`, and asserts exit 1 with
   `{"status": "no_done_check", ...}` — the previously untested sibling of the `no_goal` case.
 
-1. `_planned_tasks_are_grounded`'s lower-bound line guard (`swarm.py:158`) has no test for the
-   `int(line_text) < 1` branch: `test_planned_tasks_grounded_rejection_branches` in
-   `tests/test_swarm.py` (line 1447) exercises `> len(lines)` via `:999` but never `:0`, so a
-   mutation swapping `< 1` to `< 0` would not be caught.
-   Evidence: `src/looptight/swarm.py:158`
-   Acceptance: `test_planned_tasks_grounded_rejects_zero_line_number` in `tests/test_swarm.py`
-   passes a candidate with `Evidence: src/a.py:0` and asserts `_planned_tasks_are_grounded`
-   returns `False`; a mutation changing `< 1` to `< 0` fails the test.
+- `_planned_tasks_are_grounded`'s lower-bound line guard (`swarm.py:158`) now has coverage:
+  `test_planned_tasks_grounded_rejects_zero_line_number` in `tests/test_swarm.py` passes a
+  candidate with `Evidence: src/a.py:0` and asserts `False`; a mutation changing `< 1` to
+  `< 0` fails the test — the sibling of the `:999` upper-bound case already in that file.
 
 ## Rules
 

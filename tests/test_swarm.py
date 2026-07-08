@@ -1467,6 +1467,23 @@ def test_planned_tasks_grounded_rejection_branches(tmp_path):
     assert _planned_tasks_are_grounded(tmp_path, [_c("Fix it. Evidence: `src/a.py:999`")]) is False
 
 
+def test_planned_tasks_grounded_rejects_zero_line_number(tmp_path):
+    # swarm.py:158 — the `int(line_text) < 1` half of the line-bounds check was never
+    # tested; a mutation changing `< 1` to `< 0` would accept :0 citations silently.
+    from looptight.discovery import Candidate
+    from looptight.swarm import _planned_tasks_are_grounded
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("x\n" * 5, encoding="utf-8")
+
+    c = Candidate(
+        title="t", source="status-next", location="docs/STATUS.md:5",
+        suggested_verify=None, score=0.0,
+        detail="Fix it. Evidence: `src/a.py:0`", acceptance="ok",
+    )
+    assert _planned_tasks_are_grounded(tmp_path, [c]) is False
+
+
 def test_task_paths_resolves_backticked_evidence_to_bare_path(tmp_path):
     # The change-scope set must include the file a backticked evidence anchor
     # points at; otherwise a worker's edit to its own evidence file looks
