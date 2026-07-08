@@ -2978,16 +2978,11 @@ existing CLI session and makes no model or API calls of its own.
   `argparse.ArgumentTypeError` on `ValueError`, so a non-numeric flag value like `--workers abc`
   emits a clean argparse error instead of exposing the private function name. Covered by
   `test_positive_int_and_non_negative_int_reject_non_numeric` in `tests/test_cli.py`.
-
-1. `_stall_signal`'s `STOP_NO_PROGRESS` branch (`protocol_commands.py:139`) is exercised by
-   `test_metacog.py` in isolation but never through `cmd_verify`'s JSON output path — the only
-   end-to-end patience test creates a stuck sequence that always reaches `ESCALATE`, leaving the
-   `StopReason.NO_PROGRESS` path (the "improved then plateaued" case) unprotected against
-   regression in the JSON response shape.
-   Evidence: src/looptight/protocol_commands.py:139
-   Acceptance: one new test in `tests/test_cli.py` monkeypatches `assess` to return
-   `Decision.STOP_NO_PROGRESS`, calls `cmd_verify --json`, and asserts the JSON output contains
-   `"decision": "stop_no_progress"` under the `stall` key without an `escalation` key.
+- `_stall_signal`'s `STOP_NO_PROGRESS` branch no longer includes an `escalation` key:
+  only `ESCALATE` ("never improved — human should look") gets the full escalation report;
+  `STOP_NO_PROGRESS` ("improved then plateaued") just carries `decision="stop_no_progress"`,
+  matching the correct semantic. Previously both paths set `escalation`. Covered by
+  `test_verify_json_stop_no_progress_has_no_escalation_key` in `tests/test_cli.py`.
 
 ## Rules
 

@@ -3549,6 +3549,23 @@ def test_stall_signal_returns_none_when_no_trajectory_entries(tmp_path):
     assert pc._stall_signal(tmp_path, "pytest", failing, patience=3) is None
 
 
+def test_verify_json_stop_no_progress_has_no_escalation_key(tmp_path, monkeypatch, capsys):
+    # _stall_signal's STOP_NO_PROGRESS branch (protocol_commands.py:137-145): a
+    # "improved then plateaued" verdict emits decision="stop_no_progress" with no
+    # escalation key — the agent should stop but a human review is not requested.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+
+    from looptight.metacog import Decision
+
+    monkeypatch.setattr("looptight.metacog.assess", lambda history, patience: Decision.STOP_NO_PROGRESS)
+    failing_cmd = 'python -c "import sys; sys.exit(1)"'
+    assert main(["verify", "--verify", failing_cmd, "--patience", "2", "--json"]) == 1
+    out = json.loads(capsys.readouterr().out)
+    assert out["stall"]["decision"] == "stop_no_progress"
+    assert "escalation" not in out["stall"]
+
+
 def test_task_source_health_counts_discoverable_signals(tmp_path):
     # Auto-discovered TODOs/skips are looptight's primary task source. A repo with
     # discoverable work is a healthy task source, even without a configured tasks
