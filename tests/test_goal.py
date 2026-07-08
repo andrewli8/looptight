@@ -311,6 +311,25 @@ def test_goal_cli_check_json_emits_verdict_and_preserves_exit_code(tmp_path, mon
     assert _json.loads(capsys.readouterr().out)["status"] == "no_goal"
 
 
+def test_goal_check_json_emits_no_done_check(tmp_path, monkeypatch, capsys):
+    # protocol_commands.py:1060 — goal check --json when a goal has no done_check must
+    # emit {"status": "no_done_check", ...} with exit 1; the sibling test above covers
+    # no_goal/pending/done but never the branch where a goal exists without --done.
+    import json as _json
+
+    from looptight.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    _repo(tmp_path)
+
+    main(["goal", "build x"])  # set goal without --done
+    capsys.readouterr()
+    assert main(["goal", "check", "--json"]) == 1
+    payload = _json.loads(capsys.readouterr().out)
+    assert payload["command"] == "goal"
+    assert payload["status"] == "no_done_check"
+
+
 def test_goal_done_check_output_does_not_pollute_json(tmp_path, monkeypatch, capfd):
     # The done-check is an exit-code predicate; its stdout must be captured, not
     # leaked into looptight's own stdout, or it corrupts --json output. Real

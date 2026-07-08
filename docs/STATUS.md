@@ -2962,15 +2962,10 @@ existing CLI session and makes no model or API calls of its own.
   coverage: `test_changed_entries_returns_none_on_nonzero_returncode` in `tests/test_cli.py`
   monkeypatches `subprocess.run` to return `CompletedProcess(returncode=128)` and asserts
   `_changed_entries` returns `None` — a mutation dropping the guard fails the test.
-
-1. `goal check --json` with `no_done_check` status (`protocol_commands.py:1060`) has no JSON
-   coverage: `test_goal_cli_check_json_emits_verdict_and_preserves_exit_code` in
-   `tests/test_goal.py` covers `no_goal`, `pending`, and `done` but never the branch where a
-   goal is set without a `--done` check.
-   Evidence: `src/looptight/protocol_commands.py:1060`
-   Acceptance: `test_goal_check_json_emits_no_done_check` in `tests/test_goal.py` sets a goal
-   without `--done`, calls `goal check --json`, and asserts exit code 1 with JSON output
-   containing `"status": "no_done_check"`.
+- `goal check --json` with `no_done_check` status (`protocol_commands.py:1060`) now has JSON
+  coverage: `test_goal_check_json_emits_no_done_check` in `tests/test_goal.py` sets a goal
+  without `--done`, calls `goal check --json`, and asserts exit 1 with
+  `{"status": "no_done_check", ...}` — the previously untested sibling of the `no_goal` case.
 
 ## Rules
 
