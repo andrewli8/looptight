@@ -2958,31 +2958,23 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-- `landed_counts`'s nonzero-returncode guard (`experience.py:42`) now has direct coverage:
-  `test_landed_counts_returns_empty_on_nonzero_returncode` in `tests/test_experience.py` mirrors
-  the `landed_category_counts` sibling test — a mutation dropping the guard fails the test.
-- `_eval_line` in `protocol_commands.py:184` now has direct unit coverage:
-  `test_eval_line_formats_batch_score_fields` in `tests/test_cli.py` calls `_eval_line` with a
-  known `BatchScore` and asserts all six fields (grounded/size, groundedness, areas, distinct,
-  bounded) appear in the output string.
+1. `_changed_entries`'s nonzero-returncode guard (`protocol_commands.py:391`) has no direct
+   coverage: the `OSError` branch at line 389 is tested by
+   `test_changed_entries_returns_none_on_oserror` in `tests/test_cli.py`, but the sibling
+   `if result.returncode != 0: return None` at line 391 has no test.
+   Evidence: `src/looptight/protocol_commands.py:391`
+   Acceptance: `test_changed_entries_returns_none_on_nonzero_returncode` in `tests/test_cli.py`
+   monkeypatches `subprocess.run` to return `CompletedProcess(returncode=128, stdout="")` and
+   asserts `_changed_entries` returns `None`; a mutation dropping the guard fails the test.
 
-- `summary_text`'s three-branch path (`experience.py:113`) is now jointly covered:
-  `test_summary_text_with_all_three_conditions` in `tests/test_experience.py` passes a `Model`
-  with `failed`, `category_landed`, and `category_failure_reasons` all non-empty and asserts
-  all three output lines are present — a short-circuit regression would now fail.
-- `from_status_next` with a file that exists but contains no `## Next` heading now has direct
-  coverage: `test_from_status_next_no_next_heading_is_empty` in `tests/test_propose.py` writes a
-  `STATUS.md` with only a `## Rules` section and asserts `from_status_next` returns `[]` — the
-  `in_next = False` default path at `discovery.py:577`.
-- `_positive_int` and `_non_negative_int` now wrap `int(value)` in a try/except and raise
-  `argparse.ArgumentTypeError` on `ValueError`, so a non-numeric flag value like `--workers abc`
-  emits a clean argparse error instead of exposing the private function name. Covered by
-  `test_positive_int_and_non_negative_int_reject_non_numeric` in `tests/test_cli.py`.
-- `_stall_signal`'s `STOP_NO_PROGRESS` branch no longer includes an `escalation` key:
-  only `ESCALATE` ("never improved — human should look") gets the full escalation report;
-  `STOP_NO_PROGRESS` ("improved then plateaued") just carries `decision="stop_no_progress"`,
-  matching the correct semantic. Previously both paths set `escalation`. Covered by
-  `test_verify_json_stop_no_progress_has_no_escalation_key` in `tests/test_cli.py`.
+2. `goal check --json` with `no_done_check` status (`protocol_commands.py:1060`) has no JSON
+   coverage: `test_goal_cli_check_json_emits_verdict_and_preserves_exit_code` in
+   `tests/test_goal.py` covers `no_goal`, `pending`, and `done` but never the branch where a
+   goal is set without a `--done` check.
+   Evidence: `src/looptight/protocol_commands.py:1060`
+   Acceptance: `test_goal_check_json_emits_no_done_check` in `tests/test_goal.py` sets a goal
+   without `--done`, calls `goal check --json`, and asserts exit code 1 with JSON output
+   containing `"status": "no_done_check"`.
 
 ## Rules
 
