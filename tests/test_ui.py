@@ -172,6 +172,20 @@ def test_with_session_task_no_verdict_leaves_no_badge_or_timestamp(monkeypatch, 
     assert state["updated_at"] is None  # degrades to UNKNOWN, never raises
 
 
+def test_with_session_task_verdict_with_status_but_no_at_sets_badge_not_timestamp(monkeypatch, tmp_path):
+    # ui.py:267,270 — the two `record`-guarded branches are independent: a record
+    # with a valid string status but no "at" key must set the verify badge without
+    # touching updated_at. A mutation removing the isinstance(..., str) guard on
+    # line 270 would set updated_at to the record dict rather than leaving it None.
+    monkeypatch.setattr(
+        ui, "_active_session_task", lambda root: {"id": "a", "goal": "g", "source": "", "status": "claimed"}
+    )
+    monkeypatch.setattr(ui, "_verdict_record", lambda root: {"status": "pass"})  # no "at" key
+    state = ui._with_session_task(ui.empty_state(), tmp_path)
+    assert state["manager"]["verify"] == "pass"  # badge is set from the status
+    assert state["updated_at"] is None  # no "at" → footer stays UNKNOWN
+
+
 def test_page_renders_the_session_verify_verdict():
     assert "manager.verify" in ui.PAGE  # the session manager detail shows the last verdict
 

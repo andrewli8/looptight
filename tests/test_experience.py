@@ -201,6 +201,25 @@ def test_landed_category_counts_skips_trailer_without_source(tmp_path):
     assert landed_counts(Path(root), "HEAD") == {"idea-a": 1}
 
 
+def test_landed_counts_ignores_non_landed_outcome_trailers(tmp_path):
+    # experience.py:47 — the guard `parts[1] != "landed"` must exclude "failed"
+    # and other non-landing outcomes so coordinator-recorded failures written as
+    # trailers are never counted as landed. A mutation inverting the filter would
+    # count "idea-x failed" as a land and not be caught without this test.
+    root = _repo(tmp_path)
+    _run(root, "commit", "--allow-empty", "-qm",
+         "w1\n\nLooptight-Outcome: idea-x failed lint")
+    _run(root, "commit", "--allow-empty", "-qm",
+         "w2\n\nLooptight-Outcome: idea-y skipped")
+    # Neither "failed" nor "skipped" outcome should appear in landed counts.
+    counts = landed_counts(Path(root), "HEAD")
+    assert "idea-x" not in counts
+    assert "idea-y" not in counts
+    # landed_category_counts (experience.py:66) has the symmetric guard; also verify.
+    cat_counts = landed_category_counts(Path(root), "HEAD")
+    assert cat_counts == {}
+
+
 def test_reweight_factor_is_neutral_for_unknown_category():
     # A category with no landed/failed history (total == 0) yields the neutral 1.0.
     assert reweight_factor("unknown-source", Model()) == 1.0

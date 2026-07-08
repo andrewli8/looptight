@@ -2956,12 +2956,11 @@ existing CLI session and makes no model or API calls of its own.
   `unit` — the existing `pytest` substring check already covered this; the test pins
   it as a non-regression guard against future refactors of the quality table.
 
-## Next
-
 - `_changed_entries`'s nonzero-returncode guard (`protocol_commands.py:391`) now has direct
   coverage: `test_changed_entries_returns_none_on_nonzero_returncode` in `tests/test_cli.py`
   monkeypatches `subprocess.run` to return `CompletedProcess(returncode=128)` and asserts
   `_changed_entries` returns `None` — a mutation dropping the guard fails the test.
+
 - `goal check --json` with `no_done_check` status (`protocol_commands.py:1060`) now has JSON
   coverage: `test_goal_check_json_emits_no_done_check` in `tests/test_goal.py` sets a goal
   without `--done`, calls `goal check --json`, and asserts exit 1 with
@@ -2971,6 +2970,27 @@ existing CLI session and makes no model or API calls of its own.
   `test_planned_tasks_grounded_rejects_zero_line_number` in `tests/test_swarm.py` passes a
   candidate with `Evidence: src/a.py:0` and asserts `False`; a mutation changing `< 1` to
   `< 0` fails the test — the sibling of the `:999` upper-bound case already in that file.
+
+- `_solo_overlay`'s independent `at` branch (`ui.py:270`) now has coverage:
+  `test_with_session_task_verdict_with_status_but_no_at_sets_badge_not_timestamp` in
+  `tests/test_ui.py` monkeypatches `_verdict_record` to return `{"status": "pass"}` (no "at"
+  key) and asserts `state["manager"]["verify"] == "pass"` and `state["updated_at"] is None`
+  — the intermediate case where the badge is set but `updated_at` is not, previously
+  untested alongside the all-present and all-absent cases.
+
+- `landed_counts`'s non-"landed" outcome guard (`experience.py:47`) now has coverage:
+  `test_landed_counts_ignores_non_landed_outcome_trailers` in `tests/test_experience.py`
+  commits trailers with `"failed"` and `"skipped"` outcomes and asserts neither appears in
+  `landed_counts` or `landed_category_counts` — a mutation inverting the `!= "landed"` filter
+  would cause coordinator-recorded failures to be counted as lands.
+
+- `_timeout_output`'s newline-separator branch (`verify.py:52`) now has coverage:
+  `test_timeout_output_partial_ending_with_newline_has_no_double_newline` in
+  `tests/test_verify.py` calls `_timeout_output("partial\n", ...)` and asserts no `"\n\nverify"`
+  double blank line — the already-newline-terminated case that uses `separator=""`, sibling to
+  the empty-partial and no-trailing-newline cases already tested.
+
+## Next
 
 ## Rules
 

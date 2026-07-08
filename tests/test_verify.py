@@ -200,6 +200,14 @@ def test_timeout_output_empty_partial_has_no_leading_separator():
     assert result.startswith("verify timed out")
 
 
+def test_timeout_output_partial_ending_with_newline_has_no_double_newline():
+    # verify.py:52 — the separator is "" when partial already ends with "\n",
+    # so no spurious blank line appears before the timeout message.
+    result = _timeout_output("partial\n", "pytest -q", 5.0)
+    assert "\n\nverify" not in result  # no double blank line
+    assert "partial\nverify" in result  # partial and message are adjacent
+
+
 def test_context_output_passthrough_and_truncation_marker():
     # Short output — returned whole, no truncation marker added.
     short = VerifyResult(passed=False, exit_code=1, output="one failure\n")
