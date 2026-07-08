@@ -3039,6 +3039,33 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_prepare_integration_worktree`'s three error paths at lines 167, 169, and 174
+   in `integration_queue.py` (worktree-add failure, cross-repo detection, reset
+   failure) are uncovered — a regression silently removing any guard would pass CI.
+   Evidence: `src/looptight/integration_queue.py:167`
+   Acceptance: Three new tests in `tests/test_integration_queue.py`, each
+   monkeypatching `_git` or `git_common_dir` to trigger one path, assert the
+   correct `IntegrationError` is raised, and drive line coverage from 99% to 100%.
+
+2. `cmd_daemon`'s `request_stop` signal-handler body (lines 283-285) and the
+   `(ValueError, OSError)` guard on signal registration (lines 334-335) are
+   uncovered; a regression replacing the double-signal guard or removing the
+   ValueError catch would pass CI undetected.
+   Evidence: `src/looptight/commands.py:283`
+   Acceptance: Two new tests in `tests/test_cli.py` — one that captures the
+   registered handler via monkeypatched `signal.signal` and invokes it twice to
+   assert the message prints once and the flag is set, one that makes
+   `signal.signal` raise `ValueError` and asserts `cmd_daemon` still returns 0.
+
+3. `_idea_directive` passes the static `PLANNING_GOAL` to the host agent even
+   when coordinator experience (failed ideas, category yields) is available; the
+   swarm's continuous planner already calls `planning_goal(model)`. The
+   session-native loop never injects experience feedback into the planning prompt.
+   Evidence: `src/looptight/tasks.py:112`
+   Acceptance: A test proves that when the coordinator has local failure records,
+   `_idea_directive(workdir)` returns a `prompt` that includes the failure note
+   ("Recently-failed"); without history the prompt equals the static `PLANNING_GOAL`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
