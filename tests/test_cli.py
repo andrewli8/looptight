@@ -3947,6 +3947,22 @@ def test_changed_entries_returns_none_on_oserror(tmp_path, monkeypatch):
     assert result is None
 
 
+def test_changed_entries_returns_none_on_nonzero_returncode(tmp_path, monkeypatch):
+    # protocol_commands.py:391 — _changed_entries' nonzero-returncode branch was not
+    # directly tested; a mutation dropping the `if result.returncode != 0` guard would
+    # return an empty list instead of None, silently bypassing the caller's None check.
+    from subprocess import CompletedProcess
+    from unittest.mock import patch
+
+    import looptight.protocol_commands as pc
+
+    fake = CompletedProcess(args=[], returncode=128, stdout="", stderr="")
+    with patch.object(pc.subprocess, "run", return_value=fake):
+        result = pc._changed_entries(tmp_path)
+
+    assert result is None
+
+
 def test_count_non_int_value_returns_zero():
     # protocol_commands.py:945 — the `else 0` branch when a counts dict has a non-int
     # value (e.g. from future schema evolution) was never directly tested; a regression

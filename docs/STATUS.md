@@ -2958,16 +2958,12 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `_changed_entries`'s nonzero-returncode guard (`protocol_commands.py:391`) has no direct
-   coverage: the `OSError` branch at line 389 is tested by
-   `test_changed_entries_returns_none_on_oserror` in `tests/test_cli.py`, but the sibling
-   `if result.returncode != 0: return None` at line 391 has no test.
-   Evidence: `src/looptight/protocol_commands.py:391`
-   Acceptance: `test_changed_entries_returns_none_on_nonzero_returncode` in `tests/test_cli.py`
-   monkeypatches `subprocess.run` to return `CompletedProcess(returncode=128, stdout="")` and
-   asserts `_changed_entries` returns `None`; a mutation dropping the guard fails the test.
+- `_changed_entries`'s nonzero-returncode guard (`protocol_commands.py:391`) now has direct
+  coverage: `test_changed_entries_returns_none_on_nonzero_returncode` in `tests/test_cli.py`
+  monkeypatches `subprocess.run` to return `CompletedProcess(returncode=128)` and asserts
+  `_changed_entries` returns `None` — a mutation dropping the guard fails the test.
 
-2. `goal check --json` with `no_done_check` status (`protocol_commands.py:1060`) has no JSON
+1. `goal check --json` with `no_done_check` status (`protocol_commands.py:1060`) has no JSON
    coverage: `test_goal_cli_check_json_emits_verdict_and_preserves_exit_code` in
    `tests/test_goal.py` covers `no_goal`, `pending`, and `done` but never the branch where a
    goal is set without a `--done` check.
