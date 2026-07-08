@@ -3075,9 +3075,14 @@ existing CLI session and makes no model or API calls of its own.
   second call prints "already installed", covering the `else` branch at
   `commands.py:136` that was only exercised at the module level before.
 
-## Next
+- `propose()` coordinator-None fallback path explicitly tested:
+  `test_propose_coordinator_none_falls_back_to_plain_rank` monkeypatches
+  `Coordinator.open` to return `None` in a git-backed tmpdir, then calls
+  `propose()` and asserts a non-empty list is returned. This pins
+  `propose.py:51` (`else: ranked = rank(dedupe(discover(...)))`) which was
+  previously covered only indirectly through higher-level callers.
 
-1. Explicitly test `propose()` coordinator-None fallback path. Evidence: src/looptight/propose.py:51; Acceptance: a test in `tests/test_propose.py` monkeypatches `Coordinator.open` to return `None` in a git-backed tmpdir and asserts `propose()` returns a non-empty ranked candidate list without error.
+## Next
 
 ## Rules
 

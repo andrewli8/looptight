@@ -1774,3 +1774,18 @@ def test_enclosing_test_name_breaks_on_non_decorator_non_def_line():
     assert result is None, (
         f"expected None when @skip is followed by a bare assignment, got {result!r}"
     )
+
+
+def test_propose_coordinator_none_falls_back_to_plain_rank(tmp_path):
+    # propose.py:51 — when Coordinator.open returns None (e.g. no git repo at the
+    # common directory), propose() must fall through to rank(dedupe(discover(...)))
+    # and still return a non-empty list. The else-branch was only covered indirectly;
+    # this test pins it explicitly.
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    _write(tmp_path, "src/a.py", "# TODO: fix the timeout\n")
+
+    with patch("looptight.propose.Coordinator.open", return_value=None):
+        candidates = propose(tmp_path)
+
+    assert candidates, "propose() must return candidates even when coordinator is None"
+    assert any("timeout" in c.title.lower() for c in candidates)
