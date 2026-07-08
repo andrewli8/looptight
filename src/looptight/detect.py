@@ -55,6 +55,12 @@ def detect_verify(root: Path | None = None) -> str | None:
     """Infer a verify command from the project layout. None if nothing fits."""
     base = (root or Path.cwd()).resolve()
 
+    # Bun has its own built-in test runner; its lock file is distinctive (binary,
+    # never created by npm/yarn/pnpm), so check it before package.json to avoid
+    # claiming `npm test` on a Bun project that may not have npm installed.
+    if (base / "bun.lockb").is_file():
+        return "bun test"
+
     package_json = base / "package.json"
     if package_json.is_file():
         # Only claim `npm test` if a test script actually exists.

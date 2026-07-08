@@ -377,3 +377,19 @@ def test_detect_agent_returns_first_known_agent_on_path(monkeypatch):
     # is on PATH, the loop returns it immediately without checking further entries.
     monkeypatch.setattr(shutil, "which", lambda name: "/usr/bin/claude" if name == "claude" else None)
     assert detect.detect_agent() == "claude"
+
+
+def test_detect_verify_bun_lockb_returns_bun_test(tmp_path):
+    # A directory with only bun.lockb has no package.json test script, but Bun
+    # has its own built-in test runner; detect_verify must return "bun test".
+    (tmp_path / "bun.lockb").write_bytes(b"")  # binary lock file
+    assert detect.detect_verify(tmp_path) == "bun test"
+
+
+def test_detect_verify_bun_wins_over_npm_test_script(tmp_path):
+    # bun.lockb must be checked before package.json so a Bun project that also
+    # carries a package.json with a real test script still returns "bun test",
+    # not "npm test" (npm may not be installed in a Bun-only environment).
+    (tmp_path / "bun.lockb").write_bytes(b"")
+    (tmp_path / "package.json").write_text('{"scripts": {"test": "bun test"}}')
+    assert detect.detect_verify(tmp_path) == "bun test"
