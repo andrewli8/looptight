@@ -4151,3 +4151,60 @@ def test_daemon_cli_fault_hook_subprocess_exception_is_swallowed(tmp_path, monke
     ])
     # The OSError from the hook must be swallowed; daemon must exit cleanly.
     assert code == 0
+
+
+def test_daemon_cli_request_stop_prints_message_only_once(tmp_path, monkeypatch, capsys):
+    # commands.py:283-285 — the `request_stop` handler prints the shutdown message
+    # only on the first call (guarded by `if not stop["flag"]`).  Invoking it twice
+    # must produce exactly one message, and the flag must be set so the daemon stops.
+    from looptight.daemon import DaemonReport
+    import looptight.commands as cmd_mod
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+
+    captured_handler: list = []
+
+    def capturing_signal(signum, handler):
+        if callable(handler):
+            captured_handler.append(handler)
+        return signal.SIG_DFL
+
+    import signal
+    monkeypatch.setattr(cmd_mod.signal, "signal", capturing_signal)
+
+    def fake_run_daemon(root, **kwargs):
+        # Invoke the handler twice; only the first call should print.
+        for h in captured_handler:
+            h(2, None)
+            h(2, None)
+        return DaemonReport(cycles=1, progress=0, idle=1, faults=0, last_reason="ok")
+
+    monkeypatch.setattr(cmd_mod, "run_daemon", fake_run_daemon)
+    code = main(["daemon", "--headless", "--agent", "claude", "--verify", "exit 0", "--max-cycles", "1"])
+    out = capsys.readouterr().out
+    assert code == 0
+    assert out.count("shutdown requested") == 1
+
+
+def test_daemon_cli_signal_registration_error_is_ignored(tmp_path, monkeypatch, capsys):
+    # commands.py:334-335 — when signal.signal raises ValueError (e.g. called from a
+    # non-main thread) or OSError (signal unsupported), the exception is caught and
+    # the daemon proceeds normally without crashing.
+    from looptight.daemon import DaemonReport
+    import looptight.commands as cmd_mod
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+
+    def raising_signal(signum, handler):
+        raise ValueError("signal only works in main thread")
+
+    monkeypatch.setattr(cmd_mod.signal, "signal", raising_signal)
+
+    def fake_run_daemon(root, **kwargs):
+        return DaemonReport(cycles=1, progress=0, idle=1, faults=0, last_reason="ok")
+
+    monkeypatch.setattr(cmd_mod, "run_daemon", fake_run_daemon)
+    code = main(["daemon", "--headless", "--agent", "claude", "--verify", "exit 0", "--max-cycles", "1"])
+    assert code == 0

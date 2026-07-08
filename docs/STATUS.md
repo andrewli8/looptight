@@ -3044,20 +3044,17 @@ existing CLI session and makes no model or API calls of its own.
   `test_prepare_integration_worktree_raises_when_reset_fails` in `tests/test_integration_queue.py`
   each monkeypatch `_git` or `git_common_dir` to trigger the path and assert the correct
   `IntegrationError`; `integration_queue.py` is now at 100% line coverage.
+- `cmd_daemon`'s `request_stop` signal-handler body (`commands.py:283-285`) and
+  the `(ValueError, OSError)` guard on signal registration (lines 334-335) now
+  have direct regression coverage: `test_daemon_cli_request_stop_prints_message_only_once`
+  captures the handler via monkeypatched `signal.signal`, invokes it twice, and
+  asserts the "shutdown requested" message prints once (the `if not stop["flag"]`
+  guard); `test_daemon_cli_signal_registration_error_is_ignored` patches
+  `signal.signal` to raise `ValueError` and asserts `cmd_daemon` still returns 0.
 
 ## Next
 
-2. `cmd_daemon`'s `request_stop` signal-handler body (lines 283-285) and the
-   `(ValueError, OSError)` guard on signal registration (lines 334-335) are
-   uncovered; a regression replacing the double-signal guard or removing the
-   ValueError catch would pass CI undetected.
-   Evidence: `src/looptight/commands.py:283`
-   Acceptance: Two new tests in `tests/test_cli.py` — one that captures the
-   registered handler via monkeypatched `signal.signal` and invokes it twice to
-   assert the message prints once and the flag is set, one that makes
-   `signal.signal` raise `ValueError` and asserts `cmd_daemon` still returns 0.
-
-3. `_idea_directive` passes the static `PLANNING_GOAL` to the host agent even
+1. `_idea_directive` passes the static `PLANNING_GOAL` to the host agent even
    when coordinator experience (failed ideas, category yields) is available; the
    swarm's continuous planner already calls `planning_goal(model)`. The
    session-native loop never injects experience feedback into the planning prompt.
