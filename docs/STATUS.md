@@ -2992,6 +2992,38 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `render_rich` does not assert the "… and N more" overflow line when `total_failures >
+   len(failures)`: `_escalation_lines()` is shared by `render()` and `render_rich()`, but the
+   truncation branch (`summary.py:48`) is only exercised through `render()` in
+   `test_summary_indicates_truncated_failure_list`. A mutation removing `if hidden > 0` from
+   `_escalation_lines` would pass unseen by `render_rich` callers.
+   Evidence: `src/looptight/summary.py:48`; sibling test: `tests/test_summary.py:173`.
+   Acceptance: `test_render_rich_shows_truncated_failure_overflow` in `tests/test_summary.py`
+   calls `render_rich` with `total_failures=13, failures=(10 items)` and asserts `"… and 3 more"`
+   in captured output; no production change, passes after adding the test.
+
+2. `_session_panel` goal mode with a verify string is untested: `render_state_panel` checks
+   `"verify: pass" in panel` only for `status="session"`. The `goal` branch at `ui.py:773` uses
+   no verify key, so the `if isinstance(verify, str) and verify: line += …` path at `ui.py:121`
+   is only mutation-visible for session mode. A refactor guarding the suffix on `status ==
+   "session"` would silently break goal mode.
+   Evidence: `src/looptight/ui.py:121`; sibling test: `tests/test_ui.py:773`.
+   Acceptance: `test_session_panel_goal_mode_appends_verify_suffix` in `tests/test_ui.py`
+   calls `ui._session_panel({"manager": {"status": "goal", "verify": "pass"}, "tasks":
+   [{"goal": "ship it"}]})` and asserts `"goal: ship it · verify: pass"` in the result;
+   no production change.
+
+3. `detect_verify` conftest-only detection for `test/` (singular dir) is not directly tested:
+   `test_detect_verify_pytest_from_conftest_only` covers root-level `conftest.py`, and
+   `test_detect_verify_pytest_from_tests_dir` covers `tests/conftest.py`, but the analogous
+   `test/conftest.py` (singular) path through `detect.py:121` is untested. The third loop
+   iteration (`base / "test"`) shares the conftest check, so a mutation narrowing the loop to
+   two directories would break this silently.
+   Evidence: `src/looptight/detect.py:115`; sibling test: `tests/test_detect.py:69`.
+   Acceptance: A new test asserts `detect_verify(tmp_path) == "pytest -q"` when only
+   `test/conftest.py` exists (no root conftest, no `tests/` dir); passes without production
+   change.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
