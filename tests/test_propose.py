@@ -512,6 +512,27 @@ def test_inline_block_comment_before_skip_is_surfaced(tmp_path):
     assert candidates[0].location == "tests/a.test.js:1"
 
 
+def test_unclosed_block_comment_trailing_skip_is_surfaced(tmp_path):
+    # Two distinct cases for the `"/*"` arm of the loop in _js_skip_candidate
+    # (discovery.py:448):
+    #
+    # a.test.js: `it.skip("real", fn) /* note continues` — the skip comes before an
+    # unclosed trailing /*. The arm truncates code at the /*, leaving it.skip() visible.
+    #
+    # b.test.js: `normal_code /* it.skip("fake", fn)` — the skip appears AFTER an unclosed
+    # /*. The arm truncates code before it.skip(), so it returns None (not a false positive).
+    # Without the "/*" arm, b.test.js would surface a spurious candidate (mutation guard).
+    from looptight.discovery import from_skipped_tests
+
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "a.test.js").write_text('it.skip("real", fn) /* note continues\n')
+    (tests / "b.test.js").write_text('normal_code /* it.skip("fake", fn)\n')
+    candidates = from_skipped_tests(tmp_path)
+    assert len(candidates) == 1
+    assert candidates[0].location == "tests/a.test.js:1"
+
+
 def test_from_lint_skips_unparseable_output_lines(tmp_path, monkeypatch):
     # ruff (quiet+concise) emits only `loc:col: CODE msg` lines, but from_lint must ignore
     # any line that does not match (a future format change or a stray warning) rather than

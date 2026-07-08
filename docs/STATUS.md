@@ -3031,12 +3031,13 @@ existing CLI session and makes no model or API calls of its own.
 - `_verifier_quality`'s unit-classification of `pnpm test` and `yarn test` is now mutation-guarded:
   `test_status_json_classifies_bun_node_test_and_mocha_as_unit` extended with both strings, so
   removing either from `protocol_commands.py:877` breaks a test. No production code change.
+- The unclosed `/*` arm in `_js_skip_candidate` (discovery.py:448) is mutation-guarded:
+  `test_unclosed_block_comment_trailing_skip_is_surfaced` in test_propose.py uses two files —
+  one real skip before a trailing `/*`, one skip inside an unclosed `/*` — and asserts exactly
+  one candidate. Dropping the `"/*"` arm promotes the second into a false positive, failing
+  the test. No production code change.
 
 ## Next
-
-1. Add a direct test for the unclosed `/*` trailing-comment arm in `_js_skip_candidate` (`discovery.py:448`).
-   Evidence: `src/looptight/discovery.py:448`
-   Acceptance: A new test in `tests/test_propose.py` writes `it.skip("real", fn) /* note continues` to a `.test.js` file and asserts exactly one candidate is surfaced at the correct location; a mutation dropping the `"/*"` arm from the loop makes the test pass (verifying the arm is exercised, not the `re.sub` step).
 
 ## Rules
 
