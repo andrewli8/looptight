@@ -3062,13 +3062,18 @@ existing CLI session and makes no model or API calls of its own.
   `test_idea_directive_equals_planning_goal_without_failure_history` asserts the
   prompt equals `PLANNING_GOAL` when the coordinator is fresh.
 
+- `__main__.py` entry point now covered: `test_python_m_looptight_help_exits_zero`
+  runs `subprocess.run(["python", "-m", "looptight", "--help"])` and asserts exit
+  code 0; `test_main_module_if_name_block_is_covered` uses `runpy.run_module` with
+  `run_name="__main__"` to exercise the `if __name__ == "__main__":` guard
+  in-process with `main` mocked to return 0, covering the line that was previously
+  unreachable under pytest.
+
 ## Next
 
-1. Cover the `python -m looptight` entry point. Evidence: src/looptight/__main__.py:5; Acceptance: a test using `subprocess.run(["python", "-m", "looptight", "--help"])` asserts exit code 0, and `__main__.py` reaches 100% line coverage.
+1. Add CLI test for `init --integrate` idempotency. Evidence: src/looptight/commands.py:136; Acceptance: `test_init_integrate_reports_already_installed_on_rerun` in `tests/test_cli.py` calls `main(["init", "--integrate"])` twice in the same dir and asserts the second call's output contains "already installed".
 
-2. Add CLI test for `init --integrate` idempotency. Evidence: src/looptight/commands.py:136; Acceptance: `test_init_integrate_reports_already_installed_on_rerun` in `tests/test_cli.py` calls `main(["init", "--integrate"])` twice in the same dir and asserts the second call's output contains "already installed".
-
-3. Explicitly test `propose()` coordinator-None fallback path. Evidence: src/looptight/propose.py:51; Acceptance: a test in `tests/test_propose.py` monkeypatches `Coordinator.open` to return `None` in a git-backed tmpdir and asserts `propose()` returns a non-empty ranked candidate list without error.
+2. Explicitly test `propose()` coordinator-None fallback path. Evidence: src/looptight/propose.py:51; Acceptance: a test in `tests/test_propose.py` monkeypatches `Coordinator.open` to return `None` in a git-backed tmpdir and asserts `propose()` returns a non-empty ranked candidate list without error.
 
 ## Rules
 

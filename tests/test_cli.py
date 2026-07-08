@@ -4208,3 +4208,26 @@ def test_daemon_cli_signal_registration_error_is_ignored(tmp_path, monkeypatch, 
     monkeypatch.setattr(cmd_mod, "run_daemon", fake_run_daemon)
     code = main(["daemon", "--headless", "--agent", "claude", "--verify", "exit 0", "--max-cycles", "1"])
     assert code == 0
+
+
+def test_python_m_looptight_help_exits_zero():
+    # __main__.py:5 — `python -m looptight --help` must exit 0 so the entry point
+    # is reachable and the standard help contract holds.
+    result = subprocess.run(
+        ["python", "-m", "looptight", "--help"],
+        capture_output=True,
+    )
+    assert result.returncode == 0
+
+
+def test_main_module_if_name_block_is_covered():
+    # __main__.py:5 — the `if __name__ == "__main__":` guard is never True under
+    # pytest (where __name__ is the package name), so it is at 0% without this test.
+    # runpy.run_module sets __name__ = "__main__", triggering the block in-process.
+    import runpy
+    from unittest.mock import patch
+
+    with patch("looptight.cli.main", return_value=0):
+        with pytest.raises(SystemExit) as exc_info:
+            runpy.run_module("looptight", run_name="__main__", alter_sys=True)
+    assert exc_info.value.code == 0
