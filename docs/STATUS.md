@@ -3023,13 +3023,14 @@ existing CLI session and makes no model or API calls of its own.
   trailing-comment truncation, then removes the now-unnecessary `startswith` guard entirely.
   `test_inline_block_comment_before_skip_is_surfaced` pins the corrected behaviour.
 
+- `detect_verify` now checks `pnpm-lock.yaml` → `pnpm test` and `yarn.lock` → `yarn test`
+  before `package.json`, symmetric with the `bun.lockb` check. A pnpm or Yarn project may not
+  have npm installed, so returning `npm test` was a false detection. Four new tests in
+  `test_detect.py` cover standalone lockfile, lockfile-wins-over-npm-script for both managers.
+
 ## Next
 
-1. Add `pnpm-lock.yaml` → `pnpm test` and `yarn.lock` → `yarn test` detection to `detect_verify`, symmetric with the existing `bun.lockb` check.
-   Evidence: `src/looptight/detect.py:58`
-   Acceptance: `detect_verify` returns `"pnpm test"` for a directory with `pnpm-lock.yaml` (and not `bun.lockb`), even when a `package.json` test script is also present; `"yarn test"` for `yarn.lock`; four new tests in `tests/test_detect.py` cover standalone lockfile, lockfile-wins-over-npm, and same-priority ordering cases.
-
-2. Add direct coverage for `pnpm test` and `yarn test` in `_verifier_quality` so removing either from the unit list breaks a test.
+1. Add direct coverage for `pnpm test` and `yarn test` in `_verifier_quality` so removing either from the unit list breaks a test.
    Evidence: `src/looptight/protocol_commands.py:877`
    Acceptance: Two new test cases (or a parametrized extension of the existing `test_status_json_classifies_bun_node_test_and_mocha_as_unit`) call `status --json` with `verify = "pnpm test"` and `verify = "yarn test"` and assert `classification == "unit"`; removing either string from `protocol_commands.py:877` breaks one of the new assertions.
 

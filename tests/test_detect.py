@@ -393,3 +393,35 @@ def test_detect_verify_bun_wins_over_npm_test_script(tmp_path):
     (tmp_path / "bun.lockb").write_bytes(b"")
     (tmp_path / "package.json").write_text('{"scripts": {"test": "bun test"}}')
     assert detect.detect_verify(tmp_path) == "bun test"
+
+
+def test_detect_verify_pnpm_lock_returns_pnpm_test(tmp_path):
+    # pnpm-lock.yaml indicates a pnpm project; detect_verify must return "pnpm test"
+    # even without a package.json (pnpm may not have npm installed).
+    (tmp_path / "pnpm-lock.yaml").write_text("lockfileVersion: '6.0'\n")
+    assert detect.detect_verify(tmp_path) == "pnpm test"
+
+
+def test_detect_verify_pnpm_wins_over_npm_test_script(tmp_path):
+    # pnpm-lock.yaml must be checked before package.json so a pnpm project that
+    # also carries a package.json with a real test script returns "pnpm test",
+    # not "npm test" (npm may not be installed in a pnpm-only environment).
+    (tmp_path / "pnpm-lock.yaml").write_text("lockfileVersion: '6.0'\n")
+    (tmp_path / "package.json").write_text('{"scripts": {"test": "vitest"}}')
+    assert detect.detect_verify(tmp_path) == "pnpm test"
+
+
+def test_detect_verify_yarn_lock_returns_yarn_test(tmp_path):
+    # yarn.lock indicates a Yarn project; detect_verify must return "yarn test"
+    # even without a package.json (Yarn may not have npm installed).
+    (tmp_path / "yarn.lock").write_text("# yarn lockfile v1\n")
+    assert detect.detect_verify(tmp_path) == "yarn test"
+
+
+def test_detect_verify_yarn_wins_over_npm_test_script(tmp_path):
+    # yarn.lock must be checked before package.json so a Yarn project that also
+    # carries a package.json with a real test script returns "yarn test",
+    # not "npm test".
+    (tmp_path / "yarn.lock").write_text("# yarn lockfile v1\n")
+    (tmp_path / "package.json").write_text('{"scripts": {"test": "jest"}}')
+    assert detect.detect_verify(tmp_path) == "yarn test"

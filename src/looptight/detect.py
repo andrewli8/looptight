@@ -61,6 +61,14 @@ def detect_verify(root: Path | None = None) -> str | None:
     if (base / "bun.lockb").is_file():
         return "bun test"
 
+    # pnpm and Yarn each have a distinctive lock file. Check them before package.json
+    # to avoid claiming `npm test` on a project that uses a different package manager
+    # (npm may not be installed in a pnpm-only or Yarn-only environment).
+    if (base / "pnpm-lock.yaml").is_file():
+        return "pnpm test"
+    if (base / "yarn.lock").is_file():
+        return "yarn test"
+
     package_json = base / "package.json"
     if package_json.is_file():
         # Only claim `npm test` if a test script actually exists.
