@@ -970,6 +970,11 @@ def test_from_status_next_absent_file_is_empty(tmp_path):
     assert from_status_next(tmp_path) == []
 
 
+def test_from_status_next_no_next_heading_is_empty(tmp_path):
+    _write(tmp_path, "docs/STATUS.md", "## Rules\n\n1. Always do X. Acceptance: X.\n")
+    assert from_status_next(tmp_path) == []
+
+
 def test_from_status_next_joins_wrapped_continuation_lines(tmp_path):
     _write(
         tmp_path,
