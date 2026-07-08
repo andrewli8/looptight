@@ -53,14 +53,20 @@ _COMMANDS = {
 
 
 def _non_negative_int(value: str) -> int:
-    parsed = int(value)
+    try:
+        parsed = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{value!r} is not an integer")
     if parsed < 0:
         raise argparse.ArgumentTypeError("must be zero or greater")
     return parsed
 
 
 def _positive_int(value: str) -> int:
-    parsed = int(value)
+    try:
+        parsed = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{value!r} is not an integer")
     if parsed <= 0:
         raise argparse.ArgumentTypeError("must be greater than zero")
     return parsed

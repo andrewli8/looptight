@@ -2974,18 +2974,12 @@ existing CLI session and makes no model or API calls of its own.
   coverage: `test_from_status_next_no_next_heading_is_empty` in `tests/test_propose.py` writes a
   `STATUS.md` with only a `## Rules` section and asserts `from_status_next` returns `[]` — the
   `in_next = False` default path at `discovery.py:577`.
+- `_positive_int` and `_non_negative_int` now wrap `int(value)` in a try/except and raise
+  `argparse.ArgumentTypeError` on `ValueError`, so a non-numeric flag value like `--workers abc`
+  emits a clean argparse error instead of exposing the private function name. Covered by
+  `test_positive_int_and_non_negative_int_reject_non_numeric` in `tests/test_cli.py`.
 
-1. `_positive_int` and `_non_negative_int` call `int(value)` without guarding `ValueError`
-   (`cli.py:62`, `cli.py:56`) — a non-numeric argument like `--workers abc` raises bare
-   `ValueError` instead of `argparse.ArgumentTypeError`, so argparse prints the private function
-   name in the error (`invalid _positive_int value`). The existing validators test only range
-   violations; no test passes a non-numeric string.
-   Evidence: src/looptight/cli.py:62
-   Acceptance: a new test calls `_positive_int("abc")` and `_non_negative_int("xyz")` and asserts
-   each raises `argparse.ArgumentTypeError` (not `ValueError`); then the implementation wraps
-   `int(value)` in a try/except to make the test pass.
-
-2. `_stall_signal`'s `STOP_NO_PROGRESS` branch (`protocol_commands.py:139`) is exercised by
+1. `_stall_signal`'s `STOP_NO_PROGRESS` branch (`protocol_commands.py:139`) is exercised by
    `test_metacog.py` in isolation but never through `cmd_verify`'s JSON output path — the only
    end-to-end patience test creates a stuck sequence that always reaches `ESCALATE`, leaving the
    `StopReason.NO_PROGRESS` path (the "improved then plateaued" case) unprotected against

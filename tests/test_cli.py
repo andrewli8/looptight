@@ -3416,6 +3416,15 @@ def test_non_negative_int_and_positive_float_validators():
         _positive_float("-0.1")
 
 
+def test_positive_int_and_non_negative_int_reject_non_numeric():
+    from looptight.cli import _non_negative_int, _positive_int
+
+    with pytest.raises(argparse.ArgumentTypeError):
+        _positive_int("abc")
+    with pytest.raises(argparse.ArgumentTypeError):
+        _non_negative_int("xyz")
+
+
 def test_run_json_emits_versioned_result_with_escalation_key(tmp_path, monkeypatch, capsys):
     # `run --json` is machine-readable: a versioned RunResult with an `escalation`
     # key (null on a clean SUCCESS) and per-iteration objects that carry no output.
