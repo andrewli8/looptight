@@ -73,6 +73,16 @@ def test_detect_verify_pytest_from_conftest_only(tmp_path):
     assert detect.detect_verify(tmp_path) == "pytest -q"
 
 
+def test_detect_verify_pytest_from_conftest_only_in_test_singular_dir(tmp_path):
+    # detect.py:121 — the third loop iteration (base / "test") shares the conftest.py check
+    # with the root and tests/ iterations. Without a direct test, a mutation narrowing the
+    # loop to two directories would break conftest-only detection in test/ (singular) silently.
+    test_dir = tmp_path / "test"
+    test_dir.mkdir()
+    (test_dir / "conftest.py").write_text("")
+    assert detect.detect_verify(tmp_path) == "pytest -q"
+
+
 def test_detect_verify_none_for_repo_without_tests_or_config(tmp_path):
     (tmp_path / "main.py").write_text("print('hi')\n")  # code, but no tests and no config
     assert detect.detect_verify(tmp_path) is None

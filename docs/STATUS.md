@@ -3001,18 +3001,13 @@ existing CLI session and makes no model or API calls of its own.
   `"goal: ship it · verify: pass"` — the verify-append branch was only mutation-visible for
   session mode; a guard narrowing it to session would break goal silently.
 
-## Next
+- `detect_verify` conftest-only detection for `test/` (singular dir, `detect.py:121`) is now
+  covered: `test_detect_verify_pytest_from_conftest_only_in_test_singular_dir` in
+  `tests/test_detect.py` creates only `test/conftest.py` and asserts `detect_verify == "pytest -q"` —
+  the third loop iteration was untested; a mutation narrowing the loop to two directories would
+  break it silently.
 
-1. `detect_verify` conftest-only detection for `test/` (singular dir) is not directly tested:
-   `test_detect_verify_pytest_from_conftest_only` covers root-level `conftest.py`, and
-   `test_detect_verify_pytest_from_tests_dir` covers `tests/conftest.py`, but the analogous
-   `test/conftest.py` (singular) path through `detect.py:121` is untested. The third loop
-   iteration (`base / "test"`) shares the conftest check, so a mutation narrowing the loop to
-   two directories would break this silently.
-   Evidence: `src/looptight/detect.py:115`; sibling test: `tests/test_detect.py:69`.
-   Acceptance: A new test asserts `detect_verify(tmp_path) == "pytest -q"` when only
-   `test/conftest.py` exists (no root conftest, no `tests/` dir); passes without production
-   change.
+## Next
 
 ## Rules
 
