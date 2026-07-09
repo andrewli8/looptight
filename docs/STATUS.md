@@ -3125,6 +3125,42 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Add a direct unit test for `write_count`'s own write-failure path in
+   `src/looptight/hook.py`. The existing coverage monkeypatches `write_count`
+   at module level (test_hook.py:297), leaving `path.write_text` inside
+   `write_count` itself untested for OSError propagation.
+   Evidence: src/looptight/hook.py:211
+   Acceptance: `test_write_count_propagates_oserror_from_write_text` in
+   tests/test_hook.py passes: it monkeypatches `Path.write_text` to raise
+   `OSError`, calls `write_count(path, 1)`, and asserts the OSError propagates.
+
+2. Add a test confirming `statusline` falls through to task-based output when
+   `state["workers"]` is a non-list truthy value. The `isinstance(workers,
+   list)` guard at ui.py:171 is correct but has no direct coverage for that
+   path.
+   Evidence: src/looptight/ui.py:171
+   Acceptance: `test_statusline_falls_through_to_task_when_workers_is_not_a_list`
+   in tests/test_ui.py passes: it calls `statusline({"workers": "not-a-list",
+   "task": {"goal": "do X"}})` and asserts the returned string contains "do X"
+   (task-mode output) and not "workers".
+
+3. Add a test confirming `_off_task` returns `True` when the evidence path has
+   an empty stem. When `evidence_paths` contains `""`, `PurePosixPath("").stem`
+   is `""` (falsy), so the stem guard short-circuits and `changed == ""`
+   is always False, causing the function to return `True` (drift signal).
+   Evidence: src/looptight/hook.py:73
+   Acceptance: `test_off_task_with_empty_stem_evidence_returns_true` in
+   tests/test_hook.py passes: it calls `_off_task([""], ["src/foo.py"])` and
+   asserts the result is `True`.
+
+4. Add a test confirming `_all_py_files` excludes Python files inside
+   `_PRUNE_DIRS` directories. The prune-dir guard at discovery.py:117 is not
+   directly exercised by any test with a `.py` file in a pruned dir.
+   Evidence: src/looptight/discovery.py:117
+   Acceptance: `test_all_py_files_skips_prune_dirs` in tests/test_discovery.py
+   passes: it creates `tmp_path/node_modules/bad.py`, calls `_all_py_files(tmp_path)`,
+   and asserts `bad.py` is not in the result.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
