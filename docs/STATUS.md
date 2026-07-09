@@ -3159,16 +3159,11 @@ existing CLI session and makes no model or API calls of its own.
   `strip_position_suffix("src/foo.py")` returns `"src/foo.py"` unchanged — the sibling
   of the existing suffix-stripping tests.
 
-## Next
+- `read_count`'s `OSError` branch (`hook.py:200`) is directly covered:
+  `test_read_count_returns_zero_on_oserror` monkeypatches `Path.read_text` to raise
+  `OSError` and asserts `read_count` returns 0 — the sibling of the existing ValueError test.
 
-1. Add a test covering `read_count`'s `OSError` branch in `hook.py`. The function catches
-   `(OSError, ValueError)` and returns 0, but the only existing test
-   (`test_read_count_returns_zero_on_non_integer_content`) triggers `ValueError`; the `OSError`
-   branch (e.g., when `path.read_text()` raises `PermissionError`) has no direct injection test,
-   so a regression narrowing the except to `ValueError` alone would pass all current tests.
-   Evidence: src/looptight/hook.py:200
-   Acceptance: `test_read_count_returns_zero_on_oserror` in tests/test_hook.py passes: it
-   monkeypatches `Path.read_text` to raise `OSError` and asserts `read_count(path)` returns 0.
+## Next
 
 ## Rules
 

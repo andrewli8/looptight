@@ -117,6 +117,16 @@ def test_read_count_returns_zero_on_non_integer_content(tmp_path):
     assert read_count(path) == 0
 
 
+def test_read_count_returns_zero_on_oserror(tmp_path, monkeypatch):
+    path = tmp_path / "count"
+
+    def _raise(*_args, **_kwargs):
+        raise OSError("permission denied")
+
+    monkeypatch.setattr("pathlib.Path.read_text", _raise)
+    assert read_count(path) == 0
+
+
 def test_write_count_propagates_oserror_from_write_text(tmp_path, monkeypatch):
     path = tmp_path / "count"
 
