@@ -3177,7 +3177,39 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-_drained_
+1. Lock `detect_verify` pnpm-over-yarn priority when both lock files coexist:
+   `detect.py:68-71` checks `pnpm-lock.yaml` before `yarn.lock`, but no test exercises
+   both files present simultaneously. Swapping those two guards would return `"yarn test"`
+   with no test failing — the same class of regression caught for bun>pnpm>yarn.
+   Evidence: `src/looptight/detect.py:68`
+   Acceptance: a new test in `tests/test_detect.py` creates `pnpm-lock.yaml` and
+   `yarn.lock` in the same directory and asserts `detect_verify` returns `"pnpm test"`.
+
+2. Lock `detect_verify` uv-over-poetry priority when both Python lock files coexist:
+   `detect.py:95-98` checks `uv.lock` before `poetry.lock` when `pyproject.toml` is
+   present, but no test exercises all three files coexisting. A mutation swapping those
+   two guards would silently return `"poetry run pytest -q"` instead of `"uv run pytest -q"`.
+   Evidence: `src/looptight/detect.py:95`
+   Acceptance: a new test in `tests/test_detect.py` creates `pyproject.toml`, `uv.lock`,
+   and `poetry.lock` in the same directory and asserts `detect_verify` returns
+   `"uv run pytest -q"`.
+
+3. Cover `evidence_refs` with multiple spaces after the colon:
+   `grounding.py:38` uses `[\s*]*` which tolerates any number of spaces after `Evidence:`,
+   but no test exercises more than one space. A mutation narrowing to `[ *]` (at most one)
+   would silently drop double-spaced anchors with no test catching it.
+   Evidence: `src/looptight/grounding.py:38`
+   Acceptance: a new test calls `evidence_refs("Fix. Evidence:  src/a.py; Acceptance: x")`
+   (two spaces after the colon) and asserts the result is `["src/a.py"]`.
+
+4. Cover the coordinator integration state machine: queued → integrating → committed:
+   `coordinator.py:663` exposes `next_queued_integration`, `begin_integration`, and
+   `mark_integration_committed`, but no test walks all three transitions in sequence.
+   `integrating_records` (the crash-recovery surface) is completely untested.
+   Evidence: `src/looptight/coordinator.py:663`
+   Acceptance: a new test in `tests/test_coordinator.py` enqueues an integration, calls
+   `next_queued_integration`, `begin_integration`, `mark_integration_committed`, then
+   asserts `integrating_records` returns the record in `"committed"` state.
 
 ## Rules
 
