@@ -3151,17 +3151,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Add a test confirming `_files_with_exts` excludes files inside `_PRUNE_DIRS`
-   subdirectories. The only existing test (`test_files_with_exts_missing_subdir_returns_empty`
-   in test_propose.py:1760) checks the missing-directory path; no test verifies that a
-   file inside `src/node_modules/bad.js` is excluded when `_files_with_exts(root, "src", ...)`
-   is called, even though the guard at discovery.py:74 is the sole protection.
-   Evidence: src/looptight/discovery.py:74
-   Acceptance: `test_files_with_exts_skips_prune_dirs` in tests/test_discovery.py
-   passes: it creates `tmp_path/src/node_modules/bad.js`, calls
-   `_files_with_exts(tmp_path, "src", (".js",))`, and asserts `bad.js` is not in the
-   result.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

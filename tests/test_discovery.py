@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from looptight.discovery import _all_js_files, _all_py_files, _js_test_files
+from looptight.discovery import _all_js_files, _all_py_files, _files_with_exts, _js_test_files
 
 
 def test_all_py_files_skips_prune_dirs(tmp_path):
@@ -29,4 +29,13 @@ def test_js_test_files_skips_prune_dirs(tmp_path):
     bad = prune / "bad.test.js"
     bad.write_text("it('x', () => {});\n")
     result = _js_test_files(tmp_path)
+    assert bad not in result
+
+
+def test_files_with_exts_skips_prune_dirs(tmp_path):
+    src = tmp_path / "src"
+    (src / "node_modules").mkdir(parents=True)
+    bad = src / "node_modules" / "bad.js"
+    bad.write_text("const x = 1;\n")
+    result = _files_with_exts(tmp_path, "src", (".js",))
     assert bad not in result
