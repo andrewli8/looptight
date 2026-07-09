@@ -190,6 +190,24 @@ def test_claim_dir_sets_terminal_prompt_env(tmp_path):
     assert captured["env"].get("GIT_TERMINAL_PROMPT") == "0"
 
 
+def test_claim_dir_absolute_git_common_dir_is_used_directly(tmp_path):
+    # claims.py:60 — `git rev-parse --git-common-dir` returns an absolute path in
+    # linked worktrees and some submodule setups; the `if not path.is_absolute()`
+    # branch is False, so `path` is used as-is without prepending workdir.
+    import looptight.claims as claims_mod
+
+    abs_git_dir = tmp_path / "shared_git"
+    abs_git_dir.mkdir()
+
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(cmd, 0, stdout=str(abs_git_dir) + "\n", stderr="")
+
+    with patch.object(claims_mod.subprocess, "run", fake_run):
+        result = claim_dir(tmp_path / "worktree")
+
+    assert result == (abs_git_dir / "looptight" / "claims").resolve()
+
+
 def test_claim_store_select_raises_when_migrated(tmp_path):
     # _fail_closed_if_migrated must raise LegacyClaimsDisabled when the coordinator
     # migration marker exists — the only guard preventing legacy file claims from

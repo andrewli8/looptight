@@ -3169,15 +3169,13 @@ existing CLI session and makes no model or API calls of its own.
   called (covers `46->50`); `test_stop_process_tree_uses_process_kill_when_os_is_unknown` monkeypatches
   `os.name` to `"java"`, asserting `process.kill()` is called directly (covers `39->50`).
 
+- `claims.py:60`'s absolute-path branch in `claim_dir()` is directly covered:
+  `test_claim_dir_absolute_git_common_dir_is_used_directly` monkeypatches `subprocess.run`
+  to return an absolute path for `git rev-parse --git-common-dir` (as in a linked worktree)
+  and asserts the returned `claim_dir` equals `<abs_git_dir>/looptight/claims` — covering
+  the `if not path.is_absolute()` False branch (`60->62`).
+
 ## Next
-
-2. Lock `claims.py:60` relative-path branch in `claim_dir()` with a monkeypatched test.
-   Evidence: src/looptight/claims.py:60;
-   Acceptance: `tests/test_claims.py` gains a test that monkeypatches `subprocess.run` to return a relative path string for `git rev-parse --git-common-dir` and asserts `claim_dir()` returns the correct absolute path — `pytest tests/test_claims.py` passes.
-
-2. Lock `claims.py:60` relative-path branch in `claim_dir()` with a monkeypatched test.
-   Evidence: src/looptight/claims.py:60;
-   Acceptance: `tests/test_claims.py` gains a test that monkeypatches `subprocess.run` to return a relative path string for `git rev-parse --git-common-dir` and asserts `claim_dir()` returns the correct absolute path — `pytest tests/test_claims.py` passes.
 
 ## Rules
 
