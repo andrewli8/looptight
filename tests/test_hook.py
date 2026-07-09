@@ -175,6 +175,14 @@ def test_off_task_is_false_for_empty_diff_or_evidence():
     assert _off_task([], ["src/foo.py"]) is False  # no evidence to scope against → not drift
 
 
+def test_off_task_with_empty_stem_evidence_returns_true():
+    # hook.py:73 — PurePosixPath("").stem is "" (falsy), so stem guard short-circuits;
+    # changed == "" is never True either, so _off_task returns True (drift signal).
+    from looptight.hook import _off_task
+
+    assert _off_task([""], ["src/foo.py"]) is True
+
+
 def test_run_hook_blocks_with_a_refocus_directive_on_drift(tmp_path):
     # Opted in, change green, but the session has drifted off its claimed task → refocus.
     write_config(Config(verify="pytest -q", continue_through_backlog=True), tmp_path)

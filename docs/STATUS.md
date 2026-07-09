@@ -3135,16 +3135,13 @@ existing CLI session and makes no model or API calls of its own.
   `test_statusline_falls_through_to_task_when_workers_is_not_a_list`, which passes
   `workers="not-a-list"` and asserts task-mode output ("do X") without "workers".
 
-## Next
+- `_off_task` empty-stem evidence behavior locked in tests/test_hook.py: when
+  `evidence_paths` contains `""`, `PurePosixPath("").stem` is `""` (falsy), so the
+  stem guard short-circuits and `changed == ""` is never True, making `_off_task`
+  return `True` (drift signal). Locked by
+  `test_off_task_with_empty_stem_evidence_returns_true`.
 
-3. Add a test confirming `_off_task` returns `True` when the evidence path has
-   an empty stem. When `evidence_paths` contains `""`, `PurePosixPath("").stem`
-   is `""` (falsy), so the stem guard short-circuits and `changed == ""`
-   is always False, causing the function to return `True` (drift signal).
-   Evidence: src/looptight/hook.py:73
-   Acceptance: `test_off_task_with_empty_stem_evidence_returns_true` in
-   tests/test_hook.py passes: it calls `_off_task([""], ["src/foo.py"])` and
-   asserts the result is `True`.
+## Next
 
 4. Add a test confirming `_all_py_files` excludes Python files inside
    `_PRUNE_DIRS` directories. The prune-dir guard at discovery.py:117 is not
