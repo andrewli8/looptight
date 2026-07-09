@@ -3141,15 +3141,11 @@ existing CLI session and makes no model or API calls of its own.
   return `True` (drift signal). Locked by
   `test_off_task_with_empty_stem_evidence_returns_true`.
 
-## Next
+- `_all_py_files` prune-dir guard locked in tests/test_discovery.py:
+  `test_all_py_files_skips_prune_dirs` creates `tmp_path/node_modules/bad.py`,
+  calls `_all_py_files(tmp_path)`, and asserts `bad.py` is absent from the result.
 
-4. Add a test confirming `_all_py_files` excludes Python files inside
-   `_PRUNE_DIRS` directories. The prune-dir guard at discovery.py:117 is not
-   directly exercised by any test with a `.py` file in a pruned dir.
-   Evidence: src/looptight/discovery.py:117
-   Acceptance: `test_all_py_files_skips_prune_dirs` in tests/test_discovery.py
-   passes: it creates `tmp_path/node_modules/bad.py`, calls `_all_py_files(tmp_path)`,
-   and asserts `bad.py` is not in the result.
+## Next
 
 ## Rules
 
