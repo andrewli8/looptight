@@ -882,6 +882,10 @@ def _verifier_quality(command: str | None) -> dict[str, str]:
             # just recipes are intentionally left to `custom/unknown` (arbitrary).
             "cargo test", "go test", "deno test", "mix test", "swift test", "dotnet test",
             "gradle test", "gradlew test", "mvn test", "mvnw test",
+            # Well-known unit test runners for ecosystems detect_verify deliberately
+            # leaves to the user (Ruby/PHP are ambiguous; Haskell has two tools), but
+            # a manually-configured command is still recognizable as a unit runner.
+            "rspec", "phpunit", "pest", "php artisan test", "stack test", "cabal test",
         )
     ):
         return {

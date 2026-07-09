@@ -1398,6 +1398,38 @@ def test_status_json_classifies_bun_node_test_and_mocha_as_unit(
         )
 
 
+def test_status_json_classifies_ruby_php_haskell_runners_as_unit(
+    tmp_path, monkeypatch, capsys
+):
+    # Ruby (rspec/bundle exec rspec), PHP (phpunit/pest/php artisan test), and
+    # Haskell (stack test/cabal test) are well-known unit test runners that a user
+    # may manually configure. They must classify as `unit`, not `custom/unknown` —
+    # removing any one from the list in protocol_commands.py would silently degrade
+    # the risk message for that ecosystem; this test is the mutation guard.
+    monkeypatch.chdir(tmp_path)
+    cases = {
+        "rspec": "unit",
+        "rspec spec": "unit",
+        "bundle exec rspec": "unit",
+        "bundle exec rspec spec": "unit",
+        "phpunit": "unit",
+        "vendor/bin/phpunit": "unit",
+        "pest": "unit",
+        "vendor/bin/pest": "unit",
+        "php artisan test": "unit",
+        "stack test": "unit",
+        "cabal test": "unit",
+    }
+    for command, expected in cases.items():
+        (tmp_path / ".looptight.toml").write_text(f'verify = "{command}"\n')
+        assert main(["status", "--json"]) == 0
+        data = json.loads(capsys.readouterr().out)
+        assert data["verifier_quality"]["classification"] == expected, (
+            f"expected {expected!r} for {command!r}, "
+            f"got {data['verifier_quality']['classification']!r}"
+        )
+
+
 def test_status_json_classifies_tests_plus_lint_as_unit_not_lint_only(
     tmp_path, monkeypatch, capsys
 ):
