@@ -3177,6 +3177,36 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Lock the busy-queue no-directive behavior: when candidates exist but all are claimed
+   by a live peer run, `next_task` must return `no_work` with `directive=None` (idea
+   generation would inflate the queue with duplicates). The branch at
+   `src/looptight/tasks.py:198-202` is executed by coverage but has no behavioral test
+   asserting the directive is absent.
+   Evidence: `src/looptight/tasks.py:198`
+   Acceptance: a new test in `tests/test_tasks.py` seeds a coordinator with one pre-claimed
+   task, calls `next_task` with that same candidate list, and asserts `result.status ==
+   "no_work"` and `result.directive is None`.
+
+2. Lock the pre-Acceptance plain-path scoping: the grounding gate at
+   `src/looptight/discovery.py:613` applies `evidence_is_truthful` only to `task_text`
+   (the text before `Acceptance:`), so a non-resolving plain path mentioned only in the
+   acceptance clause must not drop the task. The existing regression test (line 1102 of
+   `tests/test_propose.py`) covers the backtick-`Evidence:`-in-acceptance false-anchor
+   scenario but never asserts that a bare path cited only in the acceptance clause is
+   ignored.
+   Evidence: `src/looptight/discovery.py:613`
+   Acceptance: a new test in `tests/test_propose.py` puts a real `Evidence:` anchor and a
+   non-resolving plain path only after `Acceptance:`; asserts the task is kept (not
+   dropped as ungrounded).
+
+3. Lock the `detect_verify` package-manager priority when multiple lock files coexist:
+   `detect.py:59-65` checks `bun.lockb` before `pnpm-lock.yaml` before `yarn.lock`, so
+   `bun test` should win when all three exist — but no test exercises that three-way
+   ordering. A regression removing a check or reordering the guards would not be caught.
+   Evidence: `src/looptight/detect.py:59`
+   Acceptance: a new test in `tests/test_detect.py` creates `bun.lockb`, `pnpm-lock.yaml`,
+   and `yarn.lock` in the same directory and asserts `detect_verify` returns `"bun test"`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
