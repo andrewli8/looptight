@@ -3106,19 +3106,15 @@ existing CLI session and makes no model or API calls of its own.
   they need to set `verify` manually. Covered by `test_usage_doc_lists_autodetected_ecosystems`
   in test_docs.py.
 
+- `coordination_scope` docstring corrected: after the Fix-B decision the SQLite coordinator is
+  the claim store in every git repo; "file-claims" means the migrate marker is absent, not that
+  legacy file claims are in use. The docstring previously said the opposite and would mislead
+  anyone reading the API. Fixed in `src/looptight/coordinator.py:319`; locked by
+  `test_coordination_scope_docstring_describes_file_claims_accurately` in test_coordinator.py.
+
 ## Next
 
-1. Fix stale docstring in `coordination_scope`: after the Fix-B decision the
-   SQLite coordinator is the claim store in every git repo, so the "file-claims"
-   state is not "legacy file claims" — it means the migrate marker is absent, but
-   the coordinator DB is still used. The docstring still says the opposite.
-   Evidence: `src/looptight/coordinator.py:319`
-   Acceptance: `coordination_scope.__doc__` no longer says "legacy file claims" for
-   the "file-claims" state; a test in `tests/test_coordinator.py` asserts the
-   corrected docstring contains "migrate marker" (or equivalent accurate language)
-   and the existing `test_coordination_scope_*` tests still pass.
-
-2. Document `--model` for `run` and `swarm` in `docs/unattended.md`: the flag
+1. Document `--model` for `run` and `swarm` in `docs/unattended.md`: the flag
    exists in both commands (cli.py:200 and cli.py:341) but the unattended docs only
    show it for `daemon`. A user running a one-off headless session has no docs hint.
    Evidence: `src/looptight/cli.py:200`

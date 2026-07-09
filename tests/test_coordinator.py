@@ -619,6 +619,26 @@ def test_coordination_scope_reports_three_states(tmp_path):
     assert coordination_scope(repo) == "coordinator"  # marker present
 
 
+def test_coordination_scope_docstring_describes_file_claims_accurately():
+    # After the Fix-B decision the SQLite coordinator is the claim store in every
+    # git repo; "file-claims" means the migrate marker is absent, not that legacy
+    # file claims are in use. The docstring must reflect this so consumers reading
+    # the API docs aren't misled.
+    from looptight.coordinator import coordination_scope
+
+    doc = coordination_scope.__doc__ or ""
+    assert "legacy file claims" not in doc, (
+        "coordination_scope docstring still says 'legacy file claims' for the "
+        "'file-claims' state; update it to describe the migrate-marker distinction"
+    )
+    # The corrected docstring should explain what file-claims actually means: the
+    # migrate marker is absent (but the SQLite coordinator is still used).
+    assert "migrate" in doc.lower(), (
+        "coordination_scope docstring should mention the migrate marker to explain "
+        "the 'file-claims' state accurately"
+    )
+
+
 def test_initialize_schema_retries_on_busy_error(tmp_path, monkeypatch):
     # The busy/locked retry loop in _initialize_schema tolerates a transient "database
     # is busy" OperationalError and retries until the connection succeeds.  A regression

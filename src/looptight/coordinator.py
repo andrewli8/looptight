@@ -317,8 +317,9 @@ def coordinator_path(workdir: Path) -> Path | None:
 
 
 def coordination_scope(workdir: Path) -> str:
-    """Where task coordination is shared, as one of ``coordinator`` (SQLite
-    coordinator activated), ``file-claims`` (Git repo, legacy file claims), or
+    """Where task coordination is shared, as one of ``coordinator`` (migrate
+    marker present; SQLite coordinator activated), ``file-claims`` (Git repo,
+    migrate marker absent; SQLite coordinator is still the claim store), or
     ``none`` (outside Git). Coordination is local to one machine and filesystem;
     cross-machine and network-filesystem coordination are not supported.
     """
