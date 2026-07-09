@@ -3119,6 +3119,16 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Lock the `propose --source` value list in `docs/usage.md` against the CLI
+   definition: `usage.md` names all five accepted values (`todo`, `lint`,
+   `skipped-test`, `status-next`, `task-file`) but no test checks that the docs
+   stay in sync with the argparse choices list, so a rename in the CLI could
+   silently invalidate the docs.
+   Evidence: `src/looptight/cli.py:166`
+   Acceptance: A test `test_usage_doc_names_all_propose_source_values` in
+   `tests/test_docs.py` asserts that all five source values appear in `usage.md`
+   and that test passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
