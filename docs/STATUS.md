@@ -3165,6 +3165,14 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Lock `proctree.py` Windows `taskkill` branch and its early-return path with monkeypatched tests.
+Evidence: src/looptight/proctree.py:39
+Acceptance: `tests/test_proctree.py` gains two new tests — one where `os.name == "nt"` and `subprocess.run` returns `returncode=0` (covers the `if stopped.returncode == 0: return` early exit at line 46), and one where it returns nonzero (covers the fall-through to `process.kill()`) — and `pytest tests/test_proctree.py` passes with both branches hit.
+
+2. Lock `claims.py:60` relative-path branch in `claim_dir()` with a monkeypatched test.
+Evidence: src/looptight/claims.py:60
+Acceptance: `tests/test_claims.py` gains a test that monkeypatches `subprocess.run` to return a relative path string for `git rev-parse --git-common-dir` and asserts `claim_dir()` returns the correct absolute path — the `if not path.is_absolute()` branch is directly exercised and `pytest tests/test_claims.py` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
