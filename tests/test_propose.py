@@ -1123,6 +1123,28 @@ def test_from_status_next_grounding_gate_ignores_evidence_mentions_in_acceptance
     assert candidates[0].title.startswith("Cover the fallback")
 
 
+def test_from_status_next_grounding_gate_ignores_plain_evidence_path_in_acceptance(tmp_path):
+    # Pre-Acceptance scoping regression: evidence_is_truthful is called only on
+    # `task_text` (the text before "Acceptance:"), so a plain "Evidence: path" that
+    # appears in the acceptance clause must not veto an otherwise-valid task. The
+    # sibling test (above) covers the backtick-Evidence: false-anchor scenario; this
+    # one covers a bare Evidence: path that the lookbehind does not suppress.
+    _write(tmp_path, "src/real.py", "# real\n")
+    _write(
+        tmp_path,
+        "docs/STATUS.md",
+        "## Next\n\n"
+        "1. Cover the thing. Evidence: src/real.py:1;\n"
+        "   Acceptance: Also see Evidence: src/nonexistent.py for reference.\n",
+    )
+
+    candidates = from_status_next(tmp_path)
+    assert len(candidates) == 1, (
+        "task with plain Evidence: path only in acceptance was wrongly dropped by grounding gate"
+    )
+    assert candidates[0].title.startswith("Cover the thing")
+
+
 def test_from_status_next_returns_only_first_six_executable_tasks(tmp_path):
     tasks = "".join(
         f"{number}. Task {number}. Acceptance: task {number} passes.\n"
