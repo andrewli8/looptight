@@ -280,6 +280,18 @@ def test_unattended_doc_shows_model_for_run_or_swarm():
     )
 
 
+def test_usage_doc_names_all_propose_source_values():
+    # propose --source accepts exactly five values (cli.py:166); usage.md names them
+    # so users can triage the queue without reading source. A test lock keeps the
+    # docs in sync if a source name is ever renamed in the argparse definition.
+    text = (_DOCS / "usage.md").read_text(encoding="utf-8")
+    for value in ("todo", "lint", "skipped-test", "status-next", "task-file"):
+        assert value in text, (
+            f"docs/usage.md does not mention propose --source value '{value}'; "
+            "update the triage paragraph to match cli.py choices"
+        )
+
+
 def test_changelog_names_the_current_version():
     changelog = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     pyproject = (_ROOT / "pyproject.toml").read_text(encoding="utf-8")

@@ -3117,17 +3117,13 @@ existing CLI session and makes no model or API calls of its own.
   of one-off headless sessions without a docs hint. Added a `--model opus` variant to the `run`
   introductory example. Locked by `test_unattended_doc_shows_model_for_run_or_swarm` in test_docs.py.
 
-## Next
+- `propose --source` value list locked in `docs/usage.md`: all five accepted values
+  (`todo`, `lint`, `skipped-test`, `status-next`, `task-file`) were named in usage.md
+  but no test checked the docs stayed in sync with the CLI choices list. A rename in
+  the argparse definition would silently invalidate the docs. Locked by
+  `test_usage_doc_names_all_propose_source_values` in test_docs.py.
 
-1. Lock the `propose --source` value list in `docs/usage.md` against the CLI
-   definition: `usage.md` names all five accepted values (`todo`, `lint`,
-   `skipped-test`, `status-next`, `task-file`) but no test checks that the docs
-   stay in sync with the argparse choices list, so a rename in the CLI could
-   silently invalidate the docs.
-   Evidence: `src/looptight/cli.py:166`
-   Acceptance: A test `test_usage_doc_names_all_propose_source_values` in
-   `tests/test_docs.py` asserts that all five source values appear in `usage.md`
-   and that test passes.
+## Next
 
 ## Rules
 
