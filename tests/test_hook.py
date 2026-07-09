@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import subprocess as _subprocess
 
+import pytest
+
 from looptight.config import Config, write_config
 from looptight.hook import (
     HookDecision,
@@ -113,6 +115,17 @@ def test_read_count_returns_zero_on_non_integer_content(tmp_path):
     path = tmp_path / "count"
     path.write_text("not-a-number", encoding="utf-8")
     assert read_count(path) == 0
+
+
+def test_write_count_propagates_oserror_from_write_text(tmp_path, monkeypatch):
+    path = tmp_path / "count"
+
+    def _raise(*_args, **_kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr("pathlib.Path.write_text", _raise)
+    with pytest.raises(OSError, match="disk full"):
+        write_count(path, 1)
 
 
 def test_run_hook_blocks_when_verify_is_configured(tmp_path):

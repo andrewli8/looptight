@@ -3123,16 +3123,13 @@ existing CLI session and makes no model or API calls of its own.
   the argparse definition would silently invalidate the docs. Locked by
   `test_usage_doc_names_all_propose_source_values` in test_docs.py.
 
-## Next
+- `write_count` OSError propagation locked in tests/test_hook.py: `path.write_text`
+  inside `write_count` (hook.py:211) was only covered indirectly via a module-level
+  monkeypatch of the whole function. Locked by
+  `test_write_count_propagates_oserror_from_write_text`, which patches
+  `pathlib.Path.write_text` to raise OSError and asserts the error propagates.
 
-1. Add a direct unit test for `write_count`'s own write-failure path in
-   `src/looptight/hook.py`. The existing coverage monkeypatches `write_count`
-   at module level (test_hook.py:297), leaving `path.write_text` inside
-   `write_count` itself untested for OSError propagation.
-   Evidence: src/looptight/hook.py:211
-   Acceptance: `test_write_count_propagates_oserror_from_write_text` in
-   tests/test_hook.py passes: it monkeypatches `Path.write_text` to raise
-   `OSError`, calls `write_count(path, 1)`, and asserts the OSError propagates.
+## Next
 
 2. Add a test confirming `statusline` falls through to task-based output when
    `state["workers"]` is a non-list truthy value. The `isinstance(workers,
