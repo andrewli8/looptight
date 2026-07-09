@@ -339,6 +339,16 @@ def test_pull_request_template_reinforces_the_gate():
     assert "ruff check" in text, "PR template does not mention the lint gate"
 
 
+def test_usage_doc_lists_autodetected_ecosystems():
+    # init auto-detects the verify command for many ecosystems; usage.md line 12 says
+    # only "detects your test command" without naming them. A user with a Rust, JVM,
+    # or .NET project cannot tell whether they need to set `verify` manually. The doc
+    # must list the detected runners so the surface is honest and discoverable.
+    text = (_DOCS / "usage.md").read_text(encoding="utf-8")
+    for runner in ("cargo test", "gradle test", "dotnet test"):
+        assert runner in text, f"usage.md does not list the auto-detected runner {runner!r}"
+
+
 def test_changelog_records_evidence_refs_grounding_gate_fix():
     # Two root causes of the grounding-gate regression must be in [Unreleased]:
     # 1. _EVIDENCE_RE lookbehind: backtick code spans containing `Evidence:` were

@@ -14,6 +14,16 @@ one short, reviewable instruction block to `AGENTS.md` (Codex, OpenCode) or
 `CLAUDE.md` (Claude Code) so the agent runs the loop without you re-prompting after
 each task.
 
+Detected ecosystems: Python/pytest (`pytest -q`), uv/poetry/pdm (`uv run pytest -q`,
+`poetry run pytest -q`, `pdm run pytest -q`), Node/npm/pnpm/yarn/bun (`npm test`,
+`pnpm test`, `yarn test`, `bun test`), Rust (`cargo test`), Go (`go test ./...`),
+Deno (`deno test`), JVM — Gradle (`gradle test` or `./gradlew test`), Maven
+(`mvn test` or `./mvnw test`), .NET (`dotnet test`), Elixir (`mix test`), Swift
+(`swift test`), Crystal (`crystal spec`). Ecosystems with a `test:` or `check:`
+Makefile/justfile target use `make test` / `just test` (or the `check` variant).
+Projects not on this list fall back to `pytest -q` if test files are found, or leave
+`verify` unset — set it manually in `.looptight.toml` to unlock the loop.
+
 To let Claude Code discover looptight in every session, install its skill once:
 
 ```bash

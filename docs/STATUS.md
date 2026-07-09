@@ -3098,17 +3098,15 @@ existing CLI session and makes no model or API calls of its own.
   `unit`. Covered by `test_detect_verify_crystal` in test_detect.py and
   `test_status_json_classifies_crystal_spec_as_unit` in test_cli.py.
 
-## Next
+- Ecosystem list added to `docs/usage.md`: the paragraph after `init`'s description now names
+  every auto-detected runner (Python/pytest/uv/poetry/pdm, Node/npm/pnpm/yarn/bun, Rust/cargo,
+  Go, Deno, JVM Gradle/Maven, .NET/dotnet, Elixir/mix, Swift, Crystal, and Makefile/justfile
+  `test:`/`check:` targets) and explains the pytest-q fallback for projects not on the list.
+  Users can now determine at a glance whether `init` will configure their project or whether
+  they need to set `verify` manually. Covered by `test_usage_doc_lists_autodetected_ecosystems`
+  in test_docs.py.
 
-1. `docs/usage.md` should name the ecosystems `init` auto-detects so a new user knows whether
-   their project will be configured. The current text says only "detects your test command"
-   (line 12) without listing what's actually detected. A user with a Ruby, Rust, Haskell, or
-   JVM project cannot tell from the docs whether they need to set `verify` manually. Add a
-   brief list of detected ecosystems (Python/pytest, uv/poetry/pdm, Node/npm/pnpm/yarn/bun,
-   Rust/cargo, Go, Deno, JVM/Gradle/Maven, .NET/dotnet, Elixir/mix, Swift, Crystal — with a
-   pointer that unlisted ecosystems fall back to `pytest -q`).
-   Evidence: `docs/usage.md:12`; Acceptance: a `test_docs.py` assertion verifies
-   `"cargo test"`, `"gradle test"`, and `"dotnet test"` all appear in `docs/usage.md`.
+## Next
 
 ## Rules
 
