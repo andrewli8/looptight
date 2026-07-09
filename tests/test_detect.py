@@ -248,6 +248,11 @@ def test_detect_verify_npm_non_dict_manifest_falls_through(tmp_path):
     assert detect.detect_verify(tmp_path) is None
 
 
+def test_detect_verify_npm_non_string_test_script_falls_through(tmp_path):
+    (tmp_path / "package.json").write_text('{"scripts": {"test": 42}}')
+    assert detect.detect_verify(tmp_path) is None
+
+
 def test_detect_verify_non_utf8_package_json_falls_through(tmp_path):
     # A non-UTF-8 package.json raises UnicodeDecodeError (a ValueError) at
     # detect.py:64; the except (ValueError, OSError) at line 74 must catch it

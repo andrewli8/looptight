@@ -3149,20 +3149,14 @@ existing CLI session and makes no model or API calls of its own.
   `test_all_js_files_skips_prune_dirs` creates `tmp_path/node_modules/bad.js`,
   calls `_all_js_files(tmp_path)`, and asserts `bad.js` is absent from the result.
 
+- `detect_verify`'s `isinstance(test_script, str)` guard (`detect.py:87`) is directly
+  covered: `test_detect_verify_npm_non_string_test_script_falls_through` writes
+  `{"scripts": {"test": 42}}` and asserts `detect_verify` returns `None` — the sibling
+  of the null-scripts and missing-key tests.
+
 ## Next
 
-1. Add a test covering `detect_verify`'s `isinstance(test_script, str)` guard when the
-   `"test"` key in `package.json`'s `scripts` object exists but holds a non-string value
-   (e.g., `{"scripts": {"test": 42}}`). The guard at detect.py:87 correctly falls through,
-   but no test exercises this path directly; the sibling tests cover `null` scripts
-   (`test_detect_verify_npm_non_object_scripts_falls_through`) and a missing key
-   (`test_detect_verify_npm_without_test_script_falls_through`), not a non-string value.
-   Evidence: src/looptight/detect.py:87
-   Acceptance: `test_detect_verify_npm_non_string_test_script_falls_through` in
-   tests/test_detect.py passes: it writes `{"scripts": {"test": 42}}` to `package.json`
-   and asserts `detect_verify` returns `None`.
-
-2. Add a test covering the no-position path of `strip_position_suffix`: a path with no
+1. Add a test covering the no-position path of `strip_position_suffix`: a path with no
    `:`-position suffix must be returned unchanged. The existing test
    (`test_strip_position_suffix_multi_level_and_range` in test_idea_eval.py:336) only
    asserts paths that already carry a suffix (`src/a.py:10:5`, `src/a.py:10-20`); the
@@ -3172,7 +3166,7 @@ existing CLI session and makes no model or API calls of its own.
    Acceptance: `test_strip_position_suffix_no_position_returns_unchanged` in
    tests/test_idea_eval.py passes: `strip_position_suffix("src/foo.py")` equals `"src/foo.py"`.
 
-3. Add a test covering `read_count`'s `OSError` branch in `hook.py`. The function catches
+2. Add a test covering `read_count`'s `OSError` branch in `hook.py`. The function catches
    `(OSError, ValueError)` and returns 0, but the only existing test
    (`test_read_count_returns_zero_on_non_integer_content`) triggers `ValueError`; the `OSError`
    branch (e.g., when `path.read_text()` raises `PermissionError`) has no direct injection test,
