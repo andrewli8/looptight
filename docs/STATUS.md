@@ -3145,18 +3145,13 @@ existing CLI session and makes no model or API calls of its own.
   `test_all_py_files_skips_prune_dirs` creates `tmp_path/node_modules/bad.py`,
   calls `_all_py_files(tmp_path)`, and asserts `bad.py` is absent from the result.
 
+- `_all_js_files` prune-dir guard locked in tests/test_discovery.py:
+  `test_all_js_files_skips_prune_dirs` creates `tmp_path/node_modules/bad.js`,
+  calls `_all_js_files(tmp_path)`, and asserts `bad.js` is absent from the result.
+
 ## Next
 
-1. Add a test confirming `_all_js_files` excludes JS files inside `_PRUNE_DIRS`
-   directories. By analogy with `test_all_py_files_skips_prune_dirs` (just added to
-   tests/test_discovery.py), the sibling function `_all_js_files` at discovery.py:128
-   uses the same guard but has no direct unit test with a `.js` file in a pruned dir.
-   Evidence: src/looptight/discovery.py:128
-   Acceptance: `test_all_js_files_skips_prune_dirs` in tests/test_discovery.py passes:
-   it creates `tmp_path/node_modules/bad.js`, calls `_all_js_files(tmp_path)`, and
-   asserts `bad.js` is not in the result.
-
-2. Add a test confirming `_js_test_files` excludes test files inside `_PRUNE_DIRS`
+1. Add a test confirming `_js_test_files` excludes test files inside `_PRUNE_DIRS`
    directories. `_js_test_files` at discovery.py:140 applies the same guard as
    `_all_py_files` and `_all_js_files` but has no direct unit test for it; the closest
    test (`test_discovery_skips_node_modules` in test_propose.py:1499) calls
