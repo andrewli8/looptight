@@ -3084,6 +3084,37 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Extend `_verifier_quality` to classify widely-used Ruby, PHP, and Haskell test runners
+   as `unit` instead of `custom/unknown`. When a user manually configures `rspec spec`,
+   `bundle exec rspec`, `phpunit`, `pest`, `php artisan test`, `stack test`, or `cabal test`
+   as their verify command, the tool currently reports `custom/unknown` even though these are
+   well-known unit test runners analogous to the already-classified `pytest`, `jest`, and
+   `cargo test`. Evidence: `src/looptight/protocol_commands.py:874`; Acceptance: a new test
+   `test_status_json_classifies_ruby_php_haskell_runners_as_unit` in `tests/test_cli.py`
+   passes, asserting each of those commands yields `classification == "unit"` — and a regression
+   that removes one from the list causes the test to fail.
+
+2. Add Crystal language detection to `detect_verify`: `shard.yml` → `crystal spec`. Crystal
+   has a single unambiguous test runner (`crystal spec`), the same property that justified
+   adding Elixir (`mix.exs` → `mix test`) and Swift (`Package.swift` → `swift test`). Without
+   it, a Crystal project falls through to the wrong `pytest -q` default. Also add `crystal spec`
+   to the `_verifier_quality` unit-runner list so a manually configured Crystal project
+   classifies as `unit`, not `custom/unknown`.
+   Evidence: `src/looptight/detect.py:43`; Acceptance: `test_detect_verify_crystal` in
+   `tests/test_detect.py` passes asserting `shard.yml` → `crystal spec`, and
+   `test_status_json_classifies_crystal_spec_as_unit` in `tests/test_cli.py` passes asserting
+   `_verifier_quality("crystal spec")["classification"] == "unit"`.
+
+3. `docs/usage.md` should name the ecosystems `init` auto-detects so a new user knows whether
+   their project will be configured. The current text says only "detects your test command"
+   (line 12) without listing what's actually detected. A user with a Ruby, Rust, Haskell, or
+   JVM project cannot tell from the docs whether they need to set `verify` manually. Add a
+   brief list of detected ecosystems (Python/pytest, uv/poetry/pdm, Node/npm/pnpm/yarn/bun,
+   Rust/cargo, Go, Deno, JVM/Gradle/Maven, .NET/dotnet, Elixir/mix, Swift, Crystal — with a
+   pointer that unlisted ecosystems fall back to `pytest -q`).
+   Evidence: `docs/usage.md:12`; Acceptance: a `test_docs.py` assertion verifies
+   `"cargo test"`, `"gradle test"`, and `"dotnet test"` all appear in `docs/usage.md`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
