@@ -340,6 +340,12 @@ def test_strip_position_suffix_multi_level_and_range():
     assert strip_position_suffix("src/a.py:10-20") == "src/a.py"
 
 
+def test_strip_position_suffix_no_position_returns_unchanged():
+    from looptight.grounding import strip_position_suffix
+
+    assert strip_position_suffix("src/foo.py") == "src/foo.py"
+
+
 def test_evidence_is_truthful_is_the_lenient_gate(tmp_path):
     # The gate discovery uses: every named anchor must resolve, but an item naming no
     # anchor is allowed (so hand-written lists work), unlike strict is_grounded.
