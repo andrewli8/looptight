@@ -3129,17 +3129,13 @@ existing CLI session and makes no model or API calls of its own.
   `test_write_count_propagates_oserror_from_write_text`, which patches
   `pathlib.Path.write_text` to raise OSError and asserts the error propagates.
 
-## Next
+- `statusline` non-list workers fallthrough locked in tests/test_ui.py: the
+  `isinstance(workers, list)` guard at ui.py:171 correctly rejects non-list truthy
+  values but had no direct test for that path. Locked by
+  `test_statusline_falls_through_to_task_when_workers_is_not_a_list`, which passes
+  `workers="not-a-list"` and asserts task-mode output ("do X") without "workers".
 
-2. Add a test confirming `statusline` falls through to task-based output when
-   `state["workers"]` is a non-list truthy value. The `isinstance(workers,
-   list)` guard at ui.py:171 is correct but has no direct coverage for that
-   path.
-   Evidence: src/looptight/ui.py:171
-   Acceptance: `test_statusline_falls_through_to_task_when_workers_is_not_a_list`
-   in tests/test_ui.py passes: it calls `statusline({"workers": "not-a-list",
-   "task": {"goal": "do X"}})` and asserts the returned string contains "do X"
-   (task-mode output) and not "workers".
+## Next
 
 3. Add a test confirming `_off_task` returns `True` when the evidence path has
    an empty stem. When `evidence_paths` contains `""`, `PurePosixPath("").stem`

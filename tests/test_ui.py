@@ -115,6 +115,14 @@ def test_statusline_workers_win_over_a_task():
     assert ui.statusline(state) == "looptight: 1 running"  # swarm mode unchanged
 
 
+def test_statusline_falls_through_to_task_when_workers_is_not_a_list():
+    # ui.py:171 — isinstance guard rejects non-list workers value; task mode activates
+    state = {"workers": "not-a-list", "tasks": [{"goal": "do X"}]}
+    result = ui.statusline(state)
+    assert "do X" in result
+    assert "workers" not in result
+
+
 def test_statusline_idle_when_truly_empty():
     assert ui.statusline({"workers": [], "tasks": []}) == "looptight: idle"
 
