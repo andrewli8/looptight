@@ -3090,20 +3090,17 @@ existing CLI session and makes no model or API calls of its own.
   classification. Covered by `test_status_json_classifies_ruby_php_haskell_runners_as_unit`
   in test_cli.py.
 
+- Crystal language detected and classified: `shard.yml` → `crystal spec` added to
+  `detect_verify`'s `_VERIFY_RULES` alongside the analogous Elixir (`mix.exs`) and
+  Swift (`Package.swift`) entries, so a Crystal project is auto-configured instead of
+  falling back to the wrong `pytest -q`. `crystal spec` also added to `_verifier_quality`'s
+  unit-runner list so the detected command (or a manually configured one) classifies as
+  `unit`. Covered by `test_detect_verify_crystal` in test_detect.py and
+  `test_status_json_classifies_crystal_spec_as_unit` in test_cli.py.
+
 ## Next
 
-1. Add Crystal language detection to `detect_verify`: `shard.yml` → `crystal spec`. Crystal
-   has a single unambiguous test runner (`crystal spec`), the same property that justified
-   adding Elixir (`mix.exs` → `mix test`) and Swift (`Package.swift` → `swift test`). Without
-   it, a Crystal project falls through to the wrong `pytest -q` default. Also add `crystal spec`
-   to the `_verifier_quality` unit-runner list so a manually configured Crystal project
-   classifies as `unit`, not `custom/unknown`.
-   Evidence: `src/looptight/detect.py:43`; Acceptance: `test_detect_verify_crystal` in
-   `tests/test_detect.py` passes asserting `shard.yml` → `crystal spec`, and
-   `test_status_json_classifies_crystal_spec_as_unit` in `tests/test_cli.py` passes asserting
-   `_verifier_quality("crystal spec")["classification"] == "unit"`.
-
-2. `docs/usage.md` should name the ecosystems `init` auto-detects so a new user knows whether
+1. `docs/usage.md` should name the ecosystems `init` auto-detects so a new user knows whether
    their project will be configured. The current text says only "detects your test command"
    (line 12) without listing what's actually detected. A user with a Ruby, Rust, Haskell, or
    JVM project cannot tell from the docs whether they need to set `verify` manually. Add a

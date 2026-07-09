@@ -425,3 +425,10 @@ def test_detect_verify_yarn_wins_over_npm_test_script(tmp_path):
     (tmp_path / "yarn.lock").write_text("# yarn lockfile v1\n")
     (tmp_path / "package.json").write_text('{"scripts": {"test": "jest"}}')
     assert detect.detect_verify(tmp_path) == "yarn test"
+
+
+def test_detect_verify_crystal(tmp_path):
+    # Crystal's shard.yml is a distinctive marker; crystal spec is the single
+    # unambiguous test runner, analogous to Elixir (mix.exs) and Swift (Package.swift).
+    (tmp_path / "shard.yml").write_text('name: myapp\nversion: 0.1.0\n')
+    assert detect.detect_verify(tmp_path) == "crystal spec"

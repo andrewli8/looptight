@@ -1430,6 +1430,17 @@ def test_status_json_classifies_ruby_php_haskell_runners_as_unit(
         )
 
 
+def test_status_json_classifies_crystal_spec_as_unit(tmp_path, monkeypatch, capsys):
+    # crystal spec is Crystal's single unambiguous test runner; it must classify
+    # as `unit`, not `custom/unknown`, so a Crystal project configured via
+    # `detect_verify` or manually reports the correct verifier-quality tier.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".looptight.toml").write_text('verify = "crystal spec"\n')
+    assert main(["status", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["verifier_quality"]["classification"] == "unit"
+
+
 def test_status_json_classifies_tests_plus_lint_as_unit_not_lint_only(
     tmp_path, monkeypatch, capsys
 ):
