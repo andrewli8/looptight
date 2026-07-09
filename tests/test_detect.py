@@ -432,6 +432,16 @@ def test_detect_verify_yarn_wins_over_npm_test_script(tmp_path):
     assert detect.detect_verify(tmp_path) == "yarn test"
 
 
+def test_detect_verify_bun_wins_over_pnpm_and_yarn(tmp_path):
+    # When bun.lockb, pnpm-lock.yaml, and yarn.lock all exist, bun.lockb must
+    # win because detect.py:59 checks it first. A regression that reorders or
+    # removes a guard would silently change the returned command.
+    (tmp_path / "bun.lockb").write_bytes(b"")
+    (tmp_path / "pnpm-lock.yaml").write_text("lockfileVersion: '6.0'\n")
+    (tmp_path / "yarn.lock").write_text("# yarn lockfile v1\n")
+    assert detect.detect_verify(tmp_path) == "bun test"
+
+
 def test_detect_verify_crystal(tmp_path):
     # Crystal's shard.yml is a distinctive marker; crystal spec is the single
     # unambiguous test runner, analogous to Elixir (mix.exs) and Swift (Package.swift).

@@ -3177,13 +3177,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Lock the `detect_verify` package-manager priority when multiple lock files coexist:
-   `detect.py:59-65` checks `bun.lockb` before `pnpm-lock.yaml` before `yarn.lock`, so
-   `bun test` should win when all three exist — but no test exercises that three-way
-   ordering. A regression removing a check or reordering the guards would not be caught.
-   Evidence: `src/looptight/detect.py:59`
-   Acceptance: a new test in `tests/test_detect.py` creates `bun.lockb`, `pnpm-lock.yaml`,
-   and `yarn.lock` in the same directory and asserts `detect_verify` returns `"bun test"`.
+_drained_
 
 ## Rules
 
