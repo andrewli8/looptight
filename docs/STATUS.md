@@ -3163,11 +3163,17 @@ existing CLI session and makes no model or API calls of its own.
   `test_read_count_returns_zero_on_oserror` monkeypatches `Path.read_text` to raise
   `OSError` and asserts `read_count` returns 0 — the sibling of the existing ValueError test.
 
+- `proctree.py`'s Windows `taskkill` fall-through branches (`proctree.py:39`, `proctree.py:46`) are directly
+  covered: `test_stop_process_tree_taskkill_nonzero_exit_falls_through_to_kill` monkeypatches
+  `os.name` to `"nt"` and `subprocess.run` to return `returncode=1`, asserting `process.kill()` is
+  called (covers `46->50`); `test_stop_process_tree_uses_process_kill_when_os_is_unknown` monkeypatches
+  `os.name` to `"java"`, asserting `process.kill()` is called directly (covers `39->50`).
+
 ## Next
 
-1. Lock `proctree.py` Windows `taskkill` branch and its early-return path with monkeypatched tests.
-   Evidence: src/looptight/proctree.py:39;
-   Acceptance: `tests/test_proctree.py` gains two new tests that monkeypatch `os.name` to `"nt"` — one where `subprocess.run` returns `returncode=0` (covers the `if stopped.returncode == 0: return` early exit) and one where it returns nonzero (covers the fall-through to `process.kill()`) — and `pytest tests/test_proctree.py` passes.
+2. Lock `claims.py:60` relative-path branch in `claim_dir()` with a monkeypatched test.
+   Evidence: src/looptight/claims.py:60;
+   Acceptance: `tests/test_claims.py` gains a test that monkeypatches `subprocess.run` to return a relative path string for `git rev-parse --git-common-dir` and asserts `claim_dir()` returns the correct absolute path — `pytest tests/test_claims.py` passes.
 
 2. Lock `claims.py:60` relative-path branch in `claim_dir()` with a monkeypatched test.
    Evidence: src/looptight/claims.py:60;

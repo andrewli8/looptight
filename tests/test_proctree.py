@@ -132,3 +132,40 @@ def test_stop_process_tree_taskkill_oserror_falls_through_to_kill(monkeypatch):
     assert process.killed  # taskkill failed with OSError; fell through to process.kill()
 
 
+def test_stop_process_tree_taskkill_nonzero_exit_falls_through_to_kill(monkeypatch):
+    # proctree.py:46 — when taskkill exits non-zero (partial failure, process already
+    # gone under taskkill, etc.), the `if stopped.returncode == 0: return` is False, so
+    # control falls through to the final process.kill() at line 50.
+    class FakeProcess:
+        pid = 42
+        killed = False
+
+        def kill(self):
+            self.killed = True
+
+    monkeypatch.setattr("looptight.proctree.os.name", "nt")
+    monkeypatch.setattr(
+        "looptight.proctree.subprocess.run",
+        lambda *a, **kw: type("R", (), {"returncode": 1})(),
+    )
+    process = FakeProcess()
+    stop_process_tree(process)  # type: ignore[arg-type]
+    assert process.killed  # returncode != 0, so fell through to process.kill()
+
+
+def test_stop_process_tree_uses_process_kill_when_os_is_unknown(monkeypatch):
+    # proctree.py:39 — when os.name is neither "posix" nor "nt", both guarded blocks
+    # are skipped and the bare process.kill() fallback runs directly.
+    class FakeProcess:
+        pid = 99
+        killed = False
+
+        def kill(self):
+            self.killed = True
+
+    monkeypatch.setattr("looptight.proctree.os.name", "java")
+    process = FakeProcess()
+    stop_process_tree(process)  # type: ignore[arg-type]
+    assert process.killed
+
+
