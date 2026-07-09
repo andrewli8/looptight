@@ -3147,6 +3147,36 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Add a test confirming `_all_js_files` excludes JS files inside `_PRUNE_DIRS`
+   directories. By analogy with `test_all_py_files_skips_prune_dirs` (just added to
+   tests/test_discovery.py), the sibling function `_all_js_files` at discovery.py:128
+   uses the same guard but has no direct unit test with a `.js` file in a pruned dir.
+   Evidence: src/looptight/discovery.py:128
+   Acceptance: `test_all_js_files_skips_prune_dirs` in tests/test_discovery.py passes:
+   it creates `tmp_path/node_modules/bad.js`, calls `_all_js_files(tmp_path)`, and
+   asserts `bad.js` is not in the result.
+
+2. Add a test confirming `_js_test_files` excludes test files inside `_PRUNE_DIRS`
+   directories. `_js_test_files` at discovery.py:140 applies the same guard as
+   `_all_py_files` and `_all_js_files` but has no direct unit test for it; the closest
+   test (`test_discovery_skips_node_modules` in test_propose.py:1499) calls
+   `from_skipped_tests`, not `_js_test_files` directly.
+   Evidence: src/looptight/discovery.py:140
+   Acceptance: `test_js_test_files_skips_prune_dirs` in tests/test_discovery.py passes:
+   it creates `tmp_path/node_modules/bad.test.js`, calls `_js_test_files(tmp_path)`,
+   and asserts `bad.test.js` is not in the result.
+
+3. Add a test confirming `_files_with_exts` excludes files inside `_PRUNE_DIRS`
+   subdirectories. The only existing test (`test_files_with_exts_missing_subdir_returns_empty`
+   in test_propose.py:1760) checks the missing-directory path; no test verifies that a
+   file inside `src/node_modules/bad.js` is excluded when `_files_with_exts(root, "src", ...)`
+   is called, even though the guard at discovery.py:74 is the sole protection.
+   Evidence: src/looptight/discovery.py:74
+   Acceptance: `test_files_with_exts_skips_prune_dirs` in tests/test_discovery.py
+   passes: it creates `tmp_path/src/node_modules/bad.js`, calls
+   `_files_with_exts(tmp_path, "src", (".js",))`, and asserts `bad.js` is not in the
+   result.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
