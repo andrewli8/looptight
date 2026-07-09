@@ -3112,15 +3112,12 @@ existing CLI session and makes no model or API calls of its own.
   anyone reading the API. Fixed in `src/looptight/coordinator.py:319`; locked by
   `test_coordination_scope_docstring_describes_file_claims_accurately` in test_coordinator.py.
 
-## Next
+- `--model` documented for `run` and `swarm` in `docs/unattended.md`: the flag existed in both
+  commands (cli.py:200 and cli.py:341) but was only shown in the `daemon` example, leaving users
+  of one-off headless sessions without a docs hint. Added a `--model opus` variant to the `run`
+  introductory example. Locked by `test_unattended_doc_shows_model_for_run_or_swarm` in test_docs.py.
 
-1. Document `--model` for `run` and `swarm` in `docs/unattended.md`: the flag
-   exists in both commands (cli.py:200 and cli.py:341) but the unattended docs only
-   show it for `daemon`. A user running a one-off headless session has no docs hint.
-   Evidence: `src/looptight/cli.py:200`
-   Acceptance: `docs/unattended.md` shows `--model` in at least one `run` or `swarm`
-   example; a `test_docs.py` assertion (`test_unattended_doc_shows_model_for_run_or_swarm`)
-   locks the presence of `--model` in those sections and passes.
+## Next
 
 ## Rules
 

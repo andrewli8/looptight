@@ -9,6 +9,7 @@ without you sitting there, and a coordinator lets many sessions share one repo.
 
 ```bash
 looptight run --headless "fix the failing tests"
+looptight run --headless --model opus "fix the failing tests"   # pin a specific model
 ```
 
 ### Stopping early when stuck (`--patience`)

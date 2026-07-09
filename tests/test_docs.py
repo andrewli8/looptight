@@ -267,6 +267,19 @@ def test_unattended_doc_documents_patience_and_escalation():
     assert "escalation" in text
 
 
+def test_unattended_doc_shows_model_for_run_or_swarm():
+    # --model is available for `run` (cli.py:341) and `swarm` (cli.py:200) but was
+    # only documented for `daemon`. Users running a one-off headless session have no
+    # docs hint. The unattended guide must show --model in at least one run or swarm
+    # example so the flag is discoverable without reading the source.
+    text = (_DOCS / "unattended.md").read_text(encoding="utf-8")
+    run_and_swarm_section, _, _ = text.partition("## A daemon")
+    assert "--model" in run_and_swarm_section, (
+        "docs/unattended.md does not show --model in the run or swarm section; "
+        "add an example so users can discover the flag without reading source"
+    )
+
+
 def test_changelog_names_the_current_version():
     changelog = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     pyproject = (_ROOT / "pyproject.toml").read_text(encoding="utf-8")
