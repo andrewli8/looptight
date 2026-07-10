@@ -3192,6 +3192,42 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Cover the publication state machine: queued → publishing → complete:
+   `coordinator.py:778` exposes `next_pending_publication`, `begin_publication`, and
+   `finish_publication`, but no test walks these three transitions. The complete happy
+   path (state→complete, error→NULL) is entirely untested.
+   Evidence: `src/looptight/coordinator.py:778`
+   Acceptance: a new test in `tests/test_coordinator.py` sets up a completed integration,
+   calls `enqueue_publication`, then `next_pending_publication`, `begin_publication`,
+   and `finish_publication(…, "complete")`, and asserts the record's final state is
+   `"complete"`.
+
+2. Cover `finish_integration` complete outcome: task → complete, lease deleted:
+   `coordinator.py:721` handles the `"complete"` outcome (task state→complete, fenced
+   lease deleted), but every existing test either passes an unknown id (no-op) or exercises
+   the `"conflict"` branch. The complete path is never exercised with a real integration.
+   Evidence: `src/looptight/coordinator.py:721`
+   Acceptance: a new test in `tests/test_coordinator.py` enqueues an integration, calls
+   `finish_integration(…, IntegrationOutcome(id, "complete", result_sha="sha"))`, and
+   asserts the task state is `"complete"` and the lease no longer exists.
+
+3. Cover `finish_integration` superseded outcome:
+   `coordinator.py:732` handles `"superseded"` (integration state→superseded, owning
+   lease untouched), but no test exercises this branch with a real integration id.
+   Evidence: `src/looptight/coordinator.py:732`
+   Acceptance: a new test in `tests/test_coordinator.py` enqueues an integration, calls
+   `finish_integration(…, IntegrationOutcome(id, "superseded"))`, and asserts the
+   integration's state is `"superseded"` and the lease still exists.
+
+4. Cover `finish_publication` failed outcome: attempts incremented, error recorded:
+   `coordinator.py:800` handles the failed branch of `finish_publication` (state→failed,
+   attempts+1, error set), but no test exercises this path.
+   Evidence: `src/looptight/coordinator.py:800`
+   Acceptance: a new test in `tests/test_coordinator.py` sets up a completed integration,
+   enqueues a publication, calls `finish_publication(…, PublicationOutcome(id, "failed",
+   error="push rejected"))`, and asserts the record's state is `"failed"` and the error
+   field matches.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
