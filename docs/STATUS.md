@@ -3192,17 +3192,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Cover the publication state machine: queued → publishing → complete:
-   `coordinator.py:778` exposes `next_pending_publication`, `begin_publication`, and
-   `finish_publication`, but no test walks these three transitions. The complete happy
-   path (state→complete, error→NULL) is entirely untested.
-   Evidence: `src/looptight/coordinator.py:778`
-   Acceptance: a new test in `tests/test_coordinator.py` sets up a completed integration,
-   calls `enqueue_publication`, then `next_pending_publication`, `begin_publication`,
-   and `finish_publication(…, "complete")`, and asserts the record's final state is
-   `"complete"`.
-
-2. Cover `finish_integration` complete outcome: task → complete, lease deleted:
+1. Cover `finish_integration` complete outcome: task → complete, lease deleted:
    `coordinator.py:721` handles the `"complete"` outcome (task state→complete, fenced
    lease deleted), but every existing test either passes an unknown id (no-op) or exercises
    the `"conflict"` branch. The complete path is never exercised with a real integration.

@@ -17,6 +17,7 @@ from looptight.coordinator import (
     CoordinatorUnavailable,
     IntegrationOutcome,
     MigrationBlocked,
+    PublicationOutcome,
     coordinator_path,
 )
 
@@ -493,6 +494,37 @@ def test_integration_state_machine_queued_integrating_committed(tmp_path):
     assert committed[0].id == integ_id
     assert committed[0].state == "committed"
     assert committed[0].result_sha == "merge1"
+
+
+def test_publication_state_machine_queued_publishing_complete(tmp_path):
+    # Walk the full happy path: queued → publishing → complete.
+    # Requires a completed integration as a precondition for enqueue_publication.
+    db = Coordinator.open(_repo(tmp_path / "r"))
+    run = db.start_run("test", now=0)
+    lease = db.claim([{"id": "t", "goal": "g"}], run.id, ttl_s=60, now=0)
+    assert lease is not None
+
+    integ_id = db.enqueue_integration(lease, "refs/heads/main", "abc123")
+    db.finish_integration(integ_id, IntegrationOutcome(integ_id, "complete", result_sha="merge1"))
+
+    pub_id = db.enqueue_publication(integ_id, "origin", "refs/heads/main")
+
+    rec = db.next_pending_publication()
+    assert rec is not None
+    assert rec.id == pub_id
+    assert rec.state == "queued"
+
+    db.begin_publication(pub_id, observed_remote_sha="remote0")
+    rec = db.publication(pub_id)
+    assert rec is not None
+    assert rec.state == "publishing"
+    assert db.next_pending_publication() is not None  # still pending (mid-flight)
+
+    db.finish_publication(pub_id, PublicationOutcome(pub_id, "complete"))
+    rec = db.publication(pub_id)
+    assert rec is not None
+    assert rec.state == "complete"
+    assert db.next_pending_publication() is None  # nothing pending after completion
 
 
 def test_reap_abandoned_releases_dead_run_leases(tmp_path):
