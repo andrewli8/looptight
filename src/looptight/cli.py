@@ -73,7 +73,10 @@ def _positive_int(value: str) -> int:
 
 
 def _positive_float(value: str) -> float:
-    parsed = float(value)
+    try:
+        parsed = float(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{value!r} is not a number")
     if parsed <= 0:
         raise argparse.ArgumentTypeError("must be greater than zero")
     return parsed

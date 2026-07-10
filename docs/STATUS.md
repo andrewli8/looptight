@@ -3256,18 +3256,14 @@ existing CLI session and makes no model or API calls of its own.
   and asserts `result.error.startswith("provider rate limit reached")` — never covered by a
   unit call before, only indirectly through integration tests.
 
+- `_positive_float` now catches `ValueError` for non-numeric input and re-raises as
+  `argparse.ArgumentTypeError`, consistent with the sibling `_non_negative_int` /
+  `_positive_int` validators. `test_positive_float_rejects_non_numeric` in
+  `tests/test_cli.py` confirms `_positive_float("abc")` raises `ArgumentTypeError`.
+
 ## Next
 
-1. Fix `_positive_float` to catch non-numeric input and raise `argparse.ArgumentTypeError`
-   instead of the raw `ValueError` that floats past argparse, giving a less-descriptive
-   error than the sibling `_non_negative_int` / `_positive_int` validators.
-   Evidence: `src/looptight/cli.py:76`
-   Acceptance: `_positive_float("abc")` raises `argparse.ArgumentTypeError`; a new test
-   `test_positive_float_rejects_non_numeric` in `tests/test_cli.py` alongside
-   `test_positive_int_and_non_negative_int_reject_non_numeric` passes; `looptight verify`
-   passes.
-
-2. Add direct coverage for `_todo_candidate`'s empty-text fallback at
+1. Add direct coverage for `_todo_candidate`'s empty-text fallback at
    `discovery.py:294`: `or match.group(1).upper()` fires when a bare `# TODO` or
    `# TODO:` marker has no following text, producing a candidate titled "TODO"/"FIXME".
    No test exercises this branch; a regression would be silent.
