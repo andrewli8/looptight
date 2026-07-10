@@ -3204,16 +3204,14 @@ existing CLI session and makes no model or API calls of its own.
   `current_lease` returns non-`None` — the branch that leaves the owning lease intact,
   previously untested with a real integration id.
 
-## Next
+- `finish_publication` failed outcome (`coordinator.py:800`) now has direct coverage:
+  `test_finish_publication_failed_records_state_and_error` sets up a completed integration,
+  enqueues a publication, calls `finish_publication(…, PublicationOutcome(id, "failed",
+  error="push rejected"))`, and asserts the publication state is `"failed"`, `attempts`
+  is 1, and the `error` column is `"push rejected"` — the `else` branch previously
+  untested.
 
-4. Cover `finish_publication` failed outcome: attempts incremented, error recorded:
-   `coordinator.py:800` handles the failed branch of `finish_publication` (state→failed,
-   attempts+1, error set), but no test exercises this path.
-   Evidence: `src/looptight/coordinator.py:800`
-   Acceptance: a new test in `tests/test_coordinator.py` sets up a completed integration,
-   enqueues a publication, calls `finish_publication(…, PublicationOutcome(id, "failed",
-   error="push rejected"))`, and asserts the record's state is `"failed"` and the error
-   field matches.
+## Next
 
 ## Rules
 

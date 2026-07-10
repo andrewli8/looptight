@@ -501,6 +501,32 @@ def test_finish_integration_superseded_marks_integration_superseded_and_keeps_le
     assert db.current_lease(lease._row_id) is not None  # lease untouched by superseded
 
 
+def test_finish_publication_failed_records_state_and_error(tmp_path):
+    # coordinator.py:800 — the "failed" branch: state→failed, attempts+1, error set.
+    db = Coordinator.open(_repo(tmp_path / "r"))
+    run = db.start_run("run1")
+    lease = db.claim([{"id": "t1", "goal": "g"}], run.id, ttl_s=60)
+    assert lease is not None
+
+    integ_id = db.enqueue_integration(lease, "refs/heads/main", "abc123")
+    db.finish_integration(integ_id, IntegrationOutcome(integ_id, "complete", result_sha="sha1"))
+
+    pub_id = db.enqueue_publication(integ_id, "origin", "refs/heads/main")
+    db.finish_publication(pub_id, PublicationOutcome(pub_id, "failed", error="push rejected"))
+
+    pub = db.publication(pub_id)
+    assert pub is not None
+    assert pub.state == "failed"
+    attempts = db.connection.execute(
+        "SELECT attempts FROM publications WHERE id = ?", (pub_id,)
+    ).fetchone()[0]
+    assert attempts == 1
+    error_val = db.connection.execute(
+        "SELECT error FROM publications WHERE id = ?", (pub_id,)
+    ).fetchone()[0]
+    assert error_val == "push rejected"
+
+
 def test_integration_state_machine_queued_integrating_committed(tmp_path):
     # Walk the full happy path: queued → integrating → committed.
     # integrating_records() must surface the record once committed for crash recovery.
