@@ -3180,18 +3180,14 @@ existing CLI session and makes no model or API calls of its own.
   `detect_verify` returns `"pnpm test"`, so swapping the two guards in `detect.py:68-71`
   would now fail (the same class of regression already caught for bun>pnpm>yarn).
 
+- `detect_verify`'s uv-over-poetry priority is locked: `test_detect_verify_uv_wins_over_poetry`
+  creates `pyproject.toml`, `uv.lock`, and `poetry.lock` together and asserts
+  `detect_verify` returns `"uv run pytest -q"`, so swapping the guards in `detect.py:95-98`
+  would now fail.
+
 ## Next
 
-1. Lock `detect_verify` uv-over-poetry priority when both Python lock files coexist:
-   `detect.py:95-98` checks `uv.lock` before `poetry.lock` when `pyproject.toml` is
-   present, but no test exercises all three files coexisting. A mutation swapping those
-   two guards would silently return `"poetry run pytest -q"` instead of `"uv run pytest -q"`.
-   Evidence: `src/looptight/detect.py:95`
-   Acceptance: a new test in `tests/test_detect.py` creates `pyproject.toml`, `uv.lock`,
-   and `poetry.lock` in the same directory and asserts `detect_verify` returns
-   `"uv run pytest -q"`.
-
-2. Cover `evidence_refs` with multiple spaces after the colon:
+1. Cover `evidence_refs` with multiple spaces after the colon:
    `grounding.py:38` uses `[\s*]*` which tolerates any number of spaces after `Evidence:`,
    but no test exercises more than one space. A mutation narrowing to `[ *]` (at most one)
    would silently drop double-spaced anchors with no test catching it.
@@ -3199,7 +3195,7 @@ existing CLI session and makes no model or API calls of its own.
    Acceptance: a new test calls `evidence_refs("Fix. Evidence:  src/a.py; Acceptance: x")`
    (two spaces after the colon) and asserts the result is `["src/a.py"]`.
 
-3. Cover the coordinator integration state machine: queued → integrating → committed:
+2. Cover the coordinator integration state machine: queued → integrating → committed:
    `coordinator.py:663` exposes `next_queued_integration`, `begin_integration`, and
    `mark_integration_committed`, but no test walks all three transitions in sequence.
    `integrating_records` (the crash-recovery surface) is completely untested.
