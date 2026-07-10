@@ -171,6 +171,15 @@ def test_claim_rejects_falsy_id_and_read_tolerates_corrupt_file(tmp_path):
     assert ClaimStore._read(bad) == {}  # corrupt JSON degrades to an empty dict
 
 
+def test_claim_read_returns_empty_dict_for_valid_non_dict_json(tmp_path):
+    # claims.py:145 — the `else {}` branch: valid JSON that is not a dict (e.g. an
+    # array) must return {} without raising, distinct from the except (OSError,
+    # ValueError) path exercised by the sibling test above with "not json{".
+    path = tmp_path / "claim.json"
+    path.write_text("[]", encoding="utf-8")
+    assert ClaimStore._read(path) == {}
+
+
 def test_claim_dir_sets_terminal_prompt_env(tmp_path):
     # claim_dir must pass GIT_TERMINAL_PROMPT=0 to git so a headless `looptight next`
     # inside a credential-locked repo can never block on a prompt — the same invariant

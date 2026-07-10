@@ -3239,15 +3239,13 @@ existing CLI session and makes no model or API calls of its own.
   advisory-only (feeds `reweight_factor` only) and intentionally absent from the planner-note
   guard at `experience.py:115`.
 
-## Next
+- `ClaimStore._read` valid-but-non-dict JSON branch is covered:
+  `test_claim_read_returns_empty_dict_for_valid_non_dict_json` in `tests/test_claims.py`
+  writes `[]` to a claim file and calls `ClaimStore._read(path)`, asserting `{}` is returned
+  without raising — the `else {}` branch at `claims.py:145` distinct from the sibling
+  `except (OSError, ValueError)` path exercised by the adjacent corrupt-file test.
 
-1. `ClaimStore._read` valid-but-non-dict JSON branch is untested: the `else {}`
-   in `claims.py:145` fires when the file holds valid JSON that is not a dict
-   (e.g. `[]`); the existing `test_claim_rejects_falsy_id_and_read_tolerates_corrupt_file`
-   only exercises the `except (OSError, ValueError)` path with `"not json{"`.
-   Evidence: `src/looptight/claims.py:145`
-   Acceptance: A new test in `tests/test_claims.py` writes `[]` to a claim file,
-   calls `ClaimStore._read(path)`, and asserts the return value is `{}` without raising.
+## Next
 
 2. `cmd_statusline` valid-but-non-dict JSON on stdin is untested: when stdin
    contains valid JSON that is not a dict (e.g. `[1,2,3]`), the
