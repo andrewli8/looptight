@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from looptight.adapters import available_adapter_names, get_adapter
-from looptight.adapters.base import run_command
+from looptight.adapters.base import failure_iteration, run_command
 from looptight.adapters.claude import ClaudeAdapter, _build_prompt, _parse_result
 from looptight.limits import is_limit_error
 
@@ -355,3 +355,15 @@ def test_agent_launch_failure_is_returned_as_iteration_error(name, monkeypatch, 
 def test_adapter_memory_file_is_under_workdir(name, tmp_path):
     adapter = get_adapter(name)
     assert adapter.memory_file(tmp_path) == tmp_path / adapter.memory_filename
+
+
+def test_failure_iteration_classify_limit_branch():
+    # adapters/base.py:49: a non-zero exit whose stdout/stderr contain a rate-limit
+    # message must return an IterationResult with the stable error marker.
+    proc = subprocess.CompletedProcess(
+        args=[], returncode=1, stdout="", stderr="usage limit reached"
+    )
+    result = failure_iteration(proc, "claude")
+    assert result.ok is False
+    assert result.error is not None
+    assert result.error.startswith("provider rate limit reached")

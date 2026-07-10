@@ -3250,16 +3250,13 @@ existing CLI session and makes no model or API calls of its own.
   with `"[1,2,3]"`, asserts exit code 0 and output starting "looptight:" — the path where
   `candidate` stays `None` and `repo` falls back to cwd.
 
-## Next
+- `failure_iteration`'s classify-limit branch (`adapters/base.py:49`) is covered directly:
+  `test_failure_iteration_classify_limit_branch` in `tests/test_adapters.py` calls
+  `failure_iteration` with a `CompletedProcess(returncode=1, stderr="usage limit reached")`
+  and asserts `result.error.startswith("provider rate limit reached")` — never covered by a
+  unit call before, only indirectly through integration tests.
 
-2. `failure_iteration`'s classify-limit branch is untested directly: the
-   `classify_limit(...)` path at `adapters/base.py:49` (provider exits non-zero
-   with a rate-limit message in stdout/stderr) is exercised only indirectly through
-   integration tests, never by a unit call to `failure_iteration` itself.
-   Evidence: `src/looptight/adapters/base.py:49`
-   Acceptance: A new test in `tests/test_adapters.py` imports `failure_iteration`,
-   calls it with a `CompletedProcess` whose stderr is `"usage limit reached"` and
-   returncode is 1, and asserts `result.error` starts with `"provider rate limit reached"`.
+## Next
 
 ## Rules
 
