@@ -372,6 +372,27 @@ def test_daemon_on_fault_not_called_on_idle_or_progress():
     assert faults == []
 
 
+def test_daemon_fires_on_fault_with_payload_after_exception():
+    # exception crash + on_fault collector: the local `error` variable (not result.error)
+    # must reach the callback — a guard checking result.error would be None here.
+    boom = {"raised": False}
+
+    def run_cycle(root, **kwargs):
+        if not boom["raised"]:
+            boom["raised"] = True
+            raise RuntimeError("worker crashed hard")
+        return _result(REASON_NO_WORK)
+
+    faults: list[dict] = []
+    run_daemon(
+        Path("."), agent="claude", config=_config(), workers=2,
+        max_cycles=2, fault_backoff_seconds=10.0,
+        sleep=lambda _: None, run_cycle=run_cycle, on_fault=faults.append,
+    )
+    assert len(faults) == 1
+    assert "RuntimeError: worker crashed hard" in faults[0]["last_error"]
+
+
 def test_daemon_survives_a_failing_on_fault_hook():
     rec = _Recorder([_result(REASON_ERROR, error="boom")])
 

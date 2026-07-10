@@ -3226,20 +3226,14 @@ existing CLI session and makes no model or API calls of its own.
   runs `verify` in human mode, and asserts "continue fixing" appears — a mutation widening
   the `elif` guard to `if stall:` would print the escalation message instead and fail.
 
+- `daemon.py` `on_fault` callback fires after an exception-crashed cycle:
+  `test_daemon_fires_on_fault_with_payload_after_exception` in `tests/test_daemon.py` runs
+  `run_daemon` with a `run_cycle` that raises `RuntimeError("worker crashed hard")` and an
+  `on_fault` collector; asserts the collector receives one payload with `"last_error"` containing
+  `"RuntimeError: worker crashed hard"` — a guard checking `result.error` (None here) instead of
+  the local `error` variable would miss the callback and fail this test.
+
 ## Next
-
-
-
-3. **Cover `daemon.py` `on_fault` callback after an exception-crashed cycle.**
-   `test_daemon_fires_on_fault_with_payload` uses a normal `SwarmResult(error="boom")`;
-   `test_daemon_survives_an_exception_from_a_cycle` crashes without `on_fault`. The combination
-   — exception crash + on_fault collector — is untested: a guard that checked `result.error`
-   instead of the local `error` variable would skip the callback silently.
-   Evidence: `src/looptight/daemon.py:184`
-   Acceptance: A new test runs `run_daemon` with a `run_cycle` that raises
-   `RuntimeError("worker crashed hard")` and an `on_fault` collector; asserts the collector
-   receives one payload with `"last_error"` containing `"RuntimeError: worker crashed hard"`;
-   `looptight verify --json` passes.
 
 4. **Pin `summary_text` contract when only `category_failed` is set.**
    `summary_text` at `experience.py:115` returns `""` when `model.failed`, `category_landed`,
