@@ -1326,6 +1326,18 @@ def test_status_json_classifies_biome_and_oxlint_as_lint_only(
         assert data["verifier_quality"]["risk"]
 
 
+def test_status_json_classifies_mypy_and_pyright_as_lint_only(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    for command in ("mypy src/", "pyright"):
+        (tmp_path / ".looptight.toml").write_text(f'verify = "{command}"\n')
+        assert main(["status", "--json"]) == 0
+        data = json.loads(capsys.readouterr().out)
+        assert data["verifier_quality"]["classification"] == "lint-only", command
+        assert data["verifier_quality"]["risk"]
+
+
 def test_status_json_ignores_negated_marker_deselection(
     tmp_path, monkeypatch, capsys
 ):

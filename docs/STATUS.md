@@ -3219,15 +3219,12 @@ new test `test_status_json_classifies_biome_and_oxlint_as_lint_only`
 in `tests/test_cli.py` asserts both commands return `classification="lint-only"`.
 Verified: `looptight verify --json` → pass.
 
-1. **Extend lint-only verifier classification to cover mypy and pyright.**
-   Type checkers `mypy` and `pyright` only analyse static types — they cannot catch
-   behaviour regressions — yet they are misclassified as `custom/unknown`, hiding the
-   risk warning from teams that run `mypy src/` as their sole verifier.
-   Evidence: `src/looptight/protocol_commands.py:896`
-   Acceptance: A new test asserts `mypy src/` and `pyright` return `classification="lint-only"`;
-   the implementation adds `"mypy"` and `"pyright"` to the same tuple; `looptight verify --json` passes.
+Added `"mypy"` and `"pyright"` to the lint-only tool tuple in
+`_verifier_quality()` at `src/looptight/protocol_commands.py:896`;
+new test `test_status_json_classifies_mypy_and_pyright_as_lint_only`
+in `tests/test_cli.py`. Verified: `looptight verify --json` → pass.
 
-3. **Add a test that covers the non-claude branch of `_goal_driver_recipe()`.**
+1. **Add a test that covers the non-claude branch of `_goal_driver_recipe()`.**
    The only existing test for the goal continuous-mode recipe patches `detect_agent` to always
    return `"claude"`, so the branch that omits the `/loop until:` line (i.e. any non-claude agent)
    is never exercised and a regression there would go undetected.
