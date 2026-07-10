@@ -3241,6 +3241,31 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `ClaimStore._read` valid-but-non-dict JSON branch is untested: the `else {}`
+   in `claims.py:145` fires when the file holds valid JSON that is not a dict
+   (e.g. `[]`); the existing `test_claim_rejects_falsy_id_and_read_tolerates_corrupt_file`
+   only exercises the `except (OSError, ValueError)` path with `"not json{"`.
+   Evidence: `src/looptight/claims.py:145`
+   Acceptance: A new test in `tests/test_claims.py` writes `[]` to a claim file,
+   calls `ClaimStore._read(path)`, and asserts the return value is `{}` without raising.
+
+2. `cmd_statusline` valid-but-non-dict JSON on stdin is untested: when stdin
+   contains valid JSON that is not a dict (e.g. `[1,2,3]`), the
+   `isinstance(data, dict)` guard at `commands.py:593` keeps `candidate = None`
+   and `repo` falls back to cwd; existing tests cover invalid JSON and dict JSON,
+   but not this path. Evidence: `src/looptight/commands.py:593`
+   Acceptance: A new test in `tests/test_cli.py` patches stdin with `"[1,2,3]"`,
+   calls `main(["statusline"])`, and asserts exit code 0 with output starting "looptight:".
+
+3. `failure_iteration`'s classify-limit branch is untested directly: the
+   `classify_limit(...)` path at `adapters/base.py:49` (provider exits non-zero
+   with a rate-limit message in stdout/stderr) is exercised only indirectly through
+   integration tests, never by a unit call to `failure_iteration` itself.
+   Evidence: `src/looptight/adapters/base.py:49`
+   Acceptance: A new test in `tests/test_adapters.py` imports `failure_iteration`,
+   calls it with a `CompletedProcess` whose stderr is `"usage limit reached"` and
+   returncode is 1, and asserts `result.error` starts with `"provider rate limit reached"`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
