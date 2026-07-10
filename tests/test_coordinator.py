@@ -460,6 +460,27 @@ def test_finish_integration_conflict_requeues_below_cap_then_fails(tmp_path):
     assert db.claim([task], db.start_run("again").id, ttl_s=60) is None
 
 
+def test_finish_integration_complete_marks_task_complete_and_deletes_lease(tmp_path):
+    # coordinator.py:721 — the "complete" branch: task → complete, fenced lease deleted.
+    db = Coordinator.open(_repo(tmp_path / "r"))
+    run = db.start_run("run1")
+    task = {"id": "t1", "goal": "g"}
+    lease = db.claim([task], run.id, ttl_s=60)
+    assert lease is not None
+
+    integration_id = db.enqueue_integration(lease, "refs/heads/main", "abc123")
+    db.finish_integration(
+        integration_id,
+        IntegrationOutcome(integration_id, "complete", result_sha="sha-merged"),
+    )
+
+    task_state = db.connection.execute(
+        "SELECT state FROM tasks WHERE fingerprint = 't1'"
+    ).fetchone()[0]
+    assert task_state == "complete"
+    assert db.current_lease(lease._row_id) is None  # fenced lease deleted
+
+
 def test_integration_state_machine_queued_integrating_committed(tmp_path):
     # Walk the full happy path: queued → integrating → committed.
     # integrating_records() must surface the record once committed for crash recovery.

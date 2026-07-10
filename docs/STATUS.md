@@ -3190,16 +3190,14 @@ existing CLI session and makes no model or API calls of its own.
   asserts the result is `["src/a.py"]`, so narrowing `[\s*]*` to `[ *]` in `grounding.py:38`
   would now fail.
 
-## Next
+- `finish_integration` complete outcome (`coordinator.py:721`) now has direct coverage:
+  `test_finish_integration_complete_marks_task_complete_and_deletes_lease` enqueues a
+  real integration, calls `finish_integration(…, IntegrationOutcome(id, "complete",
+  result_sha="sha-merged"))`, and asserts the task state is `"complete"` and
+  `current_lease` returns `None` — the branch previously only hit via an unknown id
+  (no-op) or through the publication state-machine test without asserting task/lease state.
 
-1. Cover `finish_integration` complete outcome: task → complete, lease deleted:
-   `coordinator.py:721` handles the `"complete"` outcome (task state→complete, fenced
-   lease deleted), but every existing test either passes an unknown id (no-op) or exercises
-   the `"conflict"` branch. The complete path is never exercised with a real integration.
-   Evidence: `src/looptight/coordinator.py:721`
-   Acceptance: a new test in `tests/test_coordinator.py` enqueues an integration, calls
-   `finish_integration(…, IntegrationOutcome(id, "complete", result_sha="sha"))`, and
-   asserts the task state is `"complete"` and the lease no longer exists.
+## Next
 
 3. Cover `finish_integration` superseded outcome:
    `coordinator.py:732` handles `"superseded"` (integration state→superseded, owning
