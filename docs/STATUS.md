@@ -3220,19 +3220,15 @@ existing CLI session and makes no model or API calls of its own.
   `test_from_status_next_drops_item_with_blank_acceptance` in `tests/test_propose.py` feeds
   `from_status_next` a task with `"Acceptance:   "` (whitespace only) and asserts no candidate
   is returned — a mutation removing `or not acceptance.strip()` now fails the test.
+- `cmd_verify` human output for a stall without escalation is covered:
+  `test_verify_human_stall_without_escalation_prints_continue_fixing` in `tests/test_cli.py`
+  monkeypatches `run_verify` (failing) and `_stall_signal` (stall with no escalation key),
+  runs `verify` in human mode, and asserts "continue fixing" appears — a mutation widening
+  the `elif` guard to `if stall:` would print the escalation message instead and fail.
 
 ## Next
 
 
-2. **Cover `cmd_verify` human output for a stall without an escalation key.**
-   The `else` branch at `protocol_commands.py:86` is reached when a `VerifyResult` carries
-   `stall={"reason": "STOP_NO_PROGRESS"}` but no `"escalation"` key; the generic
-   "continue fixing" message is printed, but no test pins this path — a mutation widening the
-   `elif` guard to `if stall:` would silently change the output.
-   Evidence: `src/looptight/protocol_commands.py:86`
-   Acceptance: A new test calls `cmd_verify` (human-output mode, JSON off) with a failing
-   `VerifyResult` and `stall={"reason": "STOP_NO_PROGRESS"}`, captures console output, and
-   asserts the next-step line contains "continue fixing"; `looptight verify --json` passes.
 
 3. **Cover `daemon.py` `on_fault` callback after an exception-crashed cycle.**
    `test_daemon_fires_on_fault_with_payload` uses a normal `SwarmResult(error="boom")`;

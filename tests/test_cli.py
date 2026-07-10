@@ -3614,6 +3614,27 @@ def test_stall_signal_returns_none_when_patience_is_zero(tmp_path):
     assert result is None
 
 
+def test_verify_human_stall_without_escalation_prints_continue_fixing(tmp_path, monkeypatch, capsys):
+    # protocol_commands.py:86 — the else branch: a stall whose dict has no "escalation" key
+    # should print the generic "continue fixing" message, not the stall-specific one.
+    # A mutation widening the elif guard to `if stall:` would silence the stall message
+    # and print the escalation summary, which no test previously caught in human mode.
+    import looptight.protocol_commands as pc
+    from looptight.types import VerifyResult
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+
+    failing = VerifyResult(passed=False, exit_code=1, output="1 failed")
+    monkeypatch.setattr(pc, "run_verify", lambda *a, **kw: failing)
+    monkeypatch.setattr(pc, "_stall_signal", lambda *a, **kw: {"reason": "STOP_NO_PROGRESS"})
+
+    assert main(["verify", "--verify", "false"]) == 1
+    out = capsys.readouterr().out
+    assert "continue fixing, then rerun" in out
+    assert "different approach" not in out  # escalation message must not appear
+
+
 def test_stall_signal_returns_none_on_passing_result(tmp_path):
     # protocol_commands.py:132 — a passing verify result returns None immediately
     # after recording (trajectory clears its file on pass). A regression removing
