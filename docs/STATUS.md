@@ -3233,17 +3233,13 @@ existing CLI session and makes no model or API calls of its own.
   `"RuntimeError: worker crashed hard"` — a guard checking `result.error` (None here) instead of
   the local `error` variable would miss the callback and fail this test.
 
-## Next
+- `summary_text` contract when only `category_failed` is set is pinned:
+  `test_summary_text_returns_empty_when_only_category_failed_is_set` asserts
+  `summary_text(Model(category_failed={"lint": 2})) == ""`, confirming `category_failed` is
+  advisory-only (feeds `reweight_factor` only) and intentionally absent from the planner-note
+  guard at `experience.py:115`.
 
-4. **Pin `summary_text` contract when only `category_failed` is set.**
-   `summary_text` at `experience.py:115` returns `""` when `model.failed`, `category_landed`,
-   and `category_failure_reasons` are all empty, but `category_failed` is not in the guard —
-   so `Model(category_failed={"lint": 2})` silently returns `""`. No test documents whether
-   this is intentional (feeds only `reweight_factor`) or a gap.
-   Evidence: `src/looptight/experience.py:115`
-   Acceptance: A new test asserts `summary_text(Model(category_failed={"lint": 2})) == ""`
-   (pinning the intentional contract), confirming the field is advisory-only in the planner note;
-   `looptight verify --json` passes.
+## Next
 
 ## Rules
 

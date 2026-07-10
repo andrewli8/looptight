@@ -86,6 +86,13 @@ def test_summary_text_bounded_and_empty_when_no_data():
     assert text.count("\n") <= 6  # bounded
 
 
+def test_summary_text_returns_empty_when_only_category_failed_is_set():
+    # category_failed feeds reweight_factor but NOT the planner note: the guard
+    # at experience.py:115 checks failed/category_landed/category_failure_reasons,
+    # intentionally omitting category_failed which is advisory-only.
+    assert summary_text(Model(category_failed={"lint": 2})) == ""
+
+
 def test_summary_text_keeps_only_the_top_k_failed_ideas_by_count():
     # With more failed ideas than k, the avoid list is bounded to the k
     # highest-count ideas, in descending order. The existing bounded-test uses
