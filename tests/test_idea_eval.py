@@ -143,6 +143,14 @@ def test_evidence_refs_ignores_evidence_in_backtick_code_span():
     assert evidence_refs(cand) == ["src/a.py:1"]
 
 
+def test_evidence_refs_tolerates_multiple_spaces_after_colon():
+    # `_EVIDENCE_RE` uses `[\s*]*` after "Evidence:", tolerating any number of
+    # spaces. A mutation narrowing to `[ *]` (at most one) would silently drop
+    # double-spaced anchors with no existing test catching it.
+    cand = _candidate("Fix", "Fix. Evidence:  src/a.py; Acceptance: x")
+    assert evidence_refs(cand) == ["src/a.py"]
+
+
 def test_score_batch_rewards_a_grounded_diverse_bounded_batch(tmp_path):
     _repo_with_files(tmp_path)
     good = [

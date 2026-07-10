@@ -3185,17 +3185,14 @@ existing CLI session and makes no model or API calls of its own.
   `detect_verify` returns `"uv run pytest -q"`, so swapping the guards in `detect.py:95-98`
   would now fail.
 
+- `_EVIDENCE_RE`'s multi-space tolerance is locked: `test_evidence_refs_tolerates_multiple_spaces_after_colon`
+  calls `evidence_refs` with `"Fix. Evidence:  src/a.py; Acceptance: x"` (two spaces) and
+  asserts the result is `["src/a.py"]`, so narrowing `[\s*]*` to `[ *]` in `grounding.py:38`
+  would now fail.
+
 ## Next
 
-1. Cover `evidence_refs` with multiple spaces after the colon:
-   `grounding.py:38` uses `[\s*]*` which tolerates any number of spaces after `Evidence:`,
-   but no test exercises more than one space. A mutation narrowing to `[ *]` (at most one)
-   would silently drop double-spaced anchors with no test catching it.
-   Evidence: `src/looptight/grounding.py:38`
-   Acceptance: a new test calls `evidence_refs("Fix. Evidence:  src/a.py; Acceptance: x")`
-   (two spaces after the colon) and asserts the result is `["src/a.py"]`.
-
-2. Cover the coordinator integration state machine: queued → integrating → committed:
+1. Cover the coordinator integration state machine: queued → integrating → committed:
    `coordinator.py:663` exposes `next_queued_integration`, `begin_integration`, and
    `mark_integration_committed`, but no test walks all three transitions in sequence.
    `integrating_records` (the crash-recovery surface) is completely untested.
