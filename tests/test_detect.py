@@ -432,6 +432,15 @@ def test_detect_verify_yarn_wins_over_npm_test_script(tmp_path):
     assert detect.detect_verify(tmp_path) == "yarn test"
 
 
+def test_detect_verify_pnpm_wins_over_yarn(tmp_path):
+    # When both pnpm-lock.yaml and yarn.lock coexist, pnpm-lock.yaml must win
+    # because detect.py:68 checks it first. A regression that swaps those two
+    # guards would silently return "yarn test" with no existing test failing.
+    (tmp_path / "pnpm-lock.yaml").write_text("lockfileVersion: '6.0'\n")
+    (tmp_path / "yarn.lock").write_text("# yarn lockfile v1\n")
+    assert detect.detect_verify(tmp_path) == "pnpm test"
+
+
 def test_detect_verify_bun_wins_over_pnpm_and_yarn(tmp_path):
     # When bun.lockb, pnpm-lock.yaml, and yarn.lock all exist, bun.lockb must
     # win because detect.py:59 checks it first. A regression that reorders or
