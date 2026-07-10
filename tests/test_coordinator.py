@@ -459,6 +459,42 @@ def test_finish_integration_conflict_requeues_below_cap_then_fails(tmp_path):
     assert db.claim([task], db.start_run("again").id, ttl_s=60) is None
 
 
+def test_integration_state_machine_queued_integrating_committed(tmp_path):
+    # Walk the full happy path: queued → integrating → committed.
+    # integrating_records() must surface the record once committed for crash recovery.
+    db = Coordinator.open(_repo(tmp_path / "r"))
+    run = db.start_run("test", now=0)
+    lease = db.claim([{"id": "t", "goal": "g"}], run.id, ttl_s=60, now=0)
+    assert lease is not None
+
+    integ_id = db.enqueue_integration(lease, "refs/heads/main", "abc123")
+
+    rec = db.next_queued_integration()
+    assert rec is not None
+    assert rec.id == integ_id
+    assert rec.state == "queued"
+    assert db.integrating_records() == ()  # nothing in-flight yet
+
+    db.begin_integration(integ_id, observed_sha="tip0")
+    rec = db.integration(integ_id)
+    assert rec is not None
+    assert rec.state == "integrating"
+    assert rec.observed_sha == "tip0"
+    assert db.next_queued_integration() is None  # no longer queued
+
+    in_flight = db.integrating_records()
+    assert len(in_flight) == 1
+    assert in_flight[0].id == integ_id
+    assert in_flight[0].state == "integrating"
+
+    db.mark_integration_committed(integ_id, result_sha="merge1")
+    committed = db.integrating_records()
+    assert len(committed) == 1
+    assert committed[0].id == integ_id
+    assert committed[0].state == "committed"
+    assert committed[0].result_sha == "merge1"
+
+
 def test_reap_abandoned_releases_dead_run_leases(tmp_path):
     db = Coordinator.open(_repo(tmp_path / "r"))
     run = db.start_run("dead", now=0)

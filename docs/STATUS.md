@@ -3192,15 +3192,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Cover the coordinator integration state machine: queued → integrating → committed:
-   `coordinator.py:663` exposes `next_queued_integration`, `begin_integration`, and
-   `mark_integration_committed`, but no test walks all three transitions in sequence.
-   `integrating_records` (the crash-recovery surface) is completely untested.
-   Evidence: `src/looptight/coordinator.py:663`
-   Acceptance: a new test in `tests/test_coordinator.py` enqueues an integration, calls
-   `next_queued_integration`, `begin_integration`, `mark_integration_committed`, then
-   asserts `integrating_records` returns the record in `"committed"` state.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
