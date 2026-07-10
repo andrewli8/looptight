@@ -3219,6 +3219,47 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. **Cover the blank-acceptance short-circuit in `from_status_next`/`from_task_file`.**
+   The guard `if not marker or not task_text.strip() or not acceptance.strip(): continue` at
+   `discovery.py:611` has its first two sub-conditions exercised by existing tests but the third
+   (an item that has `"Acceptance:"` with only whitespace after it) is never exercised; a mutation
+   dropping `or not acceptance.strip()` would be undetected.
+   Evidence: `src/looptight/discovery.py:611`
+   Acceptance: A new test feeds `from_task_file` (or `from_status_next`) a task whose
+   `Acceptance:` trailer is all-whitespace and asserts the candidate is not returned;
+   `looptight verify --json` passes.
+
+2. **Cover `cmd_verify` human output for a stall without an escalation key.**
+   The `else` branch at `protocol_commands.py:86` is reached when a `VerifyResult` carries
+   `stall={"reason": "STOP_NO_PROGRESS"}` but no `"escalation"` key; the generic
+   "continue fixing" message is printed, but no test pins this path — a mutation widening the
+   `elif` guard to `if stall:` would silently change the output.
+   Evidence: `src/looptight/protocol_commands.py:86`
+   Acceptance: A new test calls `cmd_verify` (human-output mode, JSON off) with a failing
+   `VerifyResult` and `stall={"reason": "STOP_NO_PROGRESS"}`, captures console output, and
+   asserts the next-step line contains "continue fixing"; `looptight verify --json` passes.
+
+3. **Cover `daemon.py` `on_fault` callback after an exception-crashed cycle.**
+   `test_daemon_fires_on_fault_with_payload` uses a normal `SwarmResult(error="boom")`;
+   `test_daemon_survives_an_exception_from_a_cycle` crashes without `on_fault`. The combination
+   — exception crash + on_fault collector — is untested: a guard that checked `result.error`
+   instead of the local `error` variable would skip the callback silently.
+   Evidence: `src/looptight/daemon.py:184`
+   Acceptance: A new test runs `run_daemon` with a `run_cycle` that raises
+   `RuntimeError("worker crashed hard")` and an `on_fault` collector; asserts the collector
+   receives one payload with `"last_error"` containing `"RuntimeError: worker crashed hard"`;
+   `looptight verify --json` passes.
+
+4. **Pin `summary_text` contract when only `category_failed` is set.**
+   `summary_text` at `experience.py:115` returns `""` when `model.failed`, `category_landed`,
+   and `category_failure_reasons` are all empty, but `category_failed` is not in the guard —
+   so `Model(category_failed={"lint": 2})` silently returns `""`. No test documents whether
+   this is intentional (feeds only `reweight_factor`) or a gap.
+   Evidence: `src/looptight/experience.py:115`
+   Acceptance: A new test asserts `summary_text(Model(category_failed={"lint": 2})) == ""`
+   (pinning the intentional contract), confirming the field is advisory-only in the planner note;
+   `looptight verify --json` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
