@@ -3197,15 +3197,14 @@ existing CLI session and makes no model or API calls of its own.
   `current_lease` returns `None` — the branch previously only hit via an unknown id
   (no-op) or through the publication state-machine test without asserting task/lease state.
 
-## Next
+- `finish_integration` superseded outcome (`coordinator.py:732`) now has direct coverage:
+  `test_finish_integration_superseded_marks_integration_superseded_and_keeps_lease`
+  enqueues a real integration, calls `finish_integration(…, IntegrationOutcome(id,
+  "superseded", error="…"))`, and asserts the integration state is `"superseded"` and
+  `current_lease` returns non-`None` — the branch that leaves the owning lease intact,
+  previously untested with a real integration id.
 
-3. Cover `finish_integration` superseded outcome:
-   `coordinator.py:732` handles `"superseded"` (integration state→superseded, owning
-   lease untouched), but no test exercises this branch with a real integration id.
-   Evidence: `src/looptight/coordinator.py:732`
-   Acceptance: a new test in `tests/test_coordinator.py` enqueues an integration, calls
-   `finish_integration(…, IntegrationOutcome(id, "superseded"))`, and asserts the
-   integration's state is `"superseded"` and the lease still exists.
+## Next
 
 4. Cover `finish_publication` failed outcome: attempts incremented, error recorded:
    `coordinator.py:800` handles the failed branch of `finish_publication` (state→failed,

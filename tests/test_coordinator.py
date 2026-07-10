@@ -481,6 +481,26 @@ def test_finish_integration_complete_marks_task_complete_and_deletes_lease(tmp_p
     assert db.current_lease(lease._row_id) is None  # fenced lease deleted
 
 
+def test_finish_integration_superseded_marks_integration_superseded_and_keeps_lease(tmp_path):
+    # coordinator.py:732 — the "superseded" branch: integration → superseded, lease untouched.
+    db = Coordinator.open(_repo(tmp_path / "r"))
+    run = db.start_run("run1")
+    task = {"id": "t1", "goal": "g"}
+    lease = db.claim([task], run.id, ttl_s=60)
+    assert lease is not None
+
+    integration_id = db.enqueue_integration(lease, "refs/heads/main", "abc123")
+    db.finish_integration(
+        integration_id,
+        IntegrationOutcome(integration_id, "superseded", error="newer integration won"),
+    )
+
+    rec = db.integration(integration_id)
+    assert rec is not None
+    assert rec.state == "superseded"
+    assert db.current_lease(lease._row_id) is not None  # lease untouched by superseded
+
+
 def test_integration_state_machine_queued_integrating_committed(tmp_path):
     # Walk the full happy path: queued → integrating → committed.
     # integrating_records() must surface the record once committed for crash recovery.
