@@ -893,7 +893,7 @@ def _verifier_quality(command: str | None) -> dict[str, str]:
             "classification": "unit",
             "risk": "Unit tests protect covered behavior, but integration and user-flow regressions can remain.",
         }
-    if any(tool in normalized for tool in ("ruff", "flake8", "eslint", "prettier")):
+    if any(tool in normalized for tool in ("ruff", "flake8", "eslint", "prettier", "biome", "oxlint")):
         return {
             "classification": "lint-only",
             "risk": "This only protects style/static checks; behavior can still break.",

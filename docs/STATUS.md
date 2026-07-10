@@ -3213,17 +3213,13 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. **Extend lint-only verifier classification to cover biome and oxlint.**
-   `biome check` and `oxlint` are widely-adopted replacements for eslint/prettier but
-   are not in the lint-only detection tuple, so `_verifier_quality()` misclassifies them
-   as `custom/unknown` and users miss the actionable "This only protects style/static checks;
-   behavior can still break." guidance.
-   Evidence: `src/looptight/protocol_commands.py:896`
-   Acceptance: A new test in `tests/test_cli.py` asserts that `biome check .` and `oxlint src/`
-   each return `classification="lint-only"` from `_verifier_quality()`; the implementation adds
-   `"biome"` and `"oxlint"` to the tool tuple at that line; `looptight verify --json` passes.
+Added `"biome"` and `"oxlint"` to the lint-only tool tuple in
+`_verifier_quality()` at `src/looptight/protocol_commands.py:896`;
+new test `test_status_json_classifies_biome_and_oxlint_as_lint_only`
+in `tests/test_cli.py` asserts both commands return `classification="lint-only"`.
+Verified: `looptight verify --json` → pass.
 
-2. **Extend lint-only verifier classification to cover mypy and pyright.**
+1. **Extend lint-only verifier classification to cover mypy and pyright.**
    Type checkers `mypy` and `pyright` only analyse static types — they cannot catch
    behaviour regressions — yet they are misclassified as `custom/unknown`, hiding the
    risk warning from teams that run `mypy src/` as their sole verifier.
