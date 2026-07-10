@@ -3267,27 +3267,20 @@ existing CLI session and makes no model or API calls of its own.
   resulting candidate titles are `"TODO"` and `"FIXME"` respectively — the branch that
   fires when no text follows the marker keyword.
 
+- `_changed_files`'s OSError path (`hook.py:54`) and nonzero-returncode path (`hook.py:56`)
+  have direct coverage: `test_changed_files_returns_empty_on_oserror` and
+  `test_changed_files_returns_empty_on_nonzero_returncode` in `tests/test_hook.py` monkeypatch
+  `subprocess.run` to raise `OSError` and return returncode=128 respectively, asserting
+  `[]` in both cases — the drift-detection fallbacks that must never propagate an error.
+
+- `detect.py:81`'s `if not isinstance(scripts, dict): scripts = {}` guard is covered:
+  `test_detect_verify_npm_non_dict_scripts_falls_through` in `tests/test_detect.py` writes
+  `{"scripts": [1, 2, 3]}` and asserts `detect_verify` returns `None` — the branch that fires
+  when the `"scripts"` field is a JSON array rather than an object.
+
 ## Next
 
-1. Add direct coverage for `_changed_files`'s OSError path (`hook.py:54`) and nonzero-returncode
-   path (`hook.py:56`): the function returns `[]` on both, but is only exercised indirectly
-   through `_drift_directive` — which is lambda-mocked in all hook tests. Two sibling tests
-   (one monkeypatching `subprocess.run` to raise `OSError`, one to return returncode=128)
-   would pin both branches directly, matching the pattern of
-   `test_has_dirty_git_worktree_returns_false_on_oserror` in `tests/test_tasks.py`.
-   Evidence: `src/looptight/hook.py:54`
-   Acceptance: `test_changed_files_returns_empty_on_oserror` and
-   `test_changed_files_returns_empty_on_nonzero_returncode` both pass; `looptight verify` passes.
-
-2. Add direct coverage for `detect.py:81`'s `if not isinstance(scripts, dict): scripts = {}`
-   guard: fires when `package.json` has `"scripts": [1, 2]` (array, not object). The sibling
-   `test_detect_verify_npm_non_dict_manifest_falls_through` (test_detect.py:256) covers
-   the non-dict manifest, but the non-dict scripts field is a distinct branch with no test.
-   Evidence: `src/looptight/detect.py:81`
-   Acceptance: `test_detect_verify_npm_non_dict_scripts_falls_through` writes
-   `{"scripts": [1, 2, 3]}` and asserts `detect_verify` returns `None`; `looptight verify` passes.
-
-3. Add direct coverage for `_failure_lines`'s empty-output path in `metacog.py:121`:
+1. Add direct coverage for `_failure_lines`'s empty-output path in `metacog.py:121`:
    `(output or "")` guards against `output=None`, but no test calls `_failure_lines(None)` or
    `_failure_lines("")` directly to prove the guard. The sibling `test_failure_lines_extracts_and_normalizes_across_runners`
    in `tests/test_metacog.py` covers non-empty output.

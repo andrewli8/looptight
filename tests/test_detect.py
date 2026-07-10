@@ -258,6 +258,13 @@ def test_detect_verify_npm_non_dict_manifest_falls_through(tmp_path):
     assert detect.detect_verify(tmp_path) is None
 
 
+def test_detect_verify_npm_non_dict_scripts_falls_through(tmp_path):
+    # detect.py:81 — `if not isinstance(scripts, dict): scripts = {}` fires when the
+    # "scripts" field is an array or other non-object JSON value; should fall through to None.
+    (tmp_path / "package.json").write_text('{"scripts": [1, 2, 3]}')
+    assert detect.detect_verify(tmp_path) is None
+
+
 def test_detect_verify_npm_non_string_test_script_falls_through(tmp_path):
     (tmp_path / "package.json").write_text('{"scripts": {"test": 42}}')
     assert detect.detect_verify(tmp_path) is None
