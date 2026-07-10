@@ -3213,6 +3213,33 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. **Extend lint-only verifier classification to cover biome and oxlint.**
+   `biome check` and `oxlint` are widely-adopted replacements for eslint/prettier but
+   are not in the lint-only detection tuple, so `_verifier_quality()` misclassifies them
+   as `custom/unknown` and users miss the actionable "This only protects style/static checks;
+   behavior can still break." guidance.
+   Evidence: `src/looptight/protocol_commands.py:896`
+   Acceptance: A new test in `tests/test_cli.py` asserts that `biome check .` and `oxlint src/`
+   each return `classification="lint-only"` from `_verifier_quality()`; the implementation adds
+   `"biome"` and `"oxlint"` to the tool tuple at that line; `looptight verify --json` passes.
+
+2. **Extend lint-only verifier classification to cover mypy and pyright.**
+   Type checkers `mypy` and `pyright` only analyse static types — they cannot catch
+   behaviour regressions — yet they are misclassified as `custom/unknown`, hiding the
+   risk warning from teams that run `mypy src/` as their sole verifier.
+   Evidence: `src/looptight/protocol_commands.py:896`
+   Acceptance: A new test asserts `mypy src/` and `pyright` return `classification="lint-only"`;
+   the implementation adds `"mypy"` and `"pyright"` to the same tuple; `looptight verify --json` passes.
+
+3. **Add a test that covers the non-claude branch of `_goal_driver_recipe()`.**
+   The only existing test for the goal continuous-mode recipe patches `detect_agent` to always
+   return `"claude"`, so the branch that omits the `/loop until:` line (i.e. any non-claude agent)
+   is never exercised and a regression there would go undetected.
+   Evidence: `src/looptight/protocol_commands.py:1126`
+   Acceptance: A new test in `tests/test_cli.py` patches `detect_agent` to return `"codex"`,
+   runs `looptight goal <name> --continuous`, and asserts the output does NOT contain
+   `/loop until:` but DOES contain `looptight goal next`; `looptight verify --json` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
