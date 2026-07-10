@@ -3211,27 +3211,13 @@ existing CLI session and makes no model or API calls of its own.
   is 1, and the `error` column is `"push rejected"` — the `else` branch previously
   untested.
 
+- `_goal_driver_recipe()`'s non-claude branch is now covered: `test_goal_continuous_omits_loop_hint_for_non_claude_agent`
+  in `tests/test_cli.py` patches `detect_agent` to return `"codex"`, runs `looptight goal
+  <name> --continuous`, and asserts the output does NOT contain `/loop until:` but DOES
+  contain `looptight goal next` — the branch that omits the Claude-specific hint was
+  previously untested end-to-end via the CLI.
+
 ## Next
-
-Added `"biome"` and `"oxlint"` to the lint-only tool tuple in
-`_verifier_quality()` at `src/looptight/protocol_commands.py:896`;
-new test `test_status_json_classifies_biome_and_oxlint_as_lint_only`
-in `tests/test_cli.py` asserts both commands return `classification="lint-only"`.
-Verified: `looptight verify --json` → pass.
-
-Added `"mypy"` and `"pyright"` to the lint-only tool tuple in
-`_verifier_quality()` at `src/looptight/protocol_commands.py:896`;
-new test `test_status_json_classifies_mypy_and_pyright_as_lint_only`
-in `tests/test_cli.py`. Verified: `looptight verify --json` → pass.
-
-1. **Add a test that covers the non-claude branch of `_goal_driver_recipe()`.**
-   The only existing test for the goal continuous-mode recipe patches `detect_agent` to always
-   return `"claude"`, so the branch that omits the `/loop until:` line (i.e. any non-claude agent)
-   is never exercised and a regression there would go undetected.
-   Evidence: `src/looptight/protocol_commands.py:1126`
-   Acceptance: A new test in `tests/test_cli.py` patches `detect_agent` to return `"codex"`,
-   runs `looptight goal <name> --continuous`, and asserts the output does NOT contain
-   `/loop until:` but DOES contain `looptight goal next`; `looptight verify --json` passes.
 
 ## Rules
 

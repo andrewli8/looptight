@@ -772,6 +772,24 @@ def test_goal_set_guides_to_the_first_increment(tmp_path, monkeypatch, capsys):
     assert "/loop until: looptight goal check" in capsys.readouterr().out  # recipe unchanged
 
 
+def test_goal_continuous_omits_loop_hint_for_non_claude_agent(tmp_path, monkeypatch, capsys):
+    # When detect_agent returns a non-claude value (e.g. "codex"), the driver recipe must
+    # NOT include the Claude-specific `/loop until:` hint and must still include the
+    # generic `looptight goal next` instruction.
+    monkeypatch.setattr("looptight.protocol_commands.detect_agent", lambda *a, **k: "codex")
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "i", "--allow-empty"],
+        cwd=tmp_path, check=True,
+    )
+
+    assert main(["goal", "build a calculator", "--continuous"]) == 0
+    out = capsys.readouterr().out
+    assert "/loop until:" not in out
+    assert "looptight goal next" in out
+
+
 def test_goal_set_rejects_an_empty_vision(tmp_path, monkeypatch, capsys):
     # An empty/whitespace vision is rejected at the boundary, not persisted as a vacuous goal
     # that would hand the host a build directive with no stated vision.
