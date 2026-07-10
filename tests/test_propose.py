@@ -115,6 +115,15 @@ def test_todo_title_normalizes_internal_whitespace(tmp_path):
     assert title == "handle the empty case"
 
 
+def test_todo_candidate_uses_keyword_as_title_when_text_is_absent(tmp_path):
+    # discovery.py:294 — `or match.group(1).upper()` fires when a bare `# TODO` or
+    # `# TODO:` marker has no trailing text, producing "TODO" / "FIXME" as the title.
+    _write(tmp_path, "src/a.py", "x = 1  # TODO\ny = 2  # FIXME:\n")
+    titles = [c.title for c in from_todos(tmp_path)]
+    assert "TODO" in titles
+    assert "FIXME" in titles
+
+
 def test_from_todos_finds_marker_in_jsdoc_block_comment(tmp_path):
     # A TODO on a continuation line of a multi-line block comment keeps its JSDoc
     # ` * ` prefix; that prefix must be stripped before marker matching, or the

@@ -3261,16 +3261,13 @@ existing CLI session and makes no model or API calls of its own.
   `_positive_int` validators. `test_positive_float_rejects_non_numeric` in
   `tests/test_cli.py` confirms `_positive_float("abc")` raises `ArgumentTypeError`.
 
-## Next
+- `_todo_candidate`'s empty-text fallback (`discovery.py:294`, `or match.group(1).upper()`)
+  now has direct coverage: `test_todo_candidate_uses_keyword_as_title_when_text_is_absent`
+  in `tests/test_propose.py` writes bare `# TODO` and `# FIXME:` markers and asserts the
+  resulting candidate titles are `"TODO"` and `"FIXME"` respectively — the branch that
+  fires when no text follows the marker keyword.
 
-1. Add direct coverage for `_todo_candidate`'s empty-text fallback at
-   `discovery.py:294`: `or match.group(1).upper()` fires when a bare `# TODO` or
-   `# TODO:` marker has no following text, producing a candidate titled "TODO"/"FIXME".
-   No test exercises this branch; a regression would be silent.
-   Evidence: `src/looptight/discovery.py:294`
-   Acceptance: a new test `test_todo_candidate_uses_keyword_as_title_when_text_is_absent`
-   passes and shows the candidate title equals "TODO" (or "FIXME") when the marker has
-   no trailing text; `looptight verify` passes.
+## Next
 
 ## Rules
 
