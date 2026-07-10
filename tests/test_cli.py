@@ -3202,6 +3202,16 @@ def test_statusline_tolerates_malformed_json_on_stdin(monkeypatch, capsys):
     assert out.startswith("looptight:")
 
 
+def test_statusline_tolerates_non_dict_json_on_stdin(monkeypatch, capsys):
+    # commands.py:593: valid JSON that is not a dict leaves candidate=None and falls back to cwd.
+    import io
+
+    monkeypatch.setattr("sys.stdin", io.StringIO("[1,2,3]"))
+    assert main(["statusline"]) == 0
+    out = capsys.readouterr().out.strip()
+    assert out.startswith("looptight:")
+
+
 def test_statusline_parser_registered():
     args = build_parser().parse_args(["statusline"])
     assert args.command == "statusline"

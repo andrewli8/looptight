@@ -3245,17 +3245,14 @@ existing CLI session and makes no model or API calls of its own.
   without raising — the `else {}` branch at `claims.py:145` distinct from the sibling
   `except (OSError, ValueError)` path exercised by the adjacent corrupt-file test.
 
+- `cmd_statusline`'s `isinstance(data, dict)` guard is covered for valid-but-non-dict JSON:
+  `test_statusline_tolerates_non_dict_json_on_stdin` in `tests/test_cli.py` patches stdin
+  with `"[1,2,3]"`, asserts exit code 0 and output starting "looptight:" — the path where
+  `candidate` stays `None` and `repo` falls back to cwd.
+
 ## Next
 
-2. `cmd_statusline` valid-but-non-dict JSON on stdin is untested: when stdin
-   contains valid JSON that is not a dict (e.g. `[1,2,3]`), the
-   `isinstance(data, dict)` guard at `commands.py:593` keeps `candidate = None`
-   and `repo` falls back to cwd; existing tests cover invalid JSON and dict JSON,
-   but not this path. Evidence: `src/looptight/commands.py:593`
-   Acceptance: A new test in `tests/test_cli.py` patches stdin with `"[1,2,3]"`,
-   calls `main(["statusline"])`, and asserts exit code 0 with output starting "looptight:".
-
-3. `failure_iteration`'s classify-limit branch is untested directly: the
+2. `failure_iteration`'s classify-limit branch is untested directly: the
    `classify_limit(...)` path at `adapters/base.py:49` (provider exits non-zero
    with a rate-limit message in stdout/stderr) is exercised only indirectly through
    integration tests, never by a unit call to `failure_iteration` itself.
