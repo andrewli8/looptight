@@ -1078,6 +1078,16 @@ def test_from_status_next_drops_item_with_empty_goal_text(tmp_path):
     assert from_status_next(tmp_path) == []
 
 
+def test_from_status_next_drops_item_with_blank_acceptance(tmp_path):
+    # discovery.py:611 guards `not acceptance.strip()`: an item that has the
+    # "Acceptance:" marker but only whitespace after it must be dropped — a mutation
+    # removing `or not acceptance.strip()` would let it through as a task with an empty
+    # acceptance condition.
+    _write(tmp_path, "docs/STATUS.md", "## Next\n\n1. Do the thing. Acceptance:   \n")
+
+    assert from_status_next(tmp_path) == []
+
+
 def test_from_status_next_rejects_fabricated_evidence_but_keeps_real_and_unanchored(tmp_path):
     # The live grounding gate: a generated task that CLAIMS evidence which does not
     # resolve is dropped (the busywork trap), while a task with resolving evidence and

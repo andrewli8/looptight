@@ -3216,18 +3216,13 @@ existing CLI session and makes no model or API calls of its own.
   <name> --continuous`, and asserts the output does NOT contain `/loop until:` but DOES
   contain `looptight goal next` — the branch that omits the Claude-specific hint was
   previously untested end-to-end via the CLI.
+- The blank-acceptance short-circuit (`discovery.py:611`) third sub-condition is covered:
+  `test_from_status_next_drops_item_with_blank_acceptance` in `tests/test_propose.py` feeds
+  `from_status_next` a task with `"Acceptance:   "` (whitespace only) and asserts no candidate
+  is returned — a mutation removing `or not acceptance.strip()` now fails the test.
 
 ## Next
 
-1. **Cover the blank-acceptance short-circuit in `from_status_next`/`from_task_file`.**
-   The guard `if not marker or not task_text.strip() or not acceptance.strip(): continue` at
-   `discovery.py:611` has its first two sub-conditions exercised by existing tests but the third
-   (an item that has `"Acceptance:"` with only whitespace after it) is never exercised; a mutation
-   dropping `or not acceptance.strip()` would be undetected.
-   Evidence: `src/looptight/discovery.py:611`
-   Acceptance: A new test feeds `from_task_file` (or `from_status_next`) a task whose
-   `Acceptance:` trailer is all-whitespace and asserts the candidate is not returned;
-   `looptight verify --json` passes.
 
 2. **Cover `cmd_verify` human output for a stall without an escalation key.**
    The `else` branch at `protocol_commands.py:86` is reached when a `VerifyResult` carries
