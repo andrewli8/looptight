@@ -3364,17 +3364,12 @@ existing CLI session and makes no model or API calls of its own.
   `tests/test_claims.py`; it calls `has_live_claim` on a non-existent path and asserts `False`.
   Verifier: pass.
 
-1. Add a test for `Coordinator.claim()`'s same-run idempotent re-claim branch. When the same
-   `run_id` calls `claim()` a second time while still holding a live lease for one of the task
-   fingerprints, the `if owned is not None` branch at `coordinator.py:485` returns the existing
-   lease without creating a new one. Every existing `claim()` test uses distinct `run_id` values
-   for each claim call, so removing this guard would cause a second `claim()` from the same run to
-   return `None` silently — a regression that goes undetected.
-   Evidence: `src/looptight/coordinator.py:485`
-   Acceptance: `test_claim_is_idempotent_for_same_run_while_lease_is_live` opens a coordinator,
-   starts one run, calls `claim()` twice with the same `run_id` and fingerprints, and asserts that
-   the second call returns a non-`None` lease with the same `task_id` and `generation` as the
-   first; was failing (no such test) before being added.
+- `Coordinator.claim()` same-run idempotent re-claim branch (`coordinator.py:485`) was untested —
+  all existing tests use distinct `run_id` values, so a removal of the `if owned is not None`
+  guard would cause a second `claim()` from the same run to return `None` silently. Added
+  `test_claim_is_idempotent_for_same_run_while_lease_is_live` in `tests/test_coordinator.py`;
+  it starts one run, calls `claim()` twice with the same `run_id`, and asserts both calls return
+  the same non-`None` lease with matching `task_id` and `generation`. Verifier: pass.
 
 ## Rules
 

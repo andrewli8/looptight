@@ -404,6 +404,25 @@ def test_claim_owner_none_retires_task_with_live_cross_run_lease(tmp_path):
     assert state is not None and state[0] == "complete"
 
 
+def test_claim_is_idempotent_for_same_run_while_lease_is_live(tmp_path):
+    # coordinator.py:485 — when the same run_id calls claim() a second time while its
+    # lease is still live, the `if owned is not None` branch returns the existing lease
+    # without creating a new one.  Every other claim() test uses distinct run_ids, so
+    # removing this guard would silently return None on the re-claim and go undetected.
+    coordinator = Coordinator.open(_repo(tmp_path / "repo"))
+    assert coordinator is not None
+    task = {"id": "task-one", "goal": "do it"}
+    run = coordinator.start_run("test", now=0)
+
+    lease1 = coordinator.claim([task], run.id, ttl_s=60, now=0)
+    assert lease1 is not None
+    # Second claim with the same run_id and fingerprints while the lease is live.
+    lease2 = coordinator.claim([task], run.id, ttl_s=60, now=1)
+    assert lease2 is not None
+    assert lease2.task_id == lease1.task_id
+    assert lease2.generation == lease1.generation  # same lease, not a new attempt
+
+
 def test_claim_empty_fingerprints_marks_all_tasks_complete(tmp_path):
     # coordinator.py:441-443: when claim() receives an empty fingerprints list,
     # the else-branch selects ALL tasks and marks them complete (no grounded work).
