@@ -3305,18 +3305,14 @@ existing CLI session and makes no model or API calls of its own.
   and asserts both task rows end up `complete` — the sweep path that runs when `next` finds no
   grounded proposals.
 
+- `reweight_factor`'s `max(0.0, min(1.0, ...))` clamp (`experience.py:109`) is covered for
+  malformed counts: `test_reweight_factor_clamp_on_negative_landed` (rate < 0 → result == lo)
+  and `test_reweight_factor_clamp_on_landed_exceeds_total` (rate > 1 → result == hi) both in
+  `tests/test_experience.py`; a mutation removing either clamp fails its test.
+
 ## Next
 
-1. `reweight_factor`'s `max(0.0, min(1.0, ...))` clamp (`experience.py:109`) has no test for
-   malformed counts: negative landed or landed > total never exercises the guard in the suite,
-   so a regression removing the clamp passes undetected.
-   Evidence: src/looptight/experience.py:109
-   Acceptance: Two new tests in `tests/test_experience.py` call `reweight_factor` with
-   `Model(category_landed={"x": -1}, category_failed={"x": 3})` (rate < 0) and
-   `Model(category_landed={"x": 5}, category_failed={"x": -2})` (rate > 1); each asserts
-   the result stays within `[lo, hi]`; a mutation removing either clamp fails its test.
-
-2. `_migrate_3_to_4`'s `if "owner" not in columns` idempotency branch (`coordinator.py:127`)
+1. `_migrate_3_to_4`'s `if "owner" not in columns` idempotency branch (`coordinator.py:127`)
    is untested: when the column already exists (re-applied migration), the guard must skip
    ALTER to avoid a "duplicate column" crash, but no test exercises the skip path.
    Evidence: src/looptight/coordinator.py:127

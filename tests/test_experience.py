@@ -294,3 +294,19 @@ def test_landed_counts_ignores_bare_landed_token(tmp_path):
         return_value=subprocess.CompletedProcess(["git"], 0, stdout="landed\n", stderr=""),
     ):
         assert landed_counts(tmp_path, "HEAD") == {}
+
+
+def test_reweight_factor_clamp_on_negative_landed():
+    # rate = landed / total = -1 / (-1 + 3) = -0.5, which is < 0.
+    # The max(0.0, ...) clamp must keep the result at lo.
+    m = Model(category_landed={"x": -1}, category_failed={"x": 3})
+    result = reweight_factor("x", m, lo=0.5, hi=1.5)
+    assert result == 0.5, f"expected lo=0.5 but got {result}"
+
+
+def test_reweight_factor_clamp_on_landed_exceeds_total():
+    # rate = landed / total = 5 / (5 + -2) = 5/3 > 1.
+    # The min(1.0, ...) clamp must keep the result at hi.
+    m = Model(category_landed={"x": 5}, category_failed={"x": -2})
+    result = reweight_factor("x", m, lo=0.5, hi=1.5)
+    assert result == 1.5, f"expected hi=1.5 but got {result}"
