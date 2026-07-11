@@ -4014,6 +4014,26 @@ def test_active_task_identity_swallows_exception(tmp_path, monkeypatch):
     assert _active_task_identity(tmp_path) is None
 
 
+def test_active_task_identity_returns_none_when_idea_id_absent(tmp_path):
+    # line 106: lease payload with no idea_id key → str("") or None → None
+    from looptight.claims import owner_id
+    from looptight.coordinator import Coordinator
+    from looptight.protocol_commands import _active_task_identity
+
+    _make_git_repo(tmp_path)
+    coordinator = Coordinator.open(tmp_path)
+    assert coordinator is not None
+    owner = owner_id(tmp_path)
+    run = coordinator.start_run("session", owner=owner)
+    coordinator.claim(
+        [{"id": "t2", "evidence": "Evidence: a.py:1", "goal": "no identity"}],
+        run.id, ttl_s=60,
+    )
+    coordinator.close()
+
+    assert _active_task_identity(tmp_path) is None
+
+
 def test_humanize_status_passes_non_string_values_through():
     from looptight.protocol_commands import humanize_status
 

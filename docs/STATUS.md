@@ -3294,17 +3294,12 @@ existing CLI session and makes no model or API calls of its own.
   file, so a regression dropping `UnicodeDecodeError` from the except clause is now caught;
   no production code change.
 
-## Next
+- `_active_task_identity`'s falsy-`idea_id` branch (`protocol_commands.py:106`) is covered:
+  `test_active_task_identity_returns_none_when_idea_id_absent` in `tests/test_cli.py` claims a
+  coordinator lease whose payload has no `idea_id` key and asserts `_active_task_identity`
+  returns `None` — the `str("") or None` path previously untested.
 
-1. `_active_task_identity` in `protocol_commands.py:106` has a falsy-`idea_id` branch
-   (`str(lease.payload.get("idea_id") or "") or None`) that returns `None` when the
-   lease payload lacks `idea_id` or carries it as `None`/empty — none of the four
-   existing tests in test_cli.py exercise this path.
-   Evidence: `src/looptight/protocol_commands.py:106`
-   Acceptance: `test_active_task_identity_returns_none_when_idea_id_absent` in
-   `tests/test_cli.py` creates a coordinator with a lease whose payload has no
-   `idea_id` key and asserts the field is absent/null in `status --json`; `looptight
-   verify` passes.
+## Next
 
 ## Rules
 
