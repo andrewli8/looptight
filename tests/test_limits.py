@@ -111,6 +111,13 @@ def test_absolute_reset_ignores_out_of_range_clock_time():
     assert signal.retry_after_s is None
 
 
+def test_absolute_reset_ignores_out_of_range_minute():
+    now = datetime(2026, 1, 1, 10, 0, 0)
+    signal = classify_limit("usage limit; resets at 3:99pm", now=now)
+    assert signal is not None
+    assert signal.retry_after_s is None
+
+
 def test_absolute_reset_handles_midnight_12am():
     # "12:00am" is midnight (hour 0), so from 11pm the next reset is one hour out.
     now = datetime(2026, 6, 21, 23, 0, 0)
