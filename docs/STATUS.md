@@ -3421,7 +3421,11 @@ existing CLI session and makes no model or API calls of its own.
   `tests/test_detect.py`; it creates a directory named `Makefile` (raising `IsADirectoryError`, an
   `OSError` subclass, at `read_text`) and asserts `detect_verify` returns `None`. Verifier: pass.
 
-2. Add `test_restore_defaults_to_latest_snapshot` in `tests/test_checkpoint.py`: init a git repo, create a `Checkpointer`, call `snapshot()` twice, then call `restore()` with no argument and assert it returns `True` and the working tree reflects the second snapshot. Evidence: `src/looptight/checkpoint.py:100`; Acceptance: new test passes and `ruff check` is clean.
+- `restore()` default-sha fallback (`checkpoint.py:100`) was untested — `sha or (self.snapshots[-1] if
+  self.snapshots else None)`: all existing `restore()` calls either pass an explicit sha or have no
+  snapshots, so `self.snapshots[-1]` was never reached. Added `test_restore_defaults_to_latest_snapshot`
+  in `tests/test_checkpoint.py`; it takes two snapshots, clobbers the file, calls `restore()` with no
+  argument, and asserts the file reverts to version-2 (the latest). Verifier: pass.
 
 3. Add `test_diffstat_returns_nonempty_on_successful_diff` in `tests/test_checkpoint.py`: init a git repo with a tracked file, call `cp.snapshot()`, edit the file, then call `cp.diffstat()` and assert the returned string is non-empty and contains the filename. Evidence: `src/looptight/checkpoint.py:116`; Acceptance: new test passes and `ruff check` is clean.
 

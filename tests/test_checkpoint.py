@@ -85,6 +85,28 @@ def test_restore_returns_false_when_enabled_but_no_snapshots(tmp_path):
     assert cp.restore() is False
 
 
+def test_restore_defaults_to_latest_snapshot(tmp_path):
+    # checkpoint.py:100 — `self.snapshots[-1]` is the latest-snapshot fallback
+    # when `restore()` is called without an explicit sha.  Every existing restore
+    # call in the suite either passes an explicit sha or has enabled=False / no
+    # snapshots, so this arm was never exercised.
+    _init_repo(tmp_path)
+    cp = Checkpointer(tmp_path)
+
+    (tmp_path / "f.txt").write_text("version-1")
+    sha1 = cp.snapshot()
+    assert sha1
+
+    (tmp_path / "f.txt").write_text("version-2")
+    sha2 = cp.snapshot()
+    assert sha2
+    assert cp.snapshots[-1] == sha2
+
+    (tmp_path / "f.txt").write_text("clobbered")
+    assert cp.restore() is True  # no explicit sha — must fall back to snapshots[-1]
+    assert (tmp_path / "f.txt").read_text() == "version-2"
+
+
 def test_snapshot_on_clean_tree_returns_head_sha(tmp_path):
     """snapshot() on an unmodified repo returns the HEAD commit SHA."""
     _init_repo(tmp_path)
