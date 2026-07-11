@@ -3333,15 +3333,12 @@ existing CLI session and makes no model or API calls of its own.
   `tests/test_coordinator.py`; a mutation removing `connection.close()` in the except block
   fails the test.
 
-## Next
+- `goal_next()`'s `write_goal(workdir, advanced)` call at `goal.py:145` has no `try/except`,
+  so an `OSError` from `atomic_write_text` propagates to the caller. Covered by
+  `test_goal_next_propagates_write_goal_oserror` in `tests/test_goal.py`; a mutation wrapping
+  the call in `try/except OSError: pass` fails the test.
 
-1. `goal_next()` calls `write_goal(workdir, advanced)` at `goal.py:145` with no `try/except`,
-   so an `OSError` from `atomic_write_text` propagates uncaught; no test proves or documents this.
-   Evidence: src/looptight/goal.py:145
-   Acceptance: A new test in `tests/test_goal.py` monkeypatches `goal.write_goal` to raise
-   `OSError("disk full")`, calls `goal_next(workdir, goal_obj)`, and asserts the `OSError`
-   propagates (the function makes no attempt to catch or swallow write failures); a mutation
-   wrapping the call in `try/except OSError: pass` fails the test.
+## Next
 
 ## Rules
 

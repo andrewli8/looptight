@@ -616,3 +616,18 @@ def test_goal_decision_as_dict_pins_all_statuses():
 def test_clear_goal_returns_false_outside_git(tmp_path):
     # No git repo -> goal_path is None -> clear_goal returns False without raising.
     assert clear_goal(tmp_path) is False
+
+
+def test_goal_next_propagates_write_goal_oserror(tmp_path, monkeypatch):
+    from looptight.goal import goal_next
+    import looptight.goal as goal_mod
+
+    repo = _repo(tmp_path)
+    write_goal(repo, Goal(vision="make it work"))
+
+    def _raise(workdir, goal):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(goal_mod, "write_goal", _raise)
+    with pytest.raises(OSError, match="disk full"):
+        goal_next(repo, check_runner=lambda root, cmd: False)
