@@ -3301,6 +3301,31 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `coordinator.claim([], run_id)` empty-fingerprints stale sweep is untested: calling with
+   an empty task list selects ALL tasks for stale marking (`coordinator.py:441-443`), but no
+   test directly calls `coordinator.claim([], ...)` and verifies the sweep marks tasks complete.
+   Evidence: src/looptight/coordinator.py:441
+   Acceptance: A new test in `tests/test_coordinator.py` seeds a task, calls
+   `coordinator.claim([], run_id, ttl_s=60)`, and asserts the task state becomes `complete`;
+   a mutation commenting out the `else` branch fails the test.
+
+2. `reweight_factor`'s `max(0.0, min(1.0, ...))` clamp (`experience.py:109`) has no test for
+   malformed counts: negative landed or landed > total never exercises the guard in the suite,
+   so a regression removing the clamp passes undetected.
+   Evidence: src/looptight/experience.py:109
+   Acceptance: Two new tests in `tests/test_experience.py` call `reweight_factor` with
+   `Model(category_landed={"x": -1}, category_failed={"x": 3})` (rate < 0) and
+   `Model(category_landed={"x": 5}, category_failed={"x": -2})` (rate > 1); each asserts
+   the result stays within `[lo, hi]`; a mutation removing either clamp fails its test.
+
+3. `_migrate_3_to_4`'s `if "owner" not in columns` idempotency branch (`coordinator.py:127`)
+   is untested: when the column already exists (re-applied migration), the guard must skip
+   ALTER to avoid a "duplicate column" crash, but no test exercises the skip path.
+   Evidence: src/looptight/coordinator.py:127
+   Acceptance: A new test in `tests/test_coordinator.py` constructs a v4-schema DB that
+   already has `owner` in `runs`, re-applies `_migrate_3_to_4`, and asserts it completes
+   without raising; a mutation removing the `if "owner" not in columns` guard fails the test.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
