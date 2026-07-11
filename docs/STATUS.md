@@ -3345,15 +3345,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-3. `metacog.assess()` at `metacog.py:81` returns `STOP_NO_PROGRESS` for both stall and regression
-   shapes, but only the stall shape `[-5.0, -3.0, -3.0, -3.0]` is tested. The regression shape
-   `[-5.0, -3.0, -4.0, -4.0]` (improved then lost ground) also reaches line 81 but is never driven
-   through assess; a mutation changing `recent_best > prior_best` to `recent_best >= prior_best`
-   would incorrectly classify the regression as `CONTINUE` and pass the suite.
-   Evidence: src/looptight/metacog.py:80
-   Acceptance: A new test in `tests/test_metacog.py` calls `assess([-5.0, -3.0, -4.0, -4.0],
-   patience=2)` and asserts `Decision.STOP_NO_PROGRESS`; the mutation fails it.
-
 4. `trajectory._is_fresh()` at `trajectory.py:81` catches `(TypeError, ValueError)` but only
    `ValueError` is exercised (`float("not-a-number")` raises `ValueError`). A `null` JSON value
    sets `prior.get("updated_at", 0)` to `None` (the key is present, default unused), making

@@ -62,6 +62,11 @@ def test_stops_after_progress_then_plateau():
     assert assess([-5.0, -3.0, -3.0, -3.0], patience=2) is Decision.STOP_NO_PROGRESS
 
 
+def test_stops_after_progress_then_regression():
+    # improved from -5 to -3 then lost ground to -4: still STOP_NO_PROGRESS
+    assert assess([-5.0, -3.0, -4.0, -4.0], patience=2) is Decision.STOP_NO_PROGRESS
+
+
 def test_escalates_when_never_improved():
     assert assess([-3.0, -3.0, -3.0], patience=2) is Decision.ESCALATE
 
