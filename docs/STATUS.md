@@ -3345,17 +3345,14 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Add a test for `_coordination_line` when `coordination_scope` returns `"file-claims"`. The
-   "coordinator" and "none" branches are exercised in `tests/test_cli.py` (lines 4178 and 4190),
-   but the "file-claims" key in `_COORDINATION_LABELS` (commands.py:476) is never covered — a
-   mutation changing its value (e.g. back to "legacy file claims") cannot be caught.
-   Evidence: `src/looptight/commands.py:476`
-   Acceptance: `test_coordination_line_file_claims_scope_appends_suffix` monkeypatches
-   `coordination_scope` to return `"file-claims"`, asserts that the result contains
-   `"local-only (SQLite coordinator)"` and `"cross-machine sharing is unsupported"`, and was
-   failing (AttributeError / no such test) before being added.
+- `_coordination_line` with `"file-claims"` scope (`commands.py:476`) was untested — a mutation
+  of `_COORDINATION_LABELS["file-claims"]` could not be caught. Added
+  `test_coordination_line_file_claims_scope_appends_suffix` in `tests/test_cli.py`; it
+  monkeypatches `coordination_scope` to return `"file-claims"` and asserts both
+  `"local-only (SQLite coordinator)"` and `"cross-machine sharing is unsupported"` appear in the
+  result. Verifier: pass.
 
-2. Add a test for `_is_fresh` when the task transitions from a string to `None`. The
+1. Add a test for `_is_fresh` when the task transitions from a string to `None`. The
    None→string direction is covered by `test_record_resets_when_task_transitions_from_none_to_a_string`
    (test_trajectory.py:170), but the complementary string→None direction is not tested — the
    `prior.get("task") != task` guard at `trajectory.py:77` would be broken by a mutation

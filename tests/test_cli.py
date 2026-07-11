@@ -4198,6 +4198,20 @@ def test_coordination_line_coordinator_scope_appends_suffix(tmp_path, monkeypatc
     assert "cross-machine sharing is unsupported" in result
 
 
+def test_coordination_line_file_claims_scope_appends_suffix(tmp_path, monkeypatch):
+    # commands.py:476 — _COORDINATION_LABELS["file-claims"] maps to the same label as
+    # "coordinator"; the branch must return the cross-machine suffix, not an old
+    # "legacy file claims" label.  A mutation of the dict value would otherwise go
+    # undetected because neither of the two prior tests covers this key.
+    from looptight import commands
+    from looptight.commands import _coordination_line
+
+    monkeypatch.setattr(commands, "coordination_scope", lambda _: "file-claims")
+    result = _coordination_line(tmp_path)
+    assert "local-only (SQLite coordinator)" in result
+    assert "cross-machine sharing is unsupported" in result
+
+
 def test_unquote_git_path_strips_quotes_and_leaves_plain_paths():
     # protocol_commands.py:415 — git wraps paths containing special characters in
     # double-quotes; _unquote_git_path must strip exactly those quotes and leave
