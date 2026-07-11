@@ -3318,6 +3318,40 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `load_config()` called without a `path` argument from a directory with no `.looptight.toml`
+   ancestor returns `find_config()` → `None`, exercising the `resolved is None` short-circuit
+   (`config.py:77`); no test currently calls `load_config()` without a path.
+   Evidence: src/looptight/config.py:77
+   Acceptance: A new test in `tests/test_config.py` calls `load_config()` from a tmp directory
+   that has no `.looptight.toml` file up its tree and asserts the result equals `Config()`;
+   a mutation changing `if resolved is None` to `if False` fails the test.
+
+2. `claim()`'s stale-sweep fires even when `owner=None` and a live cross-run lease exists
+   (`coordinator.py:452`); the `if owner is not None: … continue` guard correctly skips only
+   when an owner is given, but the `owner=None` → "retire anyway" behavior is untested.
+   Evidence: src/looptight/coordinator.py:452
+   Acceptance: A new test in `tests/test_coordinator.py` seeds a task with a live lease from
+   run-A, then calls `claim([], run_B.id, ttl_s=60, owner=None)`, and asserts the task ends
+   up `complete` (retired); a mutation adding an unconditional `continue` to the sweep loop
+   fails the test.
+
+3. `Coordinator.open(activate=True)` closes the connection when `activate_from_legacy()` raises
+   a `BaseException` (`coordinator.py:363-365`), but the close is never asserted — a regression
+   removing the close in the except block would not be caught.
+   Evidence: src/looptight/coordinator.py:363
+   Acceptance: A new test in `tests/test_coordinator.py` monkeypatches `activate_from_legacy` to
+   raise `KeyboardInterrupt`, calls `Coordinator.open(repo, activate=True)` inside
+   `pytest.raises(KeyboardInterrupt)`, and asserts the connection is closed afterward; a mutation
+   removing `connection.close()` in the except block fails the test.
+
+4. `goal_next()` calls `write_goal(workdir, advanced)` at `goal.py:145` with no `try/except`,
+   so an `OSError` from `atomic_write_text` propagates uncaught; no test proves or documents this.
+   Evidence: src/looptight/goal.py:145
+   Acceptance: A new test in `tests/test_goal.py` monkeypatches `goal.write_goal` to raise
+   `OSError("disk full")`, calls `goal_next(workdir, goal_obj)`, and asserts the `OSError`
+   propagates (the function makes no attempt to catch or swallow write failures); a mutation
+   wrapping the call in `try/except OSError: pass` fails the test.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
