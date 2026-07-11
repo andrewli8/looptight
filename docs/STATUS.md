@@ -3352,15 +3352,11 @@ existing CLI session and makes no model or API calls of its own.
   `"local-only (SQLite coordinator)"` and `"cross-machine sharing is unsupported"` appear in the
   result. Verifier: pass.
 
-1. Add a test for `_is_fresh` when the task transitions from a string to `None`. The
-   None→string direction is covered by `test_record_resets_when_task_transitions_from_none_to_a_string`
-   (test_trajectory.py:170), but the complementary string→None direction is not tested — the
-   `prior.get("task") != task` guard at `trajectory.py:77` would be broken by a mutation
-   changing `!=` to `==` and only the None→string test would detect it in one direction.
-   Evidence: `src/looptight/trajectory.py:77`
-   Acceptance: `test_record_resets_when_task_transitions_from_string_to_none` seeds a trajectory
-   with `task="idea-A"`, then calls `record(..., task=None)`, asserts `len(result) == 1`
-   (fresh attempt), and was failing (no such test) before being added.
+- `_is_fresh` string→None task transition (`trajectory.py:77`) was untested — the
+  `prior.get("task") != task` guard could be broken by a mutation that would only be
+  caught in one direction. Added `test_record_resets_when_task_transitions_from_string_to_none`
+  in `tests/test_trajectory.py`; it seeds a trajectory with `task="idea-A"`, calls
+  `record(..., task=None)`, and asserts `len(result) == 1` (fresh attempt). Verifier: pass.
 
 ## Rules
 

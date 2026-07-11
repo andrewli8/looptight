@@ -177,6 +177,18 @@ def test_record_resets_when_task_transitions_from_none_to_a_string(tmp_path):
     assert len(fresh) == 1  # None -> string task transition resets the attempt
 
 
+def test_record_resets_when_task_transitions_from_string_to_none(tmp_path):
+    # trajectory.py:77 — `prior.get("task") != task` is True when the stored task is
+    # a string and the new task is None; _is_fresh returns False and record starts a
+    # fresh attempt.  The complementary None→string direction is already covered by
+    # test_record_resets_when_task_transitions_from_none_to_a_string above.
+    repo = _repo(tmp_path)
+    trajectory.record(repo, "pytest -q", -2.0, set(), passed=False, task="idea-A")
+    trajectory.record(repo, "pytest -q", -1.0, set(), passed=False, task="idea-A")
+    fresh = trajectory.record(repo, "pytest -q", -3.0, set(), passed=False, task=None)
+    assert len(fresh) == 1  # string -> None task transition resets the attempt
+
+
 def test_trajectory_path_returns_none_on_oserror(tmp_path):
     # trajectory.py:29 — _path's subprocess.run must catch OSError so
     # trajectory.record() (and verify --patience) degrades gracefully when
