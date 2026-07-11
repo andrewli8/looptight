@@ -80,6 +80,20 @@ def test_write_goal_raises_outside_git(tmp_path):
         write_goal(tmp_path, Goal(vision="x"))
 
 
+def test_read_goal_returns_none_on_malformed_json(tmp_path):
+    # goal.py:56 — `json.loads()` raises json.JSONDecodeError (a ValueError sub-type) for a
+    # file that is valid UTF-8 but contains invalid JSON.  The `except (OSError, ValueError,
+    # TypeError)` handler at goal.py:66 is documented as catching both JSONDecodeError and
+    # UnicodeDecodeError via ValueError, but only the UnicodeDecodeError sub-path is exercised
+    # by `test_read_goal_returns_none_on_non_utf8_file`; this covers the distinct json.loads()
+    # failure point.
+    repo = _repo(tmp_path)
+    path = goal_path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("{ broken json", encoding="utf-8")
+    assert read_goal(repo) is None
+
+
 def test_read_goal_returns_none_outside_git(tmp_path):
     # goal_path returns None outside a Git repo (goal.py:52); read_goal must
     # return None via the `if path is None` guard, not raise AttributeError.

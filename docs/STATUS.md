@@ -3371,15 +3371,12 @@ existing CLI session and makes no model or API calls of its own.
   it starts one run, calls `claim()` twice with the same `run_id`, and asserts both calls return
   the same non-`None` lease with matching `task_id` and `generation`. Verifier: pass.
 
-1. Add a test for `read_goal` when the goal file contains valid UTF-8 but malformed JSON. The
-   `except (OSError, ValueError, TypeError)` handler at `goal.py:66` is documented (line 68) as
-   catching both `json.JSONDecodeError` and `UnicodeDecodeError` via `ValueError`, but
-   `test_read_goal_returns_none_on_non_utf8_file` only exercises the UnicodeDecodeError sub-path
-   (a non-UTF-8 bytes file fails at `read_text()`), and no test triggers a `json.JSONDecodeError`
-   at `json.loads()` (goal.py:56) with a valid-UTF-8, malformed-JSON file.
-   Evidence: `src/looptight/goal.py:56`
-   Acceptance: `test_read_goal_returns_none_on_malformed_json` writes `"{ broken json"` to the
-   goal file and asserts `read_goal` returns `None`; was failing (no such test) before being added.
+- `read_goal` `json.JSONDecodeError` sub-path (`goal.py:56`) was untested — the handler comment
+  (goal.py:68) explicitly documents both JSONDecodeError and UnicodeDecodeError as the two
+  ValueError sub-types caught, but only the UnicodeDecodeError path was exercised. Added
+  `test_read_goal_returns_none_on_malformed_json` in `tests/test_goal.py`; it writes
+  `"{ broken json"` (valid UTF-8, invalid JSON) and asserts `read_goal` returns `None`. Verifier:
+  pass.
 
 ## Rules
 
