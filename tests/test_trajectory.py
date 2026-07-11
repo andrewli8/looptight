@@ -174,6 +174,26 @@ def test_trajectory_path_returns_none_on_oserror(tmp_path):
     assert result is None
 
 
+def test_trajectory_path_uses_absolute_git_dir_directly(tmp_path):
+    # trajectory.py:44 — when `git rev-parse --git-dir` returns an absolute path
+    # (linked worktrees), `is_absolute()` is True so the path is used as-is
+    # without `(root / git_dir).resolve()`. The relative branch is exercised by
+    # every other test (plain `git init` gives `.git`); this covers the absolute arm.
+    from unittest.mock import patch
+
+    abs_git = tmp_path / "fake" / ".git"
+    abs_git.mkdir(parents=True)
+
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(cmd, 0, stdout=str(abs_git) + "\n", stderr="")
+
+    with patch.object(trajectory.subprocess, "run", fake_run):
+        result = trajectory._path(tmp_path / "worktree")
+
+    assert result is not None
+    assert result == abs_git / "looptight" / "verify-trajectory.json"
+
+
 def test_trajectory_read_returns_none_for_non_dict_json(tmp_path):
     # trajectory.py:54 — the `not isinstance(data, dict)` guard: valid JSON that
     # is not a dict (e.g. an array) must return None without raising, just like

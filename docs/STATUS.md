@@ -3338,19 +3338,14 @@ existing CLI session and makes no model or API calls of its own.
   `test_goal_next_propagates_write_goal_oserror` in `tests/test_goal.py`; a mutation wrapping
   the call in `try/except OSError: pass` fails the test.
 
+- `trajectory._path()` at `trajectory.py:44` uses an absolute `--git-dir` path (from linked
+  worktrees) directly without `(root / git_dir).resolve()`. Covered by
+  `test_trajectory_path_uses_absolute_git_dir_directly` in `tests/test_trajectory.py`; a mutation
+  changing `if not git_dir.is_absolute()` to `if True` fails the test.
+
 ## Next
 
-1. `trajectory._path()` at `trajectory.py:44` resolves a relative `--git-dir` path via
-   `(root / git_dir).resolve()` but never exercises the `is_absolute() == True` branch, which
-   fires in linked worktrees where git returns an absolute path. The sibling pattern in `claims.py`
-   already has an explicit test (`test_claim_dir_absolute_git_common_dir_is_used_directly`).
-   Evidence: src/looptight/trajectory.py:44
-   Acceptance: A new test in `tests/test_trajectory.py` monkeypatches `trajectory.subprocess.run`
-   to return an absolute path (e.g. `/tmp/fake/.git`) and asserts `_path()` returns a `Path`
-   ending in `.git/looptight/trajectory.json`; a mutation changing `if not git_dir.is_absolute()`
-   to `if True` fails the test.
-
-2. `_parse_absolute_reset` at `limits.py:103` guards `0 <= minute <= 59` but only the hour-overflow
+1. `_parse_absolute_reset` at `limits.py:103` guards `0 <= minute <= 59` but only the hour-overflow
    arm is exercised (existing test uses `"13:00pm"`, giving `hour=25`). A minute like `99` in
    `"3:99pm"` also hits the guard and returns `None`, but is never tested; a mutation dropping the
    `minute` half would pass the full suite.
