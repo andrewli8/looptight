@@ -3378,6 +3378,29 @@ existing CLI session and makes no model or API calls of its own.
   `"{ broken json"` (valid UTF-8, invalid JSON) and asserts `read_goal` returns `None`. Verifier:
   pass.
 
+1. Add a test for `_claimed_at` when `claimed_at` is JSON `null`. The `except (TypeError,
+   ValueError)` handler at `claims.py:20` is designed to catch `float(None)` raising `TypeError`
+   (when the JSON field holds `null`), but only the `ValueError` sub-path is tested by
+   `test_claim_with_non_numeric_timestamp_is_treated_as_expired` (which uses `"claimed_at":
+   "oops"`). This is the same gap pattern as `test_record_treats_null_updated_at_as_stale` covers
+   in `trajectory.py:72` — the two modules have symmetric `float(...)` guards that catch both
+   `TypeError` and `ValueError`, but `claims.py`'s `TypeError` arm is untested.
+   Evidence: `src/looptight/claims.py:20`
+   Acceptance: `test_claimed_at_null_is_treated_as_expired` writes a claim JSON file with
+   `"claimed_at": null` and asserts `has_live_claim` or `ClaimStore.summary` returns zero live
+   claims without raising; was failing (no such test) before being added.
+
+2. Add a test for `next_task`'s `private_dir is None` fallback at `tasks.py:192`. When both
+   `Coordinator.open` and `claim_dir` return `None` (outside a git repo), the else-else branch
+   picks `tasks[0]` as the task. The only existing test for the `coordinator is None` path
+   (`test_next_task_file_claims_selects_from_candidates`) mocks `claim_dir` to a non-None
+   directory, leaving the `private_dir is None` arm unexercised — a mutation changing `tasks[0]`
+   to `None` would go undetected.
+   Evidence: `src/looptight/tasks.py:192`
+   Acceptance: `test_next_task_outside_git_picks_first_candidate` mocks `Coordinator.open` and
+   `claim_dir` to both return `None`, provides a non-empty candidate list, and asserts the returned
+   task is the first candidate; was failing (no such test) before being added.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
