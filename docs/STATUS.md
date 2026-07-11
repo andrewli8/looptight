@@ -3285,6 +3285,36 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `run_done_check` in `goal.py` calls `subprocess.run(shell=True)` without
+   `GIT_TERMINAL_PROMPT=0` in its env, so a done-check that invokes git can block
+   headless runs on a credential prompt — the only subprocess caller in the module
+   missing the guard that every other git-touching caller sets.
+   Evidence: `src/looptight/goal.py:97`
+   Acceptance: `test_run_done_check_sets_git_terminal_prompt_env` in `tests/test_goal.py`
+   monkeypatches `subprocess.run` and asserts `env["GIT_TERMINAL_PROMPT"] == "0"`;
+   production change adds `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}` to the call;
+   `looptight verify` passes.
+
+2. `load_config`'s `UnicodeDecodeError` branch in `config.py:83` is never exercised:
+   the `except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError)` clause has
+   OSError and TOMLDecodeError tested (test_config.py) but no test writes a file with
+   invalid UTF-8 bytes (e.g. `b"\xff\xfe"`) to confirm `ConfigError` is raised rather
+   than the exception propagating.
+   Evidence: `src/looptight/config.py:83`
+   Acceptance: `test_load_config_raises_config_error_on_non_utf8_file` in `tests/test_config.py`
+   writes a `.looptight.toml` with `b"\xff\xfe"` bytes and asserts `ConfigError` is raised;
+   `looptight verify` passes.
+
+3. `_active_task_identity` in `protocol_commands.py:106` has a falsy-`idea_id` branch
+   (`str(lease.payload.get("idea_id") or "") or None`) that returns `None` when the
+   lease payload lacks `idea_id` or carries it as `None`/empty — none of the four
+   existing tests in test_cli.py exercise this path.
+   Evidence: `src/looptight/protocol_commands.py:106`
+   Acceptance: `test_active_task_identity_returns_none_when_idea_id_absent` in
+   `tests/test_cli.py` creates a coordinator with a lease whose payload has no
+   `idea_id` key and asserts the field is absent/null in `status --json`; `looptight
+   verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
