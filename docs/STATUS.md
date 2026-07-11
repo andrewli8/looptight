@@ -3402,7 +3402,12 @@ existing CLI session and makes no model or API calls of its own.
   `tests/test_coordinator.py`; it stubs `subprocess.run` to return an absolute path and asserts
   `coordinator_path` resolves to the correct `.../looptight/coordinator.db` path. Verifier: pass.
 
-2. Add `test_current_run_id_prefers_session_id_over_uuid` in `tests/test_coordinator.py`: set `LOOPTIGHT_SESSION_ID` and unset `LOOPTIGHT_RUN_ID`; assert `current_run_id()` returns the session-id value, not a UUID. Evidence: `src/looptight/coordinator.py:293`; Acceptance: new test passes and `ruff check` is clean.
+- `current_run_id()` LOOPTIGHT_SESSION_ID fallback (`coordinator.py:293`) was untested — three-branch
+  priority (LOOPTIGHT_RUN_ID → LOOPTIGHT_SESSION_ID → uuid4()); all existing tests inject
+  LOOPTIGHT_RUN_ID so the middle branch was never exercised directly. Added
+  `test_current_run_id_prefers_session_id_over_uuid` in `tests/test_coordinator.py`; it unsets
+  LOOPTIGHT_RUN_ID, sets LOOPTIGHT_SESSION_ID to `"ci-session-42"`, and asserts `current_run_id()`
+  returns that value. Verifier: pass.
 
 3. Add `test_normalize_failure_truncates_at_max_failure_line` in `tests/test_metacog.py`: call `_normalize_failure` with a 300-character string; assert the result is exactly 200 characters (the `MAX_FAILURE_LINE` cap). Evidence: `src/looptight/metacog.py:115`; Acceptance: new test passes and `ruff check` is clean.
 

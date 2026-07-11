@@ -19,6 +19,7 @@ from looptight.coordinator import (
     MigrationBlocked,
     PublicationOutcome,
     coordinator_path,
+    current_run_id,
 )
 
 
@@ -139,6 +140,17 @@ def test_coordinator_path_absolute_git_common_dir_is_used_directly(tmp_path):
         result = coordinator_path(tmp_path / "worktree")
 
     assert result == (abs_git_dir / "looptight" / "coordinator.db").resolve()
+
+
+def test_current_run_id_prefers_session_id_over_uuid(monkeypatch):
+    # coordinator.py:293 — three-branch priority: LOOPTIGHT_RUN_ID → LOOPTIGHT_SESSION_ID
+    # → uuid4().  All existing tests inject LOOPTIGHT_RUN_ID; the middle branch is never
+    # directly exercised.  When only LOOPTIGHT_SESSION_ID is set, current_run_id() must
+    # return that value, not a freshly generated UUID.
+    monkeypatch.delenv("LOOPTIGHT_RUN_ID", raising=False)
+    monkeypatch.setenv("LOOPTIGHT_SESSION_ID", "ci-session-42")
+
+    assert current_run_id() == "ci-session-42"
 
 
 def test_coordinator_open_closes_connection_on_base_exception(tmp_path, monkeypatch):
