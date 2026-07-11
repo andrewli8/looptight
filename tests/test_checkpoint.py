@@ -218,3 +218,19 @@ def test_save_returns_none_when_git_returns_empty_sha(tmp_path, monkeypatch):
 
     assert cp.snapshot() is None
     assert cp.snapshots == []
+
+
+def test_diffstat_returns_nonempty_on_successful_diff(tmp_path):
+    """checkpoint.py:116 — diffstat() returns a non-empty string when the working
+    tree differs from the snapshot, and the output mentions the changed filename."""
+    _init_repo(tmp_path)
+    cp = Checkpointer(tmp_path)
+
+    sha = cp.snapshot()
+    assert sha  # clean tree → HEAD SHA recorded
+
+    (tmp_path / "f.txt").write_text("modified content")
+
+    result = cp.diffstat()
+    assert result  # non-empty
+    assert "f.txt" in result
