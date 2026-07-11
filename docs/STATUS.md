@@ -3395,6 +3395,12 @@ existing CLI session and makes no model or API calls of its own.
   tested. Added `test_read_state_returns_empty_on_malformed_json` in `tests/test_ui.py`; it writes
   `"{ broken json"` and asserts `read_state` returns `empty_state()`. Verifier: pass.
 
+1. Add `test_coordinator_path_absolute_git_common_dir_is_used_directly` in `tests/test_coordinator.py`: mock `subprocess.run` to return an absolute `git rev-parse --git-common-dir` path; assert `coordinator_path` uses it directly without prepending `workdir`. Evidence: `src/looptight/coordinator.py:314`; Acceptance: new test passes and `ruff check` is clean.
+
+2. Add `test_current_run_id_prefers_session_id_over_uuid` in `tests/test_coordinator.py`: set `LOOPTIGHT_SESSION_ID` and unset `LOOPTIGHT_RUN_ID`; assert `current_run_id()` returns the session-id value, not a UUID. Evidence: `src/looptight/coordinator.py:293`; Acceptance: new test passes and `ruff check` is clean.
+
+3. Add `test_normalize_failure_truncates_at_max_failure_line` in `tests/test_metacog.py`: call `_normalize_failure` with a 300-character string; assert the result is exactly 200 characters (the `MAX_FAILURE_LINE` cap). Evidence: `src/looptight/metacog.py:115`; Acceptance: new test passes and `ruff check` is clean.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
