@@ -692,6 +692,20 @@ def test_read_state_returns_empty_on_non_utf8_file(tmp_path):
     assert ui.read_state(tmp_path) == ui.empty_state()
 
 
+def test_read_state_returns_empty_on_malformed_json(tmp_path):
+    # ui.py:62 — json.loads() raises json.JSONDecodeError (a ValueError sub-type) for a
+    # file that is valid UTF-8 but contains invalid JSON.  The except (OSError, ValueError)
+    # handler is documented (ui.py:63) as covering both JSONDecodeError and UnicodeDecodeError,
+    # but only the UnicodeDecodeError sub-path is exercised by the sibling test above
+    # (non-UTF-8 bytes).  This is the same gap as goal.py:56 (fixed by
+    # test_read_goal_returns_none_on_malformed_json).
+    path = ui._state_path(tmp_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("{ broken json", encoding="utf-8")
+
+    assert ui.read_state(tmp_path) == ui.empty_state()
+
+
 def test_write_state_cleans_up_tmp_when_replace_fails(tmp_path, monkeypatch):
     # If the atomic rename fails after the temp file is written, no stale .tmp
     # may be left beside the state path; the error propagates.

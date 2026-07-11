@@ -3390,17 +3390,10 @@ existing CLI session and makes no model or API calls of its own.
   `test_next_task_outside_git_picks_first_candidate` in `tests/test_tasks.py`; it mocks both to
   `None` and asserts the first candidate is returned. Verifier: pass.
 
-1. Add a test for `read_state` when the state file contains valid UTF-8 but malformed JSON. The
-   `except (OSError, ValueError)` handler at `ui.py:62` is documented (line 63) as covering both
-   `json.JSONDecodeError` and `UnicodeDecodeError`, but `test_read_state_returns_empty_on_non_utf8_file`
-   only exercises the UnicodeDecodeError sub-path. This is the same gap pattern as
-   `goal.py:56` (closed by `test_read_goal_returns_none_on_malformed_json`) and
-   `_verdict_record` already has its JSONDecodeError path covered via `test_verdict_round_trips_and_degrades`
-   writing `"not json"` — only `read_state` has the split.
-   Evidence: `src/looptight/ui.py:62`
-   Acceptance: `test_read_state_returns_empty_on_malformed_json` writes `"{ broken json"` (valid
-   UTF-8, invalid JSON) to the state file path and asserts `read_state` returns `empty_state()`;
-   was failing (no such test) before being added.
+- `read_state` JSONDecodeError sub-path (`ui.py:62`) was untested — the handler comment (ui.py:63)
+  documents both JSONDecodeError and UnicodeDecodeError, but only the UnicodeDecodeError path was
+  tested. Added `test_read_state_returns_empty_on_malformed_json` in `tests/test_ui.py`; it writes
+  `"{ broken json"` and asserts `read_state` returns `empty_state()`. Verifier: pass.
 
 ## Rules
 
