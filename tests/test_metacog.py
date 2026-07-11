@@ -151,6 +151,13 @@ def test_failure_lines_extracts_and_normalizes_across_runners():
     assert len(failures) == 1  # only the real failure, not the tally
 
 
+def test_failure_lines_returns_empty_set_for_none_and_empty_output():
+    from looptight.metacog import _failure_lines
+
+    assert _failure_lines(None) == set()
+    assert _failure_lines("") == set()
+
+
 def test_normalize_merges_failures_differing_only_by_duration():
     from looptight.metacog import _failure_lines
 

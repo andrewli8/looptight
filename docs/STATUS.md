@@ -3278,15 +3278,12 @@ existing CLI session and makes no model or API calls of its own.
   `{"scripts": [1, 2, 3]}` and asserts `detect_verify` returns `None` — the branch that fires
   when the `"scripts"` field is a JSON array rather than an object.
 
-## Next
+- `_failure_lines`'s empty-output path (`metacog.py:121`) is covered:
+  `test_failure_lines_returns_empty_set_for_none_and_empty_output` in `tests/test_metacog.py`
+  asserts `_failure_lines(None) == set()` and `_failure_lines("") == set()`, proving the
+  `(output or "")` guard against `output=None`; no production change.
 
-1. Add direct coverage for `_failure_lines`'s empty-output path in `metacog.py:121`:
-   `(output or "")` guards against `output=None`, but no test calls `_failure_lines(None)` or
-   `_failure_lines("")` directly to prove the guard. The sibling `test_failure_lines_extracts_and_normalizes_across_runners`
-   in `tests/test_metacog.py` covers non-empty output.
-   Evidence: `src/looptight/metacog.py:121`
-   Acceptance: `test_failure_lines_returns_empty_set_for_none_and_empty_output` asserts
-   `_failure_lines(None) == set()` and `_failure_lines("") == set()`; `looptight verify` passes.
+## Next
 
 ## Rules
 
