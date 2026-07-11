@@ -884,3 +884,31 @@ def test_initialize_schema_reraises_non_locked_operational_error(tmp_path, monke
         coord._initialize_schema(DiskErrorOnJournal())
 
     assert journal_calls[0] == 1  # raised immediately, no retry
+
+
+def test_migrate_3_to_4_skips_alter_when_owner_column_already_exists(tmp_path):
+    # Re-applying _migrate_3_to_4 on a v4 DB (owner already present) must skip
+    # the ALTER TABLE and complete without raising "duplicate column" or any other error.
+    from looptight.coordinator import _migrate_3_to_4
+
+    raw = sqlite3.connect(str(tmp_path / "coord.db"))
+    # Construct a minimal schema with the `owner` column already present.
+    raw.executescript(
+        """
+        CREATE TABLE runs (
+            id TEXT PRIMARY KEY,
+            kind TEXT NOT NULL,
+            state TEXT NOT NULL,
+            pid INTEGER,
+            heartbeat REAL,
+            owner TEXT
+        );
+        PRAGMA user_version = 3;
+        """
+    )
+    _migrate_3_to_4(raw)
+    version = raw.execute("PRAGMA user_version").fetchone()[0]
+    assert version == 4
+    columns = {row[1] for row in raw.execute("PRAGMA table_info(runs)")}
+    assert "owner" in columns
+    raw.close()

@@ -3310,15 +3310,13 @@ existing CLI session and makes no model or API calls of its own.
   and `test_reweight_factor_clamp_on_landed_exceeds_total` (rate > 1 → result == hi) both in
   `tests/test_experience.py`; a mutation removing either clamp fails its test.
 
-## Next
+- `_migrate_3_to_4`'s `if "owner" not in columns` idempotency branch (`coordinator.py:127`) is
+  covered: `test_migrate_3_to_4_skips_alter_when_owner_column_already_exists` in
+  `tests/test_coordinator.py` constructs a v3 DB with `owner` already present, re-applies the
+  migration, and asserts it completes at v4 without raising; a mutation removing the guard would
+  crash with "duplicate column".
 
-1. `_migrate_3_to_4`'s `if "owner" not in columns` idempotency branch (`coordinator.py:127`)
-   is untested: when the column already exists (re-applied migration), the guard must skip
-   ALTER to avoid a "duplicate column" crash, but no test exercises the skip path.
-   Evidence: src/looptight/coordinator.py:127
-   Acceptance: A new test in `tests/test_coordinator.py` constructs a v4-schema DB that
-   already has `owner` in `runs`, re-applies `_migrate_3_to_4`, and asserts it completes
-   without raising; a mutation removing the `if "owner" not in columns` guard fails the test.
+## Next
 
 ## Rules
 
