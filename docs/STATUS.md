@@ -3288,19 +3288,15 @@ existing CLI session and makes no model or API calls of its own.
   done-check that invokes git cannot block headless runs on a credential prompt.
   Covered by `test_run_done_check_sets_git_terminal_prompt_env` in `tests/test_goal.py`.
 
+- `load_config`'s `UnicodeDecodeError` branch (`config.py:83`) is covered:
+  `test_load_config_raises_config_error_on_non_utf8_file` in `tests/test_config.py` writes
+  `b"\xff\xfe"` bytes to `.looptight.toml` and asserts `ConfigError` is raised naming the
+  file, so a regression dropping `UnicodeDecodeError` from the except clause is now caught;
+  no production code change.
+
 ## Next
 
-1. `load_config`'s `UnicodeDecodeError` branch in `config.py:83` is never exercised:
-   the `except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError)` clause has
-   OSError and TOMLDecodeError tested (test_config.py) but no test writes a file with
-   invalid UTF-8 bytes (e.g. `b"\xff\xfe"`) to confirm `ConfigError` is raised rather
-   than the exception propagating.
-   Evidence: `src/looptight/config.py:83`
-   Acceptance: `test_load_config_raises_config_error_on_non_utf8_file` in `tests/test_config.py`
-   writes a `.looptight.toml` with `b"\xff\xfe"` bytes and asserts `ConfigError` is raised;
-   `looptight verify` passes.
-
-3. `_active_task_identity` in `protocol_commands.py:106` has a falsy-`idea_id` branch
+1. `_active_task_identity` in `protocol_commands.py:106` has a falsy-`idea_id` branch
    (`str(lease.payload.get("idea_id") or "") or None`) that returns `None` when the
    lease payload lacks `idea_id` or carries it as `None`/empty — none of the four
    existing tests in test_cli.py exercise this path.

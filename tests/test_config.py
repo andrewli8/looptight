@@ -120,6 +120,16 @@ def test_load_config_raises_config_error_for_unreadable_file(tmp_path, monkeypat
     assert str(path) in str(exc.value)
 
 
+def test_load_config_raises_config_error_on_non_utf8_file(tmp_path):
+    # config.py:83's UnicodeDecodeError arm: a file with invalid UTF-8 bytes raises
+    # ConfigError naming the file, not a raw UnicodeDecodeError traceback.
+    path = tmp_path / ".looptight.toml"
+    path.write_bytes(b"\xff\xfe invalid utf-8")
+    with pytest.raises(ConfigError) as exc:
+        load_config(path)
+    assert str(path) in str(exc.value)
+
+
 def test_load_config_rejects_string_direct_main(tmp_path):
     path = tmp_path / ".looptight.toml"
     path.write_text('direct_main = "false"\n', encoding="utf-8")
