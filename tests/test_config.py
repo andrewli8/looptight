@@ -349,6 +349,13 @@ def test_find_config_returns_none_when_no_config_exists(tmp_path):
     assert find_config(nested) is None
 
 
+def test_load_config_returns_defaults_when_no_config_in_tree(tmp_path, monkeypatch):
+    # load_config() with no path argument calls find_config() → None and must
+    # return Config() via the `resolved is None` short-circuit (config.py:77).
+    monkeypatch.chdir(tmp_path)
+    assert load_config() == Config()
+
+
 def test_render_config_includes_verify_tasks_and_direct_main():
     text = render_config(
         Config(verify="npm test", tasks=("TODO.md", "docs/STATUS.md"), direct_main=True)

@@ -3316,17 +3316,15 @@ existing CLI session and makes no model or API calls of its own.
   migration, and asserts it completes at v4 without raising; a mutation removing the guard would
   crash with "duplicate column".
 
+- `load_config()` called without a `path` argument from a directory with no `.looptight.toml`
+  ancestor returns `find_config()` → `None` and exercises the `resolved is None` short-circuit
+  (`config.py:77`), returning `Config()`. Covered by
+  `test_load_config_returns_defaults_when_no_config_in_tree` in `tests/test_config.py`; a mutation
+  changing `if resolved is None` to `if False` fails the test.
+
 ## Next
 
-1. `load_config()` called without a `path` argument from a directory with no `.looptight.toml`
-   ancestor returns `find_config()` → `None`, exercising the `resolved is None` short-circuit
-   (`config.py:77`); no test currently calls `load_config()` without a path.
-   Evidence: src/looptight/config.py:77
-   Acceptance: A new test in `tests/test_config.py` calls `load_config()` from a tmp directory
-   that has no `.looptight.toml` file up its tree and asserts the result equals `Config()`;
-   a mutation changing `if resolved is None` to `if False` fails the test.
-
-2. `claim()`'s stale-sweep fires even when `owner=None` and a live cross-run lease exists
+1. `claim()`'s stale-sweep fires even when `owner=None` and a live cross-run lease exists
    (`coordinator.py:452`); the `if owner is not None: … continue` guard correctly skips only
    when an owner is given, but the `owner=None` → "retire anyway" behavior is untested.
    Evidence: src/looptight/coordinator.py:452
@@ -3335,7 +3333,7 @@ existing CLI session and makes no model or API calls of its own.
    up `complete` (retired); a mutation adding an unconditional `continue` to the sweep loop
    fails the test.
 
-3. `Coordinator.open(activate=True)` closes the connection when `activate_from_legacy()` raises
+2. `Coordinator.open(activate=True)` closes the connection when `activate_from_legacy()` raises
    a `BaseException` (`coordinator.py:363-365`), but the close is never asserted — a regression
    removing the close in the except block would not be caught.
    Evidence: src/looptight/coordinator.py:363
@@ -3344,7 +3342,7 @@ existing CLI session and makes no model or API calls of its own.
    `pytest.raises(KeyboardInterrupt)`, and asserts the connection is closed afterward; a mutation
    removing `connection.close()` in the except block fails the test.
 
-4. `goal_next()` calls `write_goal(workdir, advanced)` at `goal.py:145` with no `try/except`,
+3. `goal_next()` calls `write_goal(workdir, advanced)` at `goal.py:145` with no `try/except`,
    so an `OSError` from `atomic_write_text` propagates uncaught; no test proves or documents this.
    Evidence: src/looptight/goal.py:145
    Acceptance: A new test in `tests/test_goal.py` monkeypatches `goal.write_goal` to raise
