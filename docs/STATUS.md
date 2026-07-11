@@ -3358,6 +3358,17 @@ existing CLI session and makes no model or API calls of its own.
   in `tests/test_trajectory.py`; it seeds a trajectory with `task="idea-A"`, calls
   `record(..., task=None)`, and asserts `len(result) == 1` (fresh attempt). Verifier: pass.
 
+1. Add a test for `has_live_claim` when `claims_root` does not exist (is not a directory). The
+   early-exit guard `if not claims_root.is_dir(): return False` at `claims.py:34` is never
+   exercised — both sibling tests (`test_has_live_claim_false_when_all_claims_expired` and
+   `test_has_live_claim_true_when_unexpired_claim_exists` in `tests/test_claims.py`) call
+   `root.mkdir()` before calling `has_live_claim`, so a mutation removing or inverting the
+   `is_dir()` check would not be caught.
+   Evidence: `src/looptight/claims.py:34`
+   Acceptance: `test_has_live_claim_returns_false_when_root_absent` calls `has_live_claim` on a
+   path that does not exist and asserts the result is `False`; was failing (no such test) before
+   being added.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
