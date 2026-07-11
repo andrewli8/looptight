@@ -3415,7 +3415,11 @@ existing CLI session and makes no model or API calls of its own.
   `tests/test_metacog.py`; it passes a 300-character string and asserts the result length equals
   `MAX_FAILURE_LINE`. Verifier: pass.
 
-1. Add `test_recipe_runner_oserror_falls_through` in `tests/test_detect.py`: create a Makefile with a `test:` recipe, monkeypatch `path.read_text` to raise `OSError("permission denied")`, and assert `detect_verify(tmp_path) is None`. Evidence: `src/looptight/detect.py:163`; Acceptance: new test passes and `ruff check` is clean.
+- `_recipe_runner` OSError arm (`detect.py:163`) was untested — `except (OSError, ValueError)` at line
+  164 catches both, but both Makefile tests trigger `UnicodeDecodeError` (a `ValueError` subclass);
+  the `OSError` arm was never exercised. Added `test_recipe_runner_oserror_falls_through` in
+  `tests/test_detect.py`; it creates a directory named `Makefile` (raising `IsADirectoryError`, an
+  `OSError` subclass, at `read_text`) and asserts `detect_verify` returns `None`. Verifier: pass.
 
 2. Add `test_restore_defaults_to_latest_snapshot` in `tests/test_checkpoint.py`: init a git repo, create a `Checkpointer`, call `snapshot()` twice, then call `restore()` with no argument and assert it returns `True` and the working tree reflects the second snapshot. Evidence: `src/looptight/checkpoint.py:100`; Acceptance: new test passes and `ruff check` is clean.
 
