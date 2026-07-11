@@ -3340,6 +3340,46 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `trajectory._path()` at `trajectory.py:44` resolves a relative `--git-dir` path via
+   `(root / git_dir).resolve()` but never exercises the `is_absolute() == True` branch, which
+   fires in linked worktrees where git returns an absolute path. The sibling pattern in `claims.py`
+   already has an explicit test (`test_claim_dir_absolute_git_common_dir_is_used_directly`).
+   Evidence: src/looptight/trajectory.py:44
+   Acceptance: A new test in `tests/test_trajectory.py` monkeypatches `trajectory.subprocess.run`
+   to return an absolute path (e.g. `/tmp/fake/.git`) and asserts `_path()` returns a `Path`
+   ending in `.git/looptight/trajectory.json`; a mutation changing `if not git_dir.is_absolute()`
+   to `if True` fails the test.
+
+2. `_parse_absolute_reset` at `limits.py:103` guards `0 <= minute <= 59` but only the hour-overflow
+   arm is exercised (existing test uses `"13:00pm"`, giving `hour=25`). A minute like `99` in
+   `"3:99pm"` also hits the guard and returns `None`, but is never tested; a mutation dropping the
+   `minute` half would pass the full suite.
+   Evidence: src/looptight/limits.py:103
+   Acceptance: A new test in `tests/test_limits.py` calls `classify_limit("usage limit; resets at
+   3:99pm", now=datetime(2026, 1, 1, 10, 0, 0))` and asserts `signal.retry_after_s is None` (out
+   of range, no wait); a mutation removing `and 0 <= minute <= 59` fails the test.
+
+3. `metacog.assess()` at `metacog.py:81` returns `STOP_NO_PROGRESS` for both stall and regression
+   shapes, but only the stall shape `[-5.0, -3.0, -3.0, -3.0]` is tested. The regression shape
+   `[-5.0, -3.0, -4.0, -4.0]` (improved then lost ground) also reaches line 81 but is never driven
+   through assess; a mutation changing `recent_best > prior_best` to `recent_best >= prior_best`
+   would incorrectly classify the regression as `CONTINUE` and pass the suite.
+   Evidence: src/looptight/metacog.py:80
+   Acceptance: A new test in `tests/test_metacog.py` calls `assess([-5.0, -3.0, -4.0, -4.0],
+   patience=2)` and asserts `Decision.STOP_NO_PROGRESS`; the mutation fails it.
+
+4. `trajectory._is_fresh()` at `trajectory.py:81` catches `(TypeError, ValueError)` but only
+   `ValueError` is exercised (`float("not-a-number")` raises `ValueError`). A `null` JSON value
+   sets `prior.get("updated_at", 0)` to `None` (the key is present, default unused), making
+   `float(None)` raise `TypeError`; that arm is never covered. A mutation narrowing the except to
+   `except ValueError` would silently propagate a `TypeError` on any file written with a null
+   timestamp and pass the existing suite.
+   Evidence: src/looptight/trajectory.py:81
+   Acceptance: A new test in `tests/test_trajectory.py` writes `{"schema_version": 1, "command":
+   "pytest -q", "updated_at": null, ...}` to the trajectory path and calls `record()`, asserting
+   it returns a single fresh entry (null treated as stale, not raised); a mutation narrowing to
+   `except ValueError` fails the test.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
