@@ -3409,7 +3409,11 @@ existing CLI session and makes no model or API calls of its own.
   LOOPTIGHT_RUN_ID, sets LOOPTIGHT_SESSION_ID to `"ci-session-42"`, and asserts `current_run_id()`
   returns that value. Verifier: pass.
 
-3. Add `test_normalize_failure_truncates_at_max_failure_line` in `tests/test_metacog.py`: call `_normalize_failure` with a 300-character string; assert the result is exactly 200 characters (the `MAX_FAILURE_LINE` cap). Evidence: `src/looptight/metacog.py:115`; Acceptance: new test passes and `ruff check` is clean.
+- `_normalize_failure` MAX_FAILURE_LINE cap (`metacog.py:115`) was untested — `[:MAX_FAILURE_LINE]`
+  truncates to 200 chars but both existing tests use strings under 200 chars, leaving a mutation to
+  a larger cap undetected. Added `test_normalize_failure_truncates_at_max_failure_line` in
+  `tests/test_metacog.py`; it passes a 300-character string and asserts the result length equals
+  `MAX_FAILURE_LINE`. Verifier: pass.
 
 ## Rules
 

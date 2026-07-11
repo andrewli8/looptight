@@ -185,6 +185,16 @@ def test_normalize_failure_normalizes_in_seconds_fragment():
     assert "in Ns" in result
 
 
+def test_normalize_failure_truncates_at_max_failure_line():
+    # metacog.py:115 — `[:MAX_FAILURE_LINE]` caps the output at 200 chars; both existing
+    # tests use short strings so a mutation raising the cap would go undetected.
+    from looptight.metacog import MAX_FAILURE_LINE, _normalize_failure
+
+    long_line = "x" * 300
+    result = _normalize_failure(long_line)
+    assert len(result) == MAX_FAILURE_LINE
+
+
 def test_persistent_failures_keeps_only_what_never_cleared():
     from looptight.metacog import persistent_failures
 
