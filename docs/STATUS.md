@@ -3415,6 +3415,16 @@ existing CLI session and makes no model or API calls of its own.
   `tests/test_metacog.py`; it passes a 300-character string and asserts the result length equals
   `MAX_FAILURE_LINE`. Verifier: pass.
 
+1. Add `test_recipe_runner_oserror_falls_through` in `tests/test_detect.py`: create a Makefile with a `test:` recipe, monkeypatch `path.read_text` to raise `OSError("permission denied")`, and assert `detect_verify(tmp_path) is None`. Evidence: `src/looptight/detect.py:163`; Acceptance: new test passes and `ruff check` is clean.
+
+2. Add `test_restore_defaults_to_latest_snapshot` in `tests/test_checkpoint.py`: init a git repo, create a `Checkpointer`, call `snapshot()` twice, then call `restore()` with no argument and assert it returns `True` and the working tree reflects the second snapshot. Evidence: `src/looptight/checkpoint.py:100`; Acceptance: new test passes and `ruff check` is clean.
+
+3. Add `test_diffstat_returns_nonempty_on_successful_diff` in `tests/test_checkpoint.py`: init a git repo with a tracked file, call `cp.snapshot()`, edit the file, then call `cp.diffstat()` and assert the returned string is non-empty and contains the filename. Evidence: `src/looptight/checkpoint.py:116`; Acceptance: new test passes and `ruff check` is clean.
+
+4. Add `test_run_hook_absent_cwd_falls_back_to_cwd` in `tests/test_hook.py`: call `run_hook` with a valid JSON event that omits the `"cwd"` key entirely; assert it returns `(None, 0)` without raising. Evidence: `src/looptight/hook.py:249`; Acceptance: new test passes and `ruff check` is clean.
+
+5. Add `test_absolute_reset_returns_none_without_clock_time` in `tests/test_limits.py`: call `classify_limit("usage limit reached; try again soon", now=...)` where the text has a reset-context word (`"again"`) but no clock time; assert `signal.retry_after_s is None`. Evidence: `src/looptight/limits.py:94`; Acceptance: new test passes and `ruff check` is clean.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
