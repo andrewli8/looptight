@@ -3327,18 +3327,15 @@ existing CLI session and makes no model or API calls of its own.
   Covered by `test_claim_owner_none_retires_task_with_live_cross_run_lease` in
   `tests/test_coordinator.py`; a mutation adding an unconditional `continue` fails the test.
 
+- `Coordinator.open(activate=True)` closes the connection when `activate_from_legacy()` raises
+  a `BaseException` (`coordinator.py:363-365`). Covered by
+  `test_coordinator_open_activate_closes_connection_on_base_exception` in
+  `tests/test_coordinator.py`; a mutation removing `connection.close()` in the except block
+  fails the test.
+
 ## Next
 
-1. `Coordinator.open(activate=True)` closes the connection when `activate_from_legacy()` raises
-   a `BaseException` (`coordinator.py:363-365`), but the close is never asserted — a regression
-   removing the close in the except block would not be caught.
-   Evidence: src/looptight/coordinator.py:363
-   Acceptance: A new test in `tests/test_coordinator.py` monkeypatches `activate_from_legacy` to
-   raise `KeyboardInterrupt`, calls `Coordinator.open(repo, activate=True)` inside
-   `pytest.raises(KeyboardInterrupt)`, and asserts the connection is closed afterward; a mutation
-   removing `connection.close()` in the except block fails the test.
-
-2. `goal_next()` calls `write_goal(workdir, advanced)` at `goal.py:145` with no `try/except`,
+1. `goal_next()` calls `write_goal(workdir, advanced)` at `goal.py:145` with no `try/except`,
    so an `OSError` from `atomic_write_text` propagates uncaught; no test proves or documents this.
    Evidence: src/looptight/goal.py:145
    Acceptance: A new test in `tests/test_goal.py` monkeypatches `goal.write_goal` to raise

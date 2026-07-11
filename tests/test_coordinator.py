@@ -139,6 +139,30 @@ def test_coordinator_open_closes_connection_on_base_exception(tmp_path, monkeypa
     mock_conn.close.assert_called_once()
 
 
+def test_coordinator_open_activate_closes_connection_on_base_exception(tmp_path, monkeypatch):
+    # coordinator.py:363-365: if activate_from_legacy() raises a BaseException,
+    # the connection must be closed before re-raising so it is not leaked.
+    from unittest.mock import MagicMock
+
+    import looptight.coordinator as coord_mod
+
+    repo = _repo(tmp_path / "repo")
+
+    mock_conn = MagicMock()
+    monkeypatch.setattr(coord_mod.sqlite3, "connect", lambda *a, **kw: mock_conn)
+    monkeypatch.setattr(coord_mod, "_initialize_schema", lambda _: None)
+    monkeypatch.setattr(
+        coord_mod.Coordinator,
+        "activate_from_legacy",
+        lambda self: (_ for _ in ()).throw(KeyboardInterrupt()),
+    )
+
+    with pytest.raises(KeyboardInterrupt):
+        Coordinator.open(repo, activate=True)
+
+    mock_conn.close.assert_called_once()
+
+
 def test_coordinator_unknown_id_lookups_are_safe_no_ops(tmp_path):
     # A stale or mistaken id must be a safe no-op, not a crash: lease_for returns None
     # when no lease matches, and finish_integration returns without effect on an
