@@ -97,6 +97,20 @@ def test_record_treats_non_numeric_updated_at_as_stale(tmp_path):
     assert len(fresh) == 1  # corrupt updated_at -> stale -> fresh attempt
 
 
+def test_record_treats_null_updated_at_as_stale(tmp_path):
+    # float(None) raises TypeError; the except(TypeError, ValueError) guard must catch it.
+    repo = _repo(tmp_path)
+    path = trajectory._path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        '{"schema_version": 1, "command": "pytest -q", "updated_at": null,'
+        ' "entries": [{"signal": -2.0, "failures": []}]}\n',
+        encoding="utf-8",
+    )
+    fresh = trajectory.record(repo, "pytest -q", -1.0, set(), passed=False)
+    assert len(fresh) == 1  # null updated_at -> stale -> fresh attempt
+
+
 def test_record_write_is_atomic(tmp_path, monkeypatch):
     repo = _repo(tmp_path)
     trajectory.record(repo, "pytest -q", -2.0, set(), passed=False)  # seed a valid store

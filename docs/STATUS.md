@@ -3345,18 +3345,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-4. `trajectory._is_fresh()` at `trajectory.py:81` catches `(TypeError, ValueError)` but only
-   `ValueError` is exercised (`float("not-a-number")` raises `ValueError`). A `null` JSON value
-   sets `prior.get("updated_at", 0)` to `None` (the key is present, default unused), making
-   `float(None)` raise `TypeError`; that arm is never covered. A mutation narrowing the except to
-   `except ValueError` would silently propagate a `TypeError` on any file written with a null
-   timestamp and pass the existing suite.
-   Evidence: src/looptight/trajectory.py:81
-   Acceptance: A new test in `tests/test_trajectory.py` writes `{"schema_version": 1, "command":
-   "pytest -q", "updated_at": null, ...}` to the trajectory path and calls `record()`, asserting
-   it returns a single fresh entry (null treated as stale, not raised); a mutation narrowing to
-   `except ValueError` fails the test.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
