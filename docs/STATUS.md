@@ -3438,7 +3438,11 @@ existing CLI session and makes no model or API calls of its own.
   it uses `monkeypatch.chdir(tmp_path)` so the fallback lands in a dir with no config, asserting
   `(None, 0)` without raising. Verifier: pass.
 
-3. Add `test_absolute_reset_returns_none_without_clock_time` in `tests/test_limits.py`: call `classify_limit("usage limit reached; try again soon", now=...)` where the text has a reset-context word (`"again"`) but no clock time; assert `signal.retry_after_s is None`. Evidence: `src/looptight/limits.py:94`; Acceptance: new test passes and `ruff check` is clean.
+- `_parse_absolute_reset`'s no-clock-time branch (`limits.py:94`) was untested — `_AT_TIME_RE`
+  not matching returns `None`, but all absolute-reset tests supply a clock time ("at 3:00pm"). Added
+  `test_absolute_reset_returns_none_without_clock_time` in `tests/test_limits.py`; the text
+  "usage limit reached; try again soon" has "again" (matches `_RESET_CONTEXT_RE`) but no "at HH:MM",
+  asserting `signal.retry_after_s is None`. Verifier: pass.
 
 ## Rules
 

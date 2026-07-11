@@ -187,3 +187,12 @@ def test_parse_relative_reset_returns_none_for_zero_seconds():
     signal = classify_limit("usage limit reached, retry after 0 seconds")
     assert signal is not None
     assert signal.retry_after_s is None
+
+
+def test_absolute_reset_returns_none_without_clock_time():
+    # limits.py:94 — _parse_absolute_reset returns None when the text has a
+    # reset-context word ("again") but no "at HH:MM" clock time to parse.
+    now = datetime(2024, 1, 1, 10, 0, 0)
+    signal = classify_limit("usage limit reached; try again soon", now=now)
+    assert signal is not None
+    assert signal.retry_after_s is None
