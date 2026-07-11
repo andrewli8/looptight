@@ -3395,7 +3395,12 @@ existing CLI session and makes no model or API calls of its own.
   tested. Added `test_read_state_returns_empty_on_malformed_json` in `tests/test_ui.py`; it writes
   `"{ broken json"` and asserts `read_state` returns `empty_state()`. Verifier: pass.
 
-1. Add `test_coordinator_path_absolute_git_common_dir_is_used_directly` in `tests/test_coordinator.py`: mock `subprocess.run` to return an absolute `git rev-parse --git-common-dir` path; assert `coordinator_path` uses it directly without prepending `workdir`. Evidence: `src/looptight/coordinator.py:314`; Acceptance: new test passes and `ruff check` is clean.
+- `coordinator_path` absolute-path branch (`coordinator.py:314`) was untested — when
+  `git rev-parse --git-common-dir` returns an absolute path (linked worktrees), `if not
+  common.is_absolute()` is False and `common` is used directly without prepending `workdir`; no test
+  exercised this arm. Added `test_coordinator_path_absolute_git_common_dir_is_used_directly` in
+  `tests/test_coordinator.py`; it stubs `subprocess.run` to return an absolute path and asserts
+  `coordinator_path` resolves to the correct `.../looptight/coordinator.db` path. Verifier: pass.
 
 2. Add `test_current_run_id_prefers_session_id_over_uuid` in `tests/test_coordinator.py`: set `LOOPTIGHT_SESSION_ID` and unset `LOOPTIGHT_RUN_ID`; assert `current_run_id()` returns the session-id value, not a UUID. Evidence: `src/looptight/coordinator.py:293`; Acceptance: new test passes and `ruff check` is clean.
 

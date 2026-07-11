@@ -122,6 +122,25 @@ def test_coordinator_path_is_none_when_git_is_not_installed(tmp_path, monkeypatc
     assert coordinator_path(repo) is None
 
 
+def test_coordinator_path_absolute_git_common_dir_is_used_directly(tmp_path):
+    # coordinator.py:314 — when `git rev-parse --git-common-dir` returns an absolute
+    # path (linked worktrees), `if not common.is_absolute()` is False so `common` is
+    # used directly without prepending `workdir`. Mirror of
+    # test_claim_dir_absolute_git_common_dir_is_used_directly in test_claims.py.
+    import looptight.coordinator as coord_mod
+
+    abs_git_dir = tmp_path / "shared_git"
+    abs_git_dir.mkdir()
+
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(cmd, 0, stdout=str(abs_git_dir) + "\n", stderr="")
+
+    with __import__("unittest.mock", fromlist=["patch"]).patch.object(coord_mod.subprocess, "run", fake_run):
+        result = coordinator_path(tmp_path / "worktree")
+
+    assert result == (abs_git_dir / "looptight" / "coordinator.db").resolve()
+
+
 def test_coordinator_open_closes_connection_on_base_exception(tmp_path, monkeypatch):
     from unittest.mock import MagicMock
 
