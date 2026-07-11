@@ -126,6 +126,17 @@ def test_claim_dir_returns_none_on_oserror(tmp_path, monkeypatch):
     assert claim_dir(tmp_path) is None
 
 
+def test_has_live_claim_returns_false_when_root_absent(tmp_path):
+    # claims.py:34 — `if not claims_root.is_dir(): return False` is the guard for
+    # a directory that does not exist.  Both sibling tests create root.mkdir() before
+    # calling has_live_claim, so this early-exit path is untested and a mutation
+    # removing or inverting the guard would go undetected.
+    from looptight.claims import has_live_claim
+
+    absent = tmp_path / "nonexistent"
+    assert has_live_claim(absent) is False  # directory does not exist -> False immediately
+
+
 def test_has_live_claim_false_when_all_claims_expired(tmp_path):
     from looptight.claims import _STALE_AFTER_S, has_live_claim
 
