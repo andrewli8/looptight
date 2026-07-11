@@ -3299,17 +3299,15 @@ existing CLI session and makes no model or API calls of its own.
   coordinator lease whose payload has no `idea_id` key and asserts `_active_task_identity`
   returns `None` — the `str("") or None` path previously untested.
 
+- `coordinator.claim([], run_id)`'s empty-fingerprints `else` branch (`coordinator.py:441-443`)
+  now has direct coverage: `test_claim_empty_fingerprints_marks_all_tasks_complete` in
+  `tests/test_coordinator.py` seeds two tasks, calls `coordinator.claim([], run2.id, ttl_s=60)`,
+  and asserts both task rows end up `complete` — the sweep path that runs when `next` finds no
+  grounded proposals.
+
 ## Next
 
-1. `coordinator.claim([], run_id)` empty-fingerprints stale sweep is untested: calling with
-   an empty task list selects ALL tasks for stale marking (`coordinator.py:441-443`), but no
-   test directly calls `coordinator.claim([], ...)` and verifies the sweep marks tasks complete.
-   Evidence: src/looptight/coordinator.py:441
-   Acceptance: A new test in `tests/test_coordinator.py` seeds a task, calls
-   `coordinator.claim([], run_id, ttl_s=60)`, and asserts the task state becomes `complete`;
-   a mutation commenting out the `else` branch fails the test.
-
-2. `reweight_factor`'s `max(0.0, min(1.0, ...))` clamp (`experience.py:109`) has no test for
+1. `reweight_factor`'s `max(0.0, min(1.0, ...))` clamp (`experience.py:109`) has no test for
    malformed counts: negative landed or landed > total never exercises the guard in the suite,
    so a regression removing the clamp passes undetected.
    Evidence: src/looptight/experience.py:109
@@ -3318,7 +3316,7 @@ existing CLI session and makes no model or API calls of its own.
    `Model(category_landed={"x": 5}, category_failed={"x": -2})` (rate > 1); each asserts
    the result stays within `[lo, hi]`; a mutation removing either clamp fails its test.
 
-3. `_migrate_3_to_4`'s `if "owner" not in columns` idempotency branch (`coordinator.py:127`)
+2. `_migrate_3_to_4`'s `if "owner" not in columns` idempotency branch (`coordinator.py:127`)
    is untested: when the column already exists (re-applied migration), the guard must skip
    ALTER to avoid a "duplicate column" crash, but no test exercises the skip path.
    Evidence: src/looptight/coordinator.py:127

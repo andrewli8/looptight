@@ -357,6 +357,27 @@ def test_claim_still_completes_a_same_owner_out_of_set_task(tmp_path):
     assert state is not None and state[0] == "complete"
 
 
+def test_claim_empty_fingerprints_marks_all_tasks_complete(tmp_path):
+    # coordinator.py:441-443: when claim() receives an empty fingerprints list,
+    # the else-branch selects ALL tasks and marks them complete (no grounded work).
+    coordinator = Coordinator.open(_repo(tmp_path / "repo"))
+    assert coordinator is not None
+    run = coordinator.start_run("session", now=0)
+    # Seed two tasks without claiming them.
+    coordinator.claim(
+        [{"id": "t1", "goal": "first"}, {"id": "t2", "goal": "second"}],
+        run.id, ttl_s=60, now=0,
+    )
+    run2 = coordinator.start_run("session2", now=1)
+    # Pass an empty list — should sweep all tasks to complete.
+    coordinator.claim([], run2.id, ttl_s=60, now=2)
+    rows = coordinator.connection.execute(
+        "SELECT state FROM tasks ORDER BY rowid"
+    ).fetchall()
+    # Both tasks (now stale because no fingerprints proposed) must be complete.
+    assert all(row[0] == "complete" for row in rows), rows
+
+
 def test_enqueue_integration_is_fenced_to_the_live_lease(tmp_path):
     # A worker whose lease was superseded (expired, reclaimed by another run) must
     # not enqueue an integration, or it would integrate stale or conflicting work.
