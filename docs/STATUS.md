@@ -3283,19 +3283,14 @@ existing CLI session and makes no model or API calls of its own.
   asserts `_failure_lines(None) == set()` and `_failure_lines("") == set()`, proving the
   `(output or "")` guard against `output=None`; no production change.
 
+- `run_done_check` in `goal.py` now passes `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}`
+  to its `subprocess.run` call, matching every other subprocess caller in the codebase, so a
+  done-check that invokes git cannot block headless runs on a credential prompt.
+  Covered by `test_run_done_check_sets_git_terminal_prompt_env` in `tests/test_goal.py`.
+
 ## Next
 
-1. `run_done_check` in `goal.py` calls `subprocess.run(shell=True)` without
-   `GIT_TERMINAL_PROMPT=0` in its env, so a done-check that invokes git can block
-   headless runs on a credential prompt — the only subprocess caller in the module
-   missing the guard that every other git-touching caller sets.
-   Evidence: `src/looptight/goal.py:97`
-   Acceptance: `test_run_done_check_sets_git_terminal_prompt_env` in `tests/test_goal.py`
-   monkeypatches `subprocess.run` and asserts `env["GIT_TERMINAL_PROMPT"] == "0"`;
-   production change adds `env={**os.environ, "GIT_TERMINAL_PROMPT": "0"}` to the call;
-   `looptight verify` passes.
-
-2. `load_config`'s `UnicodeDecodeError` branch in `config.py:83` is never exercised:
+1. `load_config`'s `UnicodeDecodeError` branch in `config.py:83` is never exercised:
    the `except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError)` clause has
    OSError and TOMLDecodeError tested (test_config.py) but no test writes a file with
    invalid UTF-8 bytes (e.g. `b"\xff\xfe"`) to confirm `ConfigError` is raised rather

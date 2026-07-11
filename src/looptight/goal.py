@@ -8,6 +8,7 @@ shared across worktrees and never enters project history. No model calls.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
@@ -96,7 +97,7 @@ def run_done_check(workdir: Path, command: str, *, timeout: float = 60.0) -> boo
     try:
         result = subprocess.run(
             command, shell=True, cwd=str(workdir), check=False, capture_output=True,
-            timeout=timeout,
+            timeout=timeout, env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
         )
     except (OSError, subprocess.TimeoutExpired):
         return False
