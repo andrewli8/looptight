@@ -362,6 +362,32 @@ def test_next_task_closes_coordinator_on_exception(tmp_path):
     assert close_called, "coordinator.close() must be called even when an exception is raised"
 
 
+def test_next_task_outside_git_picks_first_candidate(tmp_path):
+    # tasks.py:192 — when both Coordinator.open and claim_dir return None (outside a git
+    # repo), next_task falls back to tasks[0].  The sibling test below covers the
+    # `private_dir is not None` arm; this covers the `private_dir is None` arm, which
+    # a mutation changing tasks[0] to None would break silently.
+    from unittest.mock import patch
+
+    cand = Candidate(
+        title="Fix the parser",
+        source="status-next",
+        location="docs/STATUS.md:5",
+        suggested_verify=None,
+        score=0.0,
+        detail="Fix it. Evidence: src/p.py:1",
+        acceptance="test passes.",
+    )
+
+    with patch("looptight.tasks.Coordinator.open", return_value=None), \
+         patch("looptight.tasks.claim_dir", return_value=None):
+        result = next_task(tmp_path, propose_fn=lambda w, limit=0: [cand])
+
+    assert result.status == "task"
+    assert result.task is not None
+    assert result.task["source"] == "status-next"
+
+
 def test_next_task_file_claims_selects_from_candidates(tmp_path):
     # When Coordinator.open returns None but claim_dir yields a non-None directory,
     # next_task must route through ClaimStore.select (the legacy file-claims path).

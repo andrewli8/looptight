@@ -3384,16 +3384,11 @@ existing CLI session and makes no model or API calls of its own.
   a claim with `"claimed_at": null` and asserts both `has_live_claim` and `ClaimStore.summary`
   treat it as expired without raising. Verifier: pass.
 
-1. Add a test for `next_task`'s `private_dir is None` fallback at `tasks.py:192`. When both
-   `Coordinator.open` and `claim_dir` return `None` (outside a git repo), the else-else branch
-   picks `tasks[0]` as the task. The only existing test for the `coordinator is None` path
-   (`test_next_task_file_claims_selects_from_candidates`) mocks `claim_dir` to a non-None
-   directory, leaving the `private_dir is None` arm unexercised — a mutation changing `tasks[0]`
-   to `None` would go undetected.
-   Evidence: `src/looptight/tasks.py:192`
-   Acceptance: `test_next_task_outside_git_picks_first_candidate` mocks `Coordinator.open` and
-   `claim_dir` to both return `None`, provides a non-empty candidate list, and asserts the returned
-   task is the first candidate; was failing (no such test) before being added.
+- `next_task` `private_dir is None` fallback (`tasks.py:192`) was untested — when both
+  `Coordinator.open` and `claim_dir` return `None`, the else-else branch picks `tasks[0]`, but the
+  existing test mocks `claim_dir` to a non-None path. Added
+  `test_next_task_outside_git_picks_first_candidate` in `tests/test_tasks.py`; it mocks both to
+  `None` and asserts the first candidate is returned. Verifier: pass.
 
 ## Rules
 
