@@ -137,6 +137,27 @@ def test_has_live_claim_returns_false_when_root_absent(tmp_path):
     assert has_live_claim(absent) is False  # directory does not exist -> False immediately
 
 
+def test_claimed_at_null_is_treated_as_expired(tmp_path):
+    # claims.py:20 — `float(claim.get("claimed_at", 0))` raises TypeError when the JSON
+    # field holds null (get() returns None, not the default 0).  The `except (TypeError,
+    # ValueError)` handler returns 0.0 (long-expired).  Only the ValueError sub-path is
+    # exercised by test_claim_with_non_numeric_timestamp_is_treated_as_expired (which uses
+    # "claimed_at": "oops"), leaving the TypeError arm untested — the same gap pattern
+    # that test_record_treats_null_updated_at_as_stale covers in trajectory.py:72.
+    from looptight.claims import has_live_claim
+
+    root = tmp_path / "claims"
+    root.mkdir()
+    (root / "t1.json").write_text(
+        json.dumps({"schema_version": 1, "task_id": "t1", "owner": "x", "claimed_at": None}),
+        encoding="utf-8",
+    )
+    # A null claimed_at falls back to 0.0 (long expired); no live claim, no crash.
+    assert has_live_claim(root, now=1_000_000_000.0) is False
+    # summary() must similarly treat null claimed_at as expired (active count stays 0).
+    assert ClaimStore(root, "me", now=1_000_000_000.0).summary() == (None, 0)
+
+
 def test_has_live_claim_false_when_all_claims_expired(tmp_path):
     from looptight.claims import _STALE_AFTER_S, has_live_claim
 
