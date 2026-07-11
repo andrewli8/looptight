@@ -3322,18 +3322,14 @@ existing CLI session and makes no model or API calls of its own.
   `test_load_config_returns_defaults_when_no_config_in_tree` in `tests/test_config.py`; a mutation
   changing `if resolved is None` to `if False` fails the test.
 
+- `claim()`'s stale-sweep fires when `owner=None` even if a live cross-run lease exists:
+  the `if owner is not None` guard (`coordinator.py:452`) is skipped, so the task is retired.
+  Covered by `test_claim_owner_none_retires_task_with_live_cross_run_lease` in
+  `tests/test_coordinator.py`; a mutation adding an unconditional `continue` fails the test.
+
 ## Next
 
-1. `claim()`'s stale-sweep fires even when `owner=None` and a live cross-run lease exists
-   (`coordinator.py:452`); the `if owner is not None: … continue` guard correctly skips only
-   when an owner is given, but the `owner=None` → "retire anyway" behavior is untested.
-   Evidence: src/looptight/coordinator.py:452
-   Acceptance: A new test in `tests/test_coordinator.py` seeds a task with a live lease from
-   run-A, then calls `claim([], run_B.id, ttl_s=60, owner=None)`, and asserts the task ends
-   up `complete` (retired); a mutation adding an unconditional `continue` to the sweep loop
-   fails the test.
-
-2. `Coordinator.open(activate=True)` closes the connection when `activate_from_legacy()` raises
+1. `Coordinator.open(activate=True)` closes the connection when `activate_from_legacy()` raises
    a `BaseException` (`coordinator.py:363-365`), but the close is never asserted — a regression
    removing the close in the except block would not be caught.
    Evidence: src/looptight/coordinator.py:363
@@ -3342,7 +3338,7 @@ existing CLI session and makes no model or API calls of its own.
    `pytest.raises(KeyboardInterrupt)`, and asserts the connection is closed afterward; a mutation
    removing `connection.close()` in the except block fails the test.
 
-3. `goal_next()` calls `write_goal(workdir, advanced)` at `goal.py:145` with no `try/except`,
+2. `goal_next()` calls `write_goal(workdir, advanced)` at `goal.py:145` with no `try/except`,
    so an `OSError` from `atomic_write_text` propagates uncaught; no test proves or documents this.
    Evidence: src/looptight/goal.py:145
    Acceptance: A new test in `tests/test_goal.py` monkeypatches `goal.write_goal` to raise

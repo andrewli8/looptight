@@ -357,6 +357,29 @@ def test_claim_still_completes_a_same_owner_out_of_set_task(tmp_path):
     assert state is not None and state[0] == "complete"
 
 
+def test_claim_owner_none_retires_task_with_live_cross_run_lease(tmp_path):
+    # The `if owner is not None` guard (coordinator.py:452) spares a *different* known
+    # owner's live lease.  When owner=None the guard is skipped and the stale-sweep
+    # fires unconditionally, so a cross-run live lease is still retired.
+    coordinator = Coordinator.open(_repo(tmp_path / "repo"))
+    assert coordinator is not None
+    run_a = coordinator.start_run("a", owner="worktree-A", now=0)
+    run_b = coordinator.start_run("b", owner=None, now=0)
+    # run-A claims task-x with a long TTL so its lease stays live.
+    assert (
+        coordinator.claim(
+            [{"id": "task-x", "goal": "x"}], run_a.id, ttl_s=100_000, now=0, owner="worktree-A"
+        )
+        is not None
+    )
+    # run-B (owner=None) claims an empty set; the sweep has no owner → guard skipped → retired.
+    coordinator.claim([], run_b.id, ttl_s=60, now=1, owner=None)
+    state = coordinator.connection.execute(
+        "SELECT state FROM tasks WHERE fingerprint = ?", ("task-x",)
+    ).fetchone()
+    assert state is not None and state[0] == "complete"
+
+
 def test_claim_empty_fingerprints_marks_all_tasks_complete(tmp_path):
     # coordinator.py:441-443: when claim() receives an empty fingerprints list,
     # the else-branch selects ALL tasks and marks them complete (no grounded work).
