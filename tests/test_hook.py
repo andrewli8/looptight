@@ -382,6 +382,15 @@ def test_has_grounded_work_returns_false_on_exception(tmp_path, monkeypatch):
     assert _hook._has_grounded_work(tmp_path) is False
 
 
+def test_run_hook_absent_cwd_falls_back_to_cwd(tmp_path, monkeypatch):
+    """hook.py:249 — omitting "cwd" falls back to Path.cwd() without raising."""
+    monkeypatch.chdir(tmp_path)  # tmp_path has no .looptight.toml → dormant
+    event = json.dumps({"session_id": "s1"})  # no "cwd" key
+    output, code = run_hook(event, verify_fn=lambda c, w: _fail())
+    assert output is None
+    assert code == 0
+
+
 def test_has_grounded_work_returns_true_when_propose_finds_candidates(tmp_path, monkeypatch):
     # The True path of _has_grounded_work (hook.py:127): when propose returns a
     # non-empty list the function must return True.

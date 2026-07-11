@@ -3432,9 +3432,13 @@ existing CLI session and makes no model or API calls of its own.
   in `tests/test_checkpoint.py`; it inits a repo, takes a clean-tree snapshot, modifies the tracked file,
   then asserts `diffstat()` returns a non-empty string containing the filename. Verifier: pass.
 
-3. Add `test_run_hook_absent_cwd_falls_back_to_cwd` in `tests/test_hook.py`: call `run_hook` with a valid JSON event that omits the `"cwd"` key entirely; assert it returns `(None, 0)` without raising. Evidence: `src/looptight/hook.py:249`; Acceptance: new test passes and `ruff check` is clean.
+- `run_hook`'s absent-`cwd` fallback (`hook.py:249`) was untested — `cwd_value or Path.cwd()`:
+  all existing `run_hook` tests supply an explicit `"cwd"` key, so the `Path.cwd()` branch was
+  never exercised. Added `test_run_hook_absent_cwd_falls_back_to_cwd` in `tests/test_hook.py`;
+  it uses `monkeypatch.chdir(tmp_path)` so the fallback lands in a dir with no config, asserting
+  `(None, 0)` without raising. Verifier: pass.
 
-4. Add `test_absolute_reset_returns_none_without_clock_time` in `tests/test_limits.py`: call `classify_limit("usage limit reached; try again soon", now=...)` where the text has a reset-context word (`"again"`) but no clock time; assert `signal.retry_after_s is None`. Evidence: `src/looptight/limits.py:94`; Acceptance: new test passes and `ruff check` is clean.
+3. Add `test_absolute_reset_returns_none_without_clock_time` in `tests/test_limits.py`: call `classify_limit("usage limit reached; try again soon", now=...)` where the text has a reset-context word (`"again"`) but no clock time; assert `signal.retry_after_s is None`. Evidence: `src/looptight/limits.py:94`; Acceptance: new test passes and `ruff check` is clean.
 
 ## Rules
 
