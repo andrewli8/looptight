@@ -1884,6 +1884,16 @@ def test_files_with_exts_missing_subdir_returns_empty(tmp_path):
     assert _files_with_exts(tmp_path, "no_such_dir", (".py",)) == []
 
 
+def test_enclosing_test_name_forward_scan_finds_def_after_decorator():
+    from looptight.discovery import _enclosing_test_name
+
+    lines = ["@pytest.mark.skip\n", "def test_found():\n", "    pass\n"]
+    result = _enclosing_test_name(lines, 0)
+    assert result == "test_found", (
+        f"forward scan must find the def after a decorator skip, got {result!r}"
+    )
+
+
 def test_enclosing_test_name_breaks_on_non_decorator_non_def_line():
     # When @skip is followed by a bare assignment (non-empty, non-decorator, non-def),
     # the forward scan breaks at discovery.py:489 without finding a def.

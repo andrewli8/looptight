@@ -3384,19 +3384,13 @@ existing CLI session and makes no model or API calls of its own.
   `text[-half:]` with `text[half:]` would put "A" chars in the tail portion, failing the
   `"A" not in tail` assertion. Verifier: pass.
 
-## Next
+- `_enclosing_test_name` at `discovery.py:482` forward-scan branch is now pinned by
+  `test_enclosing_test_name_forward_scan_finds_def_after_decorator` in `tests/test_propose.py`:
+  directly calls `_enclosing_test_name` with `["@pytest.mark.skip\n", "def test_found():\n", "    pass\n"]`
+  at idx 0 and asserts the result equals `"test_found"`. A mutation nullifying
+  `_DEF_RE.match(lines[j])` at line 484 would return `None` and fail this assertion. Verifier: pass.
 
-1. `_enclosing_test_name` at `discovery.py:482` has a forward-scan branch (for decorator skips:
-   `@pytest.mark.skip` preceding a `def`) and a backward-scan branch (for imperative skips inside
-   a function body). Both are covered indirectly via `from_skipped_tests`, but there is only one
-   direct unit test (`test_enclosing_test_name_breaks_on_non_decorator_non_def_line`) and it only
-   tests the None return. A mutation in the forward-scan's `_DEF_RE.match(lines[j])` at line 484
-   would break decorator-skip naming without failing the only direct test.
-   Evidence: `src/looptight/discovery.py:482`
-   Acceptance: `test_enclosing_test_name_forward_scan_finds_def_after_decorator` in
-   `tests/test_propose.py` directly calls `_enclosing_test_name` with
-   `["@pytest.mark.skip\n", "def test_found():\n", "    pass\n"]` at idx 0 and asserts the
-   result equals `"test_found"`. Verifier: pass.
+## Next
 
 ## Rules
 
