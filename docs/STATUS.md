@@ -3361,6 +3361,38 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_statement_text` over-extends past a `pytestmark` when its reason string contains an
+   unbalanced `(` and the following line references `os.environ` — a mutation dropping
+   `_code_only` from `discovery.py:385` causes `_module_is_optin` to swallow the next line
+   and falsely suppress inner skips.
+   Evidence: `src/looptight/discovery.py:385`
+   Acceptance: `test_statement_text_does_not_overextend_when_reason_has_unbalanced_paren` in
+   `tests/test_propose.py` writes a module with `pytestmark = pytest.mark.skipif(True,
+   reason="unclosed (")` followed by `os.environ` usage on the next line plus an inner
+   `pytest.skip`, and asserts `from_skipped_tests` surfaces the inner skip (module not
+   falsely treated as opt-in). Verifier: pass.
+
+2. `@pytest.mark.xfail` decorator form is detected by `_is_skip_line` at `discovery.py:333`
+   but no test exercises it directly — a mutation removing `"@pytest.mark.xfail"` from the
+   `startswith` tuple would go undetected, silently dropping xfail-decorated tests from the
+   fix-me queue. A paired test should also verify that an env-gated
+   `@pytest.mark.xfail(not os.environ.get(...))` is suppressed, covering the path at
+   `discovery.py:513`.
+   Evidence: `src/looptight/discovery.py:333`
+   Acceptance: `test_from_skipped_tests_detects_xfail_decorator_and_suppresses_env_gated_form`
+   in `tests/test_propose.py` writes a file with both a plain `@pytest.mark.xfail` (surfaced)
+   and an `@pytest.mark.xfail(not os.environ.get("CI"), ...)` (suppressed), and asserts
+   exactly one candidate is returned. Verifier: pass.
+
+3. `_one_line` collapses all whitespace via `" ".join(text.split())` but has no direct unit
+   test — a mutation replacing `text.split()` with `text.split(" ")` would fail to collapse
+   tab and newline characters, producing malformed one-line titles from multi-line STATUS.md
+   entries, without failing any existing test.
+   Evidence: `src/looptight/discovery.py:286`
+   Acceptance: `test_one_line_collapses_tabs_and_newlines` in `tests/test_propose.py` imports
+   `_one_line` and asserts `_one_line("a\tb\nc")` returns `"a b c"` and
+   `_one_line("  leading\t\ttrailing  ")` returns `"leading trailing"`. Verifier: pass.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
