@@ -3393,19 +3393,14 @@ existing CLI session and makes no model or API calls of its own.
   now have direct unit coverage: `test_ref_resolves_rejects_empty_absolute_and_dotdot_refs` in
   `tests/test_idea_eval.py` passes `""`, `"/etc/passwd"`, and `"../outside.py"` and asserts all
   return `False`; a mutation removing any guard fails the test.
+- `_TODO_RE`'s `HACK` and `XXX` alternates now have direct unit coverage:
+  `test_from_todos_detects_hack_and_xxx_markers` in `tests/test_propose.py` writes
+  `# HACK: legacy workaround` and `# XXX: revisit this` and asserts both produce
+  candidates; a mutation dropping either alternate fails the test.
 
 ## Next
 
-1. `_TODO_RE` in `discovery.py` matches `HACK` and `XXX` alongside `TODO`/`FIXME`, and the
-   function docstring at line 308 documents them, but no test in the suite writes a `HACK` or
-   `XXX` marker and calls `from_todos()` — a mutation dropping either from the alternation would
-   pass undetected.
-   Evidence: `src/looptight/discovery.py:37`
-   Acceptance: `test_from_todos_detects_hack_and_xxx_markers` in `tests/test_propose.py`
-   writes a Python file containing `# HACK: legacy workaround` and `# XXX: revisit this`,
-   calls `from_todos(tmp_path)`, and asserts both markers produce candidates.
-
-2. `_delegate_loop` at `loop.py:210-211` calls `on_iteration(record)` regardless of whether
+1. `_delegate_loop` at `loop.py:210-211` calls `on_iteration(record)` regardless of whether
    verify passed or failed, but the only test for `on_iteration` in the delegate path
    (`test_on_iteration_callback_called_in_delegate_path`) supplies a passing verify — the
    failing-verify branch of the callback is never exercised.
@@ -3414,7 +3409,7 @@ existing CLI session and makes no model or API calls of its own.
    calls `run_loop` in delegate mode with a verify that returns `passed=False`, passes an
    `on_iteration` accumulator, and asserts it was called once with `verify.passed is False`.
 
-3. `ClaimStore.summary()` at `claims.py:120` sets `owned = value if isinstance(value, str) else
+2. `ClaimStore.summary()` at `claims.py:120` sets `owned = value if isinstance(value, str) else
    None` for the owning session's claim, but no test writes a live unexpired claim with a
    non-string `task_id` (e.g. integer 42) and calls `summary()` — the `else None` branch is
    never reached, so a mutation changing the guard to `isinstance(value, int)` would go

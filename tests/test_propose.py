@@ -114,6 +114,15 @@ def test_from_todos_finds_markers_with_location(tmp_path):
     assert all(c.location and ":" in c.location for c in cands)
 
 
+def test_from_todos_detects_hack_and_xxx_markers(tmp_path):
+    # _TODO_RE matches HACK and XXX alongside TODO/FIXME; a mutation dropping either
+    # from the alternation would pass every test that only writes TODO/FIXME.
+    _write(tmp_path, "src/a.py", "x = 1  # HACK: legacy workaround\ny = 2  # XXX: revisit this\n")
+    titles = [c.title for c in from_todos(tmp_path)]
+    assert any("legacy workaround" in t for t in titles), "HACK marker not detected"
+    assert any("revisit this" in t for t in titles), "XXX marker not detected"
+
+
 def test_todo_title_normalizes_internal_whitespace(tmp_path):
     # A candidate title renders on one line (propose, next, the panel). Internal runs of spaces
     # and tabs in the marker text must collapse to single spaces so the title never reads messy
