@@ -269,3 +269,26 @@ def test_claim_store_select_raises_when_migrated(tmp_path):
 
     with pytest.raises(LegacyClaimsDisabled):
         store.summary()
+
+
+def test_summary_treats_non_string_task_id_as_unowned_but_still_active(tmp_path):
+    # claims.py:120 — `owned = value if isinstance(value, str) else None` is the
+    # guard that prevents a non-string task_id (e.g. integer 42) from leaking into
+    # `owned`.  The claim still counts toward `active` because it is live and
+    # unexpired.  Without this test, a mutation changing the guard to
+    # `isinstance(value, int)` would go undetected.
+    root = tmp_path / "claims"
+    root.mkdir(parents=True)
+    owner = "session-x"
+    (root / "42.json").write_text(
+        json.dumps(
+            {"schema_version": 1, "task_id": 42, "owner": owner, "claimed_at": 100},
+            sort_keys=True,
+        ),
+        encoding="utf-8",
+    )
+
+    owned, active = ClaimStore(root, owner, now=101).summary()
+
+    assert owned is None
+    assert active == 1

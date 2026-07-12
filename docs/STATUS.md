@@ -3404,16 +3404,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `ClaimStore.summary()` at `claims.py:120` sets `owned = value if isinstance(value, str) else
-   None` for the owning session's claim, but no test writes a live unexpired claim with a
-   non-string `task_id` (e.g. integer 42) and calls `summary()` — the `else None` branch is
-   never reached, so a mutation changing the guard to `isinstance(value, int)` would go
-   undetected.
-   Evidence: `src/looptight/claims.py:120`
-   Acceptance: `test_summary_treats_non_string_task_id_as_unowned_but_still_active` in
-   `tests/test_claims.py` seeds a live claim with `task_id=42` for the matching owner, calls
-   `summary()`, and asserts `owned is None` while `active == 1`.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
