@@ -90,6 +90,35 @@ def test_supply_loop_limit_is_terminal_without_resume(workdir):
     assert result.iteration_count == 0
 
 
+def test_resume_loop_exits_immediately_on_non_limit_error_when_resume_enabled(workdir):
+    # resume_on_limit=True must NOT retry a non-rate-limit error; the third
+    # conjunct of the _with_limit_resume guard (`not is_limit_error`) is the
+    # deciding factor here, which no prior test exercises.
+    class _NonLimitAdapter(FakeAdapter):
+        def run_iteration(self, goal, context, workdir, model=None):
+            self.iterations_run += 1
+            return IterationResult(
+                transcript="process crashed", ok=False, error="process exited with code 1"
+            )
+
+    adapter = _NonLimitAdapter()
+    waits: list[float] = []
+    result = run_loop(
+        "fix it",
+        adapter,
+        _config(),
+        workdir,
+        verify_fn=make_verify(pass_on=99),
+        checkpointer=Checkpointer(workdir, enabled=False),
+        resume_on_limit=True,
+        sleep=waits.append,
+    )
+
+    assert result.stop_reason is StopReason.ERROR
+    assert adapter.iterations_run == 1  # exits after exactly one attempt
+    assert not waits  # non-limit error: no sleep, no retry
+
+
 class _LimitedThenOkNativeAdapter(FakeAdapter):
     """Drives a native loop that reports a usage limit, then succeeds on retry."""
 

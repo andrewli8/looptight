@@ -3404,16 +3404,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `_resume_loop` at `loop.py:106` exits immediately when `resume_on_limit=True` but the error
-   is not a rate-limit error (`not is_limit_error(iteration.error)`) — the third conjunct of the
-   return condition is never the deciding factor in any test; all limit-resume tests use
-   exclusively rate-limit-shaped errors, leaving this exit path untested.
-   Evidence: `src/looptight/loop.py:106`
-   Acceptance: `test_resume_loop_exits_immediately_on_non_limit_error_when_resume_enabled` in
-   `tests/test_loop.py` calls `_resume_loop` with `resume_on_limit=True` and an adapter that
-   returns a non-rate-limit error, and asserts the loop exits after exactly one attempt.
-
-3. `_supply_loop` at `loop.py:140` builds the error string as
+1. `_supply_loop` at `loop.py:140` builds the error string as
    `iteration.error or iteration.transcript or "coding agent failed"`, but all failing adapters
    set `error` to a non-`None` string — the `or iteration.transcript` arm and the final literal
    fallback are never reached by any test.
