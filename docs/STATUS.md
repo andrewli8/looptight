@@ -3361,17 +3361,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `_module_is_optin` non-env-gated `pytestmark` is not treated as opt-in (`discovery.py:417`)
-   is untested — a `pytestmark = pytest.mark.skipif(SOME_NON_ENV_CONDITION, ...)` matches the
-   outer `re.match` but `_OPTIN_RE` does not match, so the loop continues without returning True;
-   a mutation replacing `if _OPTIN_RE.search(...)` with `if True` would suppress all skips in any
-   `pytestmark`-using module.
-   Evidence: `src/looptight/discovery.py:417`
-   Acceptance: `test_module_is_optin_returns_false_for_non_env_pytestmark` in
-   `tests/test_propose.py` writes a Python file with `pytestmark = pytest.mark.skipif(True, ...)`
-   (no env reference) plus an inner `pytest.skip`, and asserts `from_skipped_tests` surfaces the
-   inner skip (module not treated as wholesale opt-in). Verifier: pass.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

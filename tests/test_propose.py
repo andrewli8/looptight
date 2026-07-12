@@ -878,6 +878,24 @@ def test_from_skipped_tests_keeps_unconditional_skip_with_environ_reason(tmp_pat
     assert len(cands) == 1
 
 
+def test_module_is_optin_returns_false_for_non_env_pytestmark(tmp_path):
+    # A pytestmark = pytest.mark.skipif(True, ...) matches the outer re.match but
+    # _OPTIN_RE does not match (no os.environ/os.getenv/environ), so _module_is_optin
+    # returns False and the module is NOT treated as wholesale opt-in.  An inner
+    # pytest.skip() must therefore still be surfaced as a candidate.
+    _write(
+        tmp_path,
+        "tests/test_noenv.py",
+        "import pytest\n\n"
+        'pytestmark = pytest.mark.skipif(True, reason="always skip")\n\n\n'
+        "def test_inner():\n"
+        '    pytest.skip("inner skip to fix")\n',
+    )
+    cands = from_skipped_tests(tmp_path)
+    assert len(cands) >= 1, "inner skip not surfaced — module wrongly treated as opt-in"
+    assert any("test_noenv" in c.location for c in cands)
+
+
 def test_from_skipped_tests_classifies_skip_by_enclosing_conditional(tmp_path):
     # A pytest.skip() inside an if/elif (even nested) is an intentional capability
     # guard, not rot; one under a for-loop (no if) is unconditional rot.
