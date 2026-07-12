@@ -119,6 +119,50 @@ def test_resume_loop_exits_immediately_on_non_limit_error_when_resume_enabled(wo
     assert not waits  # non-limit error: no sleep, no retry
 
 
+def test_supply_loop_uses_transcript_when_error_is_none(workdir):
+    # When an adapter returns ok=False with error=None, the loop falls back to
+    # iteration.transcript for the error string (loop.py:140 second arm).
+    class _TranscriptOnlyAdapter(FakeAdapter):
+        def run_iteration(self, goal, context, workdir, model=None):
+            self.iterations_run += 1
+            return IterationResult(transcript="trace output", ok=False, error=None)
+
+    adapter = _TranscriptOnlyAdapter()
+    result = run_loop(
+        "fix it",
+        adapter,
+        _config(),
+        workdir,
+        verify_fn=make_verify(pass_on=99),
+        checkpointer=Checkpointer(workdir, enabled=False),
+    )
+
+    assert result.stop_reason is StopReason.ERROR
+    assert result.error == "trace output"
+
+
+def test_supply_loop_uses_literal_fallback_when_error_and_transcript_are_none(workdir):
+    # When ok=False, error=None, and transcript is falsy, the loop uses the
+    # literal "coding agent failed" fallback (loop.py:140 third arm).
+    class _SilentFailAdapter(FakeAdapter):
+        def run_iteration(self, goal, context, workdir, model=None):
+            self.iterations_run += 1
+            return IterationResult(transcript="", ok=False, error=None)
+
+    adapter = _SilentFailAdapter()
+    result = run_loop(
+        "fix it",
+        adapter,
+        _config(),
+        workdir,
+        verify_fn=make_verify(pass_on=99),
+        checkpointer=Checkpointer(workdir, enabled=False),
+    )
+
+    assert result.stop_reason is StopReason.ERROR
+    assert result.error == "coding agent failed"
+
+
 class _LimitedThenOkNativeAdapter(FakeAdapter):
     """Drives a native loop that reports a usage limit, then succeeds on retry."""
 

@@ -3404,16 +3404,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `_supply_loop` at `loop.py:140` builds the error string as
-   `iteration.error or iteration.transcript or "coding agent failed"`, but all failing adapters
-   set `error` to a non-`None` string — the `or iteration.transcript` arm and the final literal
-   fallback are never reached by any test.
-   Evidence: `src/looptight/loop.py:140`
-   Acceptance: `test_supply_loop_uses_transcript_when_error_is_none` in `tests/test_loop.py`
-   runs one iteration where the adapter returns `ok=False, error=None, transcript="trace"`,
-   and asserts the resulting `StopReason.ERROR` carry the transcript as the error string.
-
-4. `has_live_claim()` at `claims.py:39` guards with `if claim and ...` so a corrupt/empty
+1. `has_live_claim()` at `claims.py:39` guards with `if claim and ...` so a corrupt/empty
    claim file (where `_read` returns `{}`, falsy) is silently skipped without inspecting the
    timestamp — no `has_live_claim` test ever writes a corrupt file into the claims root, so a
    mutation removing the `claim and` guard would not be caught.
