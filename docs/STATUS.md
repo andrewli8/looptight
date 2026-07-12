@@ -3359,21 +3359,16 @@ existing CLI session and makes no model or API calls of its own.
   Covered by `test_state_path_uses_absolute_git_common_dir_directly` in `tests/test_ui.py`; a
   mutation forcing normalization would produce a wrong path for worktrees. Verifier: pass.
 
+- `@pytest.mark.xfail` decorator form at `discovery.py:333` is now pinned by
+  `test_from_skipped_tests_detects_xfail_decorator_and_suppresses_env_gated_form` in
+  `tests/test_propose.py`: a plain `@pytest.mark.xfail` is surfaced and an env-gated
+  `@pytest.mark.xfail(not os.environ.get("CI"), ...)` is suppressed; exactly one candidate
+  is returned. A mutation removing `"@pytest.mark.xfail"` from the startswith tuple would
+  now fail this test. Verifier: pass.
+
 ## Next
 
-1. `@pytest.mark.xfail` decorator form is detected by `_is_skip_line` at `discovery.py:333`
-   but no test exercises it directly — a mutation removing `"@pytest.mark.xfail"` from the
-   `startswith` tuple would go undetected, silently dropping xfail-decorated tests from the
-   fix-me queue. A paired test should also verify that an env-gated
-   `@pytest.mark.xfail(not os.environ.get(...))` is suppressed, covering the path at
-   `discovery.py:513`.
-   Evidence: `src/looptight/discovery.py:333`
-   Acceptance: `test_from_skipped_tests_detects_xfail_decorator_and_suppresses_env_gated_form`
-   in `tests/test_propose.py` writes a file with both a plain `@pytest.mark.xfail` (surfaced)
-   and an `@pytest.mark.xfail(not os.environ.get("CI"), ...)` (suppressed), and asserts
-   exactly one candidate is returned. Verifier: pass.
-
-3. `_one_line` collapses all whitespace via `" ".join(text.split())` but has no direct unit
+1. `_one_line` collapses all whitespace via `" ".join(text.split())` but has no direct unit
    test — a mutation replacing `text.split()` with `text.split(" ")` would fail to collapse
    tab and newline characters, producing malformed one-line titles from multi-line STATUS.md
    entries, without failing any existing test.

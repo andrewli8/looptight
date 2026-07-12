@@ -664,6 +664,27 @@ def test_from_skipped_tests_detects_imperative_xfail(tmp_path):
     assert not any(loc.endswith(":10") for loc in locs)  # guarded xfail -> not rot
 
 
+def test_from_skipped_tests_detects_xfail_decorator_and_suppresses_env_gated_form(tmp_path):
+    # Plain @pytest.mark.xfail is unconditional rot and must be surfaced.
+    # @pytest.mark.xfail(not os.environ.get(...)) is an opt-in env gate and must be
+    # suppressed — a mutation removing "xfail" from _is_skip_line's startswith tuple
+    # would silently drop the first form without breaking any other test.
+    _write(
+        tmp_path,
+        "tests/test_a.py",
+        "import os\nimport pytest\n\n\n"
+        "@pytest.mark.xfail\n"                                        # 5: plain decorator -> surfaced
+        "def test_plain_xfail():\n"
+        "    assert False\n\n"
+        '@pytest.mark.xfail(not os.environ.get("CI"), reason="skip outside CI")\n'  # 9: env gate -> suppressed
+        "def test_env_gated_xfail():\n"
+        "    assert False\n",
+    )
+    cands = from_skipped_tests(tmp_path)
+    assert len(cands) == 1, f"expected exactly 1 candidate, got {len(cands)}: {[c.location for c in cands]}"
+    assert cands[0].location.endswith(":5"), f"expected line 5 (plain xfail), got {cands[0].location}"
+
+
 def test_from_skipped_tests_detects_unittest_skips(tmp_path):
     # unittest is stdlib and widely used; its skips must be detected like pytest's.
     _write(
