@@ -3404,6 +3404,42 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `next_task()` at `tasks.py:139-140` returns `NextResult(status="error", error="dirty_worktree")`
+   when `_has_dirty_git_worktree` returns `True`, but no test ever calls `next_task()` with a
+   real dirty worktree — the guard is tested only via lower-level helpers for the `False` path,
+   leaving the error return undetected by mutations.
+   Evidence: `src/looptight/tasks.py:139`
+   Acceptance: `test_next_task_returns_dirty_worktree_error` in `tests/test_tasks.py` patches
+   `_has_dirty_git_worktree` to return `True`, calls `next_task()`, and asserts the result has
+   `status == "error"` and `error == "dirty_worktree"`.
+
+2. `_resume_loop` at `loop.py:106` exits immediately when `resume_on_limit=True` but the error
+   is not a rate-limit error (`not is_limit_error(iteration.error)`) — the third conjunct of the
+   return condition is never the deciding factor in any test; all limit-resume tests use
+   exclusively rate-limit-shaped errors, leaving this exit path untested.
+   Evidence: `src/looptight/loop.py:106`
+   Acceptance: `test_resume_loop_exits_immediately_on_non_limit_error_when_resume_enabled` in
+   `tests/test_loop.py` calls `_resume_loop` with `resume_on_limit=True` and an adapter that
+   returns a non-rate-limit error, and asserts the loop exits after exactly one attempt.
+
+3. `_supply_loop` at `loop.py:140` builds the error string as
+   `iteration.error or iteration.transcript or "coding agent failed"`, but all failing adapters
+   set `error` to a non-`None` string — the `or iteration.transcript` arm and the final literal
+   fallback are never reached by any test.
+   Evidence: `src/looptight/loop.py:140`
+   Acceptance: `test_supply_loop_uses_transcript_when_error_is_none` in `tests/test_loop.py`
+   runs one iteration where the adapter returns `ok=False, error=None, transcript="trace"`,
+   and asserts the resulting `StopReason.ERROR` carry the transcript as the error string.
+
+4. `has_live_claim()` at `claims.py:39` guards with `if claim and ...` so a corrupt/empty
+   claim file (where `_read` returns `{}`, falsy) is silently skipped without inspecting the
+   timestamp — no `has_live_claim` test ever writes a corrupt file into the claims root, so a
+   mutation removing the `claim and` guard would not be caught.
+   Evidence: `src/looptight/claims.py:39`
+   Acceptance: `test_has_live_claim_skips_corrupt_claim_file` in `tests/test_claims.py` writes
+   a non-JSON file into the claims root alongside a valid unexpired claim, calls
+   `has_live_claim`, and asserts the result is `True` (corrupt file skipped, valid claim found).
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
