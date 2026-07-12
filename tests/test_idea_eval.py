@@ -329,6 +329,17 @@ def test_ref_resolves_boundary_cases(tmp_path):
     assert ref_resolves(tmp_path, "../sibling.py") is False    # path traversal
 
 
+def test_ref_resolves_rejects_empty_absolute_and_dotdot_refs(tmp_path):
+    # Direct coverage of the three short-circuit guards in ref_resolves:
+    # `not path_text`, `relative.is_absolute()`, and `".." in relative.parts`.
+    # A mutation removing any one of these guards makes exactly one assertion fail.
+    from looptight.grounding import ref_resolves
+
+    assert ref_resolves(tmp_path, "") is False           # not path_text guard
+    assert ref_resolves(tmp_path, "/etc/passwd") is False  # is_absolute() guard
+    assert ref_resolves(tmp_path, "../outside.py") is False  # dotdot guard
+
+
 def test_ref_resolves_strips_trailing_period(tmp_path):
     # ref_resolves strips a trailing '.' so evidence refs that end a sentence
     # (e.g. "Evidence: src/x.py.") resolve correctly.
