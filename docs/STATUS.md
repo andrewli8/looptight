@@ -3378,19 +3378,15 @@ existing CLI session and makes no model or API calls of its own.
   removing `.rstrip()` would leave trailing spaces before the ellipsis and fail the
   `result[-2] != " "` assertion. Verifier: pass.
 
+- `_truncate` at `verify.py:43` is now pinned by `test_truncate_preserves_head_and_tail_content`
+  in `tests/test_verify.py`: `"A" * big + "B" * big` is truncated, and the result starts with "A"
+  and ends with "B" with no "B" in the head and no "A" in the tail. A mutation replacing
+  `text[-half:]` with `text[half:]` would put "A" chars in the tail portion, failing the
+  `"A" not in tail` assertion. Verifier: pass.
+
 ## Next
 
-1. `_truncate` at `verify.py:43` preserves a head slice (`text[:half]`) and a tail slice
-   (`text[-half:]`). The existing test at `test_verify.py:166` uses `"x" * N` (uniform content),
-   so a mutation replacing `text[-half:]` with `text[half:]` (taking the middle instead of the
-   tail) satisfies the length assertion while silently losing the actual tail of the output.
-   Evidence: `src/looptight/verify.py:43`
-   Acceptance: `test_truncate_preserves_head_and_tail_content` in `tests/test_verify.py` builds
-   a text with a distinct head (e.g. `"A" * big`) and a distinct tail (e.g. `"B" * big`), calls
-   `_truncate`, and asserts the result starts with `"A"` (head kept) and ends with `"B"` (tail
-   kept). Verifier: pass.
-
-3. `_enclosing_test_name` at `discovery.py:482` has a forward-scan branch (for decorator skips:
+1. `_enclosing_test_name` at `discovery.py:482` has a forward-scan branch (for decorator skips:
    `@pytest.mark.skip` preceding a `def`) and a backward-scan branch (for imperative skips inside
    a function body). Both are covered indirectly via `from_skipped_tests`, but there is only one
    direct unit test (`test_enclosing_test_name_breaks_on_non_decorator_non_def_line`) and it only

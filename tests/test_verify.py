@@ -171,6 +171,17 @@ def test_truncate_respects_max_output_bound():
     assert len(truncated) <= _MAX_OUTPUT_CHARS
 
 
+def test_truncate_preserves_head_and_tail_content():
+    big = _MAX_OUTPUT_CHARS
+    text = "A" * big + "B" * big
+    result = _truncate(text)
+    assert result.startswith("A"), "head (A chars) must be preserved"
+    assert result.endswith("B"), "tail (B chars) must be preserved"
+    head, tail = result.split("[truncated]", 1)
+    assert "B" not in head, "head must contain only A chars"
+    assert "A" not in tail, "tail must contain only B chars (not a mid-slice)"
+
+
 def test_truncate_leaves_short_text_unchanged():
     short = "ok\n"
     assert _truncate(short) == short
