@@ -3354,18 +3354,14 @@ existing CLI session and makes no model or API calls of its own.
   mutation changing `if removed:` to `if True:` would corrupt the file and the test catches it.
   Verifier: pass.
 
+- `ui._state_path()` at `ui.py:35` — when `git rev-parse --git-common-dir` returns an absolute
+  path (linked worktrees), `not common.is_absolute()` is False and the normalization is skipped.
+  Covered by `test_state_path_uses_absolute_git_common_dir_directly` in `tests/test_ui.py`; a
+  mutation forcing normalization would produce a wrong path for worktrees. Verifier: pass.
+
 ## Next
 
-1. `ui._state_path` when `git rev-parse --git-common-dir` returns an absolute path (`ui.py:35`)
-   is untested — in linked worktrees the output is an absolute path, so `not common.is_absolute()`
-   is False and the `common = (root / common).resolve()` normalization is skipped; the parallel
-   coordinator path (`coordinator.py:314`) has this branch covered, but `ui._state_path` does not.
-   Evidence: `src/looptight/ui.py:35`
-   Acceptance: `test_state_path_uses_absolute_git_common_dir_directly` in `tests/test_ui.py`
-   monkeypatches `subprocess.run` to return an absolute path and asserts `_state_path` returns
-   `abs_path / "looptight" / STATE_FILE`. Verifier: pass.
-
-2. `_module_is_optin` non-env-gated `pytestmark` is not treated as opt-in (`discovery.py:417`)
+1. `_module_is_optin` non-env-gated `pytestmark` is not treated as opt-in (`discovery.py:417`)
    is untested — a `pytestmark = pytest.mark.skipif(SOME_NON_ENV_CONDITION, ...)` matches the
    outer `re.match` but `_OPTIN_RE` does not match, so the loop continues without returning True;
    a mutation replacing `if _OPTIN_RE.search(...)` with `if True` would suppress all skips in any

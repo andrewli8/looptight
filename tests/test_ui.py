@@ -931,6 +931,25 @@ def test_state_path_in_git_repo_uses_common_dir(tmp_path):
     assert ".git" in str(path)  # under the Git common dir, not the .looptight fallback
 
 
+def test_state_path_uses_absolute_git_common_dir_directly(tmp_path, monkeypatch):
+    # ui.py:35 — when git rev-parse --git-common-dir returns an absolute path (linked worktrees),
+    # is_absolute() is True so the `common = (root / common).resolve()` line is skipped and the
+    # path is used as-is without joining with root.
+    import subprocess
+
+    from looptight.ui import STATE_FILE, _state_path
+
+    abs_common = tmp_path / "main" / ".git"
+    abs_common.mkdir(parents=True)
+
+    def fake_run(cmd, **kwargs):
+        return subprocess.CompletedProcess(cmd, 0, stdout=str(abs_common) + "\n", stderr="")
+
+    monkeypatch.setattr(ui.subprocess, "run", fake_run)
+    result = _state_path(tmp_path / "worktree")
+    assert result == abs_common / "looptight" / STATE_FILE
+
+
 def test_active_session_task_returns_none_on_exception(tmp_path, monkeypatch):
     import looptight.coordinator as _coord
 
