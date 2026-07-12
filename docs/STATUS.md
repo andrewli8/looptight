@@ -3345,104 +3345,43 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-- `_coordination_line` with `"file-claims"` scope (`commands.py:476`) was untested — a mutation
-  of `_COORDINATION_LABELS["file-claims"]` could not be caught. Added
-  `test_coordination_line_file_claims_scope_appends_suffix` in `tests/test_cli.py`; it
-  monkeypatches `coordination_scope` to return `"file-claims"` and asserts both
-  `"local-only (SQLite coordinator)"` and `"cross-machine sharing is unsupported"` appear in the
-  result. Verifier: pass.
+1. `trajectory.clear()` outside-git branch (`trajectory.py:66`) is untested — when
+   `_path(root)` returns `None` (outside a git repo), `clear()` returns without action but the
+   `if path is not None:` false-branch is never exercised; a mutation dropping the guard would
+   raise `AttributeError` on `None.unlink(...)` undetected.
+   Evidence: `src/looptight/trajectory.py:66`
+   Acceptance: `test_clear_is_a_noop_outside_git` in `tests/test_trajectory.py` calls
+   `trajectory.clear(tmp_path)` on a non-git directory and asserts no exception is raised and no
+   file is created. Verifier: pass.
 
-- `_is_fresh` string→None task transition (`trajectory.py:77`) was untested — the
-  `prior.get("task") != task` guard could be broken by a mutation that would only be
-  caught in one direction. Added `test_record_resets_when_task_transitions_from_string_to_none`
-  in `tests/test_trajectory.py`; it seeds a trajectory with `task="idea-A"`, calls
-  `record(..., task=None)`, and asserts `len(result) == 1` (fresh attempt). Verifier: pass.
+2. `settings.uninstall` no-op branch (`settings.py:106`) is untested — when a settings file
+   exists but contains no looptight Stop hooks, `removed` is 0 and the `if removed:` branch is
+   never taken; a mutation changing `if removed:` to `if True:` would corrupt the file but no test
+   would catch it.
+   Evidence: `src/looptight/settings.py:106`
+   Acceptance: `test_uninstall_returns_zero_when_no_looptight_hooks_present` in
+   `tests/test_settings.py` calls `uninstall(path)` on a settings file containing only non-looptight
+   content and asserts the return value is `0` and the file is unchanged. Verifier: pass.
 
-- `has_live_claim` early-exit guard (`claims.py:34`) was untested — both sibling tests called
-  `root.mkdir()` before invoking `has_live_claim`, so the `if not claims_root.is_dir(): return
-  False` branch was never exercised. Added `test_has_live_claim_returns_false_when_root_absent` in
-  `tests/test_claims.py`; it calls `has_live_claim` on a non-existent path and asserts `False`.
-  Verifier: pass.
+3. `ui._state_path` when `git rev-parse --git-common-dir` returns an absolute path (`ui.py:35`)
+   is untested — in linked worktrees the output is an absolute path, so `not common.is_absolute()`
+   is False and the `common = (root / common).resolve()` normalization is skipped; the parallel
+   coordinator path (`coordinator.py:314`) has this branch covered, but `ui._state_path` does not.
+   Evidence: `src/looptight/ui.py:35`
+   Acceptance: `test_state_path_uses_absolute_git_common_dir_directly` in `tests/test_ui.py`
+   monkeypatches `subprocess.run` to return an absolute path and asserts `_state_path` returns
+   `abs_path / "looptight" / STATE_FILE`. Verifier: pass.
 
-- `Coordinator.claim()` same-run idempotent re-claim branch (`coordinator.py:485`) was untested —
-  all existing tests use distinct `run_id` values, so a removal of the `if owned is not None`
-  guard would cause a second `claim()` from the same run to return `None` silently. Added
-  `test_claim_is_idempotent_for_same_run_while_lease_is_live` in `tests/test_coordinator.py`;
-  it starts one run, calls `claim()` twice with the same `run_id`, and asserts both calls return
-  the same non-`None` lease with matching `task_id` and `generation`. Verifier: pass.
-
-- `read_goal` `json.JSONDecodeError` sub-path (`goal.py:56`) was untested — the handler comment
-  (goal.py:68) explicitly documents both JSONDecodeError and UnicodeDecodeError as the two
-  ValueError sub-types caught, but only the UnicodeDecodeError path was exercised. Added
-  `test_read_goal_returns_none_on_malformed_json` in `tests/test_goal.py`; it writes
-  `"{ broken json"` (valid UTF-8, invalid JSON) and asserts `read_goal` returns `None`. Verifier:
-  pass.
-
-- `_claimed_at` `TypeError` arm (`claims.py:20`) was untested — `float(None)` raises `TypeError`
-  when `claimed_at` is JSON `null`, but only the `ValueError` sub-path was exercised (string
-  "oops"). Added `test_claimed_at_null_is_treated_as_expired` in `tests/test_claims.py`; it writes
-  a claim with `"claimed_at": null` and asserts both `has_live_claim` and `ClaimStore.summary`
-  treat it as expired without raising. Verifier: pass.
-
-- `next_task` `private_dir is None` fallback (`tasks.py:192`) was untested — when both
-  `Coordinator.open` and `claim_dir` return `None`, the else-else branch picks `tasks[0]`, but the
-  existing test mocks `claim_dir` to a non-None path. Added
-  `test_next_task_outside_git_picks_first_candidate` in `tests/test_tasks.py`; it mocks both to
-  `None` and asserts the first candidate is returned. Verifier: pass.
-
-- `read_state` JSONDecodeError sub-path (`ui.py:62`) was untested — the handler comment (ui.py:63)
-  documents both JSONDecodeError and UnicodeDecodeError, but only the UnicodeDecodeError path was
-  tested. Added `test_read_state_returns_empty_on_malformed_json` in `tests/test_ui.py`; it writes
-  `"{ broken json"` and asserts `read_state` returns `empty_state()`. Verifier: pass.
-
-- `coordinator_path` absolute-path branch (`coordinator.py:314`) was untested — when
-  `git rev-parse --git-common-dir` returns an absolute path (linked worktrees), `if not
-  common.is_absolute()` is False and `common` is used directly without prepending `workdir`; no test
-  exercised this arm. Added `test_coordinator_path_absolute_git_common_dir_is_used_directly` in
-  `tests/test_coordinator.py`; it stubs `subprocess.run` to return an absolute path and asserts
-  `coordinator_path` resolves to the correct `.../looptight/coordinator.db` path. Verifier: pass.
-
-- `current_run_id()` LOOPTIGHT_SESSION_ID fallback (`coordinator.py:293`) was untested — three-branch
-  priority (LOOPTIGHT_RUN_ID → LOOPTIGHT_SESSION_ID → uuid4()); all existing tests inject
-  LOOPTIGHT_RUN_ID so the middle branch was never exercised directly. Added
-  `test_current_run_id_prefers_session_id_over_uuid` in `tests/test_coordinator.py`; it unsets
-  LOOPTIGHT_RUN_ID, sets LOOPTIGHT_SESSION_ID to `"ci-session-42"`, and asserts `current_run_id()`
-  returns that value. Verifier: pass.
-
-- `_normalize_failure` MAX_FAILURE_LINE cap (`metacog.py:115`) was untested — `[:MAX_FAILURE_LINE]`
-  truncates to 200 chars but both existing tests use strings under 200 chars, leaving a mutation to
-  a larger cap undetected. Added `test_normalize_failure_truncates_at_max_failure_line` in
-  `tests/test_metacog.py`; it passes a 300-character string and asserts the result length equals
-  `MAX_FAILURE_LINE`. Verifier: pass.
-
-- `_recipe_runner` OSError arm (`detect.py:163`) was untested — `except (OSError, ValueError)` at line
-  164 catches both, but both Makefile tests trigger `UnicodeDecodeError` (a `ValueError` subclass);
-  the `OSError` arm was never exercised. Added `test_recipe_runner_oserror_falls_through` in
-  `tests/test_detect.py`; it creates a directory named `Makefile` (raising `IsADirectoryError`, an
-  `OSError` subclass, at `read_text`) and asserts `detect_verify` returns `None`. Verifier: pass.
-
-- `restore()` default-sha fallback (`checkpoint.py:100`) was untested — `sha or (self.snapshots[-1] if
-  self.snapshots else None)`: all existing `restore()` calls either pass an explicit sha or have no
-  snapshots, so `self.snapshots[-1]` was never reached. Added `test_restore_defaults_to_latest_snapshot`
-  in `tests/test_checkpoint.py`; it takes two snapshots, clobbers the file, calls `restore()` with no
-  argument, and asserts the file reverts to version-2 (the latest). Verifier: pass.
-
-- `diffstat()` success path (`checkpoint.py:116`) was untested — the existing test only exercised the
-  failure branch (nonzero returncode → empty string). Added `test_diffstat_returns_nonempty_on_successful_diff`
-  in `tests/test_checkpoint.py`; it inits a repo, takes a clean-tree snapshot, modifies the tracked file,
-  then asserts `diffstat()` returns a non-empty string containing the filename. Verifier: pass.
-
-- `run_hook`'s absent-`cwd` fallback (`hook.py:249`) was untested — `cwd_value or Path.cwd()`:
-  all existing `run_hook` tests supply an explicit `"cwd"` key, so the `Path.cwd()` branch was
-  never exercised. Added `test_run_hook_absent_cwd_falls_back_to_cwd` in `tests/test_hook.py`;
-  it uses `monkeypatch.chdir(tmp_path)` so the fallback lands in a dir with no config, asserting
-  `(None, 0)` without raising. Verifier: pass.
-
-- `_parse_absolute_reset`'s no-clock-time branch (`limits.py:94`) was untested — `_AT_TIME_RE`
-  not matching returns `None`, but all absolute-reset tests supply a clock time ("at 3:00pm"). Added
-  `test_absolute_reset_returns_none_without_clock_time` in `tests/test_limits.py`; the text
-  "usage limit reached; try again soon" has "again" (matches `_RESET_CONTEXT_RE`) but no "at HH:MM",
-  asserting `signal.retry_after_s is None`. Verifier: pass.
+4. `_module_is_optin` non-env-gated `pytestmark` is not treated as opt-in (`discovery.py:417`)
+   is untested — a `pytestmark = pytest.mark.skipif(SOME_NON_ENV_CONDITION, ...)` matches the
+   outer `re.match` but `_OPTIN_RE` does not match, so the loop continues without returning True;
+   a mutation replacing `if _OPTIN_RE.search(...)` with `if True` would suppress all skips in any
+   `pytestmark`-using module.
+   Evidence: `src/looptight/discovery.py:417`
+   Acceptance: `test_module_is_optin_returns_false_for_non_env_pytestmark` in
+   `tests/test_propose.py` writes a Python file with `pytestmark = pytest.mark.skipif(True, ...)`
+   (no env reference) plus an inner `pytest.skip`, and asserts `from_skipped_tests` surfaces the
+   inner skip (module not treated as wholesale opt-in). Verifier: pass.
 
 ## Rules
 
