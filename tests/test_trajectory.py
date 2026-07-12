@@ -72,6 +72,14 @@ def test_record_is_a_noop_outside_git(tmp_path):
     assert trajectory._path(tmp_path) is None
 
 
+def test_clear_is_a_noop_outside_git(tmp_path):
+    # trajectory.py:66 — when _path returns None (not inside a git repo),
+    # clear() must return without raising and must not create any file.
+    trajectory.clear(tmp_path)  # must not raise
+    # _path returns None outside git, so no file should exist anywhere under tmp_path.
+    assert not any(tmp_path.rglob("*.json"))
+
+
 def test_clear_drops_trajectory(tmp_path):
     repo = _repo(tmp_path)
     # Seed two entries so the store is non-trivial.

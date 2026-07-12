@@ -3343,18 +3343,14 @@ existing CLI session and makes no model or API calls of its own.
   `test_trajectory_path_uses_absolute_git_dir_directly` in `tests/test_trajectory.py`; a mutation
   changing `if not git_dir.is_absolute()` to `if True` fails the test.
 
+- `trajectory.clear()` at `trajectory.py:66` — when `_path(root)` returns `None` (outside a git
+  repo) the `if path is not None:` false-branch is never entered. Covered by
+  `test_clear_is_a_noop_outside_git` in `tests/test_trajectory.py`; a mutation dropping the guard
+  would raise `AttributeError` on `None.unlink(...)` and the test catches it. Verifier: pass.
+
 ## Next
 
-1. `trajectory.clear()` outside-git branch (`trajectory.py:66`) is untested — when
-   `_path(root)` returns `None` (outside a git repo), `clear()` returns without action but the
-   `if path is not None:` false-branch is never exercised; a mutation dropping the guard would
-   raise `AttributeError` on `None.unlink(...)` undetected.
-   Evidence: `src/looptight/trajectory.py:66`
-   Acceptance: `test_clear_is_a_noop_outside_git` in `tests/test_trajectory.py` calls
-   `trajectory.clear(tmp_path)` on a non-git directory and asserts no exception is raised and no
-   file is created. Verifier: pass.
-
-2. `settings.uninstall` no-op branch (`settings.py:106`) is untested — when a settings file
+1. `settings.uninstall` no-op branch (`settings.py:106`) is untested — when a settings file
    exists but contains no looptight Stop hooks, `removed` is 0 and the `if removed:` branch is
    never taken; a mutation changing `if removed:` to `if True:` would corrupt the file but no test
    would catch it.
