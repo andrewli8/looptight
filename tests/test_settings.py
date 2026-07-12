@@ -159,6 +159,17 @@ def test_refuses_when_stop_hooks_is_not_an_array(tmp_path, edit):
     assert path.read_text() == original
 
 
+def test_uninstall_returns_zero_when_no_looptight_hooks_present(tmp_path):
+    # settings.py:106 — when a settings file exists but has no looptight Stop hooks,
+    # removed == 0 and the `if removed:` branch is False; the file must be left unchanged.
+    path = tmp_path / "settings.json"
+    content = json.dumps({"model": "opus", "hooks": {"Stop": [{"matcher": "*", "hooks": [{"type": "command", "command": "make lint"}]}]}}) + "\n"
+    path.write_text(content, encoding="utf-8")
+    removed = uninstall(path)
+    assert removed == 0
+    assert path.read_text(encoding="utf-8") == content  # file untouched
+
+
 def test_uninstall_refuses_when_hooks_is_not_an_object(tmp_path):
     path = tmp_path / "settings.json"
     path.write_text(json.dumps({"hooks": ["not", "an", "object"]}))

@@ -3348,18 +3348,15 @@ existing CLI session and makes no model or API calls of its own.
   `test_clear_is_a_noop_outside_git` in `tests/test_trajectory.py`; a mutation dropping the guard
   would raise `AttributeError` on `None.unlink(...)` and the test catches it. Verifier: pass.
 
+- `settings.uninstall()` at `settings.py:106` — when a settings file exists but has no looptight
+  Stop hooks, `removed == 0` and the `if removed:` branch is never entered. Covered by
+  `test_uninstall_returns_zero_when_no_looptight_hooks_present` in `tests/test_settings.py`; a
+  mutation changing `if removed:` to `if True:` would corrupt the file and the test catches it.
+  Verifier: pass.
+
 ## Next
 
-1. `settings.uninstall` no-op branch (`settings.py:106`) is untested — when a settings file
-   exists but contains no looptight Stop hooks, `removed` is 0 and the `if removed:` branch is
-   never taken; a mutation changing `if removed:` to `if True:` would corrupt the file but no test
-   would catch it.
-   Evidence: `src/looptight/settings.py:106`
-   Acceptance: `test_uninstall_returns_zero_when_no_looptight_hooks_present` in
-   `tests/test_settings.py` calls `uninstall(path)` on a settings file containing only non-looptight
-   content and asserts the return value is `0` and the file is unchanged. Verifier: pass.
-
-3. `ui._state_path` when `git rev-parse --git-common-dir` returns an absolute path (`ui.py:35`)
+1. `ui._state_path` when `git rev-parse --git-common-dir` returns an absolute path (`ui.py:35`)
    is untested — in linked worktrees the output is an absolute path, so `not common.is_absolute()`
    is False and the `common = (root / common).resolve()` normalization is skipped; the parallel
    coordinator path (`coordinator.py:314`) has this branch covered, but `ui._state_path` does not.
@@ -3368,7 +3365,7 @@ existing CLI session and makes no model or API calls of its own.
    monkeypatches `subprocess.run` to return an absolute path and asserts `_state_path` returns
    `abs_path / "looptight" / STATE_FILE`. Verifier: pass.
 
-4. `_module_is_optin` non-env-gated `pytestmark` is not treated as opt-in (`discovery.py:417`)
+2. `_module_is_optin` non-env-gated `pytestmark` is not treated as opt-in (`discovery.py:417`)
    is untested — a `pytestmark = pytest.mark.skipif(SOME_NON_ENV_CONDITION, ...)` matches the
    outer `re.match` but `_OPTIN_RE` does not match, so the loop continues without returning True;
    a mutation replacing `if _OPTIN_RE.search(...)` with `if True` would suppress all skips in any
