@@ -3404,15 +3404,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `has_live_claim()` at `claims.py:39` guards with `if claim and ...` so a corrupt/empty
-   claim file (where `_read` returns `{}`, falsy) is silently skipped without inspecting the
-   timestamp — no `has_live_claim` test ever writes a corrupt file into the claims root, so a
-   mutation removing the `claim and` guard would not be caught.
-   Evidence: `src/looptight/claims.py:39`
-   Acceptance: `test_has_live_claim_skips_corrupt_claim_file` in `tests/test_claims.py` writes
-   a non-JSON file into the claims root alongside a valid unexpired claim, calls
-   `has_live_claim`, and asserts the result is `True` (corrupt file skipped, valid claim found).
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

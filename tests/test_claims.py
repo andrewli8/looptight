@@ -178,6 +178,23 @@ def test_has_live_claim_true_when_unexpired_claim_exists(tmp_path):
     assert has_live_claim(root, now=1.0) is True
 
 
+def test_has_live_claim_skips_corrupt_claim_file(tmp_path):
+    # claims.py:39 — `if claim and ...` silently skips a corrupt file where
+    # _read returns {} (falsy). Without the guard a mutation could crash on
+    # _claimed_at({}), but no prior test ever placed a corrupt file alongside
+    # a valid one to force the guard to be the deciding factor.
+    from looptight.claims import has_live_claim
+
+    root = tmp_path / "claims"
+    root.mkdir()
+    # corrupt file: _read returns {} (falsy) — must be skipped
+    (root / "corrupt.json").write_text("not valid json", encoding="utf-8")
+    # valid unexpired claim alongside it
+    ClaimStore(root, "owner", now=0.0)._claim("t1")
+    # corrupt file is skipped; the valid claim is found
+    assert has_live_claim(root, now=1.0) is True
+
+
 def test_select_returns_none_when_all_tasks_claimed_by_others(tmp_path):
     root = tmp_path / "claims"
     other = ClaimStore(root, "other", now=0.0)
