@@ -3404,16 +3404,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `next_task()` at `tasks.py:139-140` returns `NextResult(status="error", error="dirty_worktree")`
-   when `_has_dirty_git_worktree` returns `True`, but no test ever calls `next_task()` with a
-   real dirty worktree — the guard is tested only via lower-level helpers for the `False` path,
-   leaving the error return undetected by mutations.
-   Evidence: `src/looptight/tasks.py:139`
-   Acceptance: `test_next_task_returns_dirty_worktree_error` in `tests/test_tasks.py` patches
-   `_has_dirty_git_worktree` to return `True`, calls `next_task()`, and asserts the result has
-   `status == "error"` and `error == "dirty_worktree"`.
-
-2. `_resume_loop` at `loop.py:106` exits immediately when `resume_on_limit=True` but the error
+1. `_resume_loop` at `loop.py:106` exits immediately when `resume_on_limit=True` but the error
    is not a rate-limit error (`not is_limit_error(iteration.error)`) — the third conjunct of the
    return condition is never the deciding factor in any test; all limit-resume tests use
    exclusively rate-limit-shaped errors, leaving this exit path untested.

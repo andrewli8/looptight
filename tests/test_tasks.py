@@ -325,6 +325,20 @@ def test_has_dirty_git_worktree_returns_false_on_nonzero_returncode(tmp_path, mo
     assert _has_dirty_git_worktree(tmp_path) is False
 
 
+def test_next_task_returns_dirty_worktree_error(tmp_path):
+    # tasks.py:139-140 — `if _has_dirty_git_worktree(workdir): return NextResult(
+    # status="error", error="dirty_worktree")` is never produced in any test because
+    # all existing dirty-worktree tests exercise _has_dirty_git_worktree in isolation
+    # for the False path only.  A mutation changing the guard would go undetected.
+    import looptight.tasks as tasks_module
+
+    with patch.object(tasks_module, "_has_dirty_git_worktree", return_value=True):
+        result = next_task(tmp_path, propose_fn=lambda w, limit=0: [])
+
+    assert result.status == "error"
+    assert result.error == "dirty_worktree"
+
+
 def test_next_task_closes_coordinator_on_exception(tmp_path):
     # tasks.py opens the coordinator without try/finally, so an exception inside the
     # coordinator block (start_run, heartbeat, reap_abandoned, claim) skips close(),
