@@ -3361,18 +3361,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `_statement_text` over-extends past a `pytestmark` when its reason string contains an
-   unbalanced `(` and the following line references `os.environ` — a mutation dropping
-   `_code_only` from `discovery.py:385` causes `_module_is_optin` to swallow the next line
-   and falsely suppress inner skips.
-   Evidence: `src/looptight/discovery.py:385`
-   Acceptance: `test_statement_text_does_not_overextend_when_reason_has_unbalanced_paren` in
-   `tests/test_propose.py` writes a module with `pytestmark = pytest.mark.skipif(True,
-   reason="unclosed (")` followed by `os.environ` usage on the next line plus an inner
-   `pytest.skip`, and asserts `from_skipped_tests` surfaces the inner skip (module not
-   falsely treated as opt-in). Verifier: pass.
-
-2. `@pytest.mark.xfail` decorator form is detected by `_is_skip_line` at `discovery.py:333`
+1. `@pytest.mark.xfail` decorator form is detected by `_is_skip_line` at `discovery.py:333`
    but no test exercises it directly — a mutation removing `"@pytest.mark.xfail"` from the
    `startswith` tuple would go undetected, silently dropping xfail-decorated tests from the
    fix-me queue. A paired test should also verify that an env-gated

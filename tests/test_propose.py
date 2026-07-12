@@ -896,6 +896,29 @@ def test_module_is_optin_returns_false_for_non_env_pytestmark(tmp_path):
     assert any("test_noenv" in c.location for c in cands)
 
 
+def test_statement_text_does_not_overextend_when_reason_has_unbalanced_paren(tmp_path):
+    # _statement_text uses _code_only(line) before counting parens (discovery.py:385).
+    # Without _code_only, a reason string with an unbalanced `(` makes depth stay
+    # positive and the next line is swallowed.  If that next line contains os.environ,
+    # _module_is_optin falsely returns True and inner skips are never surfaced.
+    # This test is the mutation guard for dropping _code_only from _statement_text.
+    _write(
+        tmp_path,
+        "tests/test_badparen.py",
+        "import os, pytest\n\n"
+        'pytestmark = pytest.mark.skipif(True, reason="unclosed (")\n'
+        'os.environ["SIDE_EFFECT"] = "y"\n\n'
+        "def test_inner():\n"
+        '    pytest.skip("inner skip to fix")\n',
+    )
+    cands = from_skipped_tests(tmp_path)
+    assert len(cands) >= 1, (
+        "inner skip not surfaced — _statement_text over-extended past pytestmark "
+        "due to unbalanced paren in reason string"
+    )
+    assert any("test_badparen" in c.location for c in cands)
+
+
 def test_from_skipped_tests_classifies_skip_by_enclosing_conditional(tmp_path):
     # A pytest.skip() inside an if/elif (even nested) is an intentional capability
     # guard, not rot; one under a for-loop (no if) is unconditional rot.
