@@ -3366,16 +3366,13 @@ existing CLI session and makes no model or API calls of its own.
   is returned. A mutation removing `"@pytest.mark.xfail"` from the startswith tuple would
   now fail this test. Verifier: pass.
 
-## Next
+- `_one_line` at `discovery.py:286` is now pinned by `test_one_line_collapses_tabs_and_newlines`
+  in `tests/test_propose.py`: `_one_line("a\tb\nc")` returns `"a b c"` and
+  `_one_line("  leading\t\ttrailing  ")` returns `"leading trailing"`. A mutation replacing
+  `text.split()` with `text.split(" ")` would leave tabs and newlines intact and fail this
+  test. Verifier: pass.
 
-1. `_one_line` collapses all whitespace via `" ".join(text.split())` but has no direct unit
-   test — a mutation replacing `text.split()` with `text.split(" ")` would fail to collapse
-   tab and newline characters, producing malformed one-line titles from multi-line STATUS.md
-   entries, without failing any existing test.
-   Evidence: `src/looptight/discovery.py:286`
-   Acceptance: `test_one_line_collapses_tabs_and_newlines` in `tests/test_propose.py` imports
-   `_one_line` and asserts `_one_line("a\tb\nc")` returns `"a b c"` and
-   `_one_line("  leading\t\ttrailing  ")` returns `"leading trailing"`. Verifier: pass.
+## Next
 
 ## Rules
 

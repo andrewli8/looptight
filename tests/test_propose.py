@@ -685,6 +685,16 @@ def test_from_skipped_tests_detects_xfail_decorator_and_suppresses_env_gated_for
     assert cands[0].location.endswith(":5"), f"expected line 5 (plain xfail), got {cands[0].location}"
 
 
+def test_one_line_collapses_tabs_and_newlines():
+    # _one_line uses text.split() (not text.split(" ")), so tabs and newlines collapse
+    # to single spaces. A mutation switching to split(" ") would leave "\t" and "\n"
+    # intact and fail this test.
+    from looptight.discovery import _one_line
+
+    assert _one_line("a\tb\nc") == "a b c"
+    assert _one_line("  leading\t\ttrailing  ") == "leading trailing"
+
+
 def test_from_skipped_tests_detects_unittest_skips(tmp_path):
     # unittest is stdlib and widely used; its skips must be detected like pytest's.
     _write(
