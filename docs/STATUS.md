@@ -3372,18 +3372,15 @@ existing CLI session and makes no model or API calls of its own.
   `text.split()` with `text.split(" ")` would leave tabs and newlines intact and fail this
   test. Verifier: pass.
 
+- `_bound` at `discovery.py:279` is now pinned by `test_bound_strips_trailing_spaces_before_ellipsis`
+  in `tests/test_propose.py`: `_bound("a" * 196 + "    extra")` (spaces at the cut boundary after
+  `text[:200]`) returns a string ending with `"…"` with no space immediately before it. A mutation
+  removing `.rstrip()` would leave trailing spaces before the ellipsis and fail the
+  `result[-2] != " "` assertion. Verifier: pass.
+
 ## Next
 
-1. `_bound` at `discovery.py:279` uses `.rstrip()` before appending the ellipsis so that a
-   truncated title does not end with `"trailing spaces…"`. No existing test exercises text that
-   has whitespace at the cut boundary — the tests at `test_propose.py:31` and `test_propose.py:439`
-   both use `"x" * N` (no spaces), so a mutation removing `.rstrip()` is undetected.
-   Evidence: `src/looptight/discovery.py:279`
-   Acceptance: `test_bound_strips_trailing_spaces_before_ellipsis` in `tests/test_propose.py`
-   imports `_bound` and asserts that `_bound("a" * 196 + "    extra")` ends with `"…"` and
-   contains no spaces immediately before the ellipsis. Verifier: pass.
-
-2. `_truncate` at `verify.py:43` preserves a head slice (`text[:half]`) and a tail slice
+1. `_truncate` at `verify.py:43` preserves a head slice (`text[:half]`) and a tail slice
    (`text[-half:]`). The existing test at `test_verify.py:166` uses `"x" * N` (uniform content),
    so a mutation replacing `text[-half:]` with `text[half:]` (taking the middle instead of the
    tail) satisfies the length assertion while silently losing the actual tail of the output.

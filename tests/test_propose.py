@@ -41,6 +41,14 @@ def test_from_todos_bounds_pathologically_long_marker_text(tmp_path):
     assert cands[0].location == "src/long.py:1"
 
 
+def test_bound_strips_trailing_spaces_before_ellipsis():
+    from looptight.discovery import _bound
+
+    result = _bound("a" * 196 + "    extra")
+    assert result.endswith("…"), "truncated text must end with ellipsis"
+    assert result[-2] != " ", "no space should appear immediately before the ellipsis"
+
+
 def test_from_todos_detects_ticket_and_jsdoc_markers(tmp_path):
     # Issue-linked attribution (TODO[#123]:) and the JSDoc @todo tag are real marker
     # forms in supported languages; @param/@todoize/TODOS: must stay rejected.
