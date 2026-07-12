@@ -3374,6 +3374,37 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_bound` at `discovery.py:279` uses `.rstrip()` before appending the ellipsis so that a
+   truncated title does not end with `"trailing spaces…"`. No existing test exercises text that
+   has whitespace at the cut boundary — the tests at `test_propose.py:31` and `test_propose.py:439`
+   both use `"x" * N` (no spaces), so a mutation removing `.rstrip()` is undetected.
+   Evidence: `src/looptight/discovery.py:279`
+   Acceptance: `test_bound_strips_trailing_spaces_before_ellipsis` in `tests/test_propose.py`
+   imports `_bound` and asserts that `_bound("a" * 196 + "    extra")` ends with `"…"` and
+   contains no spaces immediately before the ellipsis. Verifier: pass.
+
+2. `_truncate` at `verify.py:43` preserves a head slice (`text[:half]`) and a tail slice
+   (`text[-half:]`). The existing test at `test_verify.py:166` uses `"x" * N` (uniform content),
+   so a mutation replacing `text[-half:]` with `text[half:]` (taking the middle instead of the
+   tail) satisfies the length assertion while silently losing the actual tail of the output.
+   Evidence: `src/looptight/verify.py:43`
+   Acceptance: `test_truncate_preserves_head_and_tail_content` in `tests/test_verify.py` builds
+   a text with a distinct head (e.g. `"A" * big`) and a distinct tail (e.g. `"B" * big`), calls
+   `_truncate`, and asserts the result starts with `"A"` (head kept) and ends with `"B"` (tail
+   kept). Verifier: pass.
+
+3. `_enclosing_test_name` at `discovery.py:482` has a forward-scan branch (for decorator skips:
+   `@pytest.mark.skip` preceding a `def`) and a backward-scan branch (for imperative skips inside
+   a function body). Both are covered indirectly via `from_skipped_tests`, but there is only one
+   direct unit test (`test_enclosing_test_name_breaks_on_non_decorator_non_def_line`) and it only
+   tests the None return. A mutation in the forward-scan's `_DEF_RE.match(lines[j])` at line 484
+   would break decorator-skip naming without failing the only direct test.
+   Evidence: `src/looptight/discovery.py:482`
+   Acceptance: `test_enclosing_test_name_forward_scan_finds_def_after_decorator` in
+   `tests/test_propose.py` directly calls `_enclosing_test_name` with
+   `["@pytest.mark.skip\n", "def test_found():\n", "    pass\n"]` at idx 0 and asserts the
+   result equals `"test_found"`. Verifier: pass.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
