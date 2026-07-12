@@ -3397,19 +3397,14 @@ existing CLI session and makes no model or API calls of its own.
   `test_from_todos_detects_hack_and_xxx_markers` in `tests/test_propose.py` writes
   `# HACK: legacy workaround` and `# XXX: revisit this` and asserts both produce
   candidates; a mutation dropping either alternate fails the test.
+- `_delegate_loop`'s `on_iteration` call now has failing-verify coverage:
+  `test_delegate_on_iteration_called_when_verify_fails` in `tests/test_loop.py` runs
+  delegate mode with a never-passing verify and asserts the callback fires with
+  `verify.passed is False`; a conditional guard on the call site would fail the test.
 
 ## Next
 
-1. `_delegate_loop` at `loop.py:210-211` calls `on_iteration(record)` regardless of whether
-   verify passed or failed, but the only test for `on_iteration` in the delegate path
-   (`test_on_iteration_callback_called_in_delegate_path`) supplies a passing verify — the
-   failing-verify branch of the callback is never exercised.
-   Evidence: `src/looptight/loop.py:210`
-   Acceptance: `test_delegate_on_iteration_called_when_verify_fails` in `tests/test_loop.py`
-   calls `run_loop` in delegate mode with a verify that returns `passed=False`, passes an
-   `on_iteration` accumulator, and asserts it was called once with `verify.passed is False`.
-
-2. `ClaimStore.summary()` at `claims.py:120` sets `owned = value if isinstance(value, str) else
+1. `ClaimStore.summary()` at `claims.py:120` sets `owned = value if isinstance(value, str) else
    None` for the owning session's claim, but no test writes a live unexpired claim with a
    non-string `task_id` (e.g. integer 42) and calls `summary()` — the `else None` branch is
    never reached, so a mutation changing the guard to `isinstance(value, int)` would go

@@ -358,6 +358,28 @@ def test_on_iteration_callback_called_in_delegate_path(workdir):
     assert seen[0].verify.passed
 
 
+def test_delegate_on_iteration_called_when_verify_fails(workdir):
+    # _delegate_loop calls on_iteration(record) unconditionally; the existing test
+    # only exercises the passing-verify branch. A mutation making the callback
+    # conditional on verify.passed would pass without this test.
+    adapter = FakeAdapter(supports_native=True)
+    seen: list = []
+
+    run_loop(
+        "do it",
+        adapter,
+        _config(max_iterations=1),
+        workdir,
+        native=True,
+        verify_fn=make_verify(pass_on=999),  # never passes within 1 iteration
+        checkpointer=Checkpointer(workdir, enabled=False),
+        on_iteration=seen.append,
+    )
+
+    assert len(seen) == 1
+    assert seen[0].verify.passed is False
+
+
 def test_run_loop_passes_model_to_adapter(workdir):
     received = {}
 
