@@ -3404,6 +3404,29 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_verify_exit_code` uses a bare dict subscript that raises `KeyError` on any
+   status value outside the four known strings; fix to `.get(status, 2)` and add
+   a direct test.
+   Evidence: src/looptight/protocol_commands.py:151
+   Acceptance: `test_verify_exit_code_unknown_status_returns_two` in tests/test_cli.py
+   passes: `_verify_exit_code("unknown")` returns `2` and does not raise.
+
+2. `_build_prompt` is defined identically in both `codex.py` and `opencode.py`;
+   move the single copy to `adapters/base.py` and import it from both adapters so
+   a future prompt change cannot silently miss one adapter.
+   Evidence: src/looptight/adapters/codex.py:54; src/looptight/adapters/opencode.py:51
+   Acceptance: `test_supply_adapters_share_build_prompt_implementation` in
+   tests/test_adapters.py passes: `codex._build_prompt is opencode._build_prompt`
+   (same object after consolidation).
+
+3. `cmd_status --json` goal block omits `done_check`; callers cannot tell whether
+   the loop is predicate-gated without running a separate `goal next`; add it as an
+   additive nullable field.
+   Evidence: src/looptight/protocol_commands.py:654
+   Acceptance: `test_status_json_goal_block_includes_done_check` in tests/test_cli.py
+   passes: a repo with an active goal sets `done_check` in `status --json`
+   `payload["goal"]`, and `None` appears when no done check is configured.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
