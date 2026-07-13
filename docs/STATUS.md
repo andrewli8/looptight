@@ -3448,6 +3448,31 @@ existing CLI session and makes no model or API calls of its own.
   and a `def` (not `if`) at indent 0; asserts the result is `False`, proving the
   same-indent line is not treated as a blocking outer context.
 
+## Next
+
+1. Pin `_is_skip_line`'s `marks` branch against non-skip marks at `discovery.py:343`.
+   The cheap substring gate fires when both `"marks"` and `"pytest.mark."` appear in the
+   line; the regex `r"\bmarks\s*=.*\bpytest\.mark\.(?:skip|skipif|xfail)\b"` must then
+   reject a non-skip mark (e.g. `marks=pytest.mark.timeout(60)`). No current test passes
+   such a line; a mutation broadening `(?:skip|skipif|xfail)` to `\w+` would pass the
+   entire suite undetected, silently surfacing non-skip parametrize/timeout marks as
+   false-positive "un-skip" candidates.
+   Evidence: `src/looptight/discovery.py:343`
+   Acceptance: A new test in `tests/test_propose.py` directly calls `_is_skip_line` with
+   a line containing `marks=pytest.mark.timeout(60)` and asserts the result is `False`;
+   mutating `(?:skip|skipif|xfail)` to `\w+` in the regex fails that test.
+
+2. Pin `_normalize_failure`'s `_IN_SECONDS_RE` against plain-seconds durations at
+   `metacog.py:106`. The pattern `r"\bin\s+\d+(?:\.\d+)?\s*m?s\b"` normalizes both
+   `in 2ms` and `in 2s`; the only existing test uses `in 2ms`, so a mutation dropping
+   the `m?` (making `ms` mandatory) would leave `in 2s` un-normalized across runs,
+   preventing the same failure from matching its prior appearance and inflating the
+   "never cleared" failure count on runtimes that report seconds without a milli prefix.
+   Evidence: `src/looptight/metacog.py:106`
+   Acceptance: A new test in `tests/test_metacog.py` calls `_normalize_failure` with a
+   line containing `in 2s` and asserts `"in 2s"` is absent and `"in Ns"` is present;
+   mutating `m?s` to `ms` in `_IN_SECONDS_RE` fails that test.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
