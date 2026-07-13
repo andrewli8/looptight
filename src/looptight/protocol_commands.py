@@ -148,7 +148,7 @@ def _stall_signal(workdir: Path, command: str, result, patience: int) -> dict | 
 
 def _verify_exit_code(status: str) -> int:
     """Separate a valid negative verdict from an invalid verifier execution."""
-    return {"pass": 0, "fail": 1, "timeout": 2, "error": 2}[status]
+    return {"pass": 0, "fail": 1, "timeout": 2, "error": 2}.get(status, 2)
 
 
 def _print_verify_json(

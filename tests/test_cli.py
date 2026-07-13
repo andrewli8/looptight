@@ -2217,6 +2217,10 @@ def test_verify_exit_codes_distinguish_verdict_from_execution_error(status, expe
     assert _verify_exit_code(status) == expected
 
 
+def test_verify_exit_code_unknown_status_returns_two():
+    assert _verify_exit_code("unknown") == 2
+
+
 def test_propose_json_output(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "src").mkdir()
