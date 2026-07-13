@@ -3421,17 +3421,13 @@ existing CLI session and makes no model or API calls of its own.
   in `tests/test_cli.py` creates a coordinator lease with no `goal` key and asserts
   `"continue claimed task"` (without "your") appears in `next_action`; removing the
   else-branch fails that assertion.
+- `cmd_status`'s vision-truncation expression (`vision[:60] + "…"` at
+  `protocol_commands.py:613`) is now mutation-guarded:
+  `test_status_json_truncates_long_vision_in_next_action` in `tests/test_cli.py` sets a
+  goal with a 65-character vision and asserts `"…"` appears and the full untruncated
+  vision does not in `status --json`'s `next_action`; removing the truncation fails it.
 
 ## Next
-
-1. `cmd_status`'s vision-truncation expression at `protocol_commands.py:613`
-   (`vision[:60] + "…"`) is never reached: every test goal has a vision shorter than 60
-   characters, so the `len(vision) > 60` branch is dead in the suite and a mutation
-   removing the truncation passes undetected.
-   Evidence: `src/looptight/protocol_commands.py:613`
-   Acceptance: A new test in `tests/test_cli.py` activates a goal whose vision is 65+
-   characters and asserts `"…"` appears in `status --json`'s `next_action`; removing
-   the truncation fails it.
 
 ## Rules
 

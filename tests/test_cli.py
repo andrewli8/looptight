@@ -4492,3 +4492,23 @@ def test_init_integrate_reports_already_installed_on_rerun(tmp_path, monkeypatch
     assert main(["init", "--integrate"]) == 0
     out = capsys.readouterr().out
     assert "already installed" in out
+
+
+def test_status_json_truncates_long_vision_in_next_action(tmp_path, monkeypatch, capsys):
+    # protocol_commands.py:613 — `(vision[:60] + "…") if len(vision) > 60 else vision`
+    # was dead code: every existing test goal had a vision shorter than 60 characters.
+    # A vision of 65+ characters must produce "…" in status --json's next_action.
+    # Removing the truncation expression must fail this test.
+    monkeypatch.chdir(tmp_path)
+    _commit_repo_with_verify(tmp_path)
+    long_vision = "build a comprehensive full-stack web application with auth and tests"
+    assert len(long_vision) > 60
+    assert main(["goal", long_vision]) == 0
+    capsys.readouterr()
+
+    assert main(["status", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    next_action = data["next_action"]
+    assert "…" in next_action  # truncation marker is present
+    assert long_vision[:60] in next_action  # the first 60 chars appear
+    assert long_vision not in next_action  # the full vision is NOT present (truncated)
