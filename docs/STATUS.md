@@ -3415,20 +3415,11 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `_comments()` in `discovery.py` has no direct test for its `OSError` branch (line 184):
-   passing a directory to `path.open("rb")` triggers `IsADirectoryError` (a subclass of
-   `OSError`), but all existing tests only trigger `TokenError`/`SyntaxError`. The sibling
-   `_js_comments()` has this path covered by `test_skip_discovery_tolerates_bad_files`
-   (tests/test_propose.py:617-618) using a directory; `_comments()` is missing the equivalent.
-   Evidence: src/looptight/discovery.py:184
-   Acceptance: A new test `test_comments_returns_empty_on_oserror` in `tests/test_propose.py`
-   passes a directory path to `_comments()` and asserts the generator yields nothing, directly
-   exercising the `OSError` branch — removing `OSError` from the except tuple makes the test
-   fail.
-
-2. `_multiline_string_lines()` in `discovery.py` has the same `OSError` gap (line 199):
-   the existing `test_skip_discovery_tolerates_bad_files` uses `b"\x00"` which triggers a
-   tokenize error, so `path.open("rb")` raising `OSError` on a directory is never exercised.
+1. `_multiline_string_lines()` in `discovery.py` has the same `OSError` gap as `_comments()`
+   (line 199): the existing `test_skip_discovery_tolerates_bad_files` uses `b"\x00"` which
+   triggers a tokenize error, so `path.open("rb")` raising `OSError` on a directory is never
+   exercised. The `_comments()` OSError path was fixed in this run; this is the remaining
+   sibling gap.
    Evidence: src/looptight/discovery.py:199
    Acceptance: A new test `test_multiline_string_lines_returns_empty_on_oserror` in
    `tests/test_propose.py` passes a directory path to `_multiline_string_lines()` and asserts

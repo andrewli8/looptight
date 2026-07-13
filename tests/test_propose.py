@@ -618,6 +618,17 @@ def test_skip_discovery_tolerates_bad_files(tmp_path):
     assert list(_js_comments(a_dir)) == []
 
 
+def test_comments_returns_empty_on_oserror(tmp_path):
+    # _comments() at discovery.py:184 catches OSError, but existing tests only trigger
+    # TokenError/SyntaxError. Passing a directory to path.open("rb") raises
+    # IsADirectoryError (a subclass of OSError) and must yield nothing.
+    from looptight.discovery import _comments
+
+    a_dir = tmp_path / "adir"
+    a_dir.mkdir()
+    assert list(_comments(a_dir)) == []
+
+
 def test_skipif_with_unbalanced_paren_in_reason_is_still_surfaced(tmp_path):
     # A skip reason string containing an unbalanced paren must not make the env-gate
     # classifier swallow a real-condition skip by over-reading into later lines.
