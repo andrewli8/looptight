@@ -3429,6 +3429,47 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_task_paths`'s nested-module parent-counterpart-absent branch at `swarm.py:288` is
+   dead in the suite: when evidence names a nested `.py` file (2+ path parts, e.g.
+   `src/looptight/foo.py`) and neither `tests/test_foo.py` nor `tests/test_looptight.py`
+   exists, the `elif len(path.parts) >= 2:` branch fires but adds nothing — the loop
+   continues without crashing, yet no test covers that path.
+   Evidence: `src/looptight/swarm.py:288`
+   Acceptance: A new test in `tests/test_swarm.py` calls `_task_paths` with a
+   nested-path evidence file and no counterpart directories present, asserts only the
+   evidence path itself is returned, and a mutation removing the elif body fails it.
+
+2. `_git_common_dir`'s already-absolute-path branch at `protocol_commands.py:818` is
+   dead in the suite: when `git rev-parse --git-common-dir` returns an absolute path
+   (as it does in linked worktrees), `not common.is_absolute()` is False and the path
+   is returned unchanged, but no test covers this arm; all existing tests use primary
+   worktrees where git returns a relative `.git`.
+   Evidence: `src/looptight/protocol_commands.py:818`
+   Acceptance: A new test in `tests/test_cli.py` monkeypatches `subprocess.run` to
+   return an absolute path for `--git-common-dir`, calls `_git_common_dir`, and asserts
+   it returns the absolute path unchanged; removing the `if not common.is_absolute():`
+   guard (making the join unconditional) fails the test.
+
+3. `_statement_text`'s exhausted-lines exit at `discovery.py:383` is dead in the suite:
+   when a skip statement's parentheses never close across all remaining lines (more `(`
+   than `)` overall), the `for` loop runs to completion without hitting `depth <= 0` and
+   returns the partial chunk — no test exercises this unclosed-paren path.
+   Evidence: `src/looptight/discovery.py:383`
+   Acceptance: A new test in `tests/test_propose.py` calls `_statement_text` directly
+   with lines containing unmatched opening parens and asserts it returns all consumed
+   lines; a mutation adding a `break` at exhaustion would change the return value.
+
+4. `_inside_conditional`'s same-indent previous-line path at `discovery.py:404` is dead
+   in the suite: when scanning backward from a skip line, a non-empty previous line at
+   the same or greater indentation causes `len(prev) - len(prev.lstrip()) < indent` to
+   be False and the scan continues — no test places a same-indent non-empty line above
+   the skip before an enclosing `if`/`def`.
+   Evidence: `src/looptight/discovery.py:404`
+   Acceptance: A new test in `tests/test_propose.py` calls `_inside_conditional`
+   directly with a skip at indent 4 and a same-indent previous non-empty line above it
+   (with no less-indented `if` before it), asserts the result is False, and a mutation
+   removing the `continue` (breaking early) fails.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
