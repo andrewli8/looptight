@@ -3447,20 +3447,13 @@ existing CLI session and makes no model or API calls of its own.
   same-indent `x = 1` line above it (the dead path: `4 < 4` is False, loop continues),
   and a `def` (not `if`) at indent 0; asserts the result is `False`, proving the
   same-indent line is not treated as a blocking outer context.
+- `_is_skip_line`'s `marks` branch at `discovery.py:343` is now mutation-verified:
+  `test_is_skip_line_rejects_non_skip_marks` in `tests/test_propose.py` directly calls
+  `_is_skip_line` with `marks=pytest.mark.timeout(60)` and `marks=pytest.mark.parametrize(...)`
+  and asserts both return `False`; mutating `(?:skip|skipif|xfail)` to `\w+` in the regex
+  fails those assertions.
 
 ## Next
-
-1. Pin `_is_skip_line`'s `marks` branch against non-skip marks at `discovery.py:343`.
-   The cheap substring gate fires when both `"marks"` and `"pytest.mark."` appear in the
-   line; the regex `r"\bmarks\s*=.*\bpytest\.mark\.(?:skip|skipif|xfail)\b"` must then
-   reject a non-skip mark (e.g. `marks=pytest.mark.timeout(60)`). No current test passes
-   such a line; a mutation broadening `(?:skip|skipif|xfail)` to `\w+` would pass the
-   entire suite undetected, silently surfacing non-skip parametrize/timeout marks as
-   false-positive "un-skip" candidates.
-   Evidence: `src/looptight/discovery.py:343`
-   Acceptance: A new test in `tests/test_propose.py` directly calls `_is_skip_line` with
-   a line containing `marks=pytest.mark.timeout(60)` and asserts the result is `False`;
-   mutating `(?:skip|skipif|xfail)` to `\w+` in the regex fails that test.
 
 2. Pin `_normalize_failure`'s `_IN_SECONDS_RE` against plain-seconds durations at
    `metacog.py:106`. The pattern `r"\bin\s+\d+(?:\.\d+)?\s*m?s\b"` normalizes both

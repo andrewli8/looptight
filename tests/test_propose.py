@@ -684,6 +684,26 @@ def test_from_skipped_tests_detects_single_line_param_skip(tmp_path):
     assert not any(loc.endswith(":11") for loc in locs)   # comment mention not a hit
 
 
+def test_is_skip_line_rejects_non_skip_marks():
+    # discovery.py:343-345 — the cheap substring gate fires when both "marks" and
+    # "pytest.mark." are present, but the regex `r"\bmarks\s*=.*\bpytest\.mark\.
+    # (?:skip|skipif|xfail)\b"` must reject a non-skip mark such as timeout or
+    # parametrize. Without this test, a mutation broadening (?:skip|skipif|xfail)
+    # to \w+ would pass the whole suite undetected.
+    from looptight.discovery import _is_skip_line
+
+    assert _is_skip_line(
+        'pytest.param(2, marks=pytest.mark.timeout(60))'
+    ) is False
+    assert _is_skip_line(
+        'pytest.param(3, marks=pytest.mark.parametrize("x", [1, 2]))'
+    ) is False
+    # The positive case still works (regression guard).
+    assert _is_skip_line(
+        'pytest.param(4, marks=pytest.mark.skip(reason="broken"))'
+    ) is True
+
+
 def test_from_skipped_tests_detects_imperative_xfail(tmp_path):
     # Imperative pytest.xfail(...) is a runtime known-broken marker, like pytest.skip(),
     # and must be detected; a guarded one (capability gate) is not rot.
