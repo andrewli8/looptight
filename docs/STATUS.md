@@ -3459,6 +3459,57 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Pin `_FAILURE_LINE_RE`'s `not ok` branch against TAP-format output at `metacog.py:97`.
+   The pattern `(FAILED|FAIL:|--- FAIL|AssertionError|Traceback|not ok|^\s*[✗✕×])` includes
+   `not ok` for TAP test runners (Node.js tap, node:test); no existing test sends a `not ok`
+   line to `_failure_lines`, so a mutation removing `not ok` from the pattern silently drops
+   TAP failures from looptight's failure tracking without any test catching it.
+   Evidence: `src/looptight/metacog.py:97`
+   Acceptance: A new test in `tests/test_metacog.py` calls `_failure_lines` with
+   `"not ok 1 - login fails"` and asserts the result is non-empty; mutating `not ok` out
+   of `_FAILURE_LINE_RE` fails that assertion.
+
+2. Pin `_FAILURE_LINE_RE`'s `Traceback` branch against Python exception output at `metacog.py:97`.
+   The `Traceback` alternative matches Python `Traceback (most recent call last):` lines so
+   exception output is captured as a failure signal; no test sends a standalone `Traceback`
+   line to `_failure_lines`, so a mutation removing `Traceback` from the pattern silently
+   drops Python exception tracebacks from failure tracking.
+   Evidence: `src/looptight/metacog.py:97`
+   Acceptance: A new test in `tests/test_metacog.py` calls `_failure_lines` with a string
+   containing `"Traceback (most recent call last):\n  File test.py, line 5"` and asserts
+   the result is non-empty; mutating `Traceback` out of `_FAILURE_LINE_RE` fails that assertion.
+
+3. Pin `_DURATION_RE`'s `m?` against millisecond trailing durations at `metacog.py:107`.
+   The pattern `r"\s*\(?\b\d+(?:\.\d+)?\s*m?s\)?\s*$"` strips both `(0.01s)` and `(5ms)`
+   from failure line tails; the only existing test (`test_normalize_merges_failures_differing_only_by_duration`)
+   uses seconds-only inputs `(0.01s)` / `(1.42s)`, so a mutation dropping `m?` (making
+   `ms` mandatory) would leave `(5ms)` unstripped, preventing identical failures from matching
+   across Go/jest runs that report millisecond durations.
+   Evidence: `src/looptight/metacog.py:107`
+   Acceptance: A new test in `tests/test_metacog.py` calls `_normalize_failure` with a line
+   ending in `(5ms)` and asserts `"5ms"` is absent in the result; mutating `m?s` to `s` in
+   `_DURATION_RE` fails that test.
+
+4. Pin `_inside_conditional`'s `elif` branch at `discovery.py:405`. The regex
+   `r"(if|elif)\b"` treats both `if` and `elif` as intentional runtime guards; every existing
+   test fixture uses `if` as the enclosing block, so a mutation removing `elif` from the
+   alternation would silently surface `pytest.skip()` calls inside `elif` blocks as fixable
+   rot candidates instead of suppressing them as capability gates.
+   Evidence: `src/looptight/discovery.py:405`
+   Acceptance: A new test in `tests/test_propose.py` creates a fixture with an `elif` guard
+   enclosing `pytest.skip()` and asserts the skip is suppressed (not returned as a candidate);
+   mutating `r"(if|elif)\b"` to `r"if\b"` at discovery.py:405 fails that assertion.
+
+5. Pin `_task_paths`'s `.spec` reverse-map branch at `swarm.py:292`. The condition
+   `path.stem.endswith((".test", ".spec"))` covers both `.test.ts` and `.spec.ts` test files;
+   every existing test that exercises this `elif` branch passes a `.test.ts` file as evidence,
+   so a mutation removing `".spec"` from the tuple would silently cause any task whose evidence
+   cites a `.spec.ts` file to have its implementation classified as off-task drift.
+   Evidence: `src/looptight/swarm.py:292`
+   Acceptance: A new test in `tests/test_swarm.py` calls `_task_paths` with a `.spec.ts` file
+   as evidence and asserts the colocated source file is included in the returned paths;
+   mutating `(".test", ".spec")` to `(".test",)` at swarm.py:292 fails that assertion.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
