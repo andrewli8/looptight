@@ -3452,19 +3452,12 @@ existing CLI session and makes no model or API calls of its own.
   `_is_skip_line` with `marks=pytest.mark.timeout(60)` and `marks=pytest.mark.parametrize(...)`
   and asserts both return `False`; mutating `(?:skip|skipif|xfail)` to `\w+` in the regex
   fails those assertions.
+- `_normalize_failure`'s `_IN_SECONDS_RE` at `metacog.py:106` is now mutation-verified:
+  `test_normalize_failure_normalizes_plain_seconds_fragment` in `tests/test_metacog.py`
+  calls `_normalize_failure` with `in 2s` and asserts `"in 2s"` is absent and `"in Ns"`
+  is present; mutating `m?s` to `ms` in `_IN_SECONDS_RE` fails that assertion.
 
 ## Next
-
-2. Pin `_normalize_failure`'s `_IN_SECONDS_RE` against plain-seconds durations at
-   `metacog.py:106`. The pattern `r"\bin\s+\d+(?:\.\d+)?\s*m?s\b"` normalizes both
-   `in 2ms` and `in 2s`; the only existing test uses `in 2ms`, so a mutation dropping
-   the `m?` (making `ms` mandatory) would leave `in 2s` un-normalized across runs,
-   preventing the same failure from matching its prior appearance and inflating the
-   "never cleared" failure count on runtimes that report seconds without a milli prefix.
-   Evidence: `src/looptight/metacog.py:106`
-   Acceptance: A new test in `tests/test_metacog.py` calls `_normalize_failure` with a
-   line containing `in 2s` and asserts `"in 2s"` is absent and `"in Ns"` is present;
-   mutating `m?s` to `ms` in `_IN_SECONDS_RE` fails that test.
 
 ## Rules
 

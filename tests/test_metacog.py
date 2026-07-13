@@ -185,6 +185,16 @@ def test_normalize_failure_normalizes_in_seconds_fragment():
     assert "in Ns" in result
 
 
+def test_normalize_failure_normalizes_plain_seconds_fragment():
+    # metacog.py:106 — `m?s` matches both `ms` and `s`; the only prior test uses `in 2ms`,
+    # so a mutation dropping `m?` (making `ms` mandatory) leaves `in 2s` un-normalized.
+    from looptight.metacog import _normalize_failure
+
+    result = _normalize_failure("FAILED: connection timed out in 2s")
+    assert "in 2s" not in result
+    assert "in Ns" in result
+
+
 def test_normalize_failure_truncates_at_max_failure_line():
     # metacog.py:115 — `[:MAX_FAILURE_LINE]` caps the output at 200 chars; both existing
     # tests use short strings so a mutation raising the cap would go undetected.
