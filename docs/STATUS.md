@@ -3409,16 +3409,11 @@ existing CLI session and makes no model or API calls of its own.
   as `_build_prompt` from both `codex.py` and `opencode.py`, so both adapters share
   one implementation and a future prompt change cannot silently miss one adapter.
   Covered by `test_supply_adapters_share_build_prompt_implementation` in test_adapters.py.
+- `status --json` goal block includes `done_check` (nullable), so a caller can tell
+  whether the goal loop is predicate-gated without running a separate `goal next`.
+  Covered by `test_status_json_goal_block_includes_done_check` in tests/test_cli.py.
 
 ## Next
-
-1. `cmd_status --json` goal block omits `done_check`; callers cannot tell whether
-   the loop is predicate-gated without running a separate `goal next`; add it as an
-   additive nullable field.
-   Evidence: src/looptight/protocol_commands.py:654
-   Acceptance: `test_status_json_goal_block_includes_done_check` in tests/test_cli.py
-   passes: a repo with an active goal sets `done_check` in `status --json`
-   `payload["goal"]`, and `None` appears when no done check is configured.
 
 ## Rules
 

@@ -3324,6 +3324,30 @@ def test_status_is_goal_aware(tmp_path, monkeypatch, capsys):
     assert "goal: build a cli todo app" in out
 
 
+def test_status_json_goal_block_includes_done_check(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "true"\n', encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "x"],
+        cwd=tmp_path, check=True,
+    )
+    # goal with done_check
+    assert main(["goal", "ship it", "--done", "make test"]) == 0
+    capsys.readouterr()
+    assert main(["status", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["goal"]["done_check"] == "make test"
+
+    # goal without done_check
+    assert main(["goal", "ship it"]) == 0
+    capsys.readouterr()
+    assert main(["status", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["goal"]["done_check"] is None
+
+
 def _commit_repo_with_verify(tmp_path):
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     (tmp_path / ".looptight.toml").write_text('verify = "true"\n', encoding="utf-8")

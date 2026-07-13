@@ -655,6 +655,7 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
             "vision": active_goal.vision,
             "iteration": active_goal.iteration,
             "continuous": active_goal.continuous,
+            "done_check": active_goal.done_check,
         }
 
     from .idea_eval import score_status_next
