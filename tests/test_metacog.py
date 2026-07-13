@@ -163,6 +163,16 @@ def test_failure_lines_returns_empty_set_for_none_and_empty_output():
     assert _failure_lines("") == set()
 
 
+def test_failure_lines_detects_tap_not_ok():
+    from looptight.metacog import _failure_lines
+
+    # TAP-format failure (Node.js tap, node:test) — mutating "not ok" out of
+    # _FAILURE_LINE_RE would make this return empty and fail this assertion.
+    result = _failure_lines("not ok 1 - login fails")
+    assert result, "not ok TAP line must be detected as a failure"
+    assert any("login fails" in line for line in result)
+
+
 def test_normalize_merges_failures_differing_only_by_duration():
     from looptight.metacog import _failure_lines
 
