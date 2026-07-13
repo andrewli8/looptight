@@ -3436,17 +3436,13 @@ existing CLI session and makes no model or API calls of its own.
   monkeypatches `subprocess.run` to return an absolute path, calls `_git_common_dir`, and
   asserts the result equals the absolute path and does not start with `tmp_path` — proving
   the branch is live and the path is not incorrectly joined with workdir.
+- `_statement_text`'s exhausted-lines path at `discovery.py:383` is now covered:
+  `test_statement_text_returns_all_lines_when_parens_never_balance` in `tests/test_propose.py`
+  calls `_statement_text` with three lines whose parentheses never balance (the `reason=`
+  value holds an unclosed `(`) and asserts all three lines appear in the result, proving
+  the for loop runs to completion rather than breaking early.
 
 ## Next
-
-3. `_statement_text`'s exhausted-lines exit at `discovery.py:383` is dead in the suite:
-   when a skip statement's parentheses never close across all remaining lines (more `(`
-   than `)` overall), the `for` loop runs to completion without hitting `depth <= 0` and
-   returns the partial chunk — no test exercises this unclosed-paren path.
-   Evidence: `src/looptight/discovery.py:383`
-   Acceptance: A new test in `tests/test_propose.py` calls `_statement_text` directly
-   with lines containing unmatched opening parens and asserts it returns all consumed
-   lines; a mutation adding a `break` at exhaustion would change the return value.
 
 4. `_inside_conditional`'s same-indent previous-line path at `discovery.py:404` is dead
    in the suite: when scanning backward from a skip line, a non-empty previous line at

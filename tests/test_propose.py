@@ -1952,3 +1952,26 @@ def test_propose_coordinator_none_falls_back_to_plain_rank(tmp_path):
 
     assert candidates, "propose() must return candidates even when coordinator is None"
     assert any("timeout" in c.title.lower() for c in candidates)
+
+
+def test_statement_text_returns_all_lines_when_parens_never_balance():
+    # discovery.py:383 — when a skip statement's parentheses never close across all
+    # remaining lines (more `(` than `)` overall), the `for` loop in `_statement_text`
+    # runs to completion without hitting `depth <= 0`, and the function returns all
+    # consumed lines joined.  This path (loop exhaustion without a break) was previously
+    # untested; all existing tests fed balanced or over-closed paren text.
+    # A mutation that broke early on exhaustion (e.g. returning only the first line)
+    # would change the return value and fail this assertion.
+    from looptight.discovery import _statement_text
+
+    lines = [
+        "pytest.mark.skipif(\n",
+        "    not os.environ.get('CI'),\n",
+        "    reason='missing close paren\n",  # never closed — depth stays > 0
+    ]
+    result = _statement_text(lines, 0)
+    # All three lines must appear in the result; the loop ran to completion.
+    assert "pytest.mark.skipif(" in result
+    assert "not os.environ.get" in result
+    assert "missing close paren" in result
+    assert result == "\n".join(line for line in lines)
