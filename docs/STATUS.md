@@ -3426,18 +3426,13 @@ existing CLI session and makes no model or API calls of its own.
   `test_status_json_truncates_long_vision_in_next_action` in `tests/test_cli.py` sets a
   goal with a 65-character vision and asserts `"…"` appears and the full untruncated
   vision does not in `status --json`'s `next_action`; removing the truncation fails it.
+- `_task_paths`'s nested-module parent-counterpart-absent branch at `swarm.py:288` is
+  now covered: `test_task_paths_nested_module_with_no_counterpart` in `tests/test_swarm.py`
+  calls `_task_paths` with a 3-part nested path (`src/looptight/foo.py`) and no
+  `tests/test_looptight.py` present, asserts only the evidence path is returned; a
+  mutation unconditionally adding `parent_counterpart` fails the "not in paths" assertion.
 
 ## Next
-
-1. `_task_paths`'s nested-module parent-counterpart-absent branch at `swarm.py:288` is
-   dead in the suite: when evidence names a nested `.py` file (2+ path parts, e.g.
-   `src/looptight/foo.py`) and neither `tests/test_foo.py` nor `tests/test_looptight.py`
-   exists, the `elif len(path.parts) >= 2:` branch fires but adds nothing — the loop
-   continues without crashing, yet no test covers that path.
-   Evidence: `src/looptight/swarm.py:288`
-   Acceptance: A new test in `tests/test_swarm.py` calls `_task_paths` with a
-   nested-path evidence file and no counterpart directories present, asserts only the
-   evidence path itself is returned, and a mutation removing the elif body fails it.
 
 2. `_git_common_dir`'s already-absolute-path branch at `protocol_commands.py:818` is
    dead in the suite: when `git rev-parse --git-common-dir` returns an absolute path

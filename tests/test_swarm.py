@@ -2329,3 +2329,24 @@ def test_publish_via_queue_returns_failed_when_publication_stays_incomplete(tmp_
 
     result = _publish_via_queue(tmp_path, [worker])
     assert result == "failed"
+
+
+def test_task_paths_nested_module_with_no_counterpart(tmp_path):
+    # swarm.py:288 — `elif len(path.parts) >= 2:` branch: the evidence is a nested .py
+    # file with 2+ path parts, tests/test_{stem}.py is absent (checked at line 286),
+    # and tests/test_{parent}.py is also absent (inner `is_file()` at line 290 is False).
+    # The loop continues without crashing and adds no counterpart — previously a dead branch.
+    # A mutation that unconditionally adds `parent_counterpart` without the is_file() guard
+    # would inject a non-existent path into the scope set, failing the assertion below.
+    from looptight.swarm import _task_paths
+
+    (tmp_path / "src" / "looptight").mkdir(parents=True)
+    (tmp_path / "src" / "looptight" / "foo.py").write_text("x", encoding="utf-8")
+    # Neither tests/test_foo.py nor tests/test_looptight.py exists — only the src file.
+
+    paths = _task_paths(
+        tmp_path,
+        {"location": "docs/STATUS.md:1", "evidence": "Evidence: `src/looptight/foo.py:1`"},
+    )
+    assert "src/looptight/foo.py" in paths  # the evidence path itself is always included
+    assert "tests/test_looptight.py" not in paths  # absent parent counterpart is not invented
