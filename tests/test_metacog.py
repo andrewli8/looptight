@@ -184,6 +184,16 @@ def test_failure_lines_detects_python_traceback():
     assert any("Traceback" in line for line in result)
 
 
+def test_normalize_failure_strips_millisecond_duration():
+    from looptight.metacog import _normalize_failure
+
+    # _DURATION_RE uses m?s to strip both (0.01s) and (5ms) from tails;
+    # mutating m? to make ms mandatory would leave (5ms) unstripped, so
+    # identical Go/Jest failures reported in ms would no longer deduplicate.
+    result = _normalize_failure("--- FAIL: TestLogin (5ms)")
+    assert "5ms" not in result
+
+
 def test_normalize_merges_failures_differing_only_by_duration():
     from looptight.metacog import _failure_lines
 

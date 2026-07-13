@@ -3464,21 +3464,15 @@ existing CLI session and makes no model or API calls of its own.
   `test_failure_lines_detects_python_traceback` in `tests/test_metacog.py` calls `_failure_lines`
   with `"Traceback (most recent call last):\n  File test.py, line 5"` and asserts the result
   is non-empty; mutating `Traceback` out of `_FAILURE_LINE_RE` fails that assertion.
+- `_DURATION_RE`'s `m?` is now mutation-pinned against millisecond trailing durations:
+  `test_normalize_failure_strips_millisecond_duration` in `tests/test_metacog.py` calls
+  `_normalize_failure` with `"--- FAIL: TestLogin (5ms)"` and asserts `"5ms"` is absent;
+  mutating `m?s` to `s` in `_DURATION_RE` fails that test, so ms-duration failures from
+  Go/Jest cannot evade deduplication.
 
 ## Next
 
-1. Pin `_DURATION_RE`'s `m?` against millisecond trailing durations at `metacog.py:107`.
-   The pattern `r"\s*\(?\b\d+(?:\.\d+)?\s*m?s\)?\s*$"` strips both `(0.01s)` and `(5ms)`
-   from failure line tails; the only existing test (`test_normalize_merges_failures_differing_only_by_duration`)
-   uses seconds-only inputs `(0.01s)` / `(1.42s)`, so a mutation dropping `m?` (making
-   `ms` mandatory) would leave `(5ms)` unstripped, preventing identical failures from matching
-   across Go/jest runs that report millisecond durations.
-   Evidence: `src/looptight/metacog.py:107`
-   Acceptance: A new test in `tests/test_metacog.py` calls `_normalize_failure` with a line
-   ending in `(5ms)` and asserts `"5ms"` is absent in the result; mutating `m?s` to `s` in
-   `_DURATION_RE` fails that test.
-
-3. Pin `_inside_conditional`'s `elif` branch at `discovery.py:405`. The regex
+1. Pin `_inside_conditional`'s `elif` branch at `discovery.py:405`. The regex
    `r"(if|elif)\b"` treats both `if` and `elif` as intentional runtime guards; every existing
    test fixture uses `if` as the enclosing block, so a mutation removing `elif` from the
    alternation would silently surface `pytest.skip()` calls inside `elif` blocks as fixable
@@ -3488,7 +3482,7 @@ existing CLI session and makes no model or API calls of its own.
    enclosing `pytest.skip()` and asserts the skip is suppressed (not returned as a candidate);
    mutating `r"(if|elif)\b"` to `r"if\b"` at discovery.py:405 fails that assertion.
 
-4. Pin `_task_paths`'s `.spec` reverse-map branch at `swarm.py:292`. The condition
+2. Pin `_task_paths`'s `.spec` reverse-map branch at `swarm.py:292`. The condition
    `path.stem.endswith((".test", ".spec"))` covers both `.test.ts` and `.spec.ts` test files;
    every existing test that exercises this `elif` branch passes a `.test.ts` file as evidence,
    so a mutation removing `".spec"` from the tuple would silently cause any task whose evidence
