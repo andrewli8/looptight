@@ -3415,16 +3415,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `_multiline_string_lines()` in `discovery.py` has the same `OSError` gap as `_comments()`
-   (line 199): the existing `test_skip_discovery_tolerates_bad_files` uses `b"\x00"` which
-   triggers a tokenize error, so `path.open("rb")` raising `OSError` on a directory is never
-   exercised. The `_comments()` OSError path was fixed in this run; this is the remaining
-   sibling gap.
-   Evidence: src/looptight/discovery.py:199
-   Acceptance: A new test `test_multiline_string_lines_returns_empty_on_oserror` in
-   `tests/test_propose.py` passes a directory path to `_multiline_string_lines()` and asserts
-   the result is `set()` — the `OSError` path at line 199 is directly triggered.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

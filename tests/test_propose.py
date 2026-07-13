@@ -629,6 +629,18 @@ def test_comments_returns_empty_on_oserror(tmp_path):
     assert list(_comments(a_dir)) == []
 
 
+def test_multiline_string_lines_returns_empty_on_oserror(tmp_path):
+    # _multiline_string_lines() at discovery.py:199 catches OSError, but the existing
+    # test_skip_discovery_tolerates_bad_files only uses b"\x00" (tokenize error). Passing
+    # a directory to path.open("rb") raises IsADirectoryError (OSError subclass) and must
+    # return set() without raising.
+    from looptight.discovery import _multiline_string_lines
+
+    a_dir = tmp_path / "adir"
+    a_dir.mkdir()
+    assert _multiline_string_lines(a_dir) == set()
+
+
 def test_skipif_with_unbalanced_paren_in_reason_is_still_surfaced(tmp_path):
     # A skip reason string containing an unbalanced paren must not make the env-gate
     # classifier swallow a real-condition skip by over-reading into later lines.
