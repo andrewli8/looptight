@@ -2103,6 +2103,33 @@ def test_unquote_git_path_strips_surrounding_quotes_and_passes_unquoted():
     assert _unquote_git_path("") == ""
 
 
+def test_git_common_dir_returns_absolute_path_unchanged(tmp_path, monkeypatch):
+    # protocol_commands.py:818 — when git rev-parse --git-common-dir returns an
+    # absolute path (as it does in linked worktrees), the `if not common.is_absolute()`
+    # guard is False and the path must be returned without joining workdir.
+    # Removing the guard makes the join unconditional; Python's pathlib treats
+    # `workdir / absolute` as `absolute`, but the is_absolute() branch is still
+    # the dead arm that this test brings to life.
+    from looptight import protocol_commands
+    from pathlib import Path
+
+    abs_common = "/tmp/primary-repo/.git"
+
+    def fake_run(cmd, *args, **kwargs):
+        class R:
+            returncode = 0
+            stdout = abs_common + "\n"
+        return R()
+
+    monkeypatch.setattr(protocol_commands.subprocess, "run", fake_run)
+    result = protocol_commands._git_common_dir(tmp_path)
+    assert result == Path(abs_common)
+    assert result.is_absolute()
+    # The result must not be prefixed by workdir: an absolute git-common-dir
+    # (linked worktree pointing to a different tree) lives outside the workdir.
+    assert not str(result).startswith(str(tmp_path))
+
+
 def test_verify_json_refuses_glob_protected_path_changes(tmp_path, monkeypatch, capsys):
     # A glob pattern in protected_paths must actually protect matching files, not
     # silently fail open (the `*` implies globbing).

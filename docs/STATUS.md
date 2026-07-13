@@ -3431,19 +3431,13 @@ existing CLI session and makes no model or API calls of its own.
   calls `_task_paths` with a 3-part nested path (`src/looptight/foo.py`) and no
   `tests/test_looptight.py` present, asserts only the evidence path is returned; a
   mutation unconditionally adding `parent_counterpart` fails the "not in paths" assertion.
+- `_git_common_dir`'s already-absolute-path branch at `protocol_commands.py:818` is now
+  covered: `test_git_common_dir_returns_absolute_path_unchanged` in `tests/test_cli.py`
+  monkeypatches `subprocess.run` to return an absolute path, calls `_git_common_dir`, and
+  asserts the result equals the absolute path and does not start with `tmp_path` — proving
+  the branch is live and the path is not incorrectly joined with workdir.
 
 ## Next
-
-2. `_git_common_dir`'s already-absolute-path branch at `protocol_commands.py:818` is
-   dead in the suite: when `git rev-parse --git-common-dir` returns an absolute path
-   (as it does in linked worktrees), `not common.is_absolute()` is False and the path
-   is returned unchanged, but no test covers this arm; all existing tests use primary
-   worktrees where git returns a relative `.git`.
-   Evidence: `src/looptight/protocol_commands.py:818`
-   Acceptance: A new test in `tests/test_cli.py` monkeypatches `subprocess.run` to
-   return an absolute path for `--git-common-dir`, calls `_git_common_dir`, and asserts
-   it returns the absolute path unchanged; removing the `if not common.is_absolute():`
-   guard (making the join unconditional) fails the test.
 
 3. `_statement_text`'s exhausted-lines exit at `discovery.py:383` is dead in the suite:
    when a skip statement's parentheses never close across all remaining lines (more `(`
