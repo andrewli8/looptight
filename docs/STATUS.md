@@ -3416,19 +3416,15 @@ existing CLI session and makes no model or API calls of its own.
   `protocol_commands.py:503` is now mutation-verified: `test_watch_status_shows_idle_fallback_when_panel_is_empty`
   in `tests/test_cli.py` asserts `"idle" in out` when the state panel is empty; mutating
   the fallback to `""` fails that assertion.
+- `cmd_status`'s `f"continue claimed task {claimed_task}"` else-branch at
+  `protocol_commands.py:609` is now mutation-verified: `test_status_next_action_for_claimed_task_without_goal`
+  in `tests/test_cli.py` creates a coordinator lease with no `goal` key and asserts
+  `"continue claimed task"` (without "your") appears in `next_action`; removing the
+  else-branch fails that assertion.
 
 ## Next
 
-1. `cmd_status` has an untested else-branch at `protocol_commands.py:609`: when
-   `claimed_task` is truthy but `claimed_goal` is empty the action becomes
-   `f"continue claimed task {claimed_task}"`. Every existing test that claims a task uses
-   a non-empty goal, so this branch is never asserted.
-   Evidence: `src/looptight/protocol_commands.py:609`
-   Acceptance: A new test in `tests/test_cli.py` writes a coordinator lease whose payload
-   has no `goal` key and asserts `"continue claimed task"` (without "your") appears in
-   `status --json`'s `next_action`; removing the else-branch fails it.
-
-3. `cmd_status`'s vision-truncation expression at `protocol_commands.py:613`
+1. `cmd_status`'s vision-truncation expression at `protocol_commands.py:613`
    (`vision[:60] + "…"`) is never reached: every test goal has a vision shorter than 60
    characters, so the `len(vision) > 60` branch is dead in the suite and a mutation
    removing the truncation passes undetected.

@@ -1012,6 +1012,40 @@ def test_status_next_action_names_the_claimed_task_goal(tmp_path, monkeypatch, c
     assert "continue" in data["next_action"].lower()
 
 
+def test_status_next_action_for_claimed_task_without_goal(tmp_path, monkeypatch, capsys):
+    # protocol_commands.py:609 — the else-branch `f"continue claimed task {claimed_task}"` fires
+    # when a coordinator lease payload has no 'goal' key (claimed_goal is ""). Every existing
+    # claimed-task test uses a non-empty goal; this covers the previously dead branch.
+    from looptight.coordinator import Coordinator
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "true"\n', encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "i"], check=True
+    )
+    # Fix the owner_id so we can create a matching coordinator lease.
+    monkeypatch.setenv("LOOPTIGHT_SESSION_ID", "test-no-goal-owner")
+    coordinator = Coordinator.open(tmp_path)
+    assert coordinator is not None
+    coordinator.activate_from_legacy()
+    run = coordinator.start_run("test", owner="test-no-goal-owner")
+    coordinator.claim(
+        [{"id": "task-fingerprint-abc", "source": "status-next", "location": None}],
+        run.id,
+        ttl_s=60,
+    )
+    coordinator.close()
+
+    assert main(["status", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["claimed_task"] is not None
+    # Payload has no 'goal' key → else-branch: "continue claimed task <fingerprint>", not "your"
+    assert "continue claimed task" in data["next_action"]
+    assert "your" not in data["next_action"]
+
+
 def test_status_recognizes_a_claim_from_a_separate_invocation(tmp_path, monkeypatch, capsys):
     # A claim made by `next` in one invocation must be recognized by `status` in a SEPARATE
     # invocation (different run id, as in real shell usage) — the next-action should say
