@@ -3472,17 +3472,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Pin `_inside_conditional`'s `elif` branch at `discovery.py:405`. The regex
-   `r"(if|elif)\b"` treats both `if` and `elif` as intentional runtime guards; every existing
-   test fixture uses `if` as the enclosing block, so a mutation removing `elif` from the
-   alternation would silently surface `pytest.skip()` calls inside `elif` blocks as fixable
-   rot candidates instead of suppressing them as capability gates.
-   Evidence: `src/looptight/discovery.py:405`
-   Acceptance: A new test in `tests/test_propose.py` creates a fixture with an `elif` guard
-   enclosing `pytest.skip()` and asserts the skip is suppressed (not returned as a candidate);
-   mutating `r"(if|elif)\b"` to `r"if\b"` at discovery.py:405 fails that assertion.
-
-2. Pin `_task_paths`'s `.spec` reverse-map branch at `swarm.py:292`. The condition
+1. Pin `_task_paths`'s `.spec` reverse-map branch at `swarm.py:292`. The condition
    `path.stem.endswith((".test", ".spec"))` covers both `.test.ts` and `.spec.ts` test files;
    every existing test that exercises this `elif` branch passes a `.test.ts` file as evidence,
    so a mutation removing `".spec"` from the tuple would silently cause any task whose evidence

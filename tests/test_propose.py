@@ -2017,3 +2017,24 @@ def test_inside_conditional_same_indent_line_does_not_short_circuit():
     # The same-indent line at idx=1 must NOT short-circuit the scan;
     # the scan reaches `def test_func()` at indent 0 and returns False (not if/elif).
     assert result is False
+
+
+def test_elif_guard_suppresses_skip_candidate(tmp_path):
+    # discovery.py:405 — the regex r"(if|elif)\b" must match both `if` and `elif`.
+    # A pytest.skip() inside an `elif` block is a capability gate, not rot — it must
+    # be suppressed (not returned as a candidate). Mutating the alternation from
+    # r"(if|elif)\b" to r"if\b" would break this: the elif block would no longer
+    # be recognised as a guard, and the skip would surface as a fixable candidate.
+    from looptight.discovery import from_skipped_tests
+
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    (tests / "test_elif.py").write_text(
+        "import pytest\n"
+        "def test_platform():\n"
+        "    if condition_a:\n"
+        "        pass\n"
+        "    elif condition_b:\n"
+        "        pytest.skip('unsupported platform')\n"
+    )
+    assert from_skipped_tests(tmp_path) == []
