@@ -173,6 +173,17 @@ def test_failure_lines_detects_tap_not_ok():
     assert any("login fails" in line for line in result)
 
 
+def test_failure_lines_detects_python_traceback():
+    from looptight.metacog import _failure_lines
+
+    # Python exception output — mutating "Traceback" out of _FAILURE_LINE_RE
+    # would make this return empty and fail this assertion.
+    output = "Traceback (most recent call last):\n  File test.py, line 5"
+    result = _failure_lines(output)
+    assert result, "Traceback line must be detected as a failure"
+    assert any("Traceback" in line for line in result)
+
+
 def test_normalize_merges_failures_differing_only_by_duration():
     from looptight.metacog import _failure_lines
 

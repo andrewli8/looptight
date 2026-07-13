@@ -3460,20 +3460,14 @@ existing CLI session and makes no model or API calls of its own.
   `test_failure_lines_detects_tap_not_ok` in `tests/test_metacog.py` calls `_failure_lines`
   with `"not ok 1 - login fails"` and asserts the result is non-empty; mutating `not ok`
   out of `_FAILURE_LINE_RE` fails that assertion, so TAP failures cannot be silently dropped.
+- `_FAILURE_LINE_RE`'s `Traceback` branch is now mutation-pinned against Python exception output:
+  `test_failure_lines_detects_python_traceback` in `tests/test_metacog.py` calls `_failure_lines`
+  with `"Traceback (most recent call last):\n  File test.py, line 5"` and asserts the result
+  is non-empty; mutating `Traceback` out of `_FAILURE_LINE_RE` fails that assertion.
 
 ## Next
 
-1. Pin `_FAILURE_LINE_RE`'s `Traceback` branch against Python exception output at `metacog.py:97`.
-   The `Traceback` alternative matches Python `Traceback (most recent call last):` lines so
-   exception output is captured as a failure signal; no test sends a standalone `Traceback`
-   line to `_failure_lines`, so a mutation removing `Traceback` from the pattern silently
-   drops Python exception tracebacks from failure tracking.
-   Evidence: `src/looptight/metacog.py:97`
-   Acceptance: A new test in `tests/test_metacog.py` calls `_failure_lines` with a string
-   containing `"Traceback (most recent call last):\n  File test.py, line 5"` and asserts
-   the result is non-empty; mutating `Traceback` out of `_FAILURE_LINE_RE` fails that assertion.
-
-2. Pin `_DURATION_RE`'s `m?` against millisecond trailing durations at `metacog.py:107`.
+1. Pin `_DURATION_RE`'s `m?` against millisecond trailing durations at `metacog.py:107`.
    The pattern `r"\s*\(?\b\d+(?:\.\d+)?\s*m?s\)?\s*$"` strips both `(0.01s)` and `(5ms)`
    from failure line tails; the only existing test (`test_normalize_merges_failures_differing_only_by_duration`)
    uses seconds-only inputs `(0.01s)` / `(1.42s)`, so a mutation dropping `m?` (making
