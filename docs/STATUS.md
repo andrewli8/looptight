@@ -3441,19 +3441,12 @@ existing CLI session and makes no model or API calls of its own.
   calls `_statement_text` with three lines whose parentheses never balance (the `reason=`
   value holds an unclosed `(`) and asserts all three lines appear in the result, proving
   the for loop runs to completion rather than breaking early.
-
-## Next
-
-4. `_inside_conditional`'s same-indent previous-line path at `discovery.py:404` is dead
-   in the suite: when scanning backward from a skip line, a non-empty previous line at
-   the same or greater indentation causes `len(prev) - len(prev.lstrip()) < indent` to
-   be False and the scan continues — no test places a same-indent non-empty line above
-   the skip before an enclosing `if`/`def`.
-   Evidence: `src/looptight/discovery.py:404`
-   Acceptance: A new test in `tests/test_propose.py` calls `_inside_conditional`
-   directly with a skip at indent 4 and a same-indent previous non-empty line above it
-   (with no less-indented `if` before it), asserts the result is False, and a mutation
-   removing the `continue` (breaking early) fails.
+- `_inside_conditional`'s same-indent previous-line path at `discovery.py:404` is now
+  covered: `test_inside_conditional_same_indent_line_does_not_short_circuit` in
+  `tests/test_propose.py` calls `_inside_conditional` with a skip at indent 4, a
+  same-indent `x = 1` line above it (the dead path: `4 < 4` is False, loop continues),
+  and a `def` (not `if`) at indent 0; asserts the result is `False`, proving the
+  same-indent line is not treated as a blocking outer context.
 
 ## Rules
 

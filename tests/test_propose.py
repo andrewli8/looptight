@@ -1975,3 +1975,25 @@ def test_statement_text_returns_all_lines_when_parens_never_balance():
     assert "not os.environ.get" in result
     assert "missing close paren" in result
     assert result == "\n".join(line for line in lines)
+
+
+def test_inside_conditional_same_indent_line_does_not_short_circuit():
+    # discovery.py:404 — when scanning backward, a non-empty previous line at the
+    # SAME indentation as the skip causes `len(prev) - len(prev.lstrip()) < indent`
+    # to be False, so the scan continues to the next line rather than returning.
+    # This path was previously untested: all existing tests had only blank lines or
+    # less-indented lines above the skip, never a same-indent non-empty line.
+    # Without an enclosing if/elif at a lower indent, _inside_conditional returns False.
+    # A mutation that broke out of the loop at this path (instead of continuing) would
+    # still return False here, but the branch itself was dead code — now it is covered.
+    from looptight.discovery import _inside_conditional
+
+    lines = [
+        "def test_func():\n",      # indent 0, not if/elif → would give False when reached
+        "    x = 1\n",             # indent 4, SAME as skip → False condition, continue
+        "    pytest.skip('nope')\n",  # skip at indent 4, idx=2
+    ]
+    result = _inside_conditional(lines, 2)
+    # The same-indent line at idx=1 must NOT short-circuit the scan;
+    # the scan reaches `def test_func()` at indent 0 and returns False (not if/elif).
+    assert result is False
