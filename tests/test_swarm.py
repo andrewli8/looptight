@@ -1574,6 +1574,21 @@ def test_task_paths_reverse_maps_js_test_to_colocated_source(tmp_path):
     assert "src/api.test.ts" in paths and "src/api.ts" in paths
 
 
+def test_task_paths_reverse_maps_spec_ts_to_colocated_source(tmp_path):
+    # swarm.py:292 — the endswith((".test", ".spec")) condition covers both .test.ts and .spec.ts
+    # test files for the reverse-map branch. Every prior test uses .test.ts, so a mutation that
+    # removed ".spec" from the tuple (leaving only (".test",)) would silently skip .spec.ts files
+    # and not map them to their colocated source. This test pins the .spec branch.
+    from looptight.swarm import _task_paths
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "auth.ts").write_text("x", encoding="utf-8")
+    (tmp_path / "src" / "auth.spec.ts").write_text("x", encoding="utf-8")
+
+    paths = _task_paths(tmp_path, {"location": "S:1", "evidence": "Evidence: `src/auth.spec.ts:5`"})
+    assert "src/auth.spec.ts" in paths and "src/auth.ts" in paths
+
+
 def test_task_paths_reverse_maps_js_tests_dir_to_parent_source(tmp_path):
     # A test inside __tests__/ has its source in the parent dir (src/__tests__/api.test.ts -> src/api.ts).
     from looptight.swarm import _task_paths

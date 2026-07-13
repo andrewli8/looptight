@@ -3472,16 +3472,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Pin `_task_paths`'s `.spec` reverse-map branch at `swarm.py:292`. The condition
-   `path.stem.endswith((".test", ".spec"))` covers both `.test.ts` and `.spec.ts` test files;
-   every existing test that exercises this `elif` branch passes a `.test.ts` file as evidence,
-   so a mutation removing `".spec"` from the tuple would silently cause any task whose evidence
-   cites a `.spec.ts` file to have its implementation classified as off-task drift.
-   Evidence: `src/looptight/swarm.py:292`
-   Acceptance: A new test in `tests/test_swarm.py` calls `_task_paths` with a `.spec.ts` file
-   as evidence and asserts the colocated source file is included in the returned paths;
-   mutating `(".test", ".spec")` to `(".test",)` at swarm.py:292 fails that assertion.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
