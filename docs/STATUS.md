@@ -3405,18 +3405,14 @@ existing CLI session and makes no model or API calls of its own.
   an unknown status string returns `2` (error-class exit) instead of raising `KeyError`
   and producing an unhandled traceback. Covered by
   `test_verify_exit_code_unknown_status_returns_two` in tests/test_cli.py.
+- `_build_prompt` lives in `adapters/base.py` as `build_prompt` and is re-exported
+  as `_build_prompt` from both `codex.py` and `opencode.py`, so both adapters share
+  one implementation and a future prompt change cannot silently miss one adapter.
+  Covered by `test_supply_adapters_share_build_prompt_implementation` in test_adapters.py.
 
 ## Next
 
-1. `_build_prompt` is defined identically in both `codex.py` and `opencode.py`;
-   move the single copy to `adapters/base.py` and import it from both adapters so
-   a future prompt change cannot silently miss one adapter.
-   Evidence: src/looptight/adapters/codex.py:54; src/looptight/adapters/opencode.py:51
-   Acceptance: `test_supply_adapters_share_build_prompt_implementation` in
-   tests/test_adapters.py passes: `codex._build_prompt is opencode._build_prompt`
-   (same object after consolidation).
-
-3. `cmd_status --json` goal block omits `done_check`; callers cannot tell whether
+1. `cmd_status --json` goal block omits `done_check`; callers cannot tell whether
    the loop is predicate-gated without running a separate `goal next`; add it as an
    additive nullable field.
    Evidence: src/looptight/protocol_commands.py:654

@@ -257,6 +257,13 @@ def test_codex_and_opencode_build_prompts_with_goal_and_context():
         assert "2 failing" in prompt
 
 
+def test_supply_adapters_share_build_prompt_implementation():
+    from looptight.adapters.codex import _build_prompt as codex_prompt
+    from looptight.adapters.opencode import _build_prompt as opencode_prompt
+
+    assert codex_prompt is opencode_prompt
+
+
 @pytest.mark.parametrize("name", available_adapter_names())
 def test_provider_usage_limit_is_surfaced_with_stable_marker(name, monkeypatch, tmp_path):
     # A usage/rate-limit exit must be distinguishable from a plain failure so the

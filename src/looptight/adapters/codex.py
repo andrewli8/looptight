@@ -21,7 +21,7 @@ from pathlib import Path
 from subprocess import CompletedProcess
 
 from ..types import IterationResult
-from .base import Adapter, failure_iteration, run_command
+from .base import Adapter, build_prompt as _build_prompt, failure_iteration, run_command
 
 
 class CodexAdapter(Adapter):
@@ -51,12 +51,3 @@ class CodexAdapter(Adapter):
             return failure_iteration(proc, self.name)
         return IterationResult(transcript=proc.stdout.strip(), ok=True)
 
-def _build_prompt(goal: str, context: str) -> str:
-    parts = [
-        f"Goal: {goal}",
-        "Make concrete progress by editing files in this repo. A separate "
-        "verification command decides success; just make the code correct.",
-    ]
-    if context.strip():
-        parts += ["", "Context from the previous attempt:", context.strip()]
-    return "\n".join(parts)

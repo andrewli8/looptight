@@ -119,6 +119,18 @@ def run_command(
         )
 
 
+def build_prompt(goal: str, context: str) -> str:
+    """Build a one-shot prompt for a supply-mode adapter iteration."""
+    parts = [
+        f"Goal: {goal}",
+        "Make concrete progress by editing files in this repo. A separate "
+        "verification command decides success; just make the code correct.",
+    ]
+    if context.strip():
+        parts += ["", "Context from the previous attempt:", context.strip()]
+    return "\n".join(parts)
+
+
 class Adapter(ABC):
     """Base class for an agent integration."""
 
