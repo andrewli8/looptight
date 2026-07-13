@@ -3412,18 +3412,14 @@ existing CLI session and makes no model or API calls of its own.
 - `status --json` goal block includes `done_check` (nullable), so a caller can tell
   whether the goal loop is predicate-gated without running a separate `goal next`.
   Covered by `test_status_json_goal_block_includes_done_check` in tests/test_cli.py.
+- `_watch_status`'s idle fallback `or "idle — run \`looptight next\` to claim a task"` at
+  `protocol_commands.py:503` is now mutation-verified: `test_watch_status_shows_idle_fallback_when_panel_is_empty`
+  in `tests/test_cli.py` asserts `"idle" in out` when the state panel is empty; mutating
+  the fallback to `""` fails that assertion.
 
 ## Next
 
-1. `_watch_status`'s idle fallback string at `protocol_commands.py:503` (`or "idle — run
-   \`looptight next\` to claim a task"`) is exercised by an existing test but that test
-   only asserts `"\x1b[2J" in out`, not the idle text itself. A mutation replacing the
-   string with `""` passes the full suite.
-   Evidence: `src/looptight/protocol_commands.py:503`
-   Acceptance: A new test `test_watch_status_shows_idle_fallback_when_panel_is_empty` in
-   `tests/test_cli.py` asserts `"idle" in out`; mutating the fallback to `""` fails it.
-
-2. `cmd_status` has an untested else-branch at `protocol_commands.py:609`: when
+1. `cmd_status` has an untested else-branch at `protocol_commands.py:609`: when
    `claimed_task` is truthy but `claimed_goal` is empty the action becomes
    `f"continue claimed task {claimed_task}"`. Every existing test that claims a task uses
    a non-empty goal, so this branch is never asserted.

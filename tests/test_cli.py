@@ -3115,6 +3115,30 @@ def test_watch_status_exits_cleanly_on_keyboard_interrupt(tmp_path):
     assert ticks == 1
 
 
+def test_watch_status_shows_idle_fallback_when_panel_is_empty(tmp_path, capsys):
+    # protocol_commands.py:503 — when render_state_panel returns "" (no workers, no
+    # session/goal status), the `or "idle — run ..."` fallback must appear in the output.
+    # Mutating the fallback to "" would leave this assertion failing.
+    from looptight.console import Console
+    from looptight.protocol_commands import _watch_status
+    from looptight.ui import write_state
+
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    write_state(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "manager": {"status": "idle"},
+            "tasks": [],
+            "workers": [],
+        },
+    )
+    ticks = _watch_status(tmp_path, Console(), interval=5.0, sleep=lambda _: None, max_ticks=1, clear=False)
+    assert ticks == 1
+    out = capsys.readouterr().out
+    assert "idle" in out
+
+
 def test_statusline_command_reads_stdin_and_prints_one_line(tmp_path, monkeypatch, capsys):
     import io
 
