@@ -3522,6 +3522,11 @@ existing CLI session and makes no model or API calls of its own.
   `test_from_task_file_returns_empty_when_configured_file_is_absent` in `test_propose.py` calls
   `from_task_file(repo, "docs/missing.md")` and asserts `[]`; a mutation dropping the guard
   would raise `FileNotFoundError` and be caught.
+- `test_usage_doc_lists_autodetected_ecosystems` in `tests/test_docs.py` now guards six
+  runners instead of three: `cargo test`, `gradle test`, `dotnet test` (existing), plus
+  `crystal spec` (shard.yml), `swift test` (Package.swift), and `mix test` (mix.exs) —
+  the three most recently added runners that were previously unguarded and could be silently
+  removed from `docs/usage.md` without a test failure.
 - `_ensure_pycache_ignored`'s `except OSError` (commands.py:78) did not catch
   `UnicodeDecodeError` (a `ValueError` subclass) from a non-UTF-8 `.gitignore`, so
   `looptight init` would crash instead of skipping. Handler widened to `(OSError, ValueError)`,
@@ -3530,13 +3535,6 @@ existing CLI session and makes no model or API calls of its own.
   lines in the codebase); one writing a non-UTF-8 file and asserting no raise.
 
 ## Next
-
-2. `test_usage_doc_lists_autodetected_ecosystems` asserts only three runners (`cargo
-   test`, `gradle test`, `dotnet test`) while `docs/usage.md` also lists `crystal spec`,
-   `swift test`, and `mix test` — all three can be silently removed without a test failure.
-   Evidence: `tests/test_docs.py:373`
-   Acceptance: The updated test asserts `crystal spec`, `swift test`, and `mix test`
-   also appear in `docs/usage.md`; removing any one from the doc causes the test to fail.
 
 3. `detect_verify`'s priority between `poetry.lock` and `pdm.lock` is unguarded: when
    both coexist, `poetry` wins (line 97 checked before line 99), but no test covers this

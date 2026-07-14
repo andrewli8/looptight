@@ -369,8 +369,18 @@ def test_usage_doc_lists_autodetected_ecosystems():
     # only "detects your test command" without naming them. A user with a Rust, JVM,
     # or .NET project cannot tell whether they need to set `verify` manually. The doc
     # must list the detected runners so the surface is honest and discoverable.
+    # The assertion covers all runners that detect_verify auto-selects without user
+    # intervention; removing any one from usage.md would silently leave a user of that
+    # ecosystem without confirmation that looptight will auto-configure their project.
     text = (_DOCS / "usage.md").read_text(encoding="utf-8")
-    for runner in ("cargo test", "gradle test", "dotnet test"):
+    for runner in (
+        "cargo test",    # detect.py: Cargo.toml
+        "gradle test",   # detect.py: build.gradle / build.gradle.kts
+        "dotnet test",   # detect.py: *.sln / *.csproj / *.fsproj / *.vbproj
+        "crystal spec",  # detect.py: shard.yml — added last; most likely to be dropped
+        "swift test",    # detect.py: Package.swift
+        "mix test",      # detect.py: mix.exs (Elixir)
+    ):
         assert runner in text, f"usage.md does not list the auto-detected runner {runner!r}"
 
 
