@@ -3512,6 +3512,35 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_supply_loop`'s patience early-stop path is untested: `run_loop` with `patience > 0`
+   can exit with `StopReason.ESCALATED` (never improved) or `StopReason.NO_PROGRESS`
+   (improved then stalled), but `tests/test_loop.py` has no test that reaches these
+   branches — a regression in the `assess()` wire-up goes undetected.
+   Evidence: `src/looptight/loop.py:155`
+   Acceptance: `test_supply_loop_exits_escalated_when_signal_never_improves` and
+   `test_supply_loop_exits_no_progress_after_prior_improvement` pass in `tests/test_loop.py`
+   and `looptight verify --json` returns `pass`.
+
+2. `_ensure_pycache_ignored` bails when `.gitignore` exists even if `__pycache__/` is
+   absent: a user with an existing Python project's `.gitignore` (missing `__pycache__/`)
+   hits an untracked `__pycache__/` dirty-worktree stall after their first `verify`, with
+   no guidance — the exact stall the function is meant to prevent.
+   Evidence: `src/looptight/commands.py:74`
+   Acceptance: A test that creates `.gitignore` with content not including `__pycache__/`,
+   calls `_ensure_pycache_ignored`, and asserts `__pycache__/\n` was appended to the file
+   and the console printed the "wrote .gitignore" line passes in `tests/test_cli.py` and
+   `looptight verify --json` returns `pass`.
+
+3. `cmd_init` writes `.looptight.toml` outside a git repository with no warning: the
+   user then runs `looptight next`, which fails with "not a git repository" and no recovery
+   hint — a dead-end caused by `init`'s own success message. A warning line ("run `git init`
+   first — looptight next requires a git repository") when `coordinator_path(workdir)` is
+   `None` closes the gap.
+   Evidence: `src/looptight/commands.py:84`
+   Acceptance: A test that runs `cmd_init` in a non-git `tmp_path` and asserts the console
+   output contains "git init" guidance passes in `tests/test_cli.py` and `looptight verify
+   --json` returns `pass`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
