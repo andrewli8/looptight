@@ -3512,17 +3512,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `_ensure_pycache_ignored` bails when `.gitignore` exists even if `__pycache__/` is
-   absent: a user with an existing Python project's `.gitignore` (missing `__pycache__/`)
-   hits an untracked `__pycache__/` dirty-worktree stall after their first `verify`, with
-   no guidance — the exact stall the function is meant to prevent.
-   Evidence: `src/looptight/commands.py:74`
-   Acceptance: A test that creates `.gitignore` with content not including `__pycache__/`,
-   calls `_ensure_pycache_ignored`, and asserts `__pycache__/\n` was appended to the file
-   and the console printed the "wrote .gitignore" line passes in `tests/test_cli.py` and
-   `looptight verify --json` returns `pass`.
-
-2. `cmd_init` writes `.looptight.toml` outside a git repository with no warning: the
+1. `cmd_init` writes `.looptight.toml` outside a git repository with no warning: the
    user then runs `looptight next`, which fails with "not a git repository" and no recovery
    hint — a dead-end caused by `init`'s own success message. A warning line ("run `git init`
    first — looptight next requires a git repository") when `coordinator_path(workdir)` is

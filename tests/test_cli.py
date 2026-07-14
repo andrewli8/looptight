@@ -80,9 +80,10 @@ def test_init_creates_gitignore_for_pycache_on_python_loop(tmp_path, monkeypatch
     assert "__pycache__" in capsys.readouterr().out  # init reports the write
 
 
-def test_init_never_rewrites_an_existing_gitignore(tmp_path, monkeypatch):
-    # init owns only files it creates: an existing user .gitignore stays byte-for-byte,
-    # even if it does not mention __pycache__.
+def test_init_appends_pycache_to_existing_gitignore_and_preserves_its_content(tmp_path, monkeypatch):
+    # init must not rewrite the user's existing entries, but must append __pycache__/
+    # when it is missing — so a Python verify run doesn't dirty the worktree on the
+    # very next step. The original lines survive; __pycache__/ is added at the end.
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
     (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n")
@@ -90,7 +91,9 @@ def test_init_never_rewrites_an_existing_gitignore(tmp_path, monkeypatch):
     (tmp_path / ".gitignore").write_text(original)
 
     assert main(["init"]) == 0
-    assert (tmp_path / ".gitignore").read_text() == original
+    content = (tmp_path / ".gitignore").read_text()
+    assert content.startswith(original), "existing .gitignore content was overwritten"
+    assert "__pycache__/" in content, "__pycache__/ was not appended to existing .gitignore"
 
 
 def test_init_guides_committing_the_config_before_next(tmp_path, monkeypatch, capsys):
@@ -4362,20 +4365,56 @@ def test_ensure_pycache_ignored_writes_gitignore_when_absent(tmp_path):
     assert "wrote" in out.getvalue()
 
 
-def test_ensure_pycache_ignored_leaves_existing_gitignore_untouched(tmp_path):
-    # commands.py:75 — when a .gitignore already exists, _ensure_pycache_ignored must
-    # return without writing or overwriting it, preserving the user's configuration.
+def test_ensure_pycache_ignored_skips_when_gitignore_already_has_entry(tmp_path):
+    # commands.py:74 — when .gitignore already contains __pycache__/, the function
+    # must return without writing or printing, preserving the user's configuration.
     from looptight.commands import _ensure_pycache_ignored
     from looptight.console import Console
     import io
 
-    original = "*.pyc\n"
+    original = "*.pyc\n__pycache__/\n"
     gitignore = tmp_path / ".gitignore"
     gitignore.write_text(original, encoding="utf-8")
     out = io.StringIO()
     _ensure_pycache_ignored(tmp_path, Console(file=out))
     assert gitignore.read_text(encoding="utf-8") == original, ".gitignore was modified"
-    assert out.getvalue() == "", "unexpected console output when .gitignore already exists"
+    assert out.getvalue() == "", "unexpected console output when entry already present"
+
+
+def test_ensure_pycache_ignored_appends_when_gitignore_exists_without_entry(tmp_path):
+    # commands.py:74 — when .gitignore exists but lacks __pycache__/, the function
+    # must append the entry so a Python verify run doesn't dirty the worktree.
+    # Previously the function returned early on any existing .gitignore, silently
+    # leaving the user with a dirty-worktree stall after their first verify.
+    from looptight.commands import _ensure_pycache_ignored
+    from looptight.console import Console
+    import io
+
+    existing = "*.pyc\n"
+    gitignore = tmp_path / ".gitignore"
+    gitignore.write_text(existing, encoding="utf-8")
+    out = io.StringIO()
+    _ensure_pycache_ignored(tmp_path, Console(file=out))
+    content = gitignore.read_text(encoding="utf-8")
+    assert "__pycache__/" in content, "__pycache__/ was not appended to existing .gitignore"
+    assert content.startswith(existing), "existing content was overwritten"
+    assert "wrote" in out.getvalue(), "no console confirmation printed"
+
+
+def test_ensure_pycache_ignored_skips_when_entry_already_present(tmp_path):
+    # commands.py:74 — when .gitignore already contains __pycache__/, the function
+    # must not append a duplicate entry or print any output.
+    from looptight.commands import _ensure_pycache_ignored
+    from looptight.console import Console
+    import io
+
+    original = "*.pyc\n__pycache__/\n"
+    gitignore = tmp_path / ".gitignore"
+    gitignore.write_text(original, encoding="utf-8")
+    out = io.StringIO()
+    _ensure_pycache_ignored(tmp_path, Console(file=out))
+    assert gitignore.read_text(encoding="utf-8") == original, ".gitignore was modified"
+    assert out.getvalue() == "", "unexpected console output when entry already present"
 
 
 def test_doctor_coordinator_state_active_and_not_git(tmp_path):

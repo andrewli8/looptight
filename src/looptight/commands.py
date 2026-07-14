@@ -64,17 +64,25 @@ def _is_python_verify(command: str) -> bool:
 
 
 def _ensure_pycache_ignored(workdir: Path, console: Console) -> None:
-    """Create a one-line .gitignore for __pycache__/ when none exists.
+    """Ensure .gitignore contains __pycache__/, creating or appending as needed.
 
     A Python verify command leaves untracked __pycache__/ behind; without a .gitignore
-    the next `looptight next` then refuses the now-dirty worktree, stalling the shipped
-    loop on its first iteration. Only create the file when absent — never rewrite a
-    .gitignore the user already maintains.
+    entry the next `looptight next` refuses the dirty worktree. When .gitignore already
+    exists and already lists __pycache__/, it is left untouched. When it exists but
+    lacks the entry, the line is appended — never rewriting the user's existing rules.
     """
     gitignore = workdir / ".gitignore"
     if gitignore.exists():
-        return
-    atomic_write_text(gitignore, "__pycache__/\n")
+        try:
+            content = gitignore.read_text(encoding="utf-8")
+        except OSError:
+            return
+        if "__pycache__/" in content.splitlines():
+            return
+        new_content = content + ("" if content.endswith("\n") else "\n") + "__pycache__/\n"
+    else:
+        new_content = "__pycache__/\n"
+    atomic_write_text(gitignore, new_content)
     console.print(
         "[green]wrote[/green] .gitignore (__pycache__/) so test runs don't dirty the "
         "worktree and stall [bold]looptight next[/bold]."
