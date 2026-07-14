@@ -112,9 +112,10 @@ def test_area_no_colon_ref_and_top_level_file_branches():
     no_colon = _candidate("T", "T. Evidence: src/a.py; Acceptance: x")
     assert _area(no_colon) == "src"
 
-    # top-level file -> parent is "."; fallback returns path_text itself
+    # top-level file -> parent is "."; normalized to "." so two root-level files
+    # share the same area instead of appearing as distinct areas
     top_level = _candidate("T2", "T2. Evidence: README.md; Acceptance: x")
-    assert _area(top_level) == "README.md"
+    assert _area(top_level) == "."
 
 
 def test_area_with_colon_ref_strips_to_parent_dir():
@@ -418,3 +419,22 @@ def test_ref_resolves_handles_line_range_suffix(tmp_path):
     assert ref_resolves(tmp_path, "missing.py:1-5") is False  # range, absent file
     # The gate accepts a task citing a real file with an idiomatic line range.
     assert evidence_is_truthful(tmp_path, "Do x. Evidence: real.py:40-60") is True
+
+
+def test_area_treats_root_level_files_as_same_area(tmp_path):
+    # Two candidates citing distinct root-level files must share a single area label
+    # ("."), so the flexibility metric reflects that they are in the same directory.
+    # Previously _area fell back to `path_text` (e.g. "README.md") when the parent
+    # was ".", giving two distinct areas and inflating flexibility to 2.
+    (tmp_path / "README.md").write_text("x")
+    (tmp_path / "CHANGELOG.md").write_text("x")
+    candidates = [
+        _candidate("Update readme", "Update. Evidence: README.md; Acceptance: x"),
+        _candidate("Update changelog", "Update. Evidence: CHANGELOG.md; Acceptance: x"),
+    ]
+    score = score_batch(tmp_path, candidates)
+    assert score.flexibility == 1  # both files are in the root directory
+
+    # Confirm _area itself normalizes the root sentinel
+    assert _area(candidates[0]) == "."
+    assert _area(candidates[1]) == "."

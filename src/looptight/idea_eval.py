@@ -50,7 +50,7 @@ def _area(candidate: Candidate) -> str:
     if refs:
         path_text = refs[0].rsplit(":", 1)[0] if ":" in refs[0] else refs[0]
         parent = Path(path_text).parent.as_posix()
-        return parent if parent and parent != "." else path_text
+        return parent if parent and parent != "." else "."
     return candidate.source
 
 
