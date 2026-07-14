@@ -3533,16 +3533,13 @@ existing CLI session and makes no model or API calls of its own.
   matching the pattern used by every other reader in the codebase. Two regression tests in
   `tests/test_cli.py`: one covering the `OSError` path (lines 78-79 were the only uncovered
   lines in the codebase); one writing a non-UTF-8 file and asserting no raise.
+- `detect_verify`'s poetry-vs-pdm priority (detect.py:97 checks `poetry.lock` before
+  `pdm.lock`) was unguarded: swapping those two `if` blocks would silently return the wrong
+  command with no existing test failing. Locked by `test_detect_verify_poetry_wins_over_pdm`
+  in `tests/test_detect.py`: creates `pyproject.toml`, `poetry.lock`, and `pdm.lock` and
+  asserts `detect_verify` returns `"poetry run pytest -q"`. No production code change.
 
 ## Next
-
-3. `detect_verify`'s priority between `poetry.lock` and `pdm.lock` is unguarded: when
-   both coexist, `poetry` wins (line 97 checked before line 99), but no test covers this
-   case. Swapping those two `if` blocks silently returns the wrong command.
-   Evidence: `src/looptight/detect.py:97`
-   Acceptance: A new test `test_detect_verify_poetry_wins_over_pdm` in
-   `tests/test_detect.py` creates both lock files alongside `pyproject.toml` and asserts
-   `detect_verify` returns `"poetry run pytest -q"`.
 
 ## Rules
 
