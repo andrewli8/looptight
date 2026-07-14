@@ -3497,6 +3497,35 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Pin the untested singular branches of `policy_line` — the `n == 1` arms at
+   `protocol_commands.py:984` ("max 1 changed file") and `:987` ("1 protected path") are
+   both reachable code that a mutation changing `n != 1` to `True` would silently corrupt;
+   the existing suite exercises only the plural forms ("max 5 changed files", "2 protected
+   paths").
+   Evidence: `src/looptight/protocol_commands.py:984`
+   Acceptance: `pytest tests/test_cli.py -k policy_line` passes and includes assertions that
+   `policy_line` with `max_changed_files=1` returns "max 1 changed file" (no trailing 's')
+   and with one protected path returns "1 protected path" (no trailing 's').
+
+2. Pin the untested singular branches of `_swarm_banner` — `_plural(workers, 'worker')` at
+   `swarm.py:996` and `_plural(max_rounds, 'round')` at `:990` are never called with `n == 1`
+   in any assertion; every existing `test_swarm_banner_*` test uses 2+ workers and 5+ rounds so
+   a mutation to `_plural` that always appended 's' would be undetected.
+   Evidence: `src/looptight/swarm.py:996`
+   Acceptance: `pytest tests/test_swarm.py -k swarm_banner` passes and includes a direct call
+   to `_swarm_banner(1, ...)` asserting "1 worker" (not "1 workers") and a call with
+   `max_rounds=1` asserting "max 1 round" (not "max 1 rounds").
+
+3. Pin the untested singular form in the `revert` untracked-files message — `commands.py:572`
+   emits `f"{len(leftovers)} untracked file{'s' if len(leftovers) != 1 else ''}"`, but
+   `test_revert_notes_untracked_files_left_in_place` only asserts `"untracked" in out` even
+   though it creates exactly one untracked file; a mutation making the expression always plural
+   would pass the existing assertion undetected.
+   Evidence: `src/looptight/commands.py:572`
+   Acceptance: `pytest tests/test_cli.py -k revert` passes and a test asserts the output
+   contains "1 untracked file" (singular, no trailing 's') when exactly one untracked file
+   is present.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
