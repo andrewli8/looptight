@@ -20,7 +20,8 @@ choice, context, and usage limits stay inside the active agent CLI.
 | `ranking.py` | dedupe and order candidates by a transparent heuristic |
 | `propose.py` | compose discovery and ranking into the public candidate list |
 | `tasks.py` | turn the top candidate into versioned `next` output |
-| `claims.py` | prevent duplicate work across worktrees with private atomic files |
+| `coordinator.py` | SQLite claim store (primary); unique leases, heartbeats, and migration chain for every Git worktree |
+| `claims.py` | legacy file-based claim fallback; still active outside Git or when the coordinator is absent |
 | `verify.py` | run the project contract; tell a real pass/fail from timeout/launch errors |
 | `goal.py` | store a build vision and hand the host one verify-gated increment at a time |
 | `grounding.py` | check that a task's `Evidence:` anchors resolve to real files |

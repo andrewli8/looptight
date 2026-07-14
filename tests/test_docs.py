@@ -374,6 +374,19 @@ def test_usage_doc_lists_autodetected_ecosystems():
         assert runner in text, f"usage.md does not list the auto-detected runner {runner!r}"
 
 
+def test_architecture_doc_lists_coordinator_module():
+    # docs/architecture.md:23 — the Core modules table lists claims.py as the
+    # claim-prevention mechanism but omits coordinator.py, which is now the
+    # primary claim store in any Git repo. A reader consulting the table gets an
+    # inaccurate model of how the system works.
+    text = (_ROOT / "docs" / "architecture.md").read_text(encoding="utf-8")
+    core_section = text.split("## Core modules")[1].split("##")[0]
+    assert "coordinator.py" in core_section, (
+        "docs/architecture.md Core modules table must list coordinator.py "
+        "(the primary SQLite claim store for every Git worktree)"
+    )
+
+
 def test_changelog_records_evidence_refs_grounding_gate_fix():
     # Two root causes of the grounding-gate regression must be in [Unreleased]:
     # 1. _EVIDENCE_RE lookbehind: backtick code spans containing `Evidence:` were

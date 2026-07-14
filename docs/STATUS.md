@@ -3489,15 +3489,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `docs/architecture.md`'s Core modules table omits `coordinator.py`, describing `claims.py`
-   as the claim-prevention mechanism when the coordinator is now the primary claim store in any
-   Git repo. A reader consulting the table would have an inaccurate model of how the system works.
-   Evidence: `docs/architecture.md:23`
-   Acceptance: a new `test_architecture_doc_lists_coordinator_module` test in `tests/test_docs.py`
-   asserts `"coordinator.py"` appears in the Core modules section; the test fails before the doc
-   update and passes after.
-
-3. `_migrate_3_to_4` in `coordinator.py` has a `table is not None` guard for the case where the
+1. `_migrate_3_to_4` in `coordinator.py` has a `table is not None` guard for the case where the
    `runs` table doesn't exist, but that guard's False branch (the do-nothing path) has no test.
    A regression accidentally inverting the condition would crash on a real migration with
    `OperationalError: no such table: runs`.
