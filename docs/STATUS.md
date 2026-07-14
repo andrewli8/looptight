@@ -3512,6 +3512,17 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_ensure_pycache_ignored` false-negatives broader gitignore patterns: `"__pycache__/" in content.splitlines()` checks list membership (exact line match), so a gitignore containing `**/__pycache__/` or `__pycache__` (no trailing slash) is not recognized, and a redundant `__pycache__/` entry is appended. Fix: replace the check with `any("__pycache__" in line for line in content.splitlines())`.
+   Evidence: `src/looptight/commands.py:80`
+   Acceptance: `test_ensure_pycache_ignored_skips_when_gitignore_has_recursive_pattern` passes — a `.gitignore` containing `**/__pycache__/` is not modified (no duplicate entry, no console output).
+
+2. `next_task` `idea_generation=False` branch has no direct unit test: the `directive=None` arm at `tasks.py:204` is exercised only via CLI integration (`main(["next", "--no-ideas"])`) and never as a direct `next_task(...)` call, so a regression in the param threading from `cmd_next` would pass unit tests undetected.
+   Evidence: `src/looptight/tasks.py:204`
+   Acceptance: `test_next_task_idea_generation_false_returns_no_directive_on_empty_queue` passes — a direct call with `idea_generation=False` and an empty propose fn returns `status="no_work"` with `directive` equal to `None`.
+
+3. `from_task_file` `not path.is_file()` branch has no test: when a configured task file does not exist (user typo, moved file), the function returns `[]` silently — no error, no warning — causing `looptight next` to output `NO_WORK` with no indication of the misconfiguration.
+   Evidence: `src/looptight/discovery.py:571`
+   Acceptance: `test_from_task_file_returns_empty_when_configured_file_is_absent` passes — calling `from_task_file(root, "docs/missing.md")` on a real directory returns `[]`; a mutation removing the `is_file()` guard causes the test to raise `FileNotFoundError` (proving it is a real guard, not dead code).
 
 ## Rules
 
