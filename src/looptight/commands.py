@@ -151,6 +151,11 @@ def cmd_init(args: argparse.Namespace, console: Console) -> int:
             "To let Claude Code discover looptight in any session: "
             "[bold]looptight install-skill[/bold]"
         )
+    if not is_git_repo(workdir):
+        console.print(
+            "[yellow]Note:[/yellow] this directory is not a git repository. "
+            "Run [bold]git init[/bold] first — [bold]looptight next[/bold] requires a git repository."
+        )
     return 0
 
 

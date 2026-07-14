@@ -96,6 +96,16 @@ def test_init_appends_pycache_to_existing_gitignore_and_preserves_its_content(tm
     assert "__pycache__/" in content, "__pycache__/ was not appended to existing .gitignore"
 
 
+def test_init_warns_when_run_outside_a_git_repository(tmp_path, monkeypatch, capsys):
+    # commands.py:84 — cmd_init writes .looptight.toml successfully but looptight next
+    # then fails with "not a git repository" and no hint. init must print a warning
+    # directing the user to run `git init` before looptight next.
+    monkeypatch.chdir(tmp_path)
+    assert main(["init"]) == 0
+    out = capsys.readouterr().out
+    assert "git init" in out, "init does not warn the user to run git init outside a repo"
+
+
 def test_init_guides_committing_the_config_before_next(tmp_path, monkeypatch, capsys):
     # init writes an untracked .looptight.toml; the documented next step `next`
     # refuses a dirty worktree, so a first-run user who runs init then next hits a
@@ -406,6 +416,7 @@ def test_init_does_not_warn_for_a_unit_test_verify(tmp_path, monkeypatch, capsys
     from looptight import commands
 
     monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     monkeypatch.setattr(commands, "detect_verify", lambda *a, **k: "pytest -q")
     monkeypatch.setattr(commands, "detect_agent", lambda *a, **k: None)
     assert main(["init"]) == 0

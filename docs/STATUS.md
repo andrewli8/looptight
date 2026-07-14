@@ -3512,15 +3512,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `cmd_init` writes `.looptight.toml` outside a git repository with no warning: the
-   user then runs `looptight next`, which fails with "not a git repository" and no recovery
-   hint — a dead-end caused by `init`'s own success message. A warning line ("run `git init`
-   first — looptight next requires a git repository") when `coordinator_path(workdir)` is
-   `None` closes the gap.
-   Evidence: `src/looptight/commands.py:84`
-   Acceptance: A test that runs `cmd_init` in a non-git `tmp_path` and asserts the console
-   output contains "git init" guidance passes in `tests/test_cli.py` and `looptight verify
-   --json` returns `pass`.
 
 ## Rules
 
