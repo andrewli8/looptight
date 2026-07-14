@@ -1431,6 +1431,39 @@ def test_from_lint_returns_empty_on_timeout(tmp_path, monkeypatch):
     assert from_lint(tmp_path) == []
 
 
+def test_from_lint_uses_uvx_ruff_when_ruff_not_on_path(tmp_path, monkeypatch):
+    # When ruff is not on PATH but uvx is, from_lint must invoke `uvx ruff check ...`
+    # so that projects that install ruff via `uv tool install ruff` still get lint
+    # candidates. This is the uvx-fallback path added alongside the direct ruff path.
+    monkeypatch.setattr(
+        "looptight.discovery.shutil.which",
+        lambda command: "/usr/bin/uvx" if command == "uvx" else None,
+    )
+    ruff_output = "a.py:1:1: F401 `os` imported but unused\n"
+
+    def fake_run(command, **kwargs):
+        assert command[0] == "/usr/bin/uvx", f"expected uvx, got {command[0]}"
+        assert command[1] == "ruff", f"expected ruff subcommand, got {command[1]}"
+        return type("Result", (), {"stdout": ruff_output})()
+
+    monkeypatch.setattr("looptight.discovery.subprocess.run", fake_run)
+    candidates = from_lint(tmp_path)
+    assert len(candidates) == 1
+    assert "F401" in candidates[0].title
+
+
+def test_from_lint_returns_empty_when_neither_ruff_nor_uvx_on_path(tmp_path, monkeypatch):
+    # When neither ruff nor uvx is on PATH, from_lint must return [] without
+    # invoking any subprocess — the same safe degradation as the ruff-absent case.
+    monkeypatch.setattr("looptight.discovery.shutil.which", lambda command: None)
+
+    def unexpected_subprocess(*args, **kwargs):
+        raise AssertionError("must not invoke subprocess when neither ruff nor uvx is available")
+
+    monkeypatch.setattr("looptight.discovery.subprocess.run", unexpected_subprocess)
+    assert from_lint(tmp_path) == []
+
+
 # --- dedup + rank ----------------------------------------------------------
 
 def test_rank_orders_by_source_priority():

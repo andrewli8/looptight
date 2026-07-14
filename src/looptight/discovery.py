@@ -653,8 +653,14 @@ def from_lint(root: Path) -> list[Candidate]:
     """ruff findings, one task per (file, rule). Empty when ruff is unavailable."""
     ruff = shutil.which("ruff")
     if ruff is None:
-        return []
-    cmd = [ruff, "check", "--no-cache", "--output-format", "concise", "--quiet"]
+        uvx = shutil.which("uvx")
+        if uvx is None:
+            return []
+        # ruff installed as a uv tool (not on PATH) — invoke it via uvx so projects
+        # using `uv tool install ruff` still get lint candidates.
+        cmd = [uvx, "ruff", "check", "--no-cache", "--output-format", "concise", "--quiet"]
+    else:
+        cmd = [ruff, "check", "--no-cache", "--output-format", "concise", "--quiet"]
     try:
         proc = subprocess.run(
             cmd,

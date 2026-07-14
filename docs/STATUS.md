@@ -3541,9 +3541,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `from_lint` in `discovery.py:652` is silently useless in projects where ruff is installed only as a uv tool (`uv tool install ruff`): `shutil.which("ruff")` returns `None`, so lint discovery produces no candidates. Fix: when ruff is not on PATH but `uvx` is, try `["uvx", "ruff", "check", ...]` as a fallback. Evidence: `src/looptight/discovery.py:652`; Acceptance: a new test monkeypatches `shutil.which` to hide ruff but expose uvx, asserts `from_lint` invokes `uvx ruff check` and returns a candidate from the mocked subprocess output, passing after the fix.
-
-2. `looptight verify --json` does not include the verify command that was actually run. The `_print_verify_json` payload at `src/looptight/protocol_commands.py:171` carries `status`, `exit_code`, `score`, `duration_ms`, `output`, and `error`, but omits `verify_command` — making it impossible for a machine consumer to confirm which command produced the result, which matters when the command is auto-detected. Fix: add a `verify_command` field to the JSON payload (additive, so existing consumers are unaffected). Evidence: `src/looptight/protocol_commands.py:171`; Acceptance: a new test checks that `looptight verify --json` output parses to a dict with a `verify_command` key matching the resolved command.
+1. `looptight verify --json` does not include the verify command that was actually run. The `_print_verify_json` payload at `src/looptight/protocol_commands.py:171` carries `status`, `exit_code`, `score`, `duration_ms`, `output`, and `error`, but omits `verify_command` — making it impossible for a machine consumer to confirm which command produced the result, which matters when the command is auto-detected. Fix: add a `verify_command` field to the JSON payload (additive, so existing consumers are unaffected). Evidence: `src/looptight/protocol_commands.py:171`; Acceptance: a new test checks that `looptight verify --json` output parses to a dict with a `verify_command` key matching the resolved command.
 
 ## Rules
 
