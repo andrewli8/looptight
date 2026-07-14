@@ -494,3 +494,18 @@ def test_detect_verify_crystal(tmp_path):
     # unambiguous test runner, analogous to Elixir (mix.exs) and Swift (Package.swift).
     (tmp_path / "shard.yml").write_text('name: myapp\nversion: 0.1.0\n')
     assert detect.detect_verify(tmp_path) == "crystal spec"
+
+
+def test_detect_verify_pipenv_lock_returns_pipenv_run_pytest(tmp_path):
+    # Pipenv projects carry a Pipfile.lock; pipenv run pytest -q is the unambiguous
+    # test runner for them, matching the pattern for uv.lock, poetry.lock, pdm.lock.
+    (tmp_path / "Pipfile.lock").write_text('{"default": {}, "_meta": {}}\n')
+    assert detect.detect_verify(tmp_path) == "pipenv run pytest -q"
+
+
+def test_detect_verify_pipenv_wins_over_pyproject(tmp_path):
+    # Pipfile.lock must be checked before pyproject.toml so a project that has both
+    # (e.g., a pyproject.toml for metadata + Pipenv for the environment) prefers pipenv.
+    (tmp_path / "Pipfile.lock").write_text('{"default": {}, "_meta": {}}\n')
+    (tmp_path / "pyproject.toml").write_text('[tool.pytest.ini_options]\n')
+    assert detect.detect_verify(tmp_path) == "pipenv run pytest -q"

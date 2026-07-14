@@ -89,6 +89,13 @@ def detect_verify(root: Path | None = None) -> str | None:
         except (ValueError, OSError):
             pass
 
+    # Pipfile.lock is only created by Pipenv, so checking it before pyproject.toml
+    # avoids claiming pyproject.toml-based commands on a project whose environment is
+    # managed by Pipenv (e.g. a project that has both pyproject.toml for metadata and
+    # Pipfile.lock for the virtual environment).
+    if (base / "Pipfile.lock").is_file():
+        return "pipenv run pytest -q"
+
     # uv-managed projects have uv.lock alongside pyproject.toml. In a fresh
     # uv-only environment pytest is not on PATH, so the correct command is
     # `uv run pytest -q`, not the bare `pytest -q` that _VERIFY_RULES would return.

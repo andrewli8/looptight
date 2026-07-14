@@ -14,8 +14,8 @@ one short, reviewable instruction block to `AGENTS.md` (Codex, OpenCode) or
 `CLAUDE.md` (Claude Code) so the agent runs the loop without you re-prompting after
 each task.
 
-Detected ecosystems: Python/pytest (`pytest -q`), uv/poetry/pdm (`uv run pytest -q`,
-`poetry run pytest -q`, `pdm run pytest -q`), Node/npm/pnpm/yarn/bun (`npm test`,
+Detected ecosystems: Python/pytest (`pytest -q`), uv/poetry/pdm/pipenv (`uv run pytest -q`,
+`poetry run pytest -q`, `pdm run pytest -q`, `pipenv run pytest -q`), Node/npm/pnpm/yarn/bun (`npm test`,
 `pnpm test`, `yarn test`, `bun test`), Rust (`cargo test`), Go (`go test ./...`),
 Deno (`deno test`), JVM — Gradle (`gradle test` or `./gradlew test`), Maven
 (`mvn test` or `./mvnw test`), .NET (`dotnet test`), Elixir (`mix test`), Swift
