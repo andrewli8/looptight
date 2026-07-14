@@ -2739,6 +2739,43 @@ def test_status_human_output_shows_coordinator_counts(tmp_path, monkeypatch, cap
     assert "queued" in out and "integrations" in out and "publications" in out
 
 
+def test_status_human_singular_coordinator_counts(tmp_path, monkeypatch, capsys):
+    # protocol_commands.py:722-723 — `qi != 1` and `pp != 1` are only ever executed
+    # with qi=0 and pp=0 in all existing tests (fresh coordinator, nothing queued),
+    # so the plural form "0 integrations"/"0 publications" never exercises the singular
+    # branch. A mutation inverting either guard would go completely undetected.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], check=True)
+    (tmp_path / ".looptight.toml").write_text('verify = "exit 0"\n', encoding="utf-8")
+
+    import looptight.coordinator as _coord
+
+    class _Stub:
+        def status(self, run_id=None, **kw):
+            return {
+                "queued_tasks": 0,
+                "queued_integrations": 1,
+                "pending_publications": 1,
+                "active_claims": 0,
+                "claimed_task": None,
+            }
+
+        def active_lease_for_owner(self, owner):
+            return None
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(_coord.Coordinator, "open", staticmethod(lambda _: _Stub()))
+
+    assert main(["status"]) == 0
+    out = capsys.readouterr().out
+    assert "1 integration" in out
+    assert "1 integrations" not in out
+    assert "1 publication" in out
+    assert "1 publications" not in out
+
+
 def test_run_and_swarm_parsers_accept_model():
     assert build_parser().parse_args(["run", "--headless", "g", "--model", "opus"]).model == "opus"
     assert build_parser().parse_args(["swarm", "--headless", "--model", "opus"]).model == "opus"

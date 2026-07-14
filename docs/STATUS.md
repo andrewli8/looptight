@@ -3503,6 +3503,12 @@ existing CLI session and makes no model or API calls of its own.
   phrases: `test_backlog_reason_contains_all_three_instructions` calls `backlog_reason()` directly
   and asserts "NO_WORK", "do not fabricate work", and "looptight next" are all present; previously
   only "looptight next" was indirectly asserted via `decide()` tests.
+- Coordinator status singular `integration`/`publication` forms (`protocol_commands.py:722-723`)
+  are now mutation-pinned: `test_status_human_singular_coordinator_counts` monkeypatches
+  `Coordinator.open` to return a stub with `queued_integrations=1` and `pending_publications=1`,
+  runs `main(["status"])`, and asserts "1 integration" (no trailing 's') and "1 publication" (no
+  trailing 's'); previously both guards only ran with counts=0 (fresh coordinator in every test),
+  so a mutation inverting either guard went completely undetected.
 
 ## Next
 
