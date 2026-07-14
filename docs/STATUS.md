@@ -3475,22 +3475,15 @@ existing CLI session and makes no model or API calls of its own.
   with `\`` (escaped backtick), asserts `body is None` and `template_open is True`; mutating
   `i += 2` to `i += 1` at discovery.py:221 makes the escaped backtick close the template and
   any `//` after it become a comment body, failing the assertion.
+- `rank_with_model`'s `status-next` curated-source branch at `ranking.py:57` is now
+  mutation-pinned: `test_rank_with_model_status_next_is_curated` in `tests/test_propose.py` calls
+  `rank_with_model` with a `status-next` candidate and `Model(category_failed={"status-next": 10})`,
+  asserts `score == 65.0`; removing `"status-next"` from `_CURATED_SOURCES` at ranking.py:37 drops
+  the score to 32.5, failing the assertion and proving learned damping cannot invert curated ordering.
 
 ## Next
 
-1. Pin `rank_with_model`'s `status-next` curated-source branch at `ranking.py:57`. The
-   `_CURATED_SOURCES` set at `ranking.py:37` contains both `task-file` and `status-next`, but the
-   existing test (test_rank_with_model_curated_source_factor_is_one) only checks `task-file`. A
-   mutation removing `"status-next"` from `_CURATED_SOURCES` would let failure data damp
-   `status-next` scores below automated signals, violating the ordering guarantee, while all
-   current tests still pass.
-   Evidence: `src/looptight/ranking.py:37`
-   Acceptance: A new test in `tests/test_propose.py` calls `rank_with_model` with a `status-next`
-   candidate and `Model(category_failed={"status-next": 10})`, asserts `score == 65.0`; mutating
-   `_CURATED_SOURCES` by removing `"status-next"` at ranking.py:37 lets reweighting reduce the
-   score below 65.0, failing the assertion.
-
-2. Pin `_reverse_source_paths`'s `tests/` directory pruning at `swarm.py:246`. The function
+1. Pin `_reverse_source_paths`'s `tests/` directory pruning at `swarm.py:246`. The function
    excludes `"tests"` and `"test"` directories from its source search so that a helper file inside
    `tests/` (e.g. `tests/utils.py`) is never returned as the source module for a test. No existing
    test verifies this pruning: all test fixtures for `_task_paths` / `_reverse_source_paths` place

@@ -1551,6 +1551,16 @@ def test_rank_with_model_curated_source_factor_is_one():
     assert result[0].score == 70.0
 
 
+def test_rank_with_model_status_next_is_curated():
+    # ranking.py:37: _CURATED_SOURCES contains both "task-file" and "status-next".
+    # A mutation removing "status-next" would let failure data damp the score
+    # below the base weight of 65.0, violating the curated-ordering guarantee.
+    c = _rc("status-next", "planner task")
+    model = Model(category_failed={"status-next": 10})
+    result = rank_with_model([c], model)
+    assert result[0].score == 65.0
+
+
 # --- dedupe -------------------------------------------------------------------
 
 from looptight.ranking import dedupe  # noqa: E402
