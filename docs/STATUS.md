@@ -3514,12 +3514,12 @@ existing CLI session and makes no model or API calls of its own.
   exact-line match), so a `.gitignore` containing `**/__pycache__/` (the common recursive form) is
   recognized and no redundant entry is appended. Covered by
   `test_ensure_pycache_ignored_skips_when_gitignore_has_recursive_pattern` in test_cli.py.
+- `next_task`'s `idea_generation=False` arm (`tasks.py:204`) now has a direct unit test:
+  `test_next_task_idea_generation_false_returns_no_directive_on_empty_queue` in `test_tasks.py`
+  calls `next_task(...)` directly with `idea_generation=False` and asserts `directive is None`,
+  so a regression in the param threading from `cmd_next` would be caught by the unit suite.
 
 ## Next
-
-2. `next_task` `idea_generation=False` branch has no direct unit test: the `directive=None` arm at `tasks.py:204` is exercised only via CLI integration (`main(["next", "--no-ideas"])`) and never as a direct `next_task(...)` call, so a regression in the param threading from `cmd_next` would pass unit tests undetected.
-   Evidence: `src/looptight/tasks.py:204`
-   Acceptance: `test_next_task_idea_generation_false_returns_no_directive_on_empty_queue` passes — a direct call with `idea_generation=False` and an empty propose fn returns `status="no_work"` with `directive` equal to `None`.
 
 3. `from_task_file` `not path.is_file()` branch has no test: when a configured task file does not exist (user typo, moved file), the function returns `[]` silently — no error, no warning — causing `looptight next` to output `NO_WORK` with no indication of the misconfiguration.
    Evidence: `src/looptight/discovery.py:571`

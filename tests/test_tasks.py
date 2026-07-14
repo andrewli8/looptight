@@ -242,6 +242,16 @@ def test_next_keeps_idea_directive_when_queue_is_genuinely_empty(tmp_path):
     assert result.directive is not None  # no candidates at all -> generate ideas
 
 
+def test_next_task_idea_generation_false_returns_no_directive_on_empty_queue(tmp_path):
+    # tasks.py:204 — the `directive=None` arm (idea_generation=False) was only exercised
+    # via CLI integration (main(["next", "--no-ideas"])), never as a direct next_task()
+    # call. A regression in the param threading from cmd_next would pass unit tests.
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    result = next_task(tmp_path, propose_fn=lambda w, limit=0: [], idea_generation=False)
+    assert result.status == "no_work"
+    assert result.directive is None
+
+
 def test_idea_directive_carries_quality_feedback(tmp_path):
     from looptight.tasks import _idea_directive
 
