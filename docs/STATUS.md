@@ -3541,6 +3541,14 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_area` in `idea_eval.py` returns `path_text` for root-level evidence files (when `Path(path_text).parent.as_posix()` is `"."`) instead of the root sentinel `"."`, inflating `flexibility` when a batch cites two or more root-level files — they get distinct area labels when they share the same directory. Fix: return `"."` in place of `path_text` when `parent == "."`. Evidence: `src/looptight/idea_eval.py:56`; Acceptance: a new test `test_area_treats_root_level_files_as_same_area` in `tests/test_idea_eval.py` asserts that two candidates each citing a distinct root-level file score `flexibility == 1`, failing before the fix and passing after.
+
+2. `detect_verify` doesn't recognize Pipenv (`Pipfile.lock` → `pipenv run pytest -q`). The function at `src/looptight/detect.py:77` handles `uv.lock`, `poetry.lock`, and `pdm.lock` but not `Pipfile.lock`, so a Pipenv-managed project falls through to a generic default and `init` gives no echo that it matched. Fix: add `if (base / "Pipfile.lock").is_file(): return "pipenv run pytest -q"` alongside the other Python lock-file branches, and add `pipenv run pytest` to the unit-test recognizer in `_verifier_quality`. Evidence: `src/looptight/detect.py:77`; Acceptance: a new test `test_detect_verify_pipenv_lock_returns_pipenv_run_pytest` in `tests/test_detect.py` passes, and `usage.md`'s quick-start ecosystem list mentions Pipenv.
+
+3. `from_lint` in `discovery.py:652` is silently useless in projects where ruff is installed only as a uv tool (`uv tool install ruff`): `shutil.which("ruff")` returns `None`, so lint discovery produces no candidates. Fix: when ruff is not on PATH but `uvx` is, try `["uvx", "ruff", "check", ...]` as a fallback. Evidence: `src/looptight/discovery.py:652`; Acceptance: a new test monkeypatches `shutil.which` to hide ruff but expose uvx, asserts `from_lint` invokes `uvx ruff check` and returns a candidate from the mocked subprocess output, passing after the fix.
+
+4. `looptight verify --json` does not include the verify command that was actually run. The `_print_verify_json` payload at `src/looptight/protocol_commands.py:171` carries `status`, `exit_code`, `score`, `duration_ms`, `output`, and `error`, but omits `verify_command` — making it impossible for a machine consumer to confirm which command produced the result, which matters when the command is auto-detected. Fix: add a `verify_command` field to the JSON payload (additive, so existing consumers are unaffected). Evidence: `src/looptight/protocol_commands.py:171`; Acceptance: a new test checks that `looptight verify --json` output parses to a dict with a `verify_command` key matching the resolved command.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
