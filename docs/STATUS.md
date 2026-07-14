@@ -3525,6 +3525,30 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_ensure_pycache_ignored`'s `except OSError` (commands.py:78) does not catch
+   `UnicodeDecodeError` (a `ValueError` subclass) raised by a non-UTF-8 `.gitignore`,
+   so `looptight init` crashes on such a file instead of skipping silently. Every
+   other reader in the codebase catches `(OSError, ValueError)` for this reason.
+   Evidence: `src/looptight/commands.py:78`
+   Acceptance: Two new tests in `tests/test_cli.py` pass — one injects `OSError` via
+   `monkeypatch` (covering the never-executed lines 78-79), one writes a non-UTF-8
+   `.gitignore` and asserts the function returns without raising; handler widened to
+   `except (OSError, ValueError)` in production code; coverage for `commands.py` reaches 100%.
+
+2. `test_usage_doc_lists_autodetected_ecosystems` asserts only three runners (`cargo
+   test`, `gradle test`, `dotnet test`) while `docs/usage.md` also lists `crystal spec`,
+   `swift test`, and `mix test` — all three can be silently removed without a test failure.
+   Evidence: `tests/test_docs.py:373`
+   Acceptance: The updated test asserts `crystal spec`, `swift test`, and `mix test`
+   also appear in `docs/usage.md`; removing any one from the doc causes the test to fail.
+
+3. `detect_verify`'s priority between `poetry.lock` and `pdm.lock` is unguarded: when
+   both coexist, `poetry` wins (line 97 checked before line 99), but no test covers this
+   case. Swapping those two `if` blocks silently returns the wrong command.
+   Evidence: `src/looptight/detect.py:97`
+   Acceptance: A new test `test_detect_verify_poetry_wins_over_pdm` in
+   `tests/test_detect.py` creates both lock files alongside `pyproject.toml` and asserts
+   `detect_verify` returns `"poetry run pytest -q"`.
 
 ## Rules
 
