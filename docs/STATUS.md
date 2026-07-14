@@ -3489,6 +3489,37 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_state_path` in `ui.py` has no `try/except OSError` around its `subprocess.run` call,
+   so `read_state` crashes (instead of returning `empty_state()`) when git is absent from PATH
+   — confirmed by a quick Python test that the exception propagates uncaught.
+   Evidence: `src/looptight/ui.py:25`
+   Acceptance: `test_read_state_returns_empty_when_git_not_found` (monkeypatches `subprocess.run`
+   to raise `OSError`) passes, and the same test fails on the unfixed code.
+
+2. `docs/architecture.md`'s Core modules table omits `coordinator.py`, describing `claims.py`
+   as the claim-prevention mechanism when the coordinator is now the primary claim store in any
+   Git repo. A reader consulting the table would have an inaccurate model of how the system works.
+   Evidence: `docs/architecture.md:23`
+   Acceptance: a new `test_architecture_doc_lists_coordinator_module` test in `tests/test_docs.py`
+   asserts `"coordinator.py"` appears in the Core modules section; the test fails before the doc
+   update and passes after.
+
+3. `_migrate_3_to_4` in `coordinator.py` has a `table is not None` guard for the case where the
+   `runs` table doesn't exist, but that guard's False branch (the do-nothing path) has no test.
+   A regression accidentally inverting the condition would crash on a real migration with
+   `OperationalError: no such table: runs`.
+   Evidence: `src/looptight/coordinator.py:125`
+   Acceptance: `test_migrate_3_to_4_handles_missing_runs_table` creates an in-memory SQLite
+   connection with no tables and calls `_migrate_3_to_4` directly, asserting it does not raise
+   and leaves `user_version == 4`; the test fails if the guard is removed.
+
+4. `_initialize_schema` in `coordinator.py` has a `version == 1` migration branch that is never
+   reached in any test (all tests open a fresh DB at version 0). A bug in `_MIGRATE_1_TO_2` or
+   its successor chain would go undetected.
+   Evidence: `src/looptight/coordinator.py:152`
+   Acceptance: `test_coordinator_migrates_from_version_1` creates a real on-disk DB seeded at
+   schema v1, opens a Coordinator against it, and asserts `PRAGMA user_version` returns 4.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
