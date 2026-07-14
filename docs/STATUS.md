@@ -3509,12 +3509,13 @@ existing CLI session and makes no model or API calls of its own.
   runs `main(["status"])`, and asserts "1 integration" (no trailing 's') and "1 publication" (no
   trailing 's'); previously both guards only ran with counts=0 (fresh coordinator in every test),
   so a mutation inverting either guard went completely undetected.
+- `_ensure_pycache_ignored` (`commands.py:80`) now uses `any("__pycache__" in line for line in
+  content.splitlines())` instead of `"__pycache__/" in content.splitlines()` (list membership /
+  exact-line match), so a `.gitignore` containing `**/__pycache__/` (the common recursive form) is
+  recognized and no redundant entry is appended. Covered by
+  `test_ensure_pycache_ignored_skips_when_gitignore_has_recursive_pattern` in test_cli.py.
 
 ## Next
-
-1. `_ensure_pycache_ignored` false-negatives broader gitignore patterns: `"__pycache__/" in content.splitlines()` checks list membership (exact line match), so a gitignore containing `**/__pycache__/` or `__pycache__` (no trailing slash) is not recognized, and a redundant `__pycache__/` entry is appended. Fix: replace the check with `any("__pycache__" in line for line in content.splitlines())`.
-   Evidence: `src/looptight/commands.py:80`
-   Acceptance: `test_ensure_pycache_ignored_skips_when_gitignore_has_recursive_pattern` passes — a `.gitignore` containing `**/__pycache__/` is not modified (no duplicate entry, no console output).
 
 2. `next_task` `idea_generation=False` branch has no direct unit test: the `directive=None` arm at `tasks.py:204` is exercised only via CLI integration (`main(["next", "--no-ideas"])`) and never as a direct `next_task(...)` call, so a regression in the param threading from `cmd_next` would pass unit tests undetected.
    Evidence: `src/looptight/tasks.py:204`

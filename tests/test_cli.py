@@ -4428,6 +4428,26 @@ def test_ensure_pycache_ignored_skips_when_entry_already_present(tmp_path):
     assert out.getvalue() == "", "unexpected console output when entry already present"
 
 
+def test_ensure_pycache_ignored_skips_when_gitignore_has_recursive_pattern(tmp_path):
+    # commands.py:80 — `"__pycache__/" in content.splitlines()` is list membership
+    # (exact line match), so `**/__pycache__/` (the common recursive gitignore pattern)
+    # was not recognized and a redundant `__pycache__/` entry was appended.
+    # Fix: `any("__pycache__" in line ...)` matches any line that mentions __pycache__.
+    from looptight.commands import _ensure_pycache_ignored
+    from looptight.console import Console
+    import io
+
+    original = "*.pyc\n**/__pycache__/\n"
+    gitignore = tmp_path / ".gitignore"
+    gitignore.write_text(original, encoding="utf-8")
+    out = io.StringIO()
+    _ensure_pycache_ignored(tmp_path, Console(file=out))
+    assert gitignore.read_text(encoding="utf-8") == original, (
+        "_ensure_pycache_ignored must not append __pycache__/ when **/__pycache__/ already present"
+    )
+    assert out.getvalue() == "", "unexpected console output when broader pattern already present"
+
+
 def test_doctor_coordinator_state_active_and_not_git(tmp_path):
     # commands.py:492 — _doctor_coordinator_state returns "active" when git is
     # ready and "not a git repo" when it is not; test both branches directly.

@@ -77,7 +77,7 @@ def _ensure_pycache_ignored(workdir: Path, console: Console) -> None:
             content = gitignore.read_text(encoding="utf-8")
         except OSError:
             return
-        if "__pycache__/" in content.splitlines():
+        if any("__pycache__" in line for line in content.splitlines()):
             return
         new_content = content + ("" if content.endswith("\n") else "\n") + "__pycache__/\n"
     else:
