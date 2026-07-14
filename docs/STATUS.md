@@ -3469,22 +3469,16 @@ existing CLI session and makes no model or API calls of its own.
   `_normalize_failure` with `"--- FAIL: TestLogin (5ms)"` and asserts `"5ms"` is absent;
   mutating `m?s` to `s` in `_DURATION_RE` fails that test, so ms-duration failures from
   Go/Jest cannot evade deduplication.
+- `_js_line_comment`'s backslash-in-template escape branch at `discovery.py:220` is now
+  mutation-pinned: `test_js_line_comment_backslash_in_template_skips_escaped_backtick` in
+  `tests/test_propose.py` calls `_js_line_comment` with `in_template=True` and a line starting
+  with `\`` (escaped backtick), asserts `body is None` and `template_open is True`; mutating
+  `i += 2` to `i += 1` at discovery.py:221 makes the escaped backtick close the template and
+  any `//` after it become a comment body, failing the assertion.
 
 ## Next
 
-1. Pin `_js_line_comment`'s backslash-in-template escape branch at `discovery.py:220`. When
-   `in_template=True`, the scanner advances `i += 2` on a backslash to skip the next character,
-   preventing an escaped backtick from closing the template. No existing test exercises this path:
-   all tests that pass `in_template=True` use lines without a leading backslash, so a mutation
-   changing `i += 2` to `i += 1` at discovery.py:221 would silently allow an escaped backtick to
-   close the template early and expose a following `//` as a comment hit instead of template content.
-   Evidence: `src/looptight/discovery.py:220`
-   Acceptance: A new test in `tests/test_propose.py` calls `_js_line_comment` with
-   `in_template=True` and a line starting with `\`` (escaped backtick), asserts `body is None`
-   and `template_open is True`; mutating `i += 2` to `i += 1` at discovery.py:221 makes the
-   escaped backtick close the template and any `//` after it become a comment, failing that assertion.
-
-2. Pin `rank_with_model`'s `status-next` curated-source branch at `ranking.py:57`. The
+1. Pin `rank_with_model`'s `status-next` curated-source branch at `ranking.py:57`. The
    `_CURATED_SOURCES` set at `ranking.py:37` contains both `task-file` and `status-next`, but the
    existing test (test_rank_with_model_curated_source_factor_is_one) only checks `task-file`. A
    mutation removing `"status-next"` from `_CURATED_SOURCES` would let failure data damp
@@ -3496,7 +3490,7 @@ existing CLI session and makes no model or API calls of its own.
    `_CURATED_SOURCES` by removing `"status-next"` at ranking.py:37 lets reweighting reduce the
    score below 65.0, failing the assertion.
 
-3. Pin `_reverse_source_paths`'s `tests/` directory pruning at `swarm.py:246`. The function
+2. Pin `_reverse_source_paths`'s `tests/` directory pruning at `swarm.py:246`. The function
    excludes `"tests"` and `"test"` directories from its source search so that a helper file inside
    `tests/` (e.g. `tests/utils.py`) is never returned as the source module for a test. No existing
    test verifies this pruning: all test fixtures for `_task_paths` / `_reverse_source_paths` place

@@ -1796,6 +1796,20 @@ def test_js_line_comment_reports_open_template_literal(tmp_path):
     assert closed is False
 
 
+def test_js_line_comment_backslash_in_template_skips_escaped_backtick():
+    # An escaped backtick (\`) inside a template literal must not close the template.
+    # The scanner does i+=2 on a backslash so the following character is consumed.
+    # Mutation: changing i+=2 to i+=1 at discovery.py:221 lets the escaped backtick
+    # close the template, after which the // is returned as a comment body.
+    from looptight.discovery import _js_line_comment
+    body, block_open, template_open = _js_line_comment(
+        "\\`; // still template content", in_template=True
+    )
+    assert body is None, "escaped backtick must not close the template"
+    assert block_open is False
+    assert template_open is True
+
+
 def test_from_todos_is_layout_agnostic(tmp_path):
     # Discovery must find TODOs in flat packages (pkg/x.py) and top-level modules
     # (app.py), not only src/ and tests/ — the majority of Python projects.
