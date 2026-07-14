@@ -3480,21 +3480,14 @@ existing CLI session and makes no model or API calls of its own.
   `rank_with_model` with a `status-next` candidate and `Model(category_failed={"status-next": 10})`,
   asserts `score == 65.0`; removing `"status-next"` from `_CURATED_SOURCES` at ranking.py:37 drops
   the score to 32.5, failing the assertion and proving learned damping cannot invert curated ordering.
+- `_reverse_source_paths`'s `tests/` directory pruning at `swarm.py:246` is now mutation-pinned:
+  `test_task_paths_prunes_tests_dir_from_reverse_source_search` in `tests/test_swarm.py` creates
+  `tests/utils.py` and `src/utils.py`, calls `_task_paths` with evidence `tests/test_utils.py`,
+  asserts `"tests/utils.py"` is not in paths and `"src/utils.py"` is; removing the
+  `d not in ("tests", "test")` guard at swarm.py:246 makes the result ambiguous (two matches),
+  dropping `src/utils.py` from paths and failing the second assertion.
 
 ## Next
-
-1. Pin `_reverse_source_paths`'s `tests/` directory pruning at `swarm.py:246`. The function
-   excludes `"tests"` and `"test"` directories from its source search so that a helper file inside
-   `tests/` (e.g. `tests/utils.py`) is never returned as the source module for a test. No existing
-   test verifies this pruning: all test fixtures for `_task_paths` / `_reverse_source_paths` place
-   only the test file in `tests/` and source files in other directories. A mutation removing
-   `d not in ("tests", "test")` from the filter at swarm.py:246 would cause `tests/utils.py` to
-   be returned as a source candidate when it uniquely matches by name.
-   Evidence: `src/looptight/swarm.py:246`
-   Acceptance: A new test in `tests/test_swarm.py` creates `tests/utils.py` and `src/utils.py`,
-   calls `_task_paths` with evidence `tests/test_utils.py`, asserts `"tests/utils.py"` is NOT in
-   the returned paths; mutating swarm.py:246 to remove the `tests/test` prune makes `_task_paths`
-   include `tests/utils.py` as a source, failing the assertion.
 
 ## Rules
 

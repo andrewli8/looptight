@@ -1563,6 +1563,24 @@ def test_task_paths_reverse_is_conservative_when_source_is_ambiguous(tmp_path):
     assert "a/utils.py" not in paths and "b/utils.py" not in paths  # ambiguous source not added
 
 
+def test_task_paths_prunes_tests_dir_from_reverse_source_search(tmp_path):
+    # swarm.py:246 prunes "tests"/"test" from the walk so a helper file inside
+    # tests/ is never returned as the source module. Mutation: removing the
+    # `d not in ("tests", "test")` guard lets tests/utils.py match uniquely and
+    # be included, making the assertion below fail.
+    from looptight.swarm import _task_paths
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "utils.py").write_text("x", encoding="utf-8")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "utils.py").write_text("x", encoding="utf-8")
+    (tmp_path / "tests" / "test_utils.py").write_text("x", encoding="utf-8")
+
+    paths = _task_paths(tmp_path, {"location": None, "evidence": "Evidence: `tests/test_utils.py:1`"})
+    assert "tests/utils.py" not in paths, "tests/ helper must not be returned as source"
+    assert "src/utils.py" in paths, "real source module must be reverse-mapped"
+
+
 def test_task_paths_reverse_maps_js_test_to_colocated_source(tmp_path):
     from looptight.swarm import _task_paths
 
