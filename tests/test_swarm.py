@@ -2034,6 +2034,23 @@ def test_swarm_banner_renders_unbounded_for_zero_max_rounds():
     assert "max 0 rounds" not in banner
 
 
+def test_swarm_banner_singular_worker():
+    # swarm.py:996 — `_plural(workers, 'worker')` must produce "1 worker" (singular)
+    # when workers == 1; a mutation making _plural always append 's' would produce
+    # "1 workers" and no existing test (all use 2+ workers) would detect it.
+    banner = swarm._swarm_banner(1, "codex", "exit 0", False, 0)
+    assert "1 worker" in banner
+    assert "1 workers" not in banner
+
+
+def test_swarm_banner_singular_round():
+    # swarm.py:990 — `_plural(max_rounds, 'round')` must produce "max 1 round" (singular)
+    # when max_rounds == 1; every existing test uses 5+ rounds so this branch was untested.
+    banner = swarm._swarm_banner(2, "codex", "exit 0", True, 1)
+    assert "max 1 round" in banner
+    assert "max 1 rounds" not in banner
+
+
 def test_swarm_reconciles_crashed_integration_on_start(tmp_path, monkeypatch):
     from looptight.coordinator import Coordinator
     from looptight.integration_queue import InjectedCrash, Integrator

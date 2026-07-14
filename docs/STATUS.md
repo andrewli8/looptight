@@ -3503,14 +3503,10 @@ existing CLI session and makes no model or API calls of its own.
   asserts `policy_line(Config(protected_paths=("src/secrets/**",)))` produces "1 protected path".
   Both tests call `policy_line` directly via `Config` so no git fixture is needed.
 
-2. Pin the untested singular branches of `_swarm_banner` — `_plural(workers, 'worker')` at
-   `swarm.py:996` and `_plural(max_rounds, 'round')` at `:990` are never called with `n == 1`
-   in any assertion; every existing `test_swarm_banner_*` test uses 2+ workers and 5+ rounds so
-   a mutation to `_plural` that always appended 's' would be undetected.
-   Evidence: `src/looptight/swarm.py:996`
-   Acceptance: `pytest tests/test_swarm.py -k swarm_banner` passes and includes a direct call
-   to `_swarm_banner(1, ...)` asserting "1 worker" (not "1 workers") and a call with
-   `max_rounds=1` asserting "max 1 round" (not "max 1 rounds").
+- `_swarm_banner` singular branches (`swarm.py:990,996`) are now mutation-pinned:
+  `test_swarm_banner_singular_worker` calls `_swarm_banner(1, ...)` and asserts "1 worker"
+  (not "1 workers"); `test_swarm_banner_singular_round` calls with `max_rounds=1` and asserts
+  "max 1 round" (not "max 1 rounds"). All prior banner tests used 2+ workers and 5+ rounds.
 
 3. Pin the untested singular form in the `revert` untracked-files message — `commands.py:572`
    emits `f"{len(leftovers)} untracked file{'s' if len(leftovers) != 1 else ''}"`, but
