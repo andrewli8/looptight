@@ -3497,15 +3497,11 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Pin the untested singular branches of `policy_line` — the `n == 1` arms at
-   `protocol_commands.py:984` ("max 1 changed file") and `:987` ("1 protected path") are
-   both reachable code that a mutation changing `n != 1` to `True` would silently corrupt;
-   the existing suite exercises only the plural forms ("max 5 changed files", "2 protected
-   paths").
-   Evidence: `src/looptight/protocol_commands.py:984`
-   Acceptance: `pytest tests/test_cli.py -k policy_line` passes and includes assertions that
-   `policy_line` with `max_changed_files=1` returns "max 1 changed file" (no trailing 's')
-   and with one protected path returns "1 protected path" (no trailing 's').
+- `policy_line` singular branches (`protocol_commands.py:984,987`) are now mutation-pinned:
+  `test_policy_line_singular_max_changed_files` asserts `policy_line(Config(max_changed_files=1))`
+  produces "max 1 changed file" (no trailing 's'); `test_policy_line_singular_protected_path`
+  asserts `policy_line(Config(protected_paths=("src/secrets/**",)))` produces "1 protected path".
+  Both tests call `policy_line` directly via `Config` so no git fixture is needed.
 
 2. Pin the untested singular branches of `_swarm_banner` — `_plural(workers, 'worker')` at
    `swarm.py:996` and `_plural(max_rounds, 'round')` at `:990` are never called with `n == 1`

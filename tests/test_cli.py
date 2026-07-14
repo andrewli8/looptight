@@ -1198,6 +1198,32 @@ def test_policy_line_includes_allowed_verify_commands_count(tmp_path, monkeypatc
     assert "1 allowed verify command" in out
 
 
+def test_policy_line_singular_max_changed_files():
+    # protocol_commands.py:984 — `n != 1` must produce "max 1 changed file" (singular)
+    # when max_changed_files == 1; a mutation inverting the guard would silently produce
+    # "max 1 changed files", which no other test would catch.
+    from looptight.config import Config
+    from looptight.protocol_commands import policy_line
+
+    result = policy_line(Config(max_changed_files=1))
+    assert result is not None
+    assert "max 1 changed file" in result
+    assert "max 1 changed files" not in result
+
+
+def test_policy_line_singular_protected_path():
+    # protocol_commands.py:987 — `n != 1` must produce "1 protected path" (singular)
+    # when exactly one path is configured; a mutation inverting the guard would produce
+    # "1 protected paths" and no existing test would detect it.
+    from looptight.config import Config
+    from looptight.protocol_commands import policy_line
+
+    result = policy_line(Config(protected_paths=("src/secrets/**",)))
+    assert result is not None
+    assert "1 protected path" in result
+    assert "1 protected paths" not in result
+
+
 def test_status_readiness_reports_ready_repo(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
