@@ -3522,18 +3522,14 @@ existing CLI session and makes no model or API calls of its own.
   `test_from_task_file_returns_empty_when_configured_file_is_absent` in `test_propose.py` calls
   `from_task_file(repo, "docs/missing.md")` and asserts `[]`; a mutation dropping the guard
   would raise `FileNotFoundError` and be caught.
+- `_ensure_pycache_ignored`'s `except OSError` (commands.py:78) did not catch
+  `UnicodeDecodeError` (a `ValueError` subclass) from a non-UTF-8 `.gitignore`, so
+  `looptight init` would crash instead of skipping. Handler widened to `(OSError, ValueError)`,
+  matching the pattern used by every other reader in the codebase. Two regression tests in
+  `tests/test_cli.py`: one covering the `OSError` path (lines 78-79 were the only uncovered
+  lines in the codebase); one writing a non-UTF-8 file and asserting no raise.
 
 ## Next
-
-1. `_ensure_pycache_ignored`'s `except OSError` (commands.py:78) does not catch
-   `UnicodeDecodeError` (a `ValueError` subclass) raised by a non-UTF-8 `.gitignore`,
-   so `looptight init` crashes on such a file instead of skipping silently. Every
-   other reader in the codebase catches `(OSError, ValueError)` for this reason.
-   Evidence: `src/looptight/commands.py:78`
-   Acceptance: Two new tests in `tests/test_cli.py` pass — one injects `OSError` via
-   `monkeypatch` (covering the never-executed lines 78-79), one writes a non-UTF-8
-   `.gitignore` and asserts the function returns without raising; handler widened to
-   `except (OSError, ValueError)` in production code; coverage for `commands.py` reaches 100%.
 
 2. `test_usage_doc_lists_autodetected_ecosystems` asserts only three runners (`cargo
    test`, `gradle test`, `dotnet test`) while `docs/usage.md` also lists `crystal spec`,

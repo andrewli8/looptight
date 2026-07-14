@@ -75,7 +75,7 @@ def _ensure_pycache_ignored(workdir: Path, console: Console) -> None:
     if gitignore.exists():
         try:
             content = gitignore.read_text(encoding="utf-8")
-        except OSError:
+        except (OSError, ValueError):
             return
         if any("__pycache__" in line for line in content.splitlines()):
             return

@@ -4448,6 +4448,43 @@ def test_ensure_pycache_ignored_skips_when_gitignore_has_recursive_pattern(tmp_p
     assert out.getvalue() == "", "unexpected console output when broader pattern already present"
 
 
+def test_ensure_pycache_ignored_returns_silently_when_gitignore_unreadable(tmp_path, monkeypatch):
+    # commands.py:78-79 — the OSError branch is never hit by any other test (zero
+    # coverage). A .gitignore that exists but whose read_text raises OSError (e.g.
+    # permission denied) must be silently skipped rather than crashing init.
+    from looptight.commands import _ensure_pycache_ignored
+    from looptight.console import Console
+    import io
+
+    gitignore = tmp_path / ".gitignore"
+    gitignore.write_text("*.pyc\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        "pathlib.Path.read_text",
+        lambda *a, **k: (_ for _ in ()).throw(OSError("permission denied")),
+    )
+    out = io.StringIO()
+    _ensure_pycache_ignored(tmp_path, Console(file=out))  # must not raise
+    assert out.getvalue() == "", "no output expected when .gitignore is unreadable"
+
+
+def test_ensure_pycache_ignored_returns_silently_on_non_utf8_gitignore(tmp_path):
+    # commands.py:78 — a .gitignore with non-UTF-8 bytes raises UnicodeDecodeError
+    # (a ValueError subclass) from read_text(encoding="utf-8"). The narrow
+    # `except OSError` handler does not catch it, so init crashes. The handler must
+    # be widened to `except (OSError, ValueError)`, matching every other reader in
+    # the codebase (detect.py, goal.py, config.py, etc.).
+    from looptight.commands import _ensure_pycache_ignored
+    from looptight.console import Console
+    import io
+
+    gitignore = tmp_path / ".gitignore"
+    gitignore.write_bytes(b"*.pyc\n\xff\xfe\n")  # lone 0xff 0xfe: invalid UTF-8
+    out = io.StringIO()
+    _ensure_pycache_ignored(tmp_path, Console(file=out))  # must not raise
+    assert out.getvalue() == "", "no output expected when .gitignore is non-UTF-8"
+
+
 def test_doctor_coordinator_state_active_and_not_git(tmp_path):
     # commands.py:492 — _doctor_coordinator_state returns "active" when git is
     # ready and "not a git repo" when it is not; test both branches directly.
