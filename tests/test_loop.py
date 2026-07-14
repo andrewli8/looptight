@@ -504,3 +504,55 @@ def test_delegate_loop_returncode_propagates_from_failed_iteration(workdir):
 
     assert result.stop_reason is StopReason.ERROR
     assert result.returncode == 5
+
+
+def test_supply_loop_exits_escalated_when_signal_never_improves(workdir):
+    # _supply_loop with patience=1: two iterations produce the same failure count
+    # (progress_signal = -2.0 each), so assess() finds no improvement → ESCALATE.
+    # Without this test a regression dropping the assess() wire-up or the
+    # StopReason.ESCALATED mapping goes undetected.
+    adapter = FakeAdapter()
+    calls = [0]
+
+    def flat_verify(command, cwd):
+        calls[0] += 1
+        return VerifyResult(passed=False, exit_code=1, output="2 failed")
+
+    result = run_loop(
+        "fix tests",
+        adapter,
+        _config(patience=1, max_iterations=10),
+        workdir,
+        verify_fn=flat_verify,
+        checkpointer=Checkpointer(workdir, enabled=False),
+    )
+
+    assert result.stop_reason is StopReason.ESCALATED
+    assert not result.passed
+    assert calls[0] == 2  # patience=1 needs patience+1 known signals → 2 verify calls
+
+
+def test_supply_loop_exits_no_progress_after_prior_improvement(workdir):
+    # _supply_loop with patience=1: signal improves on iteration 2 (5→3 failures),
+    # then stalls on iteration 3 (3 failures again). assess() sees prior_best(-3) >
+    # known[0](-5) → STOP_NO_PROGRESS. Tests the improve-then-stall branch.
+    outputs = ["5 failed", "3 failed", "3 failed"]
+    calls = [0]
+
+    def improving_then_flat(command, cwd):
+        out = outputs[min(calls[0], len(outputs) - 1)]
+        calls[0] += 1
+        return VerifyResult(passed=False, exit_code=1, output=out)
+
+    result = run_loop(
+        "fix tests",
+        FakeAdapter(),
+        _config(patience=1, max_iterations=10),
+        workdir,
+        verify_fn=improving_then_flat,
+        checkpointer=Checkpointer(workdir, enabled=False),
+    )
+
+    assert result.stop_reason is StopReason.NO_PROGRESS
+    assert not result.passed
+    assert calls[0] == 3  # 1 iteration of progress + patience+1 iterations to detect stall

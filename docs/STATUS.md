@@ -3512,16 +3512,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `_supply_loop`'s patience early-stop path is untested: `run_loop` with `patience > 0`
-   can exit with `StopReason.ESCALATED` (never improved) or `StopReason.NO_PROGRESS`
-   (improved then stalled), but `tests/test_loop.py` has no test that reaches these
-   branches — a regression in the `assess()` wire-up goes undetected.
-   Evidence: `src/looptight/loop.py:155`
-   Acceptance: `test_supply_loop_exits_escalated_when_signal_never_improves` and
-   `test_supply_loop_exits_no_progress_after_prior_improvement` pass in `tests/test_loop.py`
-   and `looptight verify --json` returns `pass`.
-
-2. `_ensure_pycache_ignored` bails when `.gitignore` exists even if `__pycache__/` is
+1. `_ensure_pycache_ignored` bails when `.gitignore` exists even if `__pycache__/` is
    absent: a user with an existing Python project's `.gitignore` (missing `__pycache__/`)
    hits an untracked `__pycache__/` dirty-worktree stall after their first `verify`, with
    no guidance — the exact stall the function is meant to prevent.
@@ -3531,7 +3522,7 @@ existing CLI session and makes no model or API calls of its own.
    and the console printed the "wrote .gitignore" line passes in `tests/test_cli.py` and
    `looptight verify --json` returns `pass`.
 
-3. `cmd_init` writes `.looptight.toml` outside a git repository with no warning: the
+2. `cmd_init` writes `.looptight.toml` outside a git repository with no warning: the
    user then runs `looptight next`, which fails with "not a git repository" and no recovery
    hint — a dead-end caused by `init`'s own success message. A warning line ("run `git init`
    first — looptight next requires a git repository") when `coordinator_path(workdir)` is
