@@ -3490,15 +3490,12 @@ existing CLI session and makes no model or API calls of its own.
   `test_migrate_3_to_4_handles_missing_runs_table` calls the function on a truly empty in-memory
   DB (no tables), asserts it does not raise and leaves `user_version == 4`; inverting the guard
   raises `OperationalError: no such table: runs`, failing the test.
+- `_initialize_schema`'s v1→v4 migration chain (coordinator.py:152) now has end-to-end coverage:
+  `test_coordinator_migrates_from_version_1` seeds a real on-disk DB at schema v1 (all base tables,
+  no experience, no runs.owner), opens a Coordinator, and asserts `user_version == 4`, `runs.owner`
+  exists, `experience.reason` exists, and the DB is fully functional (record_failure round-trip).
 
 ## Next
-
-1. `_initialize_schema` in `coordinator.py` has a `version == 1` migration branch that is never
-   reached in any test (all tests open a fresh DB at version 0). A bug in `_MIGRATE_1_TO_2` or
-   its successor chain would go undetected.
-   Evidence: `src/looptight/coordinator.py:152`
-   Acceptance: `test_coordinator_migrates_from_version_1` creates a real on-disk DB seeded at
-   schema v1, opens a Coordinator against it, and asserts `PRAGMA user_version` returns 4.
 
 ## Rules
 

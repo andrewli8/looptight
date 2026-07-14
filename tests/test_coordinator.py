@@ -1028,3 +1028,82 @@ def test_migrate_3_to_4_handles_missing_runs_table():
     tables = {row[0] for row in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert "runs" not in tables  # guard must not create the table as a side effect
     con.close()
+
+
+def test_coordinator_migrates_from_version_1(tmp_path):
+    # coordinator.py:152 — the `version == 1` branch of _initialize_schema enters
+    # _MIGRATE_1_TO_2 then falls through to _MIGRATE_2_TO_3 and _migrate_3_to_4.
+    # All tests that open a fresh DB start at version 0 (the full _SCHEMA path), so a
+    # bug in the v1→v2→v3→v4 chain would go undetected.  This test seeds a real DB
+    # at schema v1 (runs/tasks/leases/proposals/integrations/publications, no experience,
+    # no runs.owner) and verifies the chain completes correctly.
+    repo = _repo(tmp_path / "repo")
+    path = coordinator_path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    raw = sqlite3.connect(str(path))
+    raw.executescript("""BEGIN IMMEDIATE;
+CREATE TABLE runs (
+    id TEXT PRIMARY KEY, kind TEXT NOT NULL,
+    state TEXT NOT NULL CHECK (state IN ('active','complete','failed','abandoned')),
+    pid INTEGER NOT NULL, heartbeat REAL NOT NULL
+);
+CREATE TABLE tasks (
+    id INTEGER PRIMARY KEY, fingerprint TEXT NOT NULL UNIQUE, payload TEXT NOT NULL,
+    state TEXT NOT NULL CHECK (state IN ('queued','leased','complete','failed')),
+    attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0)
+);
+CREATE TABLE leases (
+    task_id INTEGER PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
+    run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+    generation INTEGER NOT NULL CHECK (generation > 0), expires_at REAL NOT NULL
+);
+CREATE TABLE proposals (
+    id INTEGER PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+    fingerprint TEXT NOT NULL, payload TEXT NOT NULL,
+    state TEXT NOT NULL CHECK (state IN ('proposed','accepted','rejected')),
+    UNIQUE (run_id, fingerprint)
+);
+CREATE TABLE integrations (
+    sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT NOT NULL UNIQUE,
+    run_id TEXT NOT NULL REFERENCES runs(id), task_id INTEGER NOT NULL REFERENCES tasks(id),
+    lease_generation INTEGER NOT NULL, target_ref TEXT NOT NULL,
+    observed_sha TEXT, candidate_sha TEXT NOT NULL, result_sha TEXT,
+    state TEXT NOT NULL CHECK (
+        state IN ('queued','integrating','committed','complete','conflict','failed','superseded')
+    ),
+    error TEXT, retained_worktree TEXT
+);
+CREATE TABLE publications (
+    id TEXT PRIMARY KEY,
+    integration_id TEXT NOT NULL REFERENCES integrations(id),
+    remote TEXT NOT NULL, remote_ref TEXT NOT NULL,
+    observed_local_sha TEXT, observed_remote_sha TEXT,
+    result_sha TEXT NOT NULL, reconciliation_sha TEXT,
+    state TEXT NOT NULL CHECK (state IN ('queued','publishing','complete','failed')),
+    attempts INTEGER NOT NULL DEFAULT 0 CHECK (attempts >= 0), error TEXT
+);
+PRAGMA user_version = 1;
+COMMIT;""")
+    raw.close()
+
+    coord = Coordinator.open(repo)
+    assert coord is not None
+
+    version = coord.connection.execute("PRAGMA user_version").fetchone()[0]
+    assert version == 4, f"expected user_version 4 after full chain, got {version}"
+
+    # v3→v4: runs.owner must exist
+    run_cols = {row[1] for row in coord.connection.execute("PRAGMA table_info(runs)")}
+    assert "owner" in run_cols, "v3→v4 did not add runs.owner"
+
+    # v1→v2: experience table must exist; v2→v3: reason column must be present
+    exp_cols = {row[1] for row in coord.connection.execute("PRAGMA table_info(experience)")}
+    assert exp_cols, "v1→v2 did not create experience table"
+    assert "reason" in exp_cols, "v2→v3 did not add experience.reason"
+
+    # The upgraded DB must be fully functional: record a failure and retrieve it.
+    coord.record_failure("idea-v1", "lint", now=1.0)
+    assert coord.recent_failures(window_s=100.0, now=2.0) == {"idea-v1": 1}
+
+    coord.close()
