@@ -3486,19 +3486,14 @@ existing CLI session and makes no model or API calls of its own.
   asserts `"tests/utils.py"` is not in paths and `"src/utils.py"` is; removing the
   `d not in ("tests", "test")` guard at swarm.py:246 makes the result ambiguous (two matches),
   dropping `src/utils.py` from paths and failing the second assertion.
+- `_migrate_3_to_4`'s `table is not None` guard (coordinator.py:125) is mutation-pinned:
+  `test_migrate_3_to_4_handles_missing_runs_table` calls the function on a truly empty in-memory
+  DB (no tables), asserts it does not raise and leaves `user_version == 4`; inverting the guard
+  raises `OperationalError: no such table: runs`, failing the test.
 
 ## Next
 
-1. `_migrate_3_to_4` in `coordinator.py` has a `table is not None` guard for the case where the
-   `runs` table doesn't exist, but that guard's False branch (the do-nothing path) has no test.
-   A regression accidentally inverting the condition would crash on a real migration with
-   `OperationalError: no such table: runs`.
-   Evidence: `src/looptight/coordinator.py:125`
-   Acceptance: `test_migrate_3_to_4_handles_missing_runs_table` creates an in-memory SQLite
-   connection with no tables and calls `_migrate_3_to_4` directly, asserting it does not raise
-   and leaves `user_version == 4`; the test fails if the guard is removed.
-
-4. `_initialize_schema` in `coordinator.py` has a `version == 1` migration branch that is never
+1. `_initialize_schema` in `coordinator.py` has a `version == 1` migration branch that is never
    reached in any test (all tests open a fresh DB at version 0). A bug in `_MIGRATE_1_TO_2` or
    its successor chain would go undetected.
    Evidence: `src/looptight/coordinator.py:152`

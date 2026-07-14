@@ -1009,3 +1009,22 @@ def test_migrate_3_to_4_skips_alter_when_owner_column_already_exists(tmp_path):
     columns = {row[1] for row in raw.execute("PRAGMA table_info(runs)")}
     assert "owner" in columns
     raw.close()
+
+
+def test_migrate_3_to_4_handles_missing_runs_table():
+    # coordinator.py:125 — the `if table is not None:` guard's False branch: when the
+    # `runs` table is absent, _migrate_3_to_4 must skip the ALTER TABLE, bump
+    # user_version to 4, and return without raising.  No existing test calls the
+    # function directly on an empty schema (the closest is test_migrate_v3_to_v4_skips_
+    # gracefully_when_runs_table_absent, which goes through Coordinator.open with a
+    # partial schema).  A regression inverting the condition would reach
+    # `PRAGMA table_info(runs)` on a missing table and crash.
+    from looptight.coordinator import _migrate_3_to_4
+
+    con = sqlite3.connect(":memory:")  # truly empty — no tables at all
+    _migrate_3_to_4(con)
+    version = con.execute("PRAGMA user_version").fetchone()[0]
+    assert version == 4  # migration must complete even when runs is absent
+    tables = {row[0] for row in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "runs" not in tables  # guard must not create the table as a side effect
+    con.close()
