@@ -1128,6 +1128,21 @@ def test_from_task_file_rejects_paths_outside_the_repo(tmp_path):
     assert from_task_file(repo, "../outside.md") == []  # .. traversal rejected
 
 
+def test_from_task_file_returns_empty_when_configured_file_is_absent(tmp_path):
+    # discovery.py:571 — when the configured task file does not exist, from_task_file
+    # returns [] silently with no error or warning.  The `not path.is_file()` guard was
+    # never directly tested; this pins it so a mutation dropping it would raise
+    # FileNotFoundError (read_text on a missing path) and be caught.
+    from looptight.discovery import from_task_file
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    result = from_task_file(repo, "docs/missing.md")
+    assert result == [], (
+        "from_task_file must return [] when the task file does not exist"
+    )
+
+
 def test_from_status_next_parses_numbered_list(tmp_path):
     _write(
         tmp_path,

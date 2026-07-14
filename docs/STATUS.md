@@ -3518,12 +3518,13 @@ existing CLI session and makes no model or API calls of its own.
   `test_next_task_idea_generation_false_returns_no_directive_on_empty_queue` in `test_tasks.py`
   calls `next_task(...)` directly with `idea_generation=False` and asserts `directive is None`,
   so a regression in the param threading from `cmd_next` would be caught by the unit suite.
+- `from_task_file`'s `not path.is_file()` guard (`discovery.py:571`) now has a direct unit test:
+  `test_from_task_file_returns_empty_when_configured_file_is_absent` in `test_propose.py` calls
+  `from_task_file(repo, "docs/missing.md")` and asserts `[]`; a mutation dropping the guard
+  would raise `FileNotFoundError` and be caught.
 
 ## Next
 
-3. `from_task_file` `not path.is_file()` branch has no test: when a configured task file does not exist (user typo, moved file), the function returns `[]` silently — no error, no warning — causing `looptight next` to output `NO_WORK` with no indication of the misconfiguration.
-   Evidence: `src/looptight/discovery.py:571`
-   Acceptance: `test_from_task_file_returns_empty_when_configured_file_is_absent` passes — calling `from_task_file(root, "docs/missing.md")` on a real directory returns `[]`; a mutation removing the `is_file()` guard causes the test to raise `FileNotFoundError` (proving it is a real guard, not dead code).
 
 ## Rules
 
