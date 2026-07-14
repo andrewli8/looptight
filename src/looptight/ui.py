@@ -22,14 +22,17 @@ def _utc_timestamp() -> str:
 
 
 def _state_path(root: Path) -> Path:
-    result = subprocess.run(
-        ["git", "rev-parse", "--git-common-dir"],
-        cwd=root,
-        env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},  # headless-safe: never block on a prompt
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--git-common-dir"],
+            cwd=root,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},  # headless-safe: never block on a prompt
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return root / ".looptight" / STATE_FILE
     if result.returncode == 0:
         common = Path(result.stdout.strip())
         if not common.is_absolute():

@@ -3489,14 +3489,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `_state_path` in `ui.py` has no `try/except OSError` around its `subprocess.run` call,
-   so `read_state` crashes (instead of returning `empty_state()`) when git is absent from PATH
-   — confirmed by a quick Python test that the exception propagates uncaught.
-   Evidence: `src/looptight/ui.py:25`
-   Acceptance: `test_read_state_returns_empty_when_git_not_found` (monkeypatches `subprocess.run`
-   to raise `OSError`) passes, and the same test fails on the unfixed code.
-
-2. `docs/architecture.md`'s Core modules table omits `coordinator.py`, describing `claims.py`
+1. `docs/architecture.md`'s Core modules table omits `coordinator.py`, describing `claims.py`
    as the claim-prevention mechanism when the coordinator is now the primary claim store in any
    Git repo. A reader consulting the table would have an inaccurate model of how the system works.
    Evidence: `docs/architecture.md:23`

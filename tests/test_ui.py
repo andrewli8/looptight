@@ -706,6 +706,16 @@ def test_read_state_returns_empty_on_malformed_json(tmp_path):
     assert ui.read_state(tmp_path) == ui.empty_state()
 
 
+def test_read_state_returns_empty_when_git_not_found(tmp_path, monkeypatch):
+    # ui.py:25 — _state_path calls subprocess.run(["git", ...]) without a
+    # try/except OSError, so read_state raises FileNotFoundError (OSError subclass)
+    # when git is absent from PATH instead of returning empty_state().
+    # Sibling of the same guard in coordinator_path (coordinator.py:301) and
+    # claim_dir (claims.py:47).
+    monkeypatch.setattr(ui.subprocess, "run", lambda *a, **kw: (_ for _ in ()).throw(OSError("git not found")))
+    assert ui.read_state(tmp_path) == ui.empty_state()
+
+
 def test_write_state_cleans_up_tmp_when_replace_fails(tmp_path, monkeypatch):
     # If the atomic rename fails after the temp file is written, no stale .tmp
     # may be left beside the state path; the error propagates.
