@@ -10,6 +10,7 @@ import pytest
 from looptight.config import Config, write_config
 from looptight.hook import (
     HookDecision,
+    backlog_reason,
     continuation_reason,
     decide,
     read_count,
@@ -66,6 +67,17 @@ def test_decide_continues_through_backlog_when_green_and_work_remains():
     assert decision.block is True
     assert "looptight next" in decision.reason  # directs the session to claim the next task
     assert count == 1
+
+
+def test_backlog_reason_contains_all_three_instructions():
+    # hook.py:155 — `backlog_reason()` is the literal string fed back to the session;
+    # only "looptight next" is asserted by test_decide_continues_through_backlog_when_green_and_work_remains.
+    # "NO_WORK" (the sentinel the session must wait for) and "do not fabricate work" (the
+    # anti-busywork guard) are untested — a mutation removing either phrase would go undetected.
+    reason = backlog_reason()
+    assert "NO_WORK" in reason
+    assert "do not fabricate work" in reason
+    assert "looptight next" in reason  # belt-and-suspenders: already covered indirectly
 
 
 def test_decide_allows_an_honest_stop_when_green_and_no_work():

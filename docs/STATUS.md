@@ -3494,24 +3494,17 @@ existing CLI session and makes no model or API calls of its own.
   `test_coordinator_migrates_from_version_1` seeds a real on-disk DB at schema v1 (all base tables,
   no experience, no runs.owner), opens a Coordinator, and asserts `user_version == 4`, `runs.owner`
   exists, `experience.reason` exists, and the DB is fully functional (record_failure round-trip).
+- `policy_line` singular `allowed_verify_commands` branch (`protocol_commands.py:990`) is now
+  mutation-pinned: `test_policy_line_singular_allowed_verify_commands` calls
+  `policy_line(Config(allowed_verify_commands=["pytest -q"]))` and asserts "1 allowed verify
+  command" (no trailing 's'); the indirect CLI integration test at `test_cli.py:1182` only checked
+  CLI output and would not catch a mutation inverting the guard.
+- `backlog_reason()` (`hook.py:155`) now has a direct unit test pinning all three instruction
+  phrases: `test_backlog_reason_contains_all_three_instructions` calls `backlog_reason()` directly
+  and asserts "NO_WORK", "do not fabricate work", and "looptight next" are all present; previously
+  only "looptight next" was indirectly asserted via `decide()` tests.
 
 ## Next
-
-- `policy_line` singular branches (`protocol_commands.py:984,987`) are now mutation-pinned:
-  `test_policy_line_singular_max_changed_files` asserts `policy_line(Config(max_changed_files=1))`
-  produces "max 1 changed file" (no trailing 's'); `test_policy_line_singular_protected_path`
-  asserts `policy_line(Config(protected_paths=("src/secrets/**",)))` produces "1 protected path".
-  Both tests call `policy_line` directly via `Config` so no git fixture is needed.
-
-- `_swarm_banner` singular branches (`swarm.py:990,996`) are now mutation-pinned:
-  `test_swarm_banner_singular_worker` calls `_swarm_banner(1, ...)` and asserts "1 worker"
-  (not "1 workers"); `test_swarm_banner_singular_round` calls with `max_rounds=1` and asserts
-  "max 1 round" (not "max 1 rounds"). All prior banner tests used 2+ workers and 5+ rounds.
-
-- `revert` untracked-files singular form (`commands.py:572`) is now mutation-pinned:
-  `test_revert_untracked_message_is_singular_for_one_file` creates exactly one untracked file
-  and asserts the output contains "1 untracked file" (no trailing 's'). The sibling test only
-  checked `"untracked" in out` so a mutation always appending 's' was previously undetected.
 
 ## Rules
 

@@ -1224,6 +1224,20 @@ def test_policy_line_singular_protected_path():
     assert "1 protected paths" not in result
 
 
+def test_policy_line_singular_allowed_verify_commands():
+    # protocol_commands.py:990 — `n != 1` must produce "1 allowed verify command" (singular)
+    # when exactly one command is configured; a mutation inverting the guard would produce
+    # "1 allowed verify commands" and no existing direct test would detect it (the sibling
+    # integration test at test_cli.py:1182 only checks the CLI output, not this guard directly).
+    from looptight.config import Config
+    from looptight.protocol_commands import policy_line
+
+    result = policy_line(Config(allowed_verify_commands=["pytest -q"]))
+    assert result is not None
+    assert "1 allowed verify command" in result
+    assert "1 allowed verify commands" not in result
+
+
 def test_status_readiness_reports_ready_repo(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], check=True)
