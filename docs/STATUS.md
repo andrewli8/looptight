@@ -3508,15 +3508,10 @@ existing CLI session and makes no model or API calls of its own.
   (not "1 workers"); `test_swarm_banner_singular_round` calls with `max_rounds=1` and asserts
   "max 1 round" (not "max 1 rounds"). All prior banner tests used 2+ workers and 5+ rounds.
 
-3. Pin the untested singular form in the `revert` untracked-files message — `commands.py:572`
-   emits `f"{len(leftovers)} untracked file{'s' if len(leftovers) != 1 else ''}"`, but
-   `test_revert_notes_untracked_files_left_in_place` only asserts `"untracked" in out` even
-   though it creates exactly one untracked file; a mutation making the expression always plural
-   would pass the existing assertion undetected.
-   Evidence: `src/looptight/commands.py:572`
-   Acceptance: `pytest tests/test_cli.py -k revert` passes and a test asserts the output
-   contains "1 untracked file" (singular, no trailing 's') when exactly one untracked file
-   is present.
+- `revert` untracked-files singular form (`commands.py:572`) is now mutation-pinned:
+  `test_revert_untracked_message_is_singular_for_one_file` creates exactly one untracked file
+  and asserts the output contains "1 untracked file" (no trailing 's'). The sibling test only
+  checked `"untracked" in out` so a mutation always appending 's' was previously undetected.
 
 ## Rules
 

@@ -2531,6 +2531,28 @@ def test_revert_notes_untracked_files_left_in_place(tmp_path, monkeypatch, capsy
     assert "untracked" in out
 
 
+def test_revert_untracked_message_is_singular_for_one_file(tmp_path, monkeypatch, capsys):
+    # commands.py:572 — `len(leftovers) != 1` must produce "1 untracked file" (singular)
+    # when exactly one untracked file is present; the sibling test above only asserts
+    # "untracked" in out, so a mutation that always appended 's' would be undetected.
+    import subprocess
+
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.email", "t@e.com"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "config", "user.name", "T"], cwd=tmp_path, check=True)
+    (tmp_path / "app.py").write_text("orig\n")
+    subprocess.run(["git", "add", "."], cwd=tmp_path, check=True)
+    subprocess.run(["git", "commit", "-qm", "init"], cwd=tmp_path, check=True)
+    (tmp_path / "app.py").write_text("changed\n")  # tracked change so revert runs
+    (tmp_path / "extra.py").write_text("new\n")  # exactly one untracked file
+
+    assert main(["revert", "--yes"]) == 0
+    out = capsys.readouterr().out
+    assert "1 untracked file" in out
+    assert "1 untracked files" not in out
+
+
 def test_revert_on_clean_tree_reports_nothing_to_revert(tmp_path, monkeypatch, capsys):
     # On a clean tree, revert must not claim it "reverted" anything — there is
     # nothing to revert and the checkout would be a no-op.
