@@ -3595,28 +3595,19 @@ existing CLI session and makes no model or API calls of its own.
   to raise `OSError` and asserts `_read` returns `{}` — completing the three-way
   sibling set (ValueError, non-dict, OSError) in test_claims.py.
 
+  Commit 84758a2: `status --json` now exposes `verify_command` (the resolved command string
+  or `null`) beside `"validation"` in `protocol_commands.py`, matching the field already
+  present in `verify --json`. Tests: `test_status_json_includes_verify_command` (new) and
+  `test_status_human_shows_verify_command_without_changing_json` (updated key-set assertion).
+  SPEC output contract updated to name the new additive field.
+
+  Commit: `docs(daemon): fix cycle example arrow ASCII → Unicode`
+  `daemon.md:78` example `cycle 7 -> idle; next in 600s` now uses Unicode `→` to match
+  `commands.py:320` output. Test `test_daemon_doc_cycle_example_uses_unicode_arrow` added.
+
 ## Next
 
-1. `status --json` omits the resolved `verify_command` field that `verify --json` already
-   returns (added in 8144eec), so an automation consumer of `status --json` cannot discover
-   the configured command without also running `verify`. Add `"verify_command"` to the
-   payload at `protocol_commands.py:640` (beside `"validation"`) and document it in the SPEC
-   output contract.
-   Evidence: src/looptight/protocol_commands.py:640
-   Acceptance: `test_status_json_includes_verify_command` in `tests/test_cli.py` asserts
-   `status --json` contains a non-null `"verify_command"` key when verify is configured, and
-   `test_spec_output_contract_documents_verify_command` in `tests/test_docs.py` asserts the
-   SPEC names the new field.
-
-2. `daemon.md` cycle example says `cycle 7 -> idle; next in 600s` (ASCII arrow) but
-   `commands.py:320` prints `cycle 1 → idle; next in 60s` (Unicode right arrow U+2192).
-   A user comparing their terminal output to the docs sees a different separator.
-   Fix the doc to use `→` and add a test locking the format.
-   Evidence: docs/daemon.md:78
-   Acceptance: `test_daemon_doc_cycle_example_uses_unicode_arrow` in `tests/test_docs.py`
-   reads `daemon.md` and asserts `"→"` appears in the example line and `" -> "` does not.
-
-3. SPEC output contract documents `goal next --json` fields (`schema_version`, `command`,
+1. SPEC output contract documents `goal next --json` fields (`schema_version`, `command`,
    `status`, `iteration`) but is silent on `goal check --json` (which emits `schema_version`,
    `command`, `action`, `check` — added in the validated item "goal check --json emits a
    machine verdict"). An integrator building a `/loop until: looptight goal check`  wrapper

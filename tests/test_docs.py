@@ -432,3 +432,17 @@ def test_changelog_records_evidence_refs_grounding_gate_fix():
         "CHANGELOG [Unreleased] does not document the from_task_file pre-Acceptance "
         "scoping fix that prevented acceptance-criterion paths from dropping valid tasks"
     )
+
+
+def test_daemon_doc_cycle_example_uses_unicode_arrow():
+    # commands.py prints cycle output with Unicode → (U+2192); the daemon.md example
+    # must match so a user comparing terminal output to docs sees the same separator.
+    # Dropping → from the example or keeping " -> " must fail this test.
+    text = _DAEMON_DOC.read_text(encoding="utf-8")
+    cycle_line = next(
+        (ln for ln in text.splitlines() if "cycle" in ln and ("→" in ln or " -> " in ln)),
+        None,
+    )
+    assert cycle_line is not None, "daemon.md has no cycle example line"
+    assert "→" in cycle_line, "daemon.md cycle example does not use Unicode → (U+2192)"
+    assert " -> " not in cycle_line, "daemon.md cycle example uses ASCII -> instead of →"

@@ -75,7 +75,7 @@ Useful flags (see `looptight daemon --help` for all):
   `backoff_s`, and `last_error`. It is optional (default: no hook), and a failing
   or slow hook never stops the daemon (it is guarded and time-bounded).
 
-The daemon prints one line per cycle (`cycle 7 -> idle; next in 600s`), so the
+The daemon prints one line per cycle (`cycle 7 → idle; next in 600s`), so the
 journal shows exactly why it is or is not building at any moment. Idle is a
 healthy state, not a stall.
 
