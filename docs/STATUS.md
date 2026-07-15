@@ -3547,6 +3547,30 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `docs/SPEC.md` output contract does not mention `verify_command` even though `verify --json`
+   always emits it (`protocol_commands.py:180`). The sentence reads "verify returns status, exit
+   code, elapsed time, and bounded output" — an agent reading the spec would not know to expect
+   the field. Add `verify_command` to the sentence and lock it with a
+   `test_spec_output_contract_documents_verify_command` assertion in `tests/test_docs.py`.
+   Evidence: `docs/SPEC.md:265`
+   Acceptance: a new test in `tests/test_docs.py` asserts `"verify_command"` appears in the
+   Output Contract section; it fails before the SPEC edit and passes after.
+
+2. The `verify --json` error-path tests (`test_verify_json_configuration_error_is_machine_readable`,
+   `test_verify_json_refuses_command_not_in_allowlist`, `test_verify_json_refuses_protected_path_changes`)
+   do not assert that `verify_command` is `null` on error paths, so a regression accidentally
+   wiring a partial command into those branches would go undetected.
+   Evidence: `src/looptight/protocol_commands.py:33`
+   Acceptance: each of the three error-path tests gains `assert data["verify_command"] is None`
+   and a `looptight verify --json` on a clean tree still returns pass.
+
+3. `test_verify_json_pass_contract` (the canonical machine-contract test) does not assert
+   `verify_command`, so dropping `verify_command=command` from the success-path call
+   (`src/looptight/protocol_commands.py:69`) would leave that canonical test passing. Add
+   `assert data["verify_command"] == "printf 'SCORE: 0.75'"` to the contract test.
+   Evidence: `tests/test_cli.py:2010`
+   Acceptance: the assertion is added to `test_verify_json_pass_contract`; the suite passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
