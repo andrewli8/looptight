@@ -3558,6 +3558,16 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_state_path`'s `git rev-parse --git-common-dir` subprocess (`src/looptight/ui.py:29`) passes
+   `GIT_TERMINAL_PROMPT=0` but no test asserts this — unlike the identical guard in `checkpoint.py`,
+   `claims.py`, `commands.py`, `coordinator.py`, `discovery.py`, `experience.py`, `goal.py`,
+   `hook.py`, `integration_queue.py`, `protocol_commands.py`, `tasks.py`, `trajectory.py`, and
+   `verify.py`, which all have direct `GIT_TERMINAL_PROMPT` env-capture assertions.
+   Evidence: src/looptight/ui.py:29
+   Acceptance: `test_state_path_git_sets_terminal_prompt_env` in `tests/test_ui.py` monkeypatches
+   `ui.subprocess.run`, calls `ui._state_path(tmp_path)`, and asserts the captured `env` dict
+   contains `"GIT_TERMINAL_PROMPT"` equal to `"0"`; `looptight verify --json` reports pass.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
