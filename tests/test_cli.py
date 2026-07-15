@@ -1778,6 +1778,7 @@ def test_status_human_shows_verify_command_without_changing_json(
         "schema_version",
         "command",
         "validation",
+        "verify_command",
         "workspace",
         "claimed_task",
         "active_claims",
@@ -1788,7 +1789,7 @@ def test_status_human_shows_verify_command_without_changing_json(
         "coordination_scope",
         "policy",
     }
-    assert "verify" not in data
+    assert data["verify_command"] == "make check"
 
 
 def test_doctor_runs(tmp_path, monkeypatch):
@@ -4771,3 +4772,17 @@ def test_status_json_truncates_long_vision_in_next_action(tmp_path, monkeypatch,
     assert "…" in next_action  # truncation marker is present
     assert long_vision[:60] in next_action  # the first 60 chars appear
     assert long_vision not in next_action  # the full vision is NOT present (truncated)
+
+
+def test_status_json_includes_verify_command(tmp_path, monkeypatch, capsys):
+    # protocol_commands.py payload — `verify --json` already returns `verify_command`
+    # (added in 8144eec); `status --json` should expose the same resolved field so
+    # an automation consumer can discover the configured command without running verify.
+    # Dropping `verify_command` from the status payload must fail this test.
+    monkeypatch.chdir(tmp_path)
+    _commit_repo_with_verify(tmp_path)
+
+    assert main(["status", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert "verify_command" in data, "status --json missing verify_command field"
+    assert data["verify_command"] == "true", "verify_command should be the configured command"

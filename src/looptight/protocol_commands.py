@@ -641,6 +641,7 @@ def cmd_status(args: argparse.Namespace, console: Console) -> int:
         "schema_version": 1,
         "command": "status",
         "validation": "configured" if verify else "missing",
+        "verify_command": verify,
         "workspace": workspace,
         "claimed_task": claimed_task,
         "active_claims": active_claims,

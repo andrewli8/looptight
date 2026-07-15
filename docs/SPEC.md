@@ -291,6 +291,9 @@ or `null`), a feedback signal on the host's prior generation.
 `status` carries an additive `idea_quality` block (groundedness, area flexibility,
 and boundedness of the generated `## Next` batch) when that batch is non-empty, so the
 loop's generation quality is visible without changing the existing `status` keys.
+`status` also carries an additive `verify_command` field (the resolved command string,
+or `null` when unconfigured), matching `verify --json` so automation can read the
+configured command without running verify.
 
 When a repository is coordinated by the SQLite coordinator (see
 `docs/architecture.md`), `status` carries an additive `coordinator` block of queued

@@ -240,6 +240,15 @@ def test_spec_output_contract_documents_verify_command():
     assert "verify_command" in output_contract
 
 
+def test_spec_output_contract_documents_verify_command_in_status():
+    # status --json should expose the resolved verify_command alongside verify --json;
+    # the SPEC must document this additive field so a consumer knows to read it.
+    # Removing "verify_command" from the status JSON description in SPEC must fail this.
+    spec = (_ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
+    output_contract = spec.split("## Output contract", 1)[1].split("\n## ", 1)[0]
+    assert "status" in output_contract and "verify_command" in output_contract
+
+
 def test_spec_output_contract_documents_current_quality_and_idea_quality():
     # SPEC.md:287,290 documents current_quality (additive on no_work next) and
     # idea_quality (additive on status --json); neither has a doc-test lock, so a
