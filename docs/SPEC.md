@@ -266,7 +266,11 @@ exit code, elapsed time, bounded output, and the resolved `verify_command` strin
 (the command that actually ran, useful when it was auto-detected). `goal next` returns `schema_version`,
 `command`, `status` (`active` | `done` | `stop` | `no_goal`), and `iteration`;
 additively it carries a `directive` object (the build increment, when `active`) and
-a `reason` string (e.g. `max_iterations`, when `stop`). `run --json` returns the
+a `reason` string (e.g. `max_iterations`, when `stop`). `goal check --json` returns
+`schema_version`, `command`, `action` (`check`), and `status`
+(`done` | `pending` | `no_goal` | `no_done_check`); the exit code is unchanged
+(0 = done, 1 = not done or no goal), so the shell-predicate use (`/loop until:
+looptight goal check`) is unaffected by `--json`. `run --json` returns the
 versioned run result — `stop_reason`, `passed`, bounded per-iteration verdicts (no
 raw output), `diffstat` — and an additive `escalation` object when the controller
 stopped early: the failures that never cleared plus the progress trajectory, or

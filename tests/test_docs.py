@@ -446,3 +446,17 @@ def test_daemon_doc_cycle_example_uses_unicode_arrow():
     assert cycle_line is not None, "daemon.md has no cycle example line"
     assert "→" in cycle_line, "daemon.md cycle example does not use Unicode → (U+2192)"
     assert " -> " not in cycle_line, "daemon.md cycle example uses ASCII -> instead of →"
+
+
+def test_spec_output_contract_documents_goal_check_json():
+    # protocol_commands.py:1057 emits {"schema_version":1,"command":"goal","action":"check",
+    # "status":<done|pending|no_goal|no_done_check>}; the SPEC output contract must name all
+    # four status values so an integrator building `/loop until: looptight goal check` knows
+    # the full shape without reading source. Removing any value must fail this test.
+    spec = (_ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
+    output_contract = spec.split("## Output contract", 1)[1].split("\n## ", 1)[0]
+    assert "goal check" in output_contract, "SPEC output contract does not mention goal check --json"
+    for status in ("done", "pending", "no_goal", "no_done_check"):
+        assert status in output_contract, (
+            f"SPEC output contract missing goal check status value: {status!r}"
+        )
