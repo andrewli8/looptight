@@ -179,7 +179,10 @@ def run_daemon(
                 idle += 1
 
         if on_cycle is not None:
-            on_cycle(DaemonCycle(cycles, shown, reason, merged, error, delay))
+            try:
+                on_cycle(DaemonCycle(cycles, shown, reason, merged, error, delay))
+            except Exception:
+                pass  # a failing cycle hook must never stop the daemon
 
         if on_fault is not None and outcome == "fault":
             try:

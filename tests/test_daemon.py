@@ -393,6 +393,24 @@ def test_daemon_fires_on_fault_with_payload_after_exception():
     assert "RuntimeError: worker crashed hard" in faults[0]["last_error"]
 
 
+def test_daemon_survives_a_crashing_on_cycle_hook():
+    # on_cycle must be guarded like on_fault: a hook that raises must never kill the daemon.
+    rec = _Recorder([_result(REASON_NO_WORK), _result(REASON_NO_WORK)])
+    calls: list[int] = []
+
+    def crashing_cycle(dc: DaemonCycle) -> None:
+        calls.append(dc.index)
+        raise RuntimeError("hook blew up")
+
+    report = run_daemon(
+        Path("."), agent="claude", config=_config(), workers=2,
+        max_cycles=2, sleep=rec.sleep, run_cycle=rec.run_cycle, on_cycle=crashing_cycle,
+    )
+    # Without the guard, RuntimeError propagates and run_daemon stops at cycle 1.
+    assert report.cycles == 2
+    assert len(calls) == 2
+
+
 def test_daemon_survives_a_failing_on_fault_hook():
     rec = _Recorder([_result(REASON_ERROR, error="boom")])
 

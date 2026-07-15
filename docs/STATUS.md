@@ -3578,18 +3578,12 @@ existing CLI session and makes no model or API calls of its own.
   `coordinator.py:298` and every other git call in the codebase; a missing `git`
   binary can no longer cause an uncaught `FileNotFoundError` in `cmd_status` and
   peers. Covered by `test_git_common_dir_returns_none_on_oserror` in test_cli.py.
+- `run_daemon`'s `on_cycle` callback is now wrapped in `try/except Exception: pass`
+  matching the sibling `on_fault` guard; a crashing `on_cycle` hook can no longer
+  kill the daemon. Covered by `test_daemon_survives_a_crashing_on_cycle_hook` in
+  test_daemon.py.
 
 ## Next
-
-2. `run_daemon`'s `on_cycle` callback (daemon.py:182) is invoked without a
-   `try/except` guard, while the sibling `on_fault` callback at daemon.py:184 is
-   explicitly wrapped in `try/except Exception: pass` so a crashing hook never
-   kills the daemon. A crashing `on_cycle` propagates out of the main loop and
-   terminates the daemon. The same protection contract applies to both hooks.
-   Evidence: `src/looptight/daemon.py:181`
-   Acceptance: a new test supplies a crashing `on_cycle` hook and asserts
-   `run_daemon` still completes its `max_cycles` without propagating the exception;
-   `looptight verify --json` reports pass.
 
 3. `goal_next`'s returned `GoalDecision.directive["done_check"]` field is never
    asserted in the test suite; the field could be silently dropped or renamed
