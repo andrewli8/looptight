@@ -2017,6 +2017,7 @@ def test_verify_json_pass_contract(tmp_path, monkeypatch, capsys):
     assert data["exit_code"] == 0
     assert data["score"] == 0.75
     assert data["error"] is None
+    assert data["verify_command"] == "printf 'SCORE: 0.75'"
 
 
 def test_verify_json_includes_verify_command(tmp_path, monkeypatch, capsys):

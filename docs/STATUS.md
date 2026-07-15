@@ -3552,15 +3552,11 @@ existing CLI session and makes no model or API calls of its own.
   `test_verify_json_refuses_command_not_in_allowlist`, `test_verify_json_refuses_protected_path_changes`)
   each gain `assert data["verify_command"] is None`, so a regression wiring a partial command
   into those branches is caught; the pass-path returns the full command.
+- `test_verify_json_pass_contract` gains `assert data["verify_command"] == "printf 'SCORE: 0.75'"`,
+  so dropping `verify_command=command` from the success-path call in `protocol_commands.py:69`
+  now breaks the canonical contract test, not only the dedicated `_includes_verify_command` test.
 
 ## Next
-
-3. `test_verify_json_pass_contract` (the canonical machine-contract test) does not assert
-   `verify_command`, so dropping `verify_command=command` from the success-path call
-   (`src/looptight/protocol_commands.py:69`) would leave that canonical test passing. Add
-   `assert data["verify_command"] == "printf 'SCORE: 0.75'"` to the contract test.
-   Evidence: `tests/test_cli.py:2010`
-   Acceptance: the assertion is added to `test_verify_json_pass_contract`; the suite passes.
 
 ## Rules
 
