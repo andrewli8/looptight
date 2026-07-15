@@ -232,6 +232,14 @@ def test_spec_output_contract_documents_verify_patience_stall():
     assert "stall" in output_contract
 
 
+def test_spec_output_contract_documents_verify_command():
+    # verify --json always emits verify_command (protocol_commands.py); the spec
+    # must say so or an agent implementing a client from the spec won't know to use it.
+    spec = (_ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
+    output_contract = spec.split("## Output contract", 1)[1].split("\n## ", 1)[0]
+    assert "verify_command" in output_contract
+
+
 def test_spec_output_contract_documents_current_quality_and_idea_quality():
     # SPEC.md:287,290 documents current_quality (additive on no_work next) and
     # idea_quality (additive on status --json); neither has a doc-test lock, so a

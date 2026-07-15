@@ -3545,16 +3545,11 @@ existing CLI session and makes no model or API calls of its own.
   `test_verify_json_includes_verify_command` in test_cli.py; existing JSON contract tests
   are unchanged.
 
-## Next
+- `docs/SPEC.md` output contract now documents the `verify_command` field emitted by
+  `verify --json` (the resolved command that ran, useful when auto-detected); locked by
+  `test_spec_output_contract_documents_verify_command` in `tests/test_docs.py`.
 
-1. `docs/SPEC.md` output contract does not mention `verify_command` even though `verify --json`
-   always emits it (`protocol_commands.py:180`). The sentence reads "verify returns status, exit
-   code, elapsed time, and bounded output" — an agent reading the spec would not know to expect
-   the field. Add `verify_command` to the sentence and lock it with a
-   `test_spec_output_contract_documents_verify_command` assertion in `tests/test_docs.py`.
-   Evidence: `docs/SPEC.md:265`
-   Acceptance: a new test in `tests/test_docs.py` asserts `"verify_command"` appears in the
-   Output Contract section; it fails before the SPEC edit and passes after.
+## Next
 
 2. The `verify --json` error-path tests (`test_verify_json_configuration_error_is_machine_readable`,
    `test_verify_json_refuses_command_not_in_allowlist`, `test_verify_json_refuses_protected_path_changes`)

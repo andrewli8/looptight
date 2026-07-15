@@ -262,7 +262,8 @@ wraps it as `{candidates, eval}`. At minimum, `next` returns a task ID,
 source, location, goal, and acceptance evidence; it also carries `idea_id` (a
 stable dedup identity for the candidate) and `suggested_verify` (a per-task verify
 hint such as `ruff check` for a lint finding, or `null`). `verify` returns status,
-exit code, elapsed time, and bounded output. `goal next` returns `schema_version`,
+exit code, elapsed time, bounded output, and the resolved `verify_command` string
+(the command that actually ran, useful when it was auto-detected). `goal next` returns `schema_version`,
 `command`, `status` (`active` | `done` | `stop` | `no_goal`), and `iteration`;
 additively it carries a `directive` object (the build increment, when `active`) and
 a `reason` string (e.g. `max_iterations`, when `stop`). `run --json` returns the
