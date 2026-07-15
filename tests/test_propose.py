@@ -1476,6 +1476,26 @@ def test_from_lint_uses_uvx_ruff_when_ruff_not_on_path(tmp_path, monkeypatch):
     assert "F401" in candidates[0].title
 
 
+def test_from_lint_uvx_fallback_sets_suggested_verify_and_acceptance(tmp_path, monkeypatch):
+    # When the uvx fallback path is taken, suggested_verify and acceptance must name
+    # "uvx ruff check", not "ruff check", so the agent's re-verify command actually
+    # works on systems where ruff is only accessible via uvx.
+    monkeypatch.setattr(
+        "looptight.discovery.shutil.which",
+        lambda command: "/usr/bin/uvx" if command == "uvx" else None,
+    )
+    ruff_output = "a.py:1:1: F401 `os` imported but unused\n"
+
+    def fake_run(command, **kwargs):
+        return type("Result", (), {"stdout": ruff_output})()
+
+    monkeypatch.setattr("looptight.discovery.subprocess.run", fake_run)
+    candidates = from_lint(tmp_path)
+    assert len(candidates) == 1
+    assert candidates[0].suggested_verify == "uvx ruff check"
+    assert "uvx ruff check" in candidates[0].acceptance
+
+
 def test_from_lint_returns_empty_when_neither_ruff_nor_uvx_on_path(tmp_path, monkeypatch):
     # When neither ruff nor uvx is on PATH, from_lint must return [] without
     # invoking any subprocess — the same safe degradation as the ruff-absent case.

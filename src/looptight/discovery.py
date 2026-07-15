@@ -659,8 +659,10 @@ def from_lint(root: Path) -> list[Candidate]:
         # ruff installed as a uv tool (not on PATH) — invoke it via uvx so projects
         # using `uv tool install ruff` still get lint candidates.
         cmd = [uvx, "ruff", "check", "--no-cache", "--output-format", "concise", "--quiet"]
+        verify_cmd = "uvx ruff check"
     else:
         cmd = [ruff, "check", "--no-cache", "--output-format", "concise", "--quiet"]
+        verify_cmd = "ruff check"
     try:
         proc = subprocess.run(
             cmd,
@@ -688,10 +690,10 @@ def from_lint(root: Path) -> list[Candidate]:
                 title=_one_line(f"fix {match.group('code')}: {match.group('msg')}"),
                 source="lint",
                 location=match.group("loc"),
-                suggested_verify="ruff check",
+                suggested_verify=verify_cmd,
                 score=0.0,
                 detail=line.strip(),
-                acceptance=f"Remove {match.group('code')} at {match.group('loc')} and pass ruff check.",
+                acceptance=f"Remove {match.group('code')} at {match.group('loc')} and pass {verify_cmd}.",
             )
         )
     return out
