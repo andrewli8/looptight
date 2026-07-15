@@ -229,6 +229,21 @@ def test_claim_read_returns_empty_dict_for_valid_non_dict_json(tmp_path):
     assert ClaimStore._read(path) == {}
 
 
+def test_claim_read_returns_empty_dict_on_oserror(tmp_path, monkeypatch):
+    # claims.py:146 — the OSError arm of `except (OSError, ValueError): return {}`
+    # is triggered when a claim file disappears between the glob listing and the
+    # read (TOCTOU). The ValueError arm is covered by the corrupt-JSON sibling test.
+    import looptight.claims as claims_mod
+
+    def raise_oserror(*args, **kwargs):  # noqa: ARG001
+        raise OSError("file vanished")
+
+    path = tmp_path / "claim.json"
+    path.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(type(path), "read_text", raise_oserror)
+    assert claims_mod.ClaimStore._read(path) == {}
+
+
 def test_claim_dir_sets_terminal_prompt_env(tmp_path):
     # claim_dir must pass GIT_TERMINAL_PROMPT=0 to git so a headless `looptight next`
     # inside a credential-locked repo can never block on a prompt — the same invariant
