@@ -3612,6 +3612,26 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Fix `from_lint` to emit `suggested_verify="uvx ruff check"` when the uvx fallback is taken.
+   Evidence: `src/looptight/discovery.py:691`; the uvx fallback path (lines 658-661) runs ruff
+   via uvx but still sets `suggested_verify="ruff check"` and `acceptance="… pass ruff check."` —
+   a command that fails on systems where ruff is only accessible via `uvx`. The existing test
+   `test_from_lint_uses_uvx_ruff_when_ruff_not_on_path` checks subprocess invocation but not
+   `suggested_verify`, so the wrong value is undetected.
+   Acceptance: a new test `test_from_lint_uvx_fallback_sets_suggested_verify_and_acceptance`
+   in `tests/test_propose.py` asserts `candidates[0].suggested_verify == "uvx ruff check"` and
+   that `acceptance` contains `"uvx ruff check"` when the uvx path is taken; it must fail before
+   the fix and pass after.
+
+2. Fix `_drift_directive` to call `_changed_files` only once.
+   Evidence: `src/looptight/hook.py:110`; `_changed_files(cwd)` is called at line 110 (passed to
+   `_off_task`) and again at line 113 (passed to `drift_reason`), spawning two git subprocesses
+   when one suffices and introducing a subtle race where the two calls could return different sets.
+   Acceptance: a new test `test_drift_directive_calls_git_diff_exactly_once` in
+   `tests/test_hook.py` monkeypatches `_changed_files` (or `subprocess.run`) and asserts it is
+   called exactly once per `_drift_directive` invocation when drift fires; it must fail before the
+   fix and pass after.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
