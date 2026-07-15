@@ -960,6 +960,26 @@ def test_state_path_uses_absolute_git_common_dir_directly(tmp_path, monkeypatch)
     assert result == abs_common / "looptight" / STATE_FILE
 
 
+def test_state_path_git_sets_terminal_prompt_env(tmp_path, monkeypatch):
+    # ui.py:29 — the subprocess must receive GIT_TERMINAL_PROMPT=0 so headless
+    # git never blocks on a credential prompt (same invariant as all other git
+    # subprocess callers in the codebase).
+    import subprocess
+
+    from looptight.ui import _state_path
+
+    captured_env = {}
+
+    def fake_run(cmd, **kwargs):
+        captured_env.update(kwargs.get("env") or {})
+        return subprocess.CompletedProcess(cmd, 0, stdout=str(tmp_path / ".git") + "\n", stderr="")
+
+    monkeypatch.setattr(ui.subprocess, "run", fake_run)
+    _state_path(tmp_path)
+
+    assert captured_env.get("GIT_TERMINAL_PROMPT") == "0"
+
+
 def test_active_session_task_returns_none_on_exception(tmp_path, monkeypatch):
     import looptight.coordinator as _coord
 
