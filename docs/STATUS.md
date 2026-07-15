@@ -3562,6 +3562,36 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Pin the `from_task_file` pre-Acceptance scoping invariant with a mutation test.
+   Evidence: `src/looptight/discovery.py:613` (`task_text, marker, acceptance =
+   text.partition("Acceptance:")` scopes the grounding check to `task_text` only);
+   the sibling `from_status_next` invariant is already pinned at
+   `tests/test_propose.py:1292` but no parallel test covers `from_task_file`.
+   Acceptance: `test_from_task_file_grounding_gate_ignores_acceptance_only_evidence`
+   in `tests/test_propose.py` passes: a task-file entry whose non-resolving path
+   appears only inside the `Acceptance:` clause is NOT dropped by
+   `enforce_truthful_evidence`; removing the `partition` call and checking the full
+   text instead causes the test to fail; `looptight verify --json` reports pass.
+
+2. Pin the Mocha/cross symbol (`✗`, U+2717) in `_FAILURE_LINE_RE` with a mutation
+   test. Evidence: `src/looptight/metacog.py:98` (the `[✗✕×]` character class);
+   `tests/test_metacog.py:143` already pins `✕` (Jest, U+2715) but removing `✗` from
+   the regex does not fail any existing test.
+   Acceptance: `test_failure_lines_detects_mocha_ballot_x_symbol` in
+   `tests/test_metacog.py` passes: `_failure_lines("  ✗ test name (12 ms)")` returns
+   a non-empty set containing "test name"; mutating `✗` out of `_FAILURE_LINE_RE`
+   causes the test to fail; `looptight verify --json` reports pass.
+
+3. Pin the single-prefix invariant of the `migrate` error message against the
+   double-prefix regression. Evidence: `tests/test_cli.py:2725` asserts only
+   `"legacy" in out`; `coordinator.py:381` raises `MigrationBlocked("live legacy
+   claims exist…")`; CHANGELOG records the double-prefix bug was fixed in
+   `cmd_migrate` but the test does not prevent it from recurring.
+   Acceptance: the existing test `test_migrate_refuses_live_legacy_claims` (or a new
+   sibling) asserts `"cannot activate the coordinator: cannot activate" not in out`
+   so that reintroducing a prefix inside `MigrationBlocked`'s message causes the
+   assertion to fail; `looptight verify --json` reports pass.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
