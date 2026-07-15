@@ -487,6 +487,40 @@ def test_drift_reason_names_the_evidence_and_changed_files(tmp_path):
     assert "fix foo" in reason
 
 
+def test_drift_directive_calls_git_diff_exactly_once(tmp_path, monkeypatch):
+    # _drift_directive must call _changed_files(cwd) exactly once even when drift fires,
+    # not twice (once for _off_task, once for drift_reason). Two calls spawn two git
+    # subprocesses and introduce a subtle race where the sets could diverge.
+    from looptight.claims import owner_id
+    from looptight.coordinator import Coordinator
+    import looptight.hook as _hook_mod
+
+    root = _git_repo(tmp_path / "r")
+    coordinator = Coordinator.open(root)
+    assert coordinator is not None
+    owner = owner_id(root)
+    run = coordinator.start_run("session", owner=owner)
+    coordinator.claim(
+        [{"id": "t1", "idea_id": "abc123", "evidence": "Evidence: src/foo.py:1", "goal": "fix foo"}],
+        run.id,
+        ttl_s=60,
+    )
+    coordinator.close()
+
+    call_count = 0
+
+    def counting_changed_files(cwd):
+        nonlocal call_count
+        call_count += 1
+        return ["other.py"]  # unrelated file → drift fires
+
+    monkeypatch.setattr(_hook_mod, "_changed_files", counting_changed_files)
+    result = _hook_mod._drift_directive(root)
+
+    assert result is not None, "_drift_directive must fire with an unrelated changed file"
+    assert call_count == 1, f"_changed_files called {call_count} times; expected exactly 1"
+
+
 def test_drift_directive_returns_none_outside_git(tmp_path):
     # No git repo → Coordinator.open returns None → _drift_directive returns None (line 102).
     from looptight.hook import _drift_directive

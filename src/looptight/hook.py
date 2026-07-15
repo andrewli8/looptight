@@ -107,10 +107,11 @@ def _drift_directive(cwd: Path) -> str | None:
         if lease is None:
             return None
         evidence_paths = [strip_position_suffix(ref) for ref in evidence_refs(str(lease.payload.get("evidence") or ""))]
-        if not _off_task(evidence_paths, _changed_files(cwd)):
+        changed = _changed_files(cwd)
+        if not _off_task(evidence_paths, changed):
             return None
         goal = str(lease.payload.get("goal") or lease.payload.get("id") or "your claimed task")
-        return drift_reason(goal, evidence_paths, _changed_files(cwd))
+        return drift_reason(goal, evidence_paths, changed)
     except Exception:
         return None
 
