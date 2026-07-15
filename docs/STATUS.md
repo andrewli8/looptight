@@ -3548,16 +3548,12 @@ existing CLI session and makes no model or API calls of its own.
 - `docs/SPEC.md` output contract now documents the `verify_command` field emitted by
   `verify --json` (the resolved command that ran, useful when auto-detected); locked by
   `test_spec_output_contract_documents_verify_command` in `tests/test_docs.py`.
+- `verify --json` error-path tests (`test_verify_json_configuration_error_is_machine_readable`,
+  `test_verify_json_refuses_command_not_in_allowlist`, `test_verify_json_refuses_protected_path_changes`)
+  each gain `assert data["verify_command"] is None`, so a regression wiring a partial command
+  into those branches is caught; the pass-path returns the full command.
 
 ## Next
-
-2. The `verify --json` error-path tests (`test_verify_json_configuration_error_is_machine_readable`,
-   `test_verify_json_refuses_command_not_in_allowlist`, `test_verify_json_refuses_protected_path_changes`)
-   do not assert that `verify_command` is `null` on error paths, so a regression accidentally
-   wiring a partial command into those branches would go undetected.
-   Evidence: `src/looptight/protocol_commands.py:33`
-   Acceptance: each of the three error-path tests gains `assert data["verify_command"] is None`
-   and a `looptight verify --json` on a clean tree still returns pass.
 
 3. `test_verify_json_pass_contract` (the canonical machine-contract test) does not assert
    `verify_command`, so dropping `verify_command=command` from the success-path call
