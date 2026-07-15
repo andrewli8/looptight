@@ -1039,6 +1039,17 @@ def test_session_panel_returns_empty_when_task_is_not_a_dict():
     assert ui._session_panel(state) == ""
 
 
+def test_session_panel_returns_empty_when_tasks_list_is_empty():
+    # ui.py:117 — the `or not tasks` guard — status passes the first check
+    # ("session") but the task list is empty, so the middle sub-condition fires.
+    state = {
+        "manager": {"status": "session"},
+        "tasks": [],
+        "workers": [],
+    }
+    assert ui._session_panel(state) == ""
+
+
 def test_session_panel_goal_mode_appends_verify_suffix():
     # ui.py:121 — the `if isinstance(verify, str) and verify: line += f" · verify: {verify}"`
     # branch is exercised for status="session" by test_render_state_panel_shows_the_session_loop,

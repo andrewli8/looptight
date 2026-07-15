@@ -3586,8 +3586,21 @@ existing CLI session and makes no model or API calls of its own.
   two new tests in test_goal.py assert it equals the configured command (when
   `done_check` is set) and `None` (when absent), so the field cannot be silently
   dropped or renamed without a test failure.
+- `_session_panel`'s middle early-return sub-condition (`not tasks`) now has
+  direct coverage: `test_session_panel_returns_empty_when_tasks_list_is_empty`
+  passes `status="session"` with `tasks=[]` and asserts `""` — completing the
+  guard's three-sub-condition sibling set in test_ui.py.
 
 ## Next
+
+1. `ClaimStore._read` catches `OSError` at line 146, but no test exercises that arm;
+   the `ValueError` arm and the non-dict branch each have dedicated tests (sibling
+   pattern). A realistic trigger is reading a claim file that vanishes between the
+   glob listing and the read (TOCTOU).
+   Evidence: `src/looptight/claims.py:146`
+   Acceptance: one new test monkeypatches the file read inside `ClaimStore._read` to
+   raise `OSError` and asserts the method returns `{}`; `looptight verify --json`
+   reports pass.
 
 ## Rules
 
