@@ -3576,6 +3576,35 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_git_common_dir` in `protocol_commands.py` is the only git `subprocess.run`
+   call without an `except OSError` guard; every peer call in coordinator.py,
+   claims.py, discovery.py, experience.py, etc. has one. A missing `git` binary
+   causes an uncaught `FileNotFoundError` in callers like `cmd_status`.
+   Evidence: `src/looptight/protocol_commands.py:809`
+   Acceptance: a new test `test_git_common_dir_returns_none_on_oserror` monkeypatches
+   `subprocess.run` to raise `OSError` and asserts the function returns `None`; the
+   test fails before the guard is added and passes after; `looptight verify --json`
+   reports pass.
+
+2. `run_daemon`'s `on_cycle` callback (daemon.py:182) is invoked without a
+   `try/except` guard, while the sibling `on_fault` callback at daemon.py:184 is
+   explicitly wrapped in `try/except Exception: pass` so a crashing hook never
+   kills the daemon. A crashing `on_cycle` propagates out of the main loop and
+   terminates the daemon. The same protection contract applies to both hooks.
+   Evidence: `src/looptight/daemon.py:181`
+   Acceptance: a new test supplies a crashing `on_cycle` hook and asserts
+   `run_daemon` still completes its `max_cycles` without propagating the exception;
+   `looptight verify --json` reports pass.
+
+3. `goal_next`'s returned `GoalDecision.directive["done_check"]` field is never
+   asserted in the test suite; the field could be silently dropped or renamed
+   without any test failing. The host agent depends on it to know when to call
+   `looptight goal check`.
+   Evidence: `src/looptight/goal.py:149`
+   Acceptance: two new tests assert `directive["done_check"]` equals the
+   configured command (when set) and `None` (when absent); `looptight verify
+   --json` reports pass.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
