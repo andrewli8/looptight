@@ -163,6 +163,18 @@ def test_failure_lines_returns_empty_set_for_none_and_empty_output():
     assert _failure_lines("") == set()
 
 
+def test_failure_lines_detects_mocha_ballot_x_symbol():
+    from looptight.metacog import _failure_lines
+
+    # Mocha uses ✗ (U+2717, BALLOT X) for failed tests; metacog.py:98 includes it in
+    # _FAILURE_LINE_RE alongside ✕ (U+2715, Jest) and × (U+00D7).  The ✕ case is
+    # already pinned by test_failure_lines_extracts_and_normalizes_across_runners;
+    # mutating ✗ out of the regex would not fail that test, so this assertion pins it.
+    result = _failure_lines("  ✗ test name (12 ms)")
+    assert result, "Mocha ✗ (U+2717) line must be detected as a failure"
+    assert any("test name" in line for line in result)
+
+
 def test_failure_lines_detects_tap_not_ok():
     from looptight.metacog import _failure_lines
 

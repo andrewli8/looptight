@@ -3565,19 +3565,14 @@ existing CLI session and makes no model or API calls of its own.
   only in the `Acceptance:` clause; asserts exactly one candidate is returned and its
   title starts with "Cover the thing", pinning the `partition("Acceptance:")` scoping
   at `discovery.py:613`; `looptight verify --json` reports pass.
+- `test_failure_lines_detects_mocha_ballot_x_symbol` in `tests/test_metacog.py`
+  calls `_failure_lines("  ✗ test name (12 ms)")` and asserts the result is non-empty
+  and contains "test name", pinning the `✗` (U+2717, Mocha) character in
+  `_FAILURE_LINE_RE` at `metacog.py:98`; `looptight verify --json` reports pass.
 
 ## Next
 
-1. Pin the Mocha/cross symbol (`✗`, U+2717) in `_FAILURE_LINE_RE` with a mutation
-   test. Evidence: `src/looptight/metacog.py:98` (the `[✗✕×]` character class);
-   `tests/test_metacog.py:143` already pins `✕` (Jest, U+2715) but removing `✗` from
-   the regex does not fail any existing test.
-   Acceptance: `test_failure_lines_detects_mocha_ballot_x_symbol` in
-   `tests/test_metacog.py` passes: `_failure_lines("  ✗ test name (12 ms)")` returns
-   a non-empty set containing "test name"; mutating `✗` out of `_FAILURE_LINE_RE`
-   causes the test to fail; `looptight verify --json` reports pass.
-
-3. Pin the single-prefix invariant of the `migrate` error message against the
+1. Pin the single-prefix invariant of the `migrate` error message against the
    double-prefix regression. Evidence: `tests/test_cli.py:2725` asserts only
    `"legacy" in out`; `coordinator.py:381` raises `MigrationBlocked("live legacy
    claims exist…")`; CHANGELOG records the double-prefix bug was fixed in
