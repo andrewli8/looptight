@@ -66,6 +66,7 @@ def cmd_verify(args: argparse.Namespace, console: Console) -> int:
             output=result.output,
             error=result.error,
             stall=stall,
+            verify_command=command,
         )
         return _verify_exit_code(result.status)
     style = "green" if result.passed else "red"
@@ -160,6 +161,7 @@ def _print_verify_json(
     duration_ms: float = 0.0,
     error: str | None = None,
     stall: dict | None = None,
+    verify_command: str | None = None,
 ) -> None:
     """Emit the v1 verifier contract without terminal styling or wrapping.
 
@@ -175,6 +177,7 @@ def _print_verify_json(
         "duration_ms": duration_ms,
         "output": output,
         "error": error,
+        "verify_command": verify_command,
     }
     if stall is not None:
         payload["stall"] = stall

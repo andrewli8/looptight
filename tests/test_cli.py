@@ -2019,6 +2019,13 @@ def test_verify_json_pass_contract(tmp_path, monkeypatch, capsys):
     assert data["error"] is None
 
 
+def test_verify_json_includes_verify_command(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    assert main(["verify", "--verify", "printf 'SCORE: 1.0'", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["verify_command"] == "printf 'SCORE: 1.0'"
+
+
 def test_verify_json_fail_contract(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     assert main(["verify", "--verify", "printf broken; exit 3", "--json"]) == 1
