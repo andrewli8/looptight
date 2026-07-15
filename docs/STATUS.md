@@ -3569,18 +3569,12 @@ existing CLI session and makes no model or API calls of its own.
   calls `_failure_lines("  ✗ test name (12 ms)")` and asserts the result is non-empty
   and contains "test name", pinning the `✗` (U+2717, Mocha) character in
   `_FAILURE_LINE_RE` at `metacog.py:98`; `looptight verify --json` reports pass.
+- `test_migrate_refuses_live_legacy_claims` now captures output to `out` and asserts
+  `"cannot activate the coordinator: cannot activate" not in out`, so a future change
+  that adds a "cannot activate" prefix inside `MigrationBlocked`'s own message is
+  caught immediately by the existing test; `looptight verify --json` reports pass.
 
 ## Next
-
-1. Pin the single-prefix invariant of the `migrate` error message against the
-   double-prefix regression. Evidence: `tests/test_cli.py:2725` asserts only
-   `"legacy" in out`; `coordinator.py:381` raises `MigrationBlocked("live legacy
-   claims exist…")`; CHANGELOG records the double-prefix bug was fixed in
-   `cmd_migrate` but the test does not prevent it from recurring.
-   Acceptance: the existing test `test_migrate_refuses_live_legacy_claims` (or a new
-   sibling) asserts `"cannot activate the coordinator: cannot activate" not in out`
-   so that reintroducing a prefix inside `MigrationBlocked`'s message causes the
-   assertion to fail; `looptight verify --json` reports pass.
 
 ## Rules
 

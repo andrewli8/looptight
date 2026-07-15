@@ -2722,7 +2722,11 @@ def test_migrate_refuses_live_legacy_claims(tmp_path, monkeypatch, capsys):
     )
 
     assert main(["migrate"]) == 2
-    assert "legacy" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "legacy" in out
+    # Regression guard: if MigrationBlocked's message ever gains a "cannot activate" prefix
+    # the handler's f-string would double it to "cannot activate the coordinator: cannot activate".
+    assert "cannot activate the coordinator: cannot activate" not in out
     assert not (tmp_path / ".git" / "looptight" / "coordinator-format.json").exists()
 
 
