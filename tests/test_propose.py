@@ -1311,6 +1311,30 @@ def test_from_status_next_grounding_gate_ignores_plain_evidence_path_in_acceptan
     assert candidates[0].title.startswith("Cover the thing")
 
 
+def test_from_task_file_grounding_gate_ignores_acceptance_only_evidence(tmp_path):
+    # Pre-Acceptance scoping regression for from_task_file: discovery.py:613 calls
+    # evidence_is_truthful only on `task_text` (the text before "Acceptance:"), so a
+    # non-resolving path that appears only inside the Acceptance clause must not veto
+    # an otherwise-valid task.  Mutating the partition call to check the full text
+    # would drop this candidate and fail this assertion.
+    from looptight.discovery import from_task_file
+
+    _write(tmp_path, "src/real.py", "# real\n")
+    _write(
+        tmp_path,
+        "docs/tasks.md",
+        "1. Cover the thing. Evidence: src/real.py:1;\n"
+        "   Acceptance: Also see Evidence: src/nonexistent.py for reference.\n",
+    )
+
+    candidates = from_task_file(tmp_path, "docs/tasks.md", enforce_truthful_evidence=True)
+    assert len(candidates) == 1, (
+        "task with non-resolving Evidence: path only in Acceptance clause was wrongly "
+        "dropped by the grounding gate"
+    )
+    assert candidates[0].title.startswith("Cover the thing")
+
+
 def test_from_status_next_returns_only_first_six_executable_tasks(tmp_path):
     tasks = "".join(
         f"{number}. Task {number}. Acceptance: task {number} passes.\n"

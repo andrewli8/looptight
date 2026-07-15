@@ -3559,21 +3559,16 @@ existing CLI session and makes no model or API calls of its own.
   `ui.subprocess.run`, calls `ui._state_path(tmp_path)`, and asserts the captured `env` dict
   contains `"GIT_TERMINAL_PROMPT"` equal to `"0"`, completing the headless-safety invariant
   across all 14 git subprocess call-sites; `looptight verify --json` reports pass.
+- `test_from_task_file_grounding_gate_ignores_acceptance_only_evidence` in
+  `tests/test_propose.py` calls `from_task_file(tmp_path, "docs/tasks.md",
+  enforce_truthful_evidence=True)` with a task entry whose non-resolving path appears
+  only in the `Acceptance:` clause; asserts exactly one candidate is returned and its
+  title starts with "Cover the thing", pinning the `partition("Acceptance:")` scoping
+  at `discovery.py:613`; `looptight verify --json` reports pass.
 
 ## Next
 
-1. Pin the `from_task_file` pre-Acceptance scoping invariant with a mutation test.
-   Evidence: `src/looptight/discovery.py:613` (`task_text, marker, acceptance =
-   text.partition("Acceptance:")` scopes the grounding check to `task_text` only);
-   the sibling `from_status_next` invariant is already pinned at
-   `tests/test_propose.py:1292` but no parallel test covers `from_task_file`.
-   Acceptance: `test_from_task_file_grounding_gate_ignores_acceptance_only_evidence`
-   in `tests/test_propose.py` passes: a task-file entry whose non-resolving path
-   appears only inside the `Acceptance:` clause is NOT dropped by
-   `enforce_truthful_evidence`; removing the `partition` call and checking the full
-   text instead causes the test to fail; `looptight verify --json` reports pass.
-
-2. Pin the Mocha/cross symbol (`✗`, U+2717) in `_FAILURE_LINE_RE` with a mutation
+1. Pin the Mocha/cross symbol (`✗`, U+2717) in `_FAILURE_LINE_RE` with a mutation
    test. Evidence: `src/looptight/metacog.py:98` (the `[✗✕×]` character class);
    `tests/test_metacog.py:143` already pins `✕` (Jest, U+2715) but removing `✗` from
    the regex does not fail any existing test.
