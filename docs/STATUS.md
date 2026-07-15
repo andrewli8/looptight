@@ -3573,18 +3573,13 @@ existing CLI session and makes no model or API calls of its own.
   `"cannot activate the coordinator: cannot activate" not in out`, so a future change
   that adds a "cannot activate" prefix inside `MigrationBlocked`'s own message is
   caught immediately by the existing test; `looptight verify --json` reports pass.
+- `_git_common_dir` in `protocol_commands.py` now wraps its `subprocess.run` call
+  in `try/except OSError: return None`, matching the identical guard in
+  `coordinator.py:298` and every other git call in the codebase; a missing `git`
+  binary can no longer cause an uncaught `FileNotFoundError` in `cmd_status` and
+  peers. Covered by `test_git_common_dir_returns_none_on_oserror` in test_cli.py.
 
 ## Next
-
-1. `_git_common_dir` in `protocol_commands.py` is the only git `subprocess.run`
-   call without an `except OSError` guard; every peer call in coordinator.py,
-   claims.py, discovery.py, experience.py, etc. has one. A missing `git` binary
-   causes an uncaught `FileNotFoundError` in callers like `cmd_status`.
-   Evidence: `src/looptight/protocol_commands.py:809`
-   Acceptance: a new test `test_git_common_dir_returns_none_on_oserror` monkeypatches
-   `subprocess.run` to raise `OSError` and asserts the function returns `None`; the
-   test fails before the guard is added and passes after; `looptight verify --json`
-   reports pass.
 
 2. `run_daemon`'s `on_cycle` callback (daemon.py:182) is invoked without a
    `try/except` guard, while the sibling `on_fault` callback at daemon.py:184 is

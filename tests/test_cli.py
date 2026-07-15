@@ -4052,6 +4052,17 @@ def test_git_common_dir_sets_terminal_prompt_env(tmp_path):
     assert captured.get("env", {}).get("GIT_TERMINAL_PROMPT") == "0"
 
 
+def test_git_common_dir_returns_none_on_oserror(tmp_path):
+    # _git_common_dir must degrade gracefully when git is absent from PATH, matching
+    # every peer git call (coordinator.py:298, claims.py, experience.py, etc.).
+    from unittest.mock import patch
+
+    import looptight.protocol_commands as pc
+
+    with patch.object(pc.subprocess, "run", side_effect=OSError("git not found")):
+        assert pc._git_common_dir(tmp_path) is None
+
+
 def test_coordinator_activation_returns_unknown_when_git_common_dir_fails(tmp_path, monkeypatch):
     # protocol_commands.py:797-798 — when the workspace is not "not_git" but
     # _git_common_dir returns None (e.g. git subprocess error), the result must

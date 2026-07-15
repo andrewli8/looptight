@@ -807,14 +807,17 @@ def _coordinator_activation(workdir: Path, workspace: str) -> str:
 
 
 def _git_common_dir(workdir: Path) -> Path | None:
-    result = subprocess.run(
-        ["git", "rev-parse", "--git-common-dir"],
-        cwd=workdir,
-        env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--git-common-dir"],
+            cwd=workdir,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return None
     if result.returncode != 0:
         return None
     common = Path(result.stdout.strip())
