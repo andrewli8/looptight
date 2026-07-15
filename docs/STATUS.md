@@ -3610,24 +3610,14 @@ existing CLI session and makes no model or API calls of its own.
   (`done`, `pending`, `no_goal`, `no_done_check`) so integrators know the full shape
   without reading source. Test `test_spec_output_contract_documents_goal_check_json` added.
 
+- `render_config` now writes `no_direct_push`, `protected_paths`, and
+  `allowed_verify_commands` from the passed `Config` argument instead of hardcoded empty
+  defaults, so `write_config`/`load_config` round-trips preserve all policy fields.
+  Covered by `test_write_config_preserves_policy_fields` in `tests/test_config.py`.
+
 ## Next
 
-1. Fix `render_config` to write `no_direct_push`, `protected_paths`, and
-   `allowed_verify_commands` from the passed `Config` argument rather than
-   hardcoded empty defaults. The template at lines 220-223 always writes
-   `no_direct_push = false`, `protected_paths = []`, and
-   `allowed_verify_commands = []` regardless of the config, so
-   `write_config(Config(no_direct_push=True, ...))` silently loses the value
-   and a subsequent `load_config` round-trip disagrees with the original.
-   Evidence: `src/looptight/config.py:221`
-   Acceptance: a new test `test_write_config_preserves_policy_fields` in
-   `tests/test_config.py` calls `write_config(Config(verify="pytest -q",
-   no_direct_push=True, protected_paths=("docs/",),
-   allowed_verify_commands=("pytest -q",)))`, loads the file back, and asserts
-   the loaded config equals the original; it must fail before the fix and pass
-   after.
-
-2. Add mutation-guard test `test_detect_verify_uv_wins_over_pdm` for the
+1. Add mutation-guard test `test_detect_verify_uv_wins_over_pdm` for the
    priority ordering in `detect_verify`. The tests `test_detect_verify_uv_wins_over_poetry`
    (line 42) and `test_detect_verify_poetry_wins_over_pdm` (line 52) exist, but
    `test_detect_verify_uv_wins_over_pdm` is absent — a mutation swapping the

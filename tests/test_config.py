@@ -366,6 +366,18 @@ def test_render_config_includes_verify_tasks_and_direct_main():
     assert "direct_main = true" in text
 
 
+def test_write_config_preserves_policy_fields(tmp_path):
+    config = Config(
+        verify="pytest -q",
+        no_direct_push=True,
+        protected_paths=("docs/",),
+        allowed_verify_commands=("pytest -q",),
+    )
+    path = write_config(config, tmp_path)
+    loaded = load_config(path)
+    assert loaded == config
+
+
 def test_write_config_is_atomic(tmp_path, monkeypatch):
     # An interrupted write must leave no partial `.looptight.toml` (and no `.tmp`),
     # so a re-run of `init` -- which refuses to overwrite an existing file -- is not
