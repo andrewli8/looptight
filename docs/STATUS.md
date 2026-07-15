@@ -3582,17 +3582,12 @@ existing CLI session and makes no model or API calls of its own.
   matching the sibling `on_fault` guard; a crashing `on_cycle` hook can no longer
   kill the daemon. Covered by `test_daemon_survives_a_crashing_on_cycle_hook` in
   test_daemon.py.
+- `goal_next`'s `GoalDecision.directive["done_check"]` field is directly covered:
+  two new tests in test_goal.py assert it equals the configured command (when
+  `done_check` is set) and `None` (when absent), so the field cannot be silently
+  dropped or renamed without a test failure.
 
 ## Next
-
-3. `goal_next`'s returned `GoalDecision.directive["done_check"]` field is never
-   asserted in the test suite; the field could be silently dropped or renamed
-   without any test failing. The host agent depends on it to know when to call
-   `looptight goal check`.
-   Evidence: `src/looptight/goal.py:149`
-   Acceptance: two new tests assert `directive["done_check"]` equals the
-   configured command (when set) and `None` (when absent); `looptight verify
-   --json` reports pass.
 
 ## Rules
 

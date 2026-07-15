@@ -166,6 +166,26 @@ def test_goal_next_active_emits_directive_and_bumps_iteration(tmp_path):
     assert read_goal(repo).iteration == 1  # persisted across calls
 
 
+def test_goal_next_directive_done_check_equals_configured_command(tmp_path):
+    from looptight.goal import goal_next
+
+    repo = _repo(tmp_path)
+    write_goal(repo, Goal(vision="x", done_check="pytest -q"))
+    decision = goal_next(repo, check_runner=lambda root, cmd: False)
+    assert decision.status == "active"
+    assert decision.directive["done_check"] == "pytest -q"
+
+
+def test_goal_next_directive_done_check_is_none_when_absent(tmp_path):
+    from looptight.goal import goal_next
+
+    repo = _repo(tmp_path)
+    write_goal(repo, Goal(vision="x"))
+    decision = goal_next(repo, check_runner=lambda root, cmd: False)
+    assert decision.status == "active"
+    assert decision.directive["done_check"] is None
+
+
 def test_goal_next_reports_done_when_check_passes_without_bumping(tmp_path):
     from looptight.goal import goal_next
 
