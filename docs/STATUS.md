@@ -3622,6 +3622,37 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Add mutation-guard test `test_detect_verify_pipenv_wins_over_uv` for the
+   priority ordering in `detect_verify`. The test `test_detect_verify_pipenv_wins_over_pyproject`
+   (line 516) creates Pipfile.lock + pyproject.toml but omits uv.lock, so swapping the
+   Pipfile.lock guard (detect.py:96) and uv.lock guard (detect.py:102) would not break it.
+   Evidence: `tests/test_detect.py:516`
+   Acceptance: a new test `test_detect_verify_pipenv_wins_over_uv` in `tests/test_detect.py`
+   writes `Pipfile.lock` + `pyproject.toml` + `uv.lock` in `tmp_path` and asserts
+   `detect_verify(tmp_path) == "pipenv run pytest -q"`; the test must fail if the
+   Pipfile.lock and uv.lock guards in `detect.py` are swapped.
+
+2. Add mutation-guard test `test_detect_verify_makefile_wins_over_justfile` for
+   the Makefile-before-justfile priority ordering in `detect_verify`. Both the
+   `test_detect_verify_makefile_*` and `test_detect_verify_justfile_*` tests each only
+   set up one tool, so swapping detect.py:127-131 (Makefile) and detect.py:133-140
+   (justfile) would go undetected.
+   Evidence: `tests/test_detect.py:217`
+   Acceptance: a new test `test_detect_verify_makefile_wins_over_justfile` in
+   `tests/test_detect.py` writes a `Makefile` with `test:` recipe and a `justfile`
+   with `test:` recipe in `tmp_path` and asserts `detect_verify(tmp_path) == "make test"`;
+   the test must fail if the Makefile and justfile checks in `detect.py` are reordered.
+
+3. Add direct unit test for `ranking._normalized`. The function is tested
+   transitively via `dedupe` (which asserts that title-case/whitespace variants
+   deduplicate), but a mutation changing `lower()` to the identity or collapsing
+   only single spaces would not be caught until dedupe's broader test exercises it.
+   Evidence: `src/looptight/ranking.py:27`
+   Acceptance: a new test in `tests/test_propose.py` directly imports `_normalized`
+   from `looptight.ranking` and asserts `_normalized("Hello  World") == "hello world"`,
+   `_normalized("  LEADING SPACE  ") == "leading space"`, and
+   `_normalized("already normal") == "already normal"`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
