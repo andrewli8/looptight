@@ -3651,17 +3651,12 @@ existing CLI session and makes no model or API calls of its own.
   `next_remediation`) and locked by `test_spec_output_contract_documents_doctor_json`
   in `tests/test_docs.py`: removing `doctor --json` or `readiness` from the SPEC
   Output contract section fails the test immediately.
+- `test_doctor_exit_code_and_json_reflect_readiness` in `tests/test_cli.py` now asserts
+  all five top-level fields of `doctor --json` (`schema_version`, `command`, `agent`,
+  `verify`, `readiness`): removing any one of these from `cmd_doctor` in
+  `src/looptight/commands.py` causes the test to fail immediately.
 
 ## Next
-
-1. Strengthen `test_doctor_exit_code_and_json_reflect_readiness` in `tests/test_cli.py`
-   to assert all top-level fields of `doctor --json` output (`schema_version`,
-   `command`, `verify`, `agent`), not just `readiness["tier"]`.
-   Evidence: tests/test_cli.py:322 (the existing test only checks `data["readiness"]["tier"]`,
-   leaving four top-level contract fields unguarded against mutation).
-   Acceptance: the strengthened test asserts all five top-level keys; removing any
-   one of `schema_version`, `command`, `verify`, or `agent` from `cmd_doctor` in
-   `src/looptight/commands.py` causes the test to fail immediately.
 
 ## Rules
 

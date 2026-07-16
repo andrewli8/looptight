@@ -338,7 +338,11 @@ def test_doctor_exit_code_and_json_reflect_readiness(tmp_path, monkeypatch, caps
 
     assert main(["doctor", "--json"]) == 0
     data = json.loads(capsys.readouterr().out)
+    assert data["schema_version"] == 1
+    assert data["command"] == "doctor"
     assert data["readiness"]["tier"] in {"ready", "partial"}
+    assert "agent" in data
+    assert "verify" in data
 
 
 def test_propose_empty_state_guides_new_dev_to_next_and_goal(tmp_path, monkeypatch, capsys):
