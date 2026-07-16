@@ -796,6 +796,11 @@ existing CLI session and makes no model or API calls of its own.
   (which `init` would otherwise refuse to overwrite, stranding the user). Covered by a
   failed-`os.replace` test that asserts no `.looptight.toml`/`.tmp` remains.
 
+- `test_detect_verify_uv_wins_over_pdm` mutation-guards the `detect.py:102`
+  `uv.lock`-before-`pdm.lock` priority ordering: when all three of
+  `pyproject.toml`, `uv.lock`, and `pdm.lock` are present, `detect_verify`
+  must return `"uv run pytest -q"`. The test fails if the two guards are swapped.
+
 - `install-skill` tolerates a non-UTF-8 existing `SKILL.md`: the "already up to date"
   read now catches `(OSError, ValueError)` instead of only `OSError`, so an unreadable
   file is treated as not-current and rewritten rather than crashing with an uncaught
@@ -3616,17 +3621,6 @@ existing CLI session and makes no model or API calls of its own.
   Covered by `test_write_config_preserves_policy_fields` in `tests/test_config.py`.
 
 ## Next
-
-1. Add mutation-guard test `test_detect_verify_uv_wins_over_pdm` for the
-   priority ordering in `detect_verify`. The tests `test_detect_verify_uv_wins_over_poetry`
-   (line 42) and `test_detect_verify_poetry_wins_over_pdm` (line 52) exist, but
-   `test_detect_verify_uv_wins_over_pdm` is absent — a mutation swapping the
-   `uv.lock` and `pdm.lock` guards in `detect.py:102` would go undetected.
-   Evidence: `tests/test_detect.py:42`
-   Acceptance: a new test `test_detect_verify_uv_wins_over_pdm` in
-   `tests/test_detect.py` writes `pyproject.toml` + `uv.lock` + `pdm.lock` in
-   `tmp_path` and asserts `detect_verify(tmp_path) == "uv run pytest -q"`; the
-   test must fail if the uv and pdm guards in `detect.py` are swapped.
 
 ## Rules
 
