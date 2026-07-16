@@ -31,7 +31,7 @@ def _load(path: Path) -> dict:
         return {}
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-    except ValueError as exc:
+    except (OSError, ValueError) as exc:
         raise ValueError(f"{path} is not valid JSON; refusing to edit it ({exc})") from None
     if not isinstance(data, dict):
         raise ValueError(f"{path} does not contain a JSON object; refusing to edit it")

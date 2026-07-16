@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -194,6 +195,26 @@ def test_write_is_atomic_and_preserves_original_on_failure(tmp_path, monkeypatch
 
     assert path.read_text(encoding="utf-8") == original  # original untouched
     assert not (tmp_path / "settings.tmp").exists()  # no leaked temp
+
+
+def test_load_does_not_propagate_oserror_from_read_text(tmp_path, monkeypatch):
+    # settings.py:33 — path.read_text() can raise OSError (e.g. permission denied).
+    # The guard must catch it and surface a clean ValueError, not a raw OSError.
+    path = tmp_path / ".claude" / "settings.json"
+    path.parent.mkdir(parents=True)
+    path.write_text("{}")
+
+    _real_read_text = Path.read_text
+
+    def raise_oserror(self, *args, **kwargs):
+        if self == path:
+            raise OSError("permission denied")
+        return _real_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", raise_oserror)
+
+    with pytest.raises(ValueError):
+        install(path)
 
 
 def test_settings_path_helpers_and_absent_file_uninstall(tmp_path):
