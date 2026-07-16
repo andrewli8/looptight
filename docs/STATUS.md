@@ -3632,17 +3632,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Fix `read_goal` treating `"vision": null` in the stored JSON as the string
-   `"None"` via `str(data.get("vision", ""))` — `data.get` returns the Python `None`
-   object (the key exists), which `str()` renders as `"None"`, silently injecting the
-   literal word into every subsequent goal prompt.
-   Evidence: `src/looptight/goal.py:60`
-   Acceptance: a test writes `{"schema_version": 1, "vision": null}` to the goal
-   file and calls `read_goal`; it must return a goal whose `vision` is not `"None"`
-   (null is treated as absent, identical to the `max_iterations: null` path at line 63
-   that already raises `TypeError` and is caught).
-
-2. Fix `from_skipped_tests` calling `path.read_text(...)` with no `OSError` guard at
+1. Fix `from_skipped_tests` calling `path.read_text(...)` with no `OSError` guard at
    `discovery.py:503`, making the discovery pipeline crash if a `.py` file is deleted
    between the directory walk and the read — unlike the sibling `_comments` (line 179)
    and `_multiline_string_lines` (line 199) which both wrap their reads in
@@ -3653,7 +3643,7 @@ existing CLI session and makes no model or API calls of its own.
    file; it must return `[]` without raising after the call is wrapped in
    `try/except OSError: continue`.
 
-3. Pin the `"action": "check"` field emitted by `goal check --json` in the existing
+2. Pin the `"action": "check"` field emitted by `goal check --json` in the existing
    test (`tests/test_goal.py:336`). SPEC.md mandates `action` in the output; the
    implementation at `src/looptight/protocol_commands.py:1057` already emits it, but
    no assertion verifies it, leaving any regression that drops the field invisible.

@@ -57,7 +57,7 @@ def read_goal(workdir: Path) -> Goal | None:
         if not isinstance(data, dict) or data.get("schema_version") != SCHEMA_VERSION:
             return None
         return Goal(
-            vision=str(data.get("vision", "")),
+            vision=str(data.get("vision") or ""),
             done_check=data.get("done_check"),
             continuous=bool(data.get("continuous", False)),
             max_iterations=int(data.get("max_iterations", 0)),

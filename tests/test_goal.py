@@ -147,6 +147,21 @@ def test_read_goal_returns_none_when_iteration_is_null(tmp_path):
     assert read_goal(repo) is None
 
 
+def test_read_goal_treats_null_vision_as_absent(tmp_path):
+    # goal.py:60 — str(data.get("vision", "")) renders JSON null as the literal
+    # string "None"; null vision must be treated as absent (empty string).
+    repo = _repo(tmp_path)
+    path = goal_path(repo)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps({"schema_version": 1, "vision": None}),
+        encoding="utf-8",
+    )
+    result = read_goal(repo)
+    assert result is not None
+    assert result.vision != "None"
+
+
 def test_goal_next_without_a_goal_reports_no_goal(tmp_path):
     from looptight.goal import goal_next
 
