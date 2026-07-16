@@ -3632,16 +3632,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-2. Add direct unit test for `from_lint` early-exit when neither ruff nor uvx is on
-   PATH. `from_lint` returns `[]` when `shutil.which("ruff")` is None and
-   `shutil.which("uvx")` is also None (discovery.py:654-658), but no test exercises the
-   double-None path; `test_from_lint_uses_uvx_ruff_when_ruff_not_on_path` only covers
-   the uvx-present fallback.
-   Evidence: `src/looptight/discovery.py:654`
-   Acceptance: a new test patches both `shutil.which` calls to return `None` and asserts
-   `from_lint(tmp_path) == []`; the test must fail if the second `shutil.which("uvx")`
-   guard is removed from `from_lint`.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
