@@ -3649,6 +3649,26 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. `_planned_tasks_are_grounded` reads evidence files with `read_text` but has no
+   `OSError` guard: a file deleted between the `is_file()` check (line 154) and the
+   `read_text()` call (line 157) raises uncaught, crashing the continuous-swarm
+   planner.  Fix: wrap `read_text` in `try/except OSError: return False`.
+   Evidence: src/looptight/swarm.py:157
+   Acceptance: `tests/test_swarm.py` gains a test that monkeypatches `Path.read_text`
+   to raise `OSError` after `is_file()` returns `True` and asserts
+   `_planned_tasks_are_grounded` returns `False` without raising; all existing tests
+   continue to pass.
+
+2. `_PRUNE_DIRS` in `discovery.py` is missing `target` — the standard Rust `cargo
+   build` / Maven `mvn` output directory.  Rust and Maven projects with a `target/`
+   tree can make the file walk scan thousands of compiled object files before
+   `_not_ignored` or the extension filter prunes them.  Fix: add `"target"` to the
+   set.
+   Evidence: src/looptight/discovery.py:79
+   Acceptance: the constant contains `"target"` after the change; the relevant test
+   in `tests/test_discovery.py` (or a new one) asserts a `target/` subdirectory is
+   skipped during walks; all existing tests pass.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
