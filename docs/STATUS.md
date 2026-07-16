@@ -3632,19 +3632,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-2. Fix the wrong skip guard in `test_from_lint_subprocess_sets_git_terminal_prompt_env`
-   (test_propose.py:2002). The test skips when `ruff` is not on PATH, but its body
-   patches `subprocess.run` so ruff is never actually executed — the same pattern as
-   the four sibling tests (`test_from_lint_disables_ruff_cache` et al.) that all use
-   `monkeypatch.setattr("looptight.discovery.shutil.which", lambda c: "/bin/ruff")` to
-   remain unconditional. The skip makes the GIT_TERMINAL_PROMPT invariant unverified in
-   any environment without ruff on PATH.
-   Evidence: `tests/test_propose.py:2002`
-   Acceptance: the test gains `monkeypatch.setattr("looptight.discovery.shutil.which",
-   lambda c: "/bin/ruff")` and loses its `shutil.which("ruff") is None` skip guard; it
-   must pass on the CI PATH (no ruff installed globally) that makes the skip trigger today.
-
-3. Add direct unit test for `from_lint` early-exit when neither ruff nor uvx is on
+2. Add direct unit test for `from_lint` early-exit when neither ruff nor uvx is on
    PATH. `from_lint` returns `[]` when `shutil.which("ruff")` is None and
    `shutil.which("uvx")` is also None (discovery.py:654-658), but no test exercises the
    double-None path; `test_from_lint_uses_uvx_ruff_when_ruff_not_on_path` only covers
