@@ -349,15 +349,20 @@ def test_goal_cli_check_json_emits_verdict_and_preserves_exit_code(tmp_path, mon
     assert main(["goal", "check", "--json"]) == 1  # not done -> exit preserved
     payload = _json.loads(capsys.readouterr().out)  # valid JSON, not human text
     assert payload["command"] == "goal" and payload["status"] == "pending"
+    assert payload["action"] == "check"
 
     main(["goal", "build x", "--done", "true"])
     capsys.readouterr()
     assert main(["goal", "check", "--json"]) == 0
-    assert _json.loads(capsys.readouterr().out)["status"] == "done"
+    payload = _json.loads(capsys.readouterr().out)
+    assert payload["status"] == "done"
+    assert payload["action"] == "check"
 
     clear_goal(tmp_path)
     assert main(["goal", "check", "--json"]) == 1
-    assert _json.loads(capsys.readouterr().out)["status"] == "no_goal"
+    payload = _json.loads(capsys.readouterr().out)
+    assert payload["status"] == "no_goal"
+    assert payload["action"] == "check"
 
 
 def test_goal_check_json_emits_no_done_check(tmp_path, monkeypatch, capsys):

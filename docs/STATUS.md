@@ -3629,18 +3629,13 @@ existing CLI session and makes no model or API calls of its own.
   a `Makefile` and a `justfile` with `test:` recipes in `tmp_path` and asserts
   `detect_verify` returns `"make test"`, so swapping the two detection blocks immediately
   fails the test.
+- `"action": "check"` in `goal check --json` is pinned by
+  `test_goal_cli_check_json_emits_verdict_and_preserves_exit_code` (`tests/test_goal.py:335`):
+  each of the three verdict branches (pending/done/no_goal) now asserts
+  `payload["action"] == "check"`, so dropping the field from
+  `protocol_commands.py:1057` immediately fails the test.
 
 ## Next
-
-1. Pin the `"action": "check"` field emitted by `goal check --json` in the existing
-   test (`tests/test_goal.py:336`). SPEC.md mandates `action` in the output; the
-   implementation at `src/looptight/protocol_commands.py:1057` already emits it, but
-   no assertion verifies it, leaving any regression that drops the field invisible.
-   Evidence: `tests/test_goal.py:336`
-   Acceptance: adding `assert payload["action"] == "check"` to each of the three
-   branches (pending/done/no_goal) in `test_goal_cli_check_json_emits_verdict_and_preserves_exit_code`
-   must pass immediately and fail if the `"action"` key is removed from the
-   implementation.
 
 ## Rules
 
