@@ -3624,21 +3624,15 @@ existing CLI session and makes no model or API calls of its own.
   mutation-guard the Pipfile.lock→uv.lock→pdm.lock priority ordering in `detect.py:96-107`:
   each test places all relevant lock files in `tmp_path` and asserts the higher-priority
   runner wins, so a swap of adjacent guards fails immediately.
+- `test_detect_verify_makefile_wins_over_justfile` mutation-guards the
+  Makefile-before-justfile priority ordering in `detect.py:127-140`: the test places both
+  a `Makefile` and a `justfile` with `test:` recipes in `tmp_path` and asserts
+  `detect_verify` returns `"make test"`, so swapping the two detection blocks immediately
+  fails the test.
 
 ## Next
 
-1. Add mutation-guard test `test_detect_verify_makefile_wins_over_justfile` for
-   the Makefile-before-justfile priority ordering in `detect_verify`. Both the
-   `test_detect_verify_makefile_*` and `test_detect_verify_justfile_*` tests each only
-   set up one tool, so swapping detect.py:127-131 (Makefile) and detect.py:133-140
-   (justfile) would go undetected.
-   Evidence: `tests/test_detect.py:217`
-   Acceptance: a new test `test_detect_verify_makefile_wins_over_justfile` in
-   `tests/test_detect.py` writes a `Makefile` with `test:` recipe and a `justfile`
-   with `test:` recipe in `tmp_path` and asserts `detect_verify(tmp_path) == "make test"`;
-   the test must fail if the Makefile and justfile checks in `detect.py` are reordered.
-
-3. Fix the wrong skip guard in `test_from_lint_subprocess_sets_git_terminal_prompt_env`
+2. Fix the wrong skip guard in `test_from_lint_subprocess_sets_git_terminal_prompt_env`
    (test_propose.py:2002). The test skips when `ruff` is not on PATH, but its body
    patches `subprocess.run` so ruff is never actually executed — the same pattern as
    the four sibling tests (`test_from_lint_disables_ruff_cache` et al.) that all use
@@ -3650,7 +3644,7 @@ existing CLI session and makes no model or API calls of its own.
    lambda c: "/bin/ruff")` and loses its `shutil.which("ruff") is None` skip guard; it
    must pass on the CI PATH (no ruff installed globally) that makes the skip trigger today.
 
-4. Add direct unit test for `from_lint` early-exit when neither ruff nor uvx is on
+3. Add direct unit test for `from_lint` early-exit when neither ruff nor uvx is on
    PATH. `from_lint` returns `[]` when `shutil.which("ruff")` is None and
    `shutil.which("uvx")` is also None (discovery.py:654-658), but no test exercises the
    double-None path; `test_from_lint_uses_uvx_ruff_when_ruff_not_on_path` only covers

@@ -234,6 +234,15 @@ def test_detect_verify_justfile_no_test_recipe(tmp_path):
     assert detect.detect_verify(tmp_path) is None
 
 
+def test_detect_verify_makefile_wins_over_justfile(tmp_path):
+    # detect.py:127-131 checks Makefile before detect.py:133-140 checks justfile.
+    # A mutation swapping those two blocks would silently return "just test" with no
+    # existing test failing (each tool's tests only set up one file at a time).
+    (tmp_path / "Makefile").write_text("test:\n\tpytest\n")
+    (tmp_path / "justfile").write_text("test:\n    pytest\n")
+    assert detect.detect_verify(tmp_path) == "make test"
+
+
 def test_detect_verify_npm_only_with_test_script(tmp_path):
     (tmp_path / "package.json").write_text('{"scripts": {"test": "vitest"}}')
     assert detect.detect_verify(tmp_path) == "npm test"
