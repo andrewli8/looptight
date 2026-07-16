@@ -500,7 +500,10 @@ def from_skipped_tests(root: Path) -> list[Candidate]:
     """
     out: list[Candidate] = []
     for path in _all_py_files(root):
-        lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        try:
+            lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        except OSError:
+            continue
         if _module_is_optin(lines):
             continue
         string_lines = _multiline_string_lines(path)

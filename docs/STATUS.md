@@ -3632,18 +3632,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Fix `from_skipped_tests` calling `path.read_text(...)` with no `OSError` guard at
-   `discovery.py:503`, making the discovery pipeline crash if a `.py` file is deleted
-   between the directory walk and the read — unlike the sibling `_comments` (line 179)
-   and `_multiline_string_lines` (line 199) which both wrap their reads in
-   `except (tokenize.TokenError, SyntaxError, OSError, ...)`.
-   Evidence: `src/looptight/discovery.py:503`
-   Acceptance: a test monkeypatches `Path.read_text` to raise `OSError("vanished")`
-   and calls `from_skipped_tests(root)` with a repo containing at least one `.py`
-   file; it must return `[]` without raising after the call is wrapped in
-   `try/except OSError: continue`.
-
-2. Pin the `"action": "check"` field emitted by `goal check --json` in the existing
+1. Pin the `"action": "check"` field emitted by `goal check --json` in the existing
    test (`tests/test_goal.py:336`). SPEC.md mandates `action` in the output; the
    implementation at `src/looptight/protocol_commands.py:1057` already emits it, but
    no assertion verifies it, leaving any regression that drops the field invisible.

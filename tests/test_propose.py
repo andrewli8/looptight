@@ -2147,3 +2147,27 @@ def test_elif_guard_suppresses_skip_candidate(tmp_path):
         "        pytest.skip('unsupported platform')\n"
     )
     assert from_skipped_tests(tmp_path) == []
+
+
+def test_from_skipped_tests_tolerates_oserror_on_read(tmp_path, monkeypatch):
+    # discovery.py:503 — path.read_text() has no OSError guard, unlike the sibling
+    # _comments and _multiline_string_lines. A file vanishing between walk and read
+    # must yield [] not raise.
+    from pathlib import Path
+
+    from looptight.discovery import from_skipped_tests
+
+    (tmp_path / "test_x.py").write_text(
+        "@pytest.mark.skip\ndef test_a(): pass\n", encoding="utf-8"
+    )
+
+    _real = Path.read_text
+
+    def raise_oserror(self, *args, **kwargs):
+        if self.suffix == ".py":
+            raise OSError("vanished")
+        return _real(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", raise_oserror)
+
+    assert from_skipped_tests(tmp_path) == []
