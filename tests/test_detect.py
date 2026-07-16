@@ -519,3 +519,13 @@ def test_detect_verify_pipenv_wins_over_pyproject(tmp_path):
     (tmp_path / "Pipfile.lock").write_text('{"default": {}, "_meta": {}}\n')
     (tmp_path / "pyproject.toml").write_text('[tool.pytest.ini_options]\n')
     assert detect.detect_verify(tmp_path) == "pipenv run pytest -q"
+
+
+def test_detect_verify_pipenv_wins_over_uv(tmp_path):
+    # detect.py:96 checks Pipfile.lock before detect.py:102 checks uv.lock. A mutation
+    # swapping those two guards would silently return "uv run pytest -q" with no existing
+    # test failing (test_detect_verify_pipenv_wins_over_pyproject has no uv.lock).
+    (tmp_path / "Pipfile.lock").write_text('{"default": {}, "_meta": {}}\n')
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n")
+    (tmp_path / "uv.lock").write_text("version = 1\n")
+    assert detect.detect_verify(tmp_path) == "pipenv run pytest -q"

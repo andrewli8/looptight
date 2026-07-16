@@ -3620,19 +3620,14 @@ existing CLI session and makes no model or API calls of its own.
   defaults, so `write_config`/`load_config` round-trips preserve all policy fields.
   Covered by `test_write_config_preserves_policy_fields` in `tests/test_config.py`.
 
+- `test_detect_verify_pipenv_wins_over_uv` and `test_detect_verify_uv_wins_over_pdm`
+  mutation-guard the Pipfile.lock→uv.lock→pdm.lock priority ordering in `detect.py:96-107`:
+  each test places all relevant lock files in `tmp_path` and asserts the higher-priority
+  runner wins, so a swap of adjacent guards fails immediately.
+
 ## Next
 
-1. Add mutation-guard test `test_detect_verify_pipenv_wins_over_uv` for the
-   priority ordering in `detect_verify`. The test `test_detect_verify_pipenv_wins_over_pyproject`
-   (line 516) creates Pipfile.lock + pyproject.toml but omits uv.lock, so swapping the
-   Pipfile.lock guard (detect.py:96) and uv.lock guard (detect.py:102) would not break it.
-   Evidence: `tests/test_detect.py:516`
-   Acceptance: a new test `test_detect_verify_pipenv_wins_over_uv` in `tests/test_detect.py`
-   writes `Pipfile.lock` + `pyproject.toml` + `uv.lock` in `tmp_path` and asserts
-   `detect_verify(tmp_path) == "pipenv run pytest -q"`; the test must fail if the
-   Pipfile.lock and uv.lock guards in `detect.py` are swapped.
-
-2. Add mutation-guard test `test_detect_verify_makefile_wins_over_justfile` for
+1. Add mutation-guard test `test_detect_verify_makefile_wins_over_justfile` for
    the Makefile-before-justfile priority ordering in `detect_verify`. Both the
    `test_detect_verify_makefile_*` and `test_detect_verify_justfile_*` tests each only
    set up one tool, so swapping detect.py:127-131 (Makefile) and detect.py:133-140
@@ -3643,15 +3638,27 @@ existing CLI session and makes no model or API calls of its own.
    with `test:` recipe in `tmp_path` and asserts `detect_verify(tmp_path) == "make test"`;
    the test must fail if the Makefile and justfile checks in `detect.py` are reordered.
 
-3. Add direct unit test for `ranking._normalized`. The function is tested
-   transitively via `dedupe` (which asserts that title-case/whitespace variants
-   deduplicate), but a mutation changing `lower()` to the identity or collapsing
-   only single spaces would not be caught until dedupe's broader test exercises it.
-   Evidence: `src/looptight/ranking.py:27`
-   Acceptance: a new test in `tests/test_propose.py` directly imports `_normalized`
-   from `looptight.ranking` and asserts `_normalized("Hello  World") == "hello world"`,
-   `_normalized("  LEADING SPACE  ") == "leading space"`, and
-   `_normalized("already normal") == "already normal"`.
+3. Fix the wrong skip guard in `test_from_lint_subprocess_sets_git_terminal_prompt_env`
+   (test_propose.py:2002). The test skips when `ruff` is not on PATH, but its body
+   patches `subprocess.run` so ruff is never actually executed — the same pattern as
+   the four sibling tests (`test_from_lint_disables_ruff_cache` et al.) that all use
+   `monkeypatch.setattr("looptight.discovery.shutil.which", lambda c: "/bin/ruff")` to
+   remain unconditional. The skip makes the GIT_TERMINAL_PROMPT invariant unverified in
+   any environment without ruff on PATH.
+   Evidence: `tests/test_propose.py:2002`
+   Acceptance: the test gains `monkeypatch.setattr("looptight.discovery.shutil.which",
+   lambda c: "/bin/ruff")` and loses its `shutil.which("ruff") is None` skip guard; it
+   must pass on the CI PATH (no ruff installed globally) that makes the skip trigger today.
+
+4. Add direct unit test for `from_lint` early-exit when neither ruff nor uvx is on
+   PATH. `from_lint` returns `[]` when `shutil.which("ruff")` is None and
+   `shutil.which("uvx")` is also None (discovery.py:654-658), but no test exercises the
+   double-None path; `test_from_lint_uses_uvx_ruff_when_ruff_not_on_path` only covers
+   the uvx-present fallback.
+   Evidence: `src/looptight/discovery.py:654`
+   Acceptance: a new test patches both `shutil.which` calls to return `None` and asserts
+   `from_lint(tmp_path) == []`; the test must fail if the second `shutil.which("uvx")`
+   guard is removed from `from_lint`.
 
 ## Rules
 
