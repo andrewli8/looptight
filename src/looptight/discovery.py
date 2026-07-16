@@ -534,9 +534,11 @@ def from_skipped_tests(root: Path) -> list[Candidate]:
     for path in _js_discovery_files(root):
         in_block = False
         in_template = False
-        for lineno, line in enumerate(
-            path.read_text(encoding="utf-8", errors="ignore").splitlines(), 1
-        ):
+        try:
+            js_lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+        except OSError:
+            continue
+        for lineno, line in enumerate(js_lines, 1):
             if in_block:  # inside a multi-line /* */ comment: not code
                 in_block = line.find("*/") == -1
                 continue

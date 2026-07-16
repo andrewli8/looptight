@@ -2171,3 +2171,27 @@ def test_from_skipped_tests_tolerates_oserror_on_read(tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "read_text", raise_oserror)
 
     assert from_skipped_tests(tmp_path) == []
+
+
+def test_from_skipped_tests_tolerates_oserror_on_js_read(tmp_path, monkeypatch):
+    # discovery.py:538 — the JS loop calls read_text without an OSError guard,
+    # unlike the Python loop above it (lines 504-506).  A JS test file vanishing
+    # between _js_discovery_files() and read_text() must yield [] not raise.
+    from pathlib import Path
+
+    from looptight.discovery import from_skipped_tests
+
+    (tmp_path / "test_x.test.js").write_text(
+        'test.skip("broken", () => {});\n', encoding="utf-8"
+    )
+
+    _real = Path.read_text
+
+    def raise_oserror(self, *args, **kwargs):
+        if self.suffix == ".js":
+            raise OSError("vanished")
+        return _real(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", raise_oserror)
+
+    assert from_skipped_tests(tmp_path) == []
