@@ -3655,20 +3655,13 @@ existing CLI session and makes no model or API calls of its own.
   all five top-level fields of `doctor --json` (`schema_version`, `command`, `agent`,
   `verify`, `readiness`): removing any one of these from `cmd_doctor` in
   `src/looptight/commands.py` causes the test to fail immediately.
+- `schema_version` is now asserted in all four `goal check --json` branches
+  (pending/done/no_goal/no_done_check) in `tests/test_goal.py`: dropping it from the
+  check result payload at `protocol_commands.py:1057` fails every branch immediately.
 
 ## Next
 
-1. Add `schema_version` assertions to the four `goal check --json` tests in
-   `tests/test_goal.py`. Each of the four branches (pending/done/no_goal/no_done_check)
-   asserts `command`, `status`, and `action` but none assert `schema_version`, leaving a
-   required SPEC field unguarded against mutation.
-   Evidence: tests/test_goal.py:371 (pending branch asserts command/status/action, no
-   schema_version); src/looptight/protocol_commands.py:1057 (the check result payload
-   emits schema_version: 1 which is named in SPEC.md:269 as a required field).
-   Acceptance: all four goal check --json branches assert `payload["schema_version"] == 1`;
-   dropping `schema_version` from the check result payload causes the test to fail.
-
-2. Add a direct unit test for `assess()` with `patience=1` in `tests/test_metacog.py`.
+1. Add a direct unit test for `assess()` with `patience=1` in `tests/test_metacog.py`.
    No existing unit test uses `patience=1`; the slicing `known[:-1]`/`known[-1:]` is
    distinct from the `patience=2` path covered by the existing tests, leaving an
    off-by-one regression at this boundary invisible to the unit suite.

@@ -372,6 +372,7 @@ def test_goal_cli_check_json_emits_verdict_and_preserves_exit_code(tmp_path, mon
     payload = _json.loads(capsys.readouterr().out)  # valid JSON, not human text
     assert payload["command"] == "goal" and payload["status"] == "pending"
     assert payload["action"] == "check"
+    assert payload["schema_version"] == 1
 
     main(["goal", "build x", "--done", "true"])
     capsys.readouterr()
@@ -379,12 +380,14 @@ def test_goal_cli_check_json_emits_verdict_and_preserves_exit_code(tmp_path, mon
     payload = _json.loads(capsys.readouterr().out)
     assert payload["status"] == "done"
     assert payload["action"] == "check"
+    assert payload["schema_version"] == 1
 
     clear_goal(tmp_path)
     assert main(["goal", "check", "--json"]) == 1
     payload = _json.loads(capsys.readouterr().out)
     assert payload["status"] == "no_goal"
     assert payload["action"] == "check"
+    assert payload["schema_version"] == 1
 
 
 def test_goal_check_json_emits_no_done_check(tmp_path, monkeypatch, capsys):
@@ -405,6 +408,7 @@ def test_goal_check_json_emits_no_done_check(tmp_path, monkeypatch, capsys):
     assert payload["command"] == "goal"
     assert payload["status"] == "no_done_check"
     assert payload["action"] == "check"
+    assert payload["schema_version"] == 1
 
 
 def test_goal_done_check_output_does_not_pollute_json(tmp_path, monkeypatch, capfd):
