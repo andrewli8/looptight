@@ -78,6 +78,7 @@ def _files_with_exts(root: Path, subdir: str, exts: tuple[str, ...]) -> list[Pat
 _PRUNE_DIRS = {
     "node_modules", ".git", ".venv", "venv", "dist", "build", "__pycache__",
     ".tox", ".eggs", ".mypy_cache", ".pytest_cache", ".ruff_cache", "site-packages",
+    "target",
 }
 
 

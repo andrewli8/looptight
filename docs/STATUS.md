@@ -3649,16 +3649,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `_PRUNE_DIRS` in `discovery.py` is missing `target` — the standard Rust `cargo
-   build` / Maven `mvn` output directory.  Rust and Maven projects with a `target/`
-   tree can make the file walk scan thousands of compiled object files before
-   `_not_ignored` or the extension filter prunes them.  Fix: add `"target"` to the
-   set.
-   Evidence: src/looptight/discovery.py:79
-   Acceptance: the constant contains `"target"` after the change; a test in
-   `tests/test_discovery.py` asserts a `target/` subdirectory is skipped during
-   walks; all existing tests pass.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.

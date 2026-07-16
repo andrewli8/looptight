@@ -39,3 +39,14 @@ def test_files_with_exts_skips_prune_dirs(tmp_path):
     bad.write_text("const x = 1;\n")
     result = _files_with_exts(tmp_path, "src", (".js",))
     assert bad not in result
+
+
+def test_all_py_files_skips_target_dir(tmp_path):
+    # discovery.py:79 — `target` (Rust/Maven build output) was missing from
+    # _PRUNE_DIRS, causing walks to descend into compiled artifacts.
+    target = tmp_path / "target"
+    target.mkdir()
+    bad = target / "bad.py"
+    bad.write_text("x = 1\n")
+    result = _all_py_files(tmp_path)
+    assert bad not in result
