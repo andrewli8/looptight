@@ -3638,19 +3638,14 @@ existing CLI session and makes no model or API calls of its own.
   asserted in `test_goal_cli_set_status_clear` (`tests/test_goal.py:255`): removing any
   of the three fields from `Goal.as_dict()` or the emitted payload immediately fails the
   test.
+- `DaemonCycle.reason` is now asserted in
+  `test_daemon_reports_a_merged_drained_cycle_as_progress_not_idle`
+  (`tests/test_daemon.py:96`): `assert rec.cycles[0].reason == REASON_NO_WORK` catches
+  a mutation that sets `reason` to a constant in `daemon.py`.
 
 ## Next
 
-1. Assert `DaemonCycle.reason` in `test_daemon_reports_a_merged_drained_cycle_as_progress_not_idle`.
-   The test at `tests/test_daemon.py:79` asserts `rec.cycles[0].outcome`, `.merged`,
-   and `.delay` but never `.reason`; the first cycle is `_result(REASON_NO_WORK,
-   merged=1)`, so `rec.cycles[0].reason` must equal `REASON_NO_WORK`; a mutation
-   setting `reason` to a constant in `daemon.py` would be invisible.
-   Evidence: `tests/test_daemon.py:79`
-   Acceptance: adding `assert rec.cycles[0].reason == REASON_NO_WORK` at line 96 must
-   pass immediately and fail if daemon.py sets `reason` to a constant string.
-
-2. Add a CLI test for `goal next --json` at the iteration cap, asserting the `reason`
+1. Add a CLI test for `goal next --json` at the iteration cap, asserting the `reason`
    field. `test_goal_cli_next_emits_directive` (`tests/test_goal.py:307`) only exercises
    the "active" branch; the "stop" branch (returned when `goal.iteration >=
    goal.max_iterations`) carries `status="stop"` and `reason="max_iterations"` in the

@@ -93,6 +93,7 @@ def test_daemon_reports_a_merged_drained_cycle_as_progress_not_idle():
         on_cycle=rec.on_cycle,
     )
     assert rec.cycles[0].outcome == "progress" and rec.cycles[0].merged == 1  # user-facing progress
+    assert rec.cycles[0].reason == REASON_NO_WORK
     assert rec.cycles[0].delay == 600.0  # delay still polls (backlog drained), not a 0 loop
     assert rec.cycles[1].outcome == "idle"  # nothing merged
     assert report.progress == 1 and report.idle == 1
