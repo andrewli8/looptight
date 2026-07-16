@@ -3637,6 +3637,46 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Pin the `"action": "check"` field for the `no_done_check` branch of `goal check
+   --json`. `test_goal_check_json_emits_no_done_check` (`tests/test_goal.py:368`)
+   asserts `payload["command"]` and `payload["status"]` but not `payload["action"]`;
+   the implementation at `protocol_commands.py:1057` already emits it, so a regression
+   dropping the field is invisible.
+   Evidence: `tests/test_goal.py:368`
+   Acceptance: adding `assert payload["action"] == "check"` at line 384 must pass
+   immediately and fail if `"action"` is removed from `protocol_commands.py:1057`.
+
+2. Assert `done_check`, `continuous`, and `iteration` fields in the `goal status --json`
+   test. `test_goal_cli_set_status_clear` (`tests/test_goal.py:253`) calls
+   `goal status --json` with an active goal that has `done_check="true"` and
+   `continuous=False`, but asserts only `active`, `vision`, `max_iterations`, and
+   `schema_version`; `protocol_commands.py:1017` emits all `Goal.as_dict()` fields,
+   so a mutation removing any of the three unasserted fields is invisible.
+   Evidence: `tests/test_goal.py:253`
+   Acceptance: adding `assert data["done_check"] == "true"`, `assert data["continuous"]
+   is False`, and `assert data["iteration"] == 0` to the test must pass immediately and
+   fail if any field is removed from the emitted JSON.
+
+3. Assert `DaemonCycle.reason` in `test_daemon_reports_a_merged_drained_cycle_as_progress_not_idle`.
+   The test at `tests/test_daemon.py:79` asserts `rec.cycles[0].outcome`, `.merged`,
+   and `.delay` but never `.reason`; the first cycle is `_result(REASON_NO_WORK,
+   merged=1)`, so `rec.cycles[0].reason` must equal `REASON_NO_WORK`; a mutation
+   setting `reason` to a constant in `daemon.py` would be invisible.
+   Evidence: `tests/test_daemon.py:79`
+   Acceptance: adding `assert rec.cycles[0].reason == REASON_NO_WORK` at line 96 must
+   pass immediately and fail if daemon.py sets `reason` to a constant string.
+
+4. Add a CLI test for `goal next --json` at the iteration cap, asserting the `reason`
+   field. `test_goal_cli_next_emits_directive` (`tests/test_goal.py:307`) only exercises
+   the "active" branch; the "stop" branch (returned when `goal.iteration >=
+   goal.max_iterations`) carries `status="stop"` and `reason="max_iterations"` in the
+   JSON, but no test calls `goal next --json` after the cap is reached and asserts
+   `decision["reason"]`.
+   Evidence: `tests/test_goal.py:307`
+   Acceptance: a new test must set a goal with `--max-iterations 1`, call `goal next`
+   twice (bumping iteration to 1), then call `goal next --json` and assert
+   `decision["status"] == "stop"` and `decision["reason"] == "max_iterations"`.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
