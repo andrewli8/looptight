@@ -321,6 +321,25 @@ def test_goal_cli_next_emits_directive(tmp_path, monkeypatch, capsys):
     assert "build x" in decision["directive"]["prompt"]
 
 
+def test_goal_cli_next_json_at_iteration_cap_emits_stop_with_reason(tmp_path, monkeypatch, capsys):
+    from looptight.cli import main
+
+    monkeypatch.chdir(tmp_path)
+    _repo(tmp_path)
+    main(["goal", "build x", "--done", "false", "--max-iterations", "1"])
+    capsys.readouterr()
+
+    # First call to goal next bumps iteration to 1 (hits the cap).
+    assert main(["goal", "next"]) == 0
+    capsys.readouterr()
+
+    # Second call sees iteration >= max_iterations and returns stop.
+    assert main(["goal", "next", "--json"]) == 0
+    decision = json.loads(capsys.readouterr().out)
+    assert decision["status"] == "stop"
+    assert decision["reason"] == "max_iterations"
+
+
 def test_goal_cli_check_exit_code_reflects_done(tmp_path, monkeypatch, capsys):
     from looptight.cli import main
 

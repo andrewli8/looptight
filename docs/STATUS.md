@@ -3642,19 +3642,12 @@ existing CLI session and makes no model or API calls of its own.
   `test_daemon_reports_a_merged_drained_cycle_as_progress_not_idle`
   (`tests/test_daemon.py:96`): `assert rec.cycles[0].reason == REASON_NO_WORK` catches
   a mutation that sets `reason` to a constant in `daemon.py`.
+- `goal next --json` at the iteration cap is covered by
+  `test_goal_cli_next_json_at_iteration_cap_emits_stop_with_reason`: sets a goal with
+  `--max-iterations 1`, advances once, then asserts `decision["status"] == "stop"` and
+  `decision["reason"] == "max_iterations"` so the stop branch is mutation-guarded.
 
 ## Next
-
-1. Add a CLI test for `goal next --json` at the iteration cap, asserting the `reason`
-   field. `test_goal_cli_next_emits_directive` (`tests/test_goal.py:307`) only exercises
-   the "active" branch; the "stop" branch (returned when `goal.iteration >=
-   goal.max_iterations`) carries `status="stop"` and `reason="max_iterations"` in the
-   JSON, but no test calls `goal next --json` after the cap is reached and asserts
-   `decision["reason"]`.
-   Evidence: `tests/test_goal.py:307`
-   Acceptance: a new test must set a goal with `--max-iterations 1`, call `goal next`
-   twice (bumping iteration to 1), then call `goal next --json` and assert
-   `decision["status"] == "stop"` and `decision["reason"] == "max_iterations"`.
 
 ## Rules
 
