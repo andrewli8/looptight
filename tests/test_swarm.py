@@ -1484,6 +1484,34 @@ def test_planned_tasks_grounded_rejects_zero_line_number(tmp_path):
     assert _planned_tasks_are_grounded(tmp_path, [c]) is False
 
 
+def test_planned_tasks_grounded_oserror_on_read_returns_false(tmp_path, monkeypatch):
+    # swarm.py:157 — `read_text` is called after `is_file()` with no OSError guard.
+    # A file deleted between the two calls (TOCTOU) raises uncaught, crashing the
+    # swarm planner. The fix wraps `read_text` in try/except OSError: return False.
+    from looptight.discovery import Candidate
+    from looptight.swarm import _planned_tasks_are_grounded
+
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.py").write_text("x\n" * 5, encoding="utf-8")
+
+    original_read_text = Path.read_text
+
+    def raise_oserror(self, *args, **kwargs):
+        if self.name == "a.py":
+            raise OSError("simulated TOCTOU deletion")
+        return original_read_text(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", raise_oserror)
+
+    c = Candidate(
+        title="t", source="status-next", location="docs/STATUS.md:6",
+        suggested_verify=None, score=0.0,
+        detail="Fix it. Evidence: `src/a.py:3`", acceptance="ok",
+    )
+    # Must return False, not raise OSError.
+    assert _planned_tasks_are_grounded(tmp_path, [c]) is False
+
+
 def test_task_paths_resolves_backticked_evidence_to_bare_path(tmp_path):
     # The change-scope set must include the file a backticked evidence anchor
     # points at; otherwise a worker's edit to its own evidence file looks

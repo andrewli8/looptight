@@ -154,7 +154,10 @@ def _planned_tasks_are_grounded(root: Path, candidates: list[Candidate]) -> bool
             if not evidence.is_file():
                 return False
             if line_text:
-                lines = evidence.read_text(encoding="utf-8", errors="ignore").splitlines()
+                try:
+                    lines = evidence.read_text(encoding="utf-8", errors="ignore").splitlines()
+                except OSError:
+                    return False
                 if int(line_text) < 1 or int(line_text) > len(lines):
                     return False
     return True
