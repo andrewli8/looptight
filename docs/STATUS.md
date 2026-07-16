@@ -3649,6 +3649,26 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Document `doctor --json` output contract in `docs/SPEC.md` and lock it with a
+   `test_spec_output_contract_documents_doctor_json` test in `tests/test_docs.py`.
+   Evidence: docs/SPEC.md:255 (`doctor` is listed as a machine-facing command that
+   supports `--json` but its JSON schema — `schema_version`, `command`, `readiness`,
+   `verify`, `agent` — is absent from the Output contract section, unlike every other
+   machine-facing command); tests/test_docs.py:198 (the pattern used for the 8
+   existing `test_spec_output_contract_*` tests).
+   Acceptance: `pytest tests/test_docs.py::test_spec_output_contract_documents_doctor_json`
+   passes; removing `readiness` or `schema_version` from the SPEC Output contract
+   section causes that test to fail.
+
+2. Strengthen `test_doctor_exit_code_and_json_reflect_readiness` in `tests/test_cli.py`
+   to assert all top-level fields of `doctor --json` output (`schema_version`,
+   `command`, `verify`, `agent`), not just `readiness["tier"]`.
+   Evidence: tests/test_cli.py:322 (the existing test only checks `data["readiness"]["tier"]`,
+   leaving four top-level contract fields unguarded against mutation).
+   Acceptance: the strengthened test asserts all five top-level keys; removing any
+   one of `schema_version`, `command`, `verify`, or `agent` from `cmd_doctor` in
+   `src/looptight/protocol_commands.py` causes the test to fail immediately.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
