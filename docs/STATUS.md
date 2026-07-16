@@ -3667,6 +3667,40 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Add a test for `diffstat()` with no prior snapshots and no `since` argument in
+   `tests/test_checkpoint.py`. The `if not base: return ""` early exit at
+   `src/looptight/checkpoint.py:111` is unreachable by any existing test: every
+   `diffstat()` call in the suite pre-populates `cp.snapshots` with a fake SHA before
+   calling (line 177), so the empty-list guard is never exercised.
+   Evidence: `src/looptight/checkpoint.py:110`; `tests/test_checkpoint.py:177`.
+   Acceptance: `test_diffstat_returns_empty_when_no_snapshots_and_no_since` passes in
+   `tests/test_checkpoint.py`; removing the `if self.snapshots else None` guard at
+   `checkpoint.py:110` causes the test to fail with `IndexError`.
+
+2. Add `assess()` patience=1 tests for the STOP_NO_PROGRESS and CONTINUE-while-improving
+   decisions in `tests/test_metacog.py`. Both remaining decisions under the
+   `known[:-1]`/`known[-1:]` slice boundary are untested: the only
+   STOP_NO_PROGRESS test (`test_stops_after_progress_then_plateau`) uses `patience=2`
+   and the only CONTINUE-while-improving test (`test_continues_while_improving`) also
+   uses `patience=2`.
+   Evidence: `src/looptight/metacog.py:73`; `tests/test_metacog.py:57`
+   (`test_continues_while_improving` uses patience=2); `tests/test_metacog.py:61`
+   (`test_stops_after_progress_then_plateau` uses patience=2).
+   Acceptance: `test_assess_patience_one_stops_after_progress_then_plateau` and
+   `test_assess_patience_one_continues_while_improving` pass in `tests/test_metacog.py`;
+   changing `known[:-patience]` to `known[:-(patience+1)]` at `metacog.py:73` fails at
+   least one of them.
+
+3. Add a test that `verify --patience -1` is rejected at parse time in
+   `tests/test_cli.py`. `src/looptight/cli.py:123` uses `_non_negative_int` for the
+   `verify --patience` argument, but no test exercises a negative value through the
+   `verify` subcommand's argument parser. The symmetric `run --patience` argument has
+   `test_run_rejects_negative_patience` at `tests/test_cli.py:2395`.
+   Evidence: `src/looptight/cli.py:121`; `tests/test_cli.py:2395`.
+   Acceptance: `test_verify_rejects_negative_patience` passes in `tests/test_cli.py`;
+   changing `type=_non_negative_int` to `type=int` at `cli.py:123` causes the test to
+   fail (the parser would accept `-1` instead of rejecting with exit 2).
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
