@@ -274,7 +274,10 @@ looptight goal check`) is unaffected by `--json`. `run --json` returns the
 versioned run result — `stop_reason`, `passed`, bounded per-iteration verdicts (no
 raw output), `diffstat` — and an additive `escalation` object when the controller
 stopped early: the failures that never cleared plus the progress trajectory, or
-`null` otherwise.
+`null` otherwise. `doctor --json` returns `schema_version`, `command`, `agent`,
+`verify` (the resolved verify command string, or `null` when unconfigured), and
+`readiness` — an object with `tier` (`ready` | `partial` | `unsafe`), `checks`
+(per-subsystem check states), and `next_remediation` (the suggested next action).
 
 `verify --patience N` opts the session-native path into value-aware stopping: it
 persists the progress trajectory between calls in Git-private, per-worktree state
