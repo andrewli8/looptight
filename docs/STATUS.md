@@ -3632,6 +3632,46 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Fix `settings._load` not catching `OSError` from `path.read_text`, so a
+   permission-denied or I/O error on an existing `.claude/settings.json` propagates
+   uncaught instead of giving a clean error — inconsistent with `goal.py:66` and
+   `trajectory.py:50-51` which both include `OSError` in their guard.
+   Evidence: `src/looptight/settings.py:33`
+   Acceptance: a test monkeypatches `Path.read_text` to raise `OSError` on the
+   settings path and calls `settings.install(path.parent)`; it must not propagate
+   `OSError` after the guard is widened to `except (OSError, ValueError)`.
+
+2. Fix `read_goal` treating `"vision": null` in the stored JSON as the string
+   `"None"` via `str(data.get("vision", ""))` — `data.get` returns the Python `None`
+   object (the key exists), which `str()` renders as `"None"`, silently injecting the
+   literal word into every subsequent goal prompt.
+   Evidence: `src/looptight/goal.py:60`
+   Acceptance: a test writes `{"schema_version": 1, "vision": null}` to the goal
+   file and calls `read_goal`; it must return a goal whose `vision` is not `"None"`
+   (null is treated as absent, identical to the `max_iterations: null` path at line 63
+   that already raises `TypeError` and is caught).
+
+3. Fix `from_skipped_tests` calling `path.read_text(...)` with no `OSError` guard at
+   `discovery.py:503`, making the discovery pipeline crash if a `.py` file is deleted
+   between the directory walk and the read — unlike the sibling `_comments` (line 179)
+   and `_multiline_string_lines` (line 199) which both wrap their reads in
+   `except (tokenize.TokenError, SyntaxError, OSError, ...)`.
+   Evidence: `src/looptight/discovery.py:503`
+   Acceptance: a test monkeypatches `Path.read_text` to raise `OSError("vanished")`
+   and calls `from_skipped_tests(root)` with a repo containing at least one `.py`
+   file; it must return `[]` without raising after the call is wrapped in
+   `try/except OSError: continue`.
+
+4. Pin the `"action": "check"` field emitted by `goal check --json` in the existing
+   test (`tests/test_goal.py:336`). SPEC.md mandates `action` in the output; the
+   implementation at `src/looptight/protocol_commands.py:1057` already emits it, but
+   no assertion verifies it, leaving any regression that drops the field invisible.
+   Evidence: `tests/test_goal.py:336`
+   Acceptance: adding `assert payload["action"] == "check"` to each of the three
+   branches (pending/done/no_goal) in `test_goal_cli_check_json_emits_verdict_and_preserves_exit_code`
+   must pass immediately and fail if the `"action"` key is removed from the
+   implementation.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
