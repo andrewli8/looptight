@@ -3658,6 +3658,28 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Add `schema_version` assertions to the four `goal check --json` tests in
+   `tests/test_goal.py`. Each of the four branches (pending/done/no_goal/no_done_check)
+   asserts `command`, `status`, and `action` but none assert `schema_version`, leaving a
+   required SPEC field unguarded against mutation.
+   Evidence: tests/test_goal.py:371 (pending branch asserts command/status/action, no
+   schema_version); src/looptight/protocol_commands.py:1057 (the check result payload
+   emits schema_version: 1 which is named in SPEC.md:269 as a required field).
+   Acceptance: all four goal check --json branches assert `payload["schema_version"] == 1`;
+   dropping `schema_version` from the check result payload causes the test to fail.
+
+2. Add a direct unit test for `assess()` with `patience=1` in `tests/test_metacog.py`.
+   No existing unit test uses `patience=1`; the slicing `known[:-1]`/`known[-1:]` is
+   distinct from the `patience=2` path covered by the existing tests, leaving an
+   off-by-one regression at this boundary invisible to the unit suite.
+   Evidence: src/looptight/metacog.py:73 (`known[:-patience]` and `known[-patience:]`
+   with patience=1 produces a unique slice boundary); tests/test_metacog.py:50 (all
+   unit tests use patience=0 or patience=2, none use patience=1).
+   Acceptance: `test_assess_patience_one_escalates_on_flat_signal` and
+   `test_assess_patience_one_continues_without_enough_history` pass in
+   `tests/test_metacog.py`; changing line 73 from `known[:-patience]` to
+   `known[:-(patience+1)]` fails at least one of them.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
