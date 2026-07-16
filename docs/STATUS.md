@@ -3664,20 +3664,15 @@ existing CLI session and makes no model or API calls of its own.
   the `known[:-1]`/`known[-1:]` slice boundary is distinct from the `patience=2` path;
   changing `known[:-patience]` to `known[:-(patience+1)]` at `metacog.py:73` raises
   `ValueError: max() arg is an empty sequence` and fails the escalates test immediately.
+- `diffstat()` empty-snapshots path now covered by
+  `test_diffstat_returns_empty_when_no_snapshots_and_no_since` in `tests/test_checkpoint.py`:
+  `Checkpointer` with no prior snapshots and no `since` must return `""` via the
+  `if not base: return ""` guard at `checkpoint.py:111`; removing the `if self.snapshots
+  else None` guard raises `IndexError` and fails the test immediately.
 
 ## Next
 
-1. Add a test for `diffstat()` with no prior snapshots and no `since` argument in
-   `tests/test_checkpoint.py`. The `if not base: return ""` early exit at
-   `src/looptight/checkpoint.py:111` is unreachable by any existing test: every
-   `diffstat()` call in the suite pre-populates `cp.snapshots` with a fake SHA before
-   calling (line 177), so the empty-list guard is never exercised.
-   Evidence: `src/looptight/checkpoint.py:110`; `tests/test_checkpoint.py:177`.
-   Acceptance: `test_diffstat_returns_empty_when_no_snapshots_and_no_since` passes in
-   `tests/test_checkpoint.py`; removing the `if self.snapshots else None` guard at
-   `checkpoint.py:110` causes the test to fail with `IndexError`.
-
-2. Add `assess()` patience=1 tests for the STOP_NO_PROGRESS and CONTINUE-while-improving
+1. Add `assess()` patience=1 tests for the STOP_NO_PROGRESS and CONTINUE-while-improving
    decisions in `tests/test_metacog.py`. Both remaining decisions under the
    `known[:-1]`/`known[-1:]` slice boundary are untested: the only
    STOP_NO_PROGRESS test (`test_stops_after_progress_then_plateau`) uses `patience=2`

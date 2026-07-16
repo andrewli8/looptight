@@ -186,6 +186,17 @@ def test_diffstat_returns_empty_when_diff_command_fails(tmp_path, monkeypatch):
     assert cp.diffstat() == ""
 
 
+def test_diffstat_returns_empty_when_no_snapshots_and_no_since(tmp_path):
+    # checkpoint.py:110 — `base = since or (self.snapshots[0] if self.snapshots else None)`.
+    # When self.snapshots is empty and no `since` is provided, base is None and the
+    # `if not base: return ""` guard must fire. No existing test exercises the empty-list
+    # branch; removing `if self.snapshots else None` would raise IndexError here.
+    _init_repo(tmp_path)
+    cp = Checkpointer(tmp_path)
+    assert cp.snapshots == []
+    assert cp.diffstat() == ""
+
+
 def test_checkpoint_git_sets_git_terminal_prompt_env(tmp_path, monkeypatch):
     """_git() passes GIT_TERMINAL_PROMPT=0 so headless runs never hang on a prompt."""
     import looptight.checkpoint as cp_mod
