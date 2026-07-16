@@ -382,6 +382,7 @@ def test_goal_check_json_emits_no_done_check(tmp_path, monkeypatch, capsys):
     payload = _json.loads(capsys.readouterr().out)
     assert payload["command"] == "goal"
     assert payload["status"] == "no_done_check"
+    assert payload["action"] == "check"
 
 
 def test_goal_done_check_output_does_not_pollute_json(tmp_path, monkeypatch, capfd):
