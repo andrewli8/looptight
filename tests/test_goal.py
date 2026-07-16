@@ -256,6 +256,9 @@ def test_goal_cli_set_status_clear(tmp_path, monkeypatch, capsys):
     assert data["vision"] == "a CLI todo app"
     assert data["max_iterations"] == 5
     assert data["schema_version"] == 1
+    assert data["done_check"] == "true"
+    assert data["continuous"] is False
+    assert data["iteration"] == 0
 
     assert main(["goal", "clear"]) == 0
     capsys.readouterr()
