@@ -75,6 +75,19 @@ def test_unknown_signals_do_not_trigger_a_stop():
     assert assess([None, None, -3.0], patience=2) is Decision.CONTINUE
 
 
+def test_assess_patience_one_escalates_on_flat_signal():
+    # patience=1: known[:-1] vs known[-1:] is a distinct slice boundary from patience=2.
+    # With two identical scores, prior_best == recent_best and the agent never improved
+    # from its starting point, so the result must be ESCALATE, not STOP_NO_PROGRESS.
+    assert assess([-3.0, -3.0], patience=1) is Decision.ESCALATE
+
+
+def test_assess_patience_one_continues_without_enough_history():
+    # patience=1 requires len(known) >= 2 before it can call a stall.
+    # A single-element history must return CONTINUE.
+    assert assess([-3.0], patience=1) is Decision.CONTINUE
+
+
 # --- integration through the loop -----------------------------------------
 
 def _verify_sequence(outputs):

@@ -3658,20 +3658,14 @@ existing CLI session and makes no model or API calls of its own.
 - `schema_version` is now asserted in all four `goal check --json` branches
   (pending/done/no_goal/no_done_check) in `tests/test_goal.py`: dropping it from the
   check result payload at `protocol_commands.py:1057` fails every branch immediately.
+- `assess()` with `patience=1` is now covered by
+  `test_assess_patience_one_escalates_on_flat_signal` and
+  `test_assess_patience_one_continues_without_enough_history` in `tests/test_metacog.py`:
+  the `known[:-1]`/`known[-1:]` slice boundary is distinct from the `patience=2` path;
+  changing `known[:-patience]` to `known[:-(patience+1)]` at `metacog.py:73` raises
+  `ValueError: max() arg is an empty sequence` and fails the escalates test immediately.
 
 ## Next
-
-1. Add a direct unit test for `assess()` with `patience=1` in `tests/test_metacog.py`.
-   No existing unit test uses `patience=1`; the slicing `known[:-1]`/`known[-1:]` is
-   distinct from the `patience=2` path covered by the existing tests, leaving an
-   off-by-one regression at this boundary invisible to the unit suite.
-   Evidence: src/looptight/metacog.py:73 (`known[:-patience]` and `known[-patience:]`
-   with patience=1 produces a unique slice boundary); tests/test_metacog.py:50 (all
-   unit tests use patience=0 or patience=2, none use patience=1).
-   Acceptance: `test_assess_patience_one_escalates_on_flat_signal` and
-   `test_assess_patience_one_continues_without_enough_history` pass in
-   `tests/test_metacog.py`; changing line 73 from `known[:-patience]` to
-   `known[:-(patience+1)]` fails at least one of them.
 
 ## Rules
 
