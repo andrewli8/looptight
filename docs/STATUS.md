@@ -3702,20 +3702,16 @@ existing CLI session and makes no model or API calls of its own.
   The fix is covered by `test_atomic_write_text_tmp_target_temp_differs_from_target` in
   `tests/test_fsutil.py`; the capture-based test asserts `os.replace` receives a src distinct
   from the target; `test_record_write_is_atomic` and all existing fsutil tests still pass.
+- `test_recipe_runner_oserror_falls_through` in `tests/test_detect.py:358` now actually
+  exercises the `except (OSError, ValueError)` arm at `detect.py:171`: the original test
+  created a directory named `Makefile`, which was short-circuited by the `is_file()` gate at
+  `detect.py:128` before `_recipe_runner` was ever called. The corrected test calls
+  `detect._recipe_runner(absent, "make")` directly with a nonexistent path; `read_text`
+  raises `FileNotFoundError` (an `OSError` subclass) and the function returns `None`.
 
 ## Next
 
-1. Fix `test_recipe_runner_oserror_falls_through` to actually exercise the OSError branch.
-   Evidence: `tests/test_detect.py:358`; the test creates a directory named `Makefile` rather
-   than an unreadable regular file, so `_recipe_runner` returns at `detect.py:163`
-   (`if not path.is_file(): return None`) before reaching the `except (OSError, ValueError)`
-   block at `detect.py:171`; the OSError arm has zero coverage.
-   Acceptance: The test creates a regular `Makefile` then `chmod(0o000)`, calls
-   `detect.detect_verify(tmp_path)`, asserts `None` is returned, and restores permissions in a
-   `finally` block; running `python -m pytest tests/test_detect.py -v` reports the test as
-   passing; `looptight verify` passes.
-
-2. Pin `atomic_write_text` mkdir-failure behavior with a new test.
+1. Pin `atomic_write_text` mkdir-failure behavior with a new test.
    Evidence: `src/looptight/fsutil.py:22`; `path.parent.mkdir(parents=True, exist_ok=True)`
    sits outside the `try/except OSError` block, so a file blocking a directory component raises
    `OSError` without leaving a stale temp; this behavior is correct but entirely unpinned —

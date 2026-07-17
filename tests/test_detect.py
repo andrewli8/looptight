@@ -356,13 +356,14 @@ def test_detect_verify_non_utf8_justfile_falls_through(tmp_path):
 
 
 def test_recipe_runner_oserror_falls_through(tmp_path):
-    # detect.py:163-167 — the OSError arm of `except (OSError, ValueError)` in
-    # `_recipe_runner`: both existing makefile tests trigger UnicodeDecodeError (a
-    # ValueError subclass); a plain OSError on a file that passes `.is_file()` is
-    # never exercised. A directory named "Makefile" raises IsADirectoryError
-    # (an OSError subclass) at read_text, so detection must fall through to None.
-    (tmp_path / "Makefile").mkdir()
-    assert detect.detect_verify(tmp_path) is None
+    # Exercise the OSError arm of _recipe_runner at detect.py:171. The previous test
+    # created a directory named Makefile, which is short-circuited by the is_file()
+    # gate at detect.py:128 before _recipe_runner is ever called — so the OSError arm
+    # was never reached. Calling _recipe_runner directly with an absent path causes
+    # read_text to raise FileNotFoundError (an OSError subclass), which the except
+    # clause at detect.py:171 catches and converts to None.
+    absent = tmp_path / "Makefile"
+    assert detect._recipe_runner(absent, "make") is None
 
 
 def test_detect_verify_makefile_ignores_test_assignment(tmp_path):
