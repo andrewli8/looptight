@@ -88,6 +88,22 @@ def test_assess_patience_one_continues_without_enough_history():
     assert assess([-3.0], patience=1) is Decision.CONTINUE
 
 
+def test_assess_patience_one_stops_after_progress_then_plateau():
+    # patience=1: improved from -5 to -3, then stalled for one iteration.
+    # known[:-1] = [-5, -3], prior_best = -3; known[-1:] = [-3], recent_best = -3.
+    # recent_best <= prior_best and prior_best > known[0] → STOP_NO_PROGRESS.
+    # Mutating known[:-patience] to known[:-(patience+1)] gives known[:-2] = [-5],
+    # prior_best = -5, recent_best (-3) > -5 → CONTINUE, failing this test.
+    assert assess([-5.0, -3.0, -3.0], patience=1) is Decision.STOP_NO_PROGRESS
+
+
+def test_assess_patience_one_continues_while_improving():
+    # patience=1: two-element history, each step better than the last.
+    # known[:-1] = [-4], prior_best = -4; known[-1:] = [-3], recent_best = -3.
+    # recent_best (-3) > prior_best (-4) → CONTINUE.
+    assert assess([-4.0, -3.0], patience=1) is Decision.CONTINUE
+
+
 # --- integration through the loop -----------------------------------------
 
 def _verify_sequence(outputs):

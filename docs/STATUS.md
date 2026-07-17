@@ -3672,21 +3672,7 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Add `assess()` patience=1 tests for the STOP_NO_PROGRESS and CONTINUE-while-improving
-   decisions in `tests/test_metacog.py`. Both remaining decisions under the
-   `known[:-1]`/`known[-1:]` slice boundary are untested: the only
-   STOP_NO_PROGRESS test (`test_stops_after_progress_then_plateau`) uses `patience=2`
-   and the only CONTINUE-while-improving test (`test_continues_while_improving`) also
-   uses `patience=2`.
-   Evidence: `src/looptight/metacog.py:73`; `tests/test_metacog.py:57`
-   (`test_continues_while_improving` uses patience=2); `tests/test_metacog.py:61`
-   (`test_stops_after_progress_then_plateau` uses patience=2).
-   Acceptance: `test_assess_patience_one_stops_after_progress_then_plateau` and
-   `test_assess_patience_one_continues_while_improving` pass in `tests/test_metacog.py`;
-   changing `known[:-patience]` to `known[:-(patience+1)]` at `metacog.py:73` fails at
-   least one of them.
-
-3. Add a test that `verify --patience -1` is rejected at parse time in
+1. Add a test that `verify --patience -1` is rejected at parse time in
    `tests/test_cli.py`. `src/looptight/cli.py:123` uses `_non_negative_int` for the
    `verify --patience` argument, but no test exercises a negative value through the
    `verify` subcommand's argument parser. The symmetric `run --patience` argument has
