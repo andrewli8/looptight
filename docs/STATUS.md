@@ -3669,21 +3669,12 @@ existing CLI session and makes no model or API calls of its own.
   `Checkpointer` with no prior snapshots and no `since` must return `""` via the
   `if not base: return ""` guard at `checkpoint.py:111`; removing the `if self.snapshots
   else None` guard raises `IndexError` and fails the test immediately.
+- `progress_signal()` returns `0.0` when `score=0.0`; the `is not None` guard at
+  `metacog.py:51` is pinned by `test_progress_signal_returns_score_when_score_is_zero`.
 
 ## Next
 
-1. Add a test that `progress_signal()` returns `0.0` (not `-n`) when `score=0.0` in
-   `tests/test_metacog.py`. `metacog.py:51` guards with `if verify.score is not None:`,
-   which correctly handles the falsy-but-valid `0.0`; mutating the guard to
-   `if verify.score:` would fall through to the failure-count path and return `-n`
-   instead. No existing test uses `score=0.0`, so the mutation goes undetected.
-   Evidence: `src/looptight/metacog.py:51`; `tests/test_metacog.py:31`
-   (`test_progress_prefers_explicit_score` uses `score=0.8`, not `0.0`).
-   Acceptance: `test_progress_signal_returns_score_when_score_is_zero` passes; changing
-   `is not None` to a truthy check (`if verify.score:`) at `metacog.py:51` causes the
-   test to fail.
-
-2. Add a test that `summary._iterations(0)` returns `"0 iterations"` in
+1. Add a test that `summary._iterations(0)` returns `"0 iterations"` in
    `tests/test_summary.py`. `summary.py:74` uses `n != 1` so `n=0` correctly pluralizes;
    mutating to `n > 1` would produce `"0 iteration"` (wrong). Only `n=1` is directly
    asserted; `n=0` appears in the zero-iteration summary but its plural is not pinned.
@@ -3692,7 +3683,7 @@ existing CLI session and makes no model or API calls of its own.
    Acceptance: `test_iterations_zero_is_plural` passes in `tests/test_summary.py`;
    mutating `n != 1` to `n > 1` at `summary.py:74` causes the test to fail.
 
-3. Add a test that `swarm --max-iterations 0` is rejected at parse time in
+2. Add a test that `swarm --max-iterations 0` is rejected at parse time in
    `tests/test_cli.py`. `cli.py:206` uses `type=_positive_int` for swarm
    `--max-iterations`, which must reject 0 with exit 2; `test_swarm_rejects_non_positive_numeric_options`
    at `tests/test_cli.py:2419` covers `--workers 0` and `--worker-timeout 0` but not
@@ -3701,7 +3692,7 @@ existing CLI session and makes no model or API calls of its own.
    Acceptance: `test_swarm_rejects_zero_max_iterations` passes; changing
    `type=_positive_int` to `type=int` at `cli.py:206` causes it to fail.
 
-4. Add a test that `run --limit-backoff-seconds 0` is rejected at parse time in
+3. Add a test that `run --limit-backoff-seconds 0` is rejected at parse time in
    `tests/test_cli.py`. `_add_run_flags` at `cli.py:364` uses `type=_positive_float`,
    so `0` must be caught with exit 2; no test currently exercises a zero value on this
    argument (only the default 30.0 and the value 15 are asserted).

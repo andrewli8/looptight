@@ -33,6 +33,14 @@ def test_progress_prefers_explicit_score():
     assert progress_signal(v) == 0.8
 
 
+def test_progress_signal_returns_score_when_score_is_zero():
+    # metacog.py:51 guards with `if verify.score is not None:`, which correctly
+    # returns 0.0 for a zero score. A truthy check (`if verify.score:`) would
+    # fall through to the failure-count path and return -1.0 instead.
+    v = VerifyResult(passed=False, exit_code=1, output="1 failed", score=0.0)
+    assert progress_signal(v) == 0.0
+
+
 def test_progress_none_when_unparseable():
     assert progress_signal(VerifyResult(passed=False, exit_code=1, output="kaboom")) is None
 
