@@ -2400,6 +2400,15 @@ def test_run_rejects_negative_patience():
     assert exc.value.code == 2
 
 
+def test_verify_rejects_negative_patience():
+    # cli.py:123 uses _non_negative_int for verify --patience; a negative value
+    # must be caught at parse time (exit 2), not silently passed through.
+    # Mutating type=_non_negative_int to type=int would accept -1 without error.
+    with pytest.raises(SystemExit) as exc:
+        build_parser().parse_args(["verify", "--patience", "-1"])
+    assert exc.value.code == 2
+
+
 @pytest.mark.parametrize(
     "argv",
     [

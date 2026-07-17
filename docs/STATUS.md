@@ -3672,16 +3672,6 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Add a test that `verify --patience -1` is rejected at parse time in
-   `tests/test_cli.py`. `src/looptight/cli.py:123` uses `_non_negative_int` for the
-   `verify --patience` argument, but no test exercises a negative value through the
-   `verify` subcommand's argument parser. The symmetric `run --patience` argument has
-   `test_run_rejects_negative_patience` at `tests/test_cli.py:2395`.
-   Evidence: `src/looptight/cli.py:121`; `tests/test_cli.py:2395`.
-   Acceptance: `test_verify_rejects_negative_patience` passes in `tests/test_cli.py`;
-   changing `type=_non_negative_int` to `type=int` at `cli.py:123` causes the test to
-   fail (the parser would accept `-1` instead of rejecting with exit 2).
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
