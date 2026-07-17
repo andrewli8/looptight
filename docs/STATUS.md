@@ -3738,20 +3738,16 @@ existing CLI session and makes no model or API calls of its own.
   through to "No verify command found" (the standard no-command path), unlike `cmd_init` which
   explicitly rejects it. The test prevents a future change from accidentally rejecting whitespace
   in `verify` too (which would break the intentional strip-then-fallback contract).
+- `pipenv run pytest -q` added to `test_verifier_quality_pdm_run_pytest_is_unit` cases in
+  `tests/test_cli.py`: `detect.py:97` auto-detects this command for `Pipfile.lock` projects,
+  and the substring "pytest" already caused it to classify as `unit`, but the path was unpinned
+  by tests; the new case prevents a refactor from silently breaking the pipenv classification.
 - Zig ecosystem added: `("build.zig", "zig build test")` entry in `detect.py` `_VERIFY_RULES`
   auto-detects the standard Zig test runner; `"zig build test"` added to the unit-runner list in
   `protocol_commands.py` so the command classifies as `unit` rather than `custom/unknown`;
   `docs/usage.md` lists Zig; two new tests cover detection and classification.
 
 ## Next
-
-1. Pin `pipenv run pytest` classification in verifier-quality test: `detect.py:97`
-   auto-detects `pipenv run pytest -q` for `Pipfile.lock` projects, but
-   `test_verifier_quality_pdm_run_pytest_is_unit` in `tests/test_cli.py` covers only
-   the `uv run`, `poetry run`, and `pdm run` variants, leaving the pipenv path untested.
-   Evidence: tests/test_cli.py:1648
-   Acceptance: the test (or a sibling) asserts `_verifier_quality("pipenv run pytest -q") == "unit"`;
-   all existing tests still pass.
 
 ## Rules
 

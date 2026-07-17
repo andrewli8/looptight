@@ -1669,6 +1669,7 @@ def test_verifier_quality_pdm_run_pytest_is_unit(
         "uv run pytest -q": "unit",
         "poetry run pytest -q": "unit",
         "pdm run pytest -q": "unit",
+        "pipenv run pytest -q": "unit",
     }
     for command, expected in cases.items():
         (tmp_path / ".looptight.toml").write_text(f'verify = "{command}"\n')
