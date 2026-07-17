@@ -3681,19 +3681,12 @@ existing CLI session and makes no model or API calls of its own.
   at `cli.py:231` is pinned by `test_swarm_rejects_zero_limit_backoff_seconds`.
 - `run --limit-max-wait-seconds 0` is rejected at parse time (exit 2); `type=_positive_float`
   at `cli.py:369` is pinned by `test_run_rejects_zero_limit_max_wait_seconds`.
+- `daemon --idle-sleep 0` is rejected at parse time (exit 2); `type=_positive_float`
+  at `cli.py:278` is pinned by `test_daemon_rejects_zero_idle_sleep`.
 
 ## Next
 
-1. Add a test that `daemon --idle-sleep 0` is rejected at parse time in
-   `tests/test_cli.py`. `cli.py:278` uses `type=_positive_float` for
-   `--idle-sleep`, but no test exercises a zero value; only the valid 120.0
-   and the default 600.0 are asserted.
-   Evidence: `src/looptight/cli.py:278`; `tests/test_cli.py:2865`
-   (only asserts `idle_sleep == 120.0` for a valid value).
-   Acceptance: `test_daemon_rejects_zero_idle_sleep` passes; changing
-   `type=_positive_float` to `type=float` at `cli.py:278` causes it to fail.
-
-2. Add a test that `daemon --fault-backoff 0` is rejected at parse time in
+1. Add a test that `daemon --fault-backoff 0` is rejected at parse time in
    `tests/test_cli.py`. `cli.py:284` uses `type=_positive_float` for
    `--fault-backoff`, but no test exercises a zero value; only the valid 10.0
    and default are asserted.

@@ -2889,6 +2889,12 @@ def test_daemon_parser_defaults_and_flags():
     assert defaults.no_resume_on_limit is False
 
 
+def test_daemon_rejects_zero_idle_sleep():
+    with pytest.raises(SystemExit) as exc_info:
+        build_parser().parse_args(["daemon", "--headless", "--idle-sleep", "0"])
+    assert exc_info.value.code == 2
+
+
 def test_daemon_requires_headless(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     assert main(["daemon"]) == 2
