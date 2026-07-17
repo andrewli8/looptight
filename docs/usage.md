@@ -19,7 +19,7 @@ Detected ecosystems: Python/pytest (`pytest -q`), uv/poetry/pdm/pipenv (`uv run 
 `pnpm test`, `yarn test`, `bun test`), Rust (`cargo test`), Go (`go test ./...`),
 Deno (`deno test`), JVM — Gradle (`gradle test` or `./gradlew test`), Maven
 (`mvn test` or `./mvnw test`), .NET (`dotnet test`), Elixir (`mix test`), Swift
-(`swift test`), Crystal (`crystal spec`). Ecosystems with a `test:` or `check:`
+(`swift test`), Crystal (`crystal spec`), Zig (`zig build test`). Ecosystems with a `test:` or `check:`
 Makefile/justfile target use `make test` / `just test` (or the `check` variant).
 Projects not on this list fall back to `pytest -q` if test files are found, or leave
 `verify` unset — set it manually in `.looptight.toml` to unlock the loop.

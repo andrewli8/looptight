@@ -516,6 +516,13 @@ def test_detect_verify_crystal(tmp_path):
     assert detect.detect_verify(tmp_path) == "crystal spec"
 
 
+def test_detect_verify_zig(tmp_path):
+    # Zig's build.zig is a distinctive marker; zig build test is the single
+    # unambiguous test runner, analogous to Crystal (shard.yml) and Swift (Package.swift).
+    (tmp_path / "build.zig").write_text('const std = @import("std");\n')
+    assert detect.detect_verify(tmp_path) == "zig build test"
+
+
 def test_detect_verify_pipenv_lock_returns_pipenv_run_pytest(tmp_path):
     # Pipenv projects carry a Pipfile.lock; pipenv run pytest -q is the unambiguous
     # test runner for them, matching the pattern for uv.lock, poetry.lock, pdm.lock.

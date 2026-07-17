@@ -895,6 +895,7 @@ def _verifier_quality(command: str | None) -> dict[str, str]:
             # a manually-configured command is still recognizable as a unit runner.
             "rspec", "phpunit", "pest", "php artisan test", "stack test", "cabal test",
             "crystal spec",  # Crystal: single unambiguous runner (also in detect_verify)
+            "zig build test",  # Zig: single unambiguous runner (also in detect_verify)
         )
     ):
         return {

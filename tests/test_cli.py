@@ -1623,6 +1623,19 @@ def test_status_json_classifies_crystal_spec_as_unit(tmp_path, monkeypatch, caps
     assert data["verifier_quality"]["classification"] == "unit"
 
 
+def test_status_json_classifies_zig_build_test_as_unit(
+    tmp_path, monkeypatch, capsys
+):
+    # zig build test is Zig's single unambiguous test runner; it must classify
+    # as `unit`, not `custom/unknown`, so a Zig project configured via
+    # `detect_verify` or manually reports the correct verifier-quality tier.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / ".looptight.toml").write_text('verify = "zig build test"\n')
+    assert main(["status", "--json"]) == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["verifier_quality"]["classification"] == "unit"
+
+
 def test_status_json_classifies_tests_plus_lint_as_unit_not_lint_only(
     tmp_path, monkeypatch, capsys
 ):
