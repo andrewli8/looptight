@@ -3675,17 +3675,10 @@ existing CLI session and makes no model or API calls of its own.
   `summary.py:74` is pinned by `test_iterations_zero_is_plural`.
 - `swarm --max-iterations 0` is rejected at parse time (exit 2); `type=_positive_int`
   at `cli.py:206` is pinned by `test_swarm_rejects_zero_max_iterations`.
+- `run --limit-backoff-seconds 0` is rejected at parse time (exit 2); `type=_positive_float`
+  at `cli.py:364` is pinned by `test_run_rejects_zero_limit_backoff_seconds`.
 
 ## Next
-
-1. Add a test that `run --limit-backoff-seconds 0` is rejected at parse time in
-   `tests/test_cli.py`. `_add_run_flags` at `cli.py:364` uses `type=_positive_float`,
-   so `0` must be caught with exit 2; no test currently exercises a zero value on this
-   argument (only the default 30.0 and the value 15 are asserted).
-   Evidence: `src/looptight/cli.py:364`; `tests/test_cli.py:29`
-   (only asserts `limit_backoff_seconds == 15.0` for a valid value).
-   Acceptance: `test_run_rejects_zero_limit_backoff_seconds` passes; changing
-   `type=_positive_float` to `type=float` at `cli.py:364` causes it to fail.
 
 ## Rules
 
