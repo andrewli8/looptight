@@ -3726,6 +3726,45 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. The SPEC at `docs/SPEC.md:265` describes `verify_command` as "the command that
+   actually ran" — but after the policy-error fix, `verify_command` is also present
+   when the command was blocked and did NOT run. A spec-conformance doc test does not
+   exist for this edge case; `test_spec_output_contract_documents_verify_command`
+   (test_docs.py:235) only checks that the string `verify_command` appears somewhere in
+   the output-contract section, not that the description is accurate for policy errors.
+   Update `docs/SPEC.md` so the `verify_command` description covers both the success and
+   policy-error paths, then add a test that the updated phrasing is present.
+   Evidence: `docs/SPEC.md:265`
+   Acceptance: A new test in `tests/test_docs.py` fails before the SPEC edit (the old
+   phrase "actually ran" is still there) and passes once the SPEC wording is updated to
+   describe `verify_command` as the resolved command (regardless of whether it ran).
+
+2. `test_verify_reports_config_and_policy_errors` at `tests/test_cli.py:1337` checks
+   that `verify --json` with a bad config file emits `status == "error"`, but does not
+   assert `verify_command is null`. The config-error call site at
+   `src/looptight/protocol_commands.py:33` omits `verify_command` (correct — no command
+   was resolved), so `_print_verify_json` defaults it to `null`. Nothing currently
+   prevents a regression that passes a non-null `verify_command` in that path (e.g.,
+   after a refactor that hoists the command resolution above the try/except). Add the
+   missing assertion to lock down the `null` contract for the config-error envelope.
+   Evidence: `tests/test_cli.py:1337`
+   Acceptance: The extended assertion `assert json.loads(out)["verify_command"] is None`
+   fails if `_print_verify_json` is called with a non-null `verify_command` in the
+   config-error branch, and passes with the current correct behavior.
+
+3. No test documents that `cmd_verify --verify " "` (whitespace-only) falls through to
+   "No verify command found" rather than crashing or running the blank string. The design
+   choice — per the comment at `src/looptight/protocol_commands.py:27–29` — is that
+   "blank `--verify` reads as 'no verify'" (consistent with how `config.verify` is
+   stored). `cmd_init` now rejects whitespace-only `--verify` explicitly (increment 1),
+   so the difference is intentional but unprotected against a future change that
+   accidentally rejects it in `cmd_verify` too (which would break the strip-then-fallback
+   contract for `verify`). Add a test pinning this behavior.
+   Evidence: `src/looptight/protocol_commands.py:30`
+   Acceptance: A new test `test_verify_treats_whitespace_only_verify_flag_as_absent`
+   asserts exit code 2 and "No verify command" in output when passed `--verify " "`,
+   failing if the strip-then-fallthrough is replaced with an explicit rejection.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
