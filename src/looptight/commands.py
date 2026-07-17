@@ -90,6 +90,9 @@ def _ensure_pycache_ignored(workdir: Path, console: Console) -> None:
 
 
 def cmd_init(args: argparse.Namespace, console: Console) -> int:
+    if getattr(args, "verify", None) is not None and not args.verify.strip():
+        console.print("[red]error:[/red] --verify must not be blank or whitespace-only.")
+        return 1
     workdir = Path.cwd()
     config_exists = (workdir / CONFIG_NAME).is_file()
     if config_exists:

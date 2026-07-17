@@ -3714,20 +3714,14 @@ existing CLI session and makes no model or API calls of its own.
   temp file is created; the test asserts `OSError` is raised and no `*.tmp` files remain.
   This pins the invariant that `mkdir` sits outside the `try/except` block and that no stale
   temp can be left when parent-directory creation fails.
+- `cmd_init` rejects a whitespace-only `--verify` argument with a non-zero exit and an error
+  referencing `--verify`, instead of writing the blank string to config where `_nonblank_string`
+  would silently convert it to `None` and leave the user with contradictory output. Covered by
+  `test_init_rejects_whitespace_only_verify` in test_cli.py.
 
 ## Next
 
-1. Reject whitespace-only `--verify` argument in `cmd_init`.
-   Evidence: `src/looptight/commands.py:101`; `args.verify or detect_verify(workdir)` treats
-   `"   "` as truthy so `detect_verify` is skipped and `"   "` is written to config;
-   `_nonblank_string` at `src/looptight/config.py:175` later converts it back to `None`,
-   giving the user contradictory feedback — init reports a verify command that subsequent runs
-   ignore.
-   Acceptance: A new test asserts `looptight init --verify "   "` exits with a non-zero code
-   and emits an error referencing `--verify`; the whitespace-only string is not written to the
-   config file; `looptight verify` passes.
-
-2. Emit the resolved `verify_command` in the `verify --json` policy-error envelope.
+1. Emit the resolved `verify_command` in the `verify --json` policy-error envelope.
    Evidence: `src/looptight/protocol_commands.py:44`; the policy-error path calls
    `_print_verify_json(status="error", output=policy_error)` without `verify_command=command`
    even though `command` is already resolved at line 37, so automation cannot determine which

@@ -443,6 +443,19 @@ def test_init_does_not_warn_for_a_unit_test_verify(tmp_path, monkeypatch, capsys
     assert "note:" not in capsys.readouterr().out.lower()  # a real test gate needs no nag
 
 
+def test_init_rejects_whitespace_only_verify(tmp_path, monkeypatch, capsys):
+    # commands.py:101 — " " is truthy so detect_verify is skipped and " " is written
+    # to config, but _nonblank_string later silently converts it to None, giving the
+    # user contradictory output.  init must reject it with a non-zero exit code and an
+    # error that references --verify, and must not write the config file.
+    monkeypatch.chdir(tmp_path)
+    rc = main(["init", "--verify", " "])
+    assert rc != 0
+    out = capsys.readouterr().out + capsys.readouterr().err
+    assert "--verify" in out
+    assert not (tmp_path / ".looptight.toml").exists()
+
+
 def test_doctor_human_output_shows_readiness_tier_matching_exit(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
