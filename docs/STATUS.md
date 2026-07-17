@@ -3690,19 +3690,15 @@ existing CLI session and makes no model or API calls of its own.
   False (block closed mid-line), the remainder after `*/` is passed to `_js_line_comment`
   so any `// comment` after the closer is yielded. Covered by
   `test_js_comments_surfaces_line_comment_after_block_close` in `tests/test_propose.py`.
+- `test_detect_verify_npm_test_script_wins_over_cargo` mutation-guards the
+  `package.json`-with-test-script ordering over `Cargo.toml` in `detect_verify`
+  (`detect.py:73-90` vs `detect.py:114`): writing both files to `tmp_path` asserts
+  `detect_verify` returns `"npm test"`, so moving the npm check after `_VERIFY_RULES`
+  immediately fails the test.
 
 ## Next
 
-1. Mutation-guard `package.json`-with-test-script ordering over `Cargo.toml` in `detect_verify`.
-   Evidence: `src/looptight/detect.py:74-88`; `package.json` with a `test` script is
-   detected before the `_VERIFY_RULES` loop that contains `Cargo.toml`, but no test
-   places both files together to confirm the npm runner wins.
-   Acceptance: `test_detect_verify_npm_test_script_wins_over_cargo` in
-   `tests/test_detect.py` writes both `package.json` (with `"test"` script) and
-   `Cargo.toml` to `tmp_path` and asserts `detect_verify` returns `"npm test"`; swapping
-   the two detection blocks immediately fails the test; `looptight verify` passes.
-
-2. Fix `atomic_write_text` to use a PID-qualified temp name so the write is non-atomic
+1. Fix `atomic_write_text` to use a PID-qualified temp name so the write is non-atomic
    only when the target itself ends in `.tmp`.
    Evidence: `src/looptight/fsutil.py:22`; `path.with_suffix(".tmp")` produces the same
    temp path for `foo.toml` and `foo.json` (both yield `foo.tmp`), and if the target

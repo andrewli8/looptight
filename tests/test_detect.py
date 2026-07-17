@@ -538,3 +538,13 @@ def test_detect_verify_pipenv_wins_over_uv(tmp_path):
     (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n")
     (tmp_path / "uv.lock").write_text("version = 1\n")
     assert detect.detect_verify(tmp_path) == "pipenv run pytest -q"
+
+
+def test_detect_verify_npm_test_script_wins_over_cargo(tmp_path):
+    # detect.py:73-90 checks package.json (with test script) before the _VERIFY_RULES
+    # loop that contains Cargo.toml (detect.py:114).  A mutation that moved the npm
+    # check after _VERIFY_RULES would silently return "cargo test" with no existing
+    # test failing (each existing test only places one of the two files).
+    (tmp_path / "package.json").write_text('{"scripts": {"test": "vitest"}}')
+    (tmp_path / "Cargo.toml").write_text("[package]\nname = 'x'\n")
+    assert detect.detect_verify(tmp_path) == "npm test"
