@@ -2439,6 +2439,14 @@ def test_swarm_rejects_zero_max_iterations():
     assert exc.value.code == 2
 
 
+def test_swarm_rejects_zero_limit_backoff_seconds():
+    with pytest.raises(SystemExit) as exc_info:
+        build_parser().parse_args(
+            ["swarm", "--headless", "--limit-backoff-seconds", "0"]
+        )
+    assert exc_info.value.code == 2
+
+
 def test_propose_shows_clean_summary_not_inline_evidence(tmp_path, monkeypatch, capsys):
     # Status/task-file titles carry their `Evidence:` anchor inline (parsed out for the next
     # directive). propose must show the same clean summary `next` does, not leak "Evidence: ..."

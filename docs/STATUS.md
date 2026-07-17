@@ -3677,17 +3677,12 @@ existing CLI session and makes no model or API calls of its own.
   at `cli.py:206` is pinned by `test_swarm_rejects_zero_max_iterations`.
 - `run --limit-backoff-seconds 0` is rejected at parse time (exit 2); `type=_positive_float`
   at `cli.py:364` is pinned by `test_run_rejects_zero_limit_backoff_seconds`.
+- `swarm --limit-backoff-seconds 0` is rejected at parse time (exit 2); `type=_positive_float`
+  at `cli.py:231` is pinned by `test_swarm_rejects_zero_limit_backoff_seconds`.
 
 ## Next
 
-1. Add a test that `swarm --limit-backoff-seconds 0` is rejected at parse time
-   in `tests/test_cli.py`. `cli.py:231` uses `type=_positive_float` for the
-   swarm subcommand's `--limit-backoff-seconds`, but no test exercises a zero
-   value; only `--worker-timeout 0` and `--workers 0` are checked.
-   Evidence: `src/looptight/cli.py:231`; `tests/test_cli.py:2420`
-   (parametrize only covers worker-timeout and workers for swarm).
-   Acceptance: `test_swarm_rejects_zero_limit_backoff_seconds` passes; changing
-   `type=_positive_float` to `type=float` at `cli.py:231` causes it to fail.
+
 
 2. Add a test that `run --limit-max-wait-seconds 0` is rejected at parse time
    in `tests/test_cli.py`. `cli.py:369` uses `type=_positive_float` for the
