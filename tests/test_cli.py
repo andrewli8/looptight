@@ -2423,6 +2423,14 @@ def test_swarm_rejects_non_positive_numeric_options(argv):
     assert exc.value.code == 2
 
 
+def test_swarm_rejects_zero_max_iterations():
+    # cli.py:206 sets type=_positive_int for swarm --max-iterations; 0 must be
+    # rejected at parse time (exit 2). Mutating to type=int would accept 0 silently.
+    with pytest.raises(SystemExit) as exc:
+        main(["swarm", "--headless", "--max-iterations", "0"])
+    assert exc.value.code == 2
+
+
 def test_propose_shows_clean_summary_not_inline_evidence(tmp_path, monkeypatch, capsys):
     # Status/task-file titles carry their `Evidence:` anchor inline (parsed out for the next
     # directive). propose must show the same clean summary `next` does, not leak "Evidence: ..."

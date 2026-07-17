@@ -3673,19 +3673,12 @@ existing CLI session and makes no model or API calls of its own.
   `metacog.py:51` is pinned by `test_progress_signal_returns_score_when_score_is_zero`.
 - `summary._iterations(0)` returns `"0 iterations"`; the `n != 1` guard at
   `summary.py:74` is pinned by `test_iterations_zero_is_plural`.
+- `swarm --max-iterations 0` is rejected at parse time (exit 2); `type=_positive_int`
+  at `cli.py:206` is pinned by `test_swarm_rejects_zero_max_iterations`.
 
 ## Next
 
-1. Add a test that `swarm --max-iterations 0` is rejected at parse time in
-   `tests/test_cli.py`. `cli.py:206` uses `type=_positive_int` for swarm
-   `--max-iterations`, which must reject 0 with exit 2; `test_swarm_rejects_non_positive_numeric_options`
-   at `tests/test_cli.py:2419` covers `--workers 0` and `--worker-timeout 0` but not
-   `--max-iterations 0`.
-   Evidence: `src/looptight/cli.py:206`; `tests/test_cli.py:2419`.
-   Acceptance: `test_swarm_rejects_zero_max_iterations` passes; changing
-   `type=_positive_int` to `type=int` at `cli.py:206` causes it to fail.
-
-3. Add a test that `run --limit-backoff-seconds 0` is rejected at parse time in
+1. Add a test that `run --limit-backoff-seconds 0` is rejected at parse time in
    `tests/test_cli.py`. `_add_run_flags` at `cli.py:364` uses `type=_positive_float`,
    so `0` must be caught with exit 2; no test currently exercises a zero value on this
    argument (only the default 30.0 and the value 15 are asserted).
