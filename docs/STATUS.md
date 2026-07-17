@@ -3680,6 +3680,42 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Add a test that `swarm --limit-backoff-seconds 0` is rejected at parse time
+   in `tests/test_cli.py`. `cli.py:231` uses `type=_positive_float` for the
+   swarm subcommand's `--limit-backoff-seconds`, but no test exercises a zero
+   value; only `--worker-timeout 0` and `--workers 0` are checked.
+   Evidence: `src/looptight/cli.py:231`; `tests/test_cli.py:2420`
+   (parametrize only covers worker-timeout and workers for swarm).
+   Acceptance: `test_swarm_rejects_zero_limit_backoff_seconds` passes; changing
+   `type=_positive_float` to `type=float` at `cli.py:231` causes it to fail.
+
+2. Add a test that `run --limit-max-wait-seconds 0` is rejected at parse time
+   in `tests/test_cli.py`. `cli.py:369` uses `type=_positive_float` for the
+   run subcommand's `--limit-max-wait-seconds`, but no test exercises a zero
+   value; only the default 3600.0 is asserted.
+   Evidence: `src/looptight/cli.py:369`; `tests/test_cli.py:33`
+   (only asserts `limit_max_wait_seconds == 3600.0` for the default).
+   Acceptance: `test_run_rejects_zero_limit_max_wait_seconds` passes; changing
+   `type=_positive_float` to `type=float` at `cli.py:369` causes it to fail.
+
+3. Add a test that `daemon --idle-sleep 0` is rejected at parse time in
+   `tests/test_cli.py`. `cli.py:278` uses `type=_positive_float` for
+   `--idle-sleep`, but no test exercises a zero value; only the valid 120.0
+   and the default 600.0 are asserted.
+   Evidence: `src/looptight/cli.py:278`; `tests/test_cli.py:2865`
+   (only asserts `idle_sleep == 120.0` for a valid value).
+   Acceptance: `test_daemon_rejects_zero_idle_sleep` passes; changing
+   `type=_positive_float` to `type=float` at `cli.py:278` causes it to fail.
+
+4. Add a test that `daemon --fault-backoff 0` is rejected at parse time in
+   `tests/test_cli.py`. `cli.py:284` uses `type=_positive_float` for
+   `--fault-backoff`, but no test exercises a zero value; only the valid 10.0
+   and default are asserted.
+   Evidence: `src/looptight/cli.py:284`; `tests/test_cli.py:2866`
+   (only asserts `fault_backoff == 10.0` for a valid value).
+   Acceptance: `test_daemon_rejects_zero_fault_backoff` passes; changing
+   `type=_positive_float` to `type=float` at `cli.py:284` causes it to fail.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
