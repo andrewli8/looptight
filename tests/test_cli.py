@@ -41,6 +41,14 @@ def test_run_rejects_zero_limit_backoff_seconds():
     assert exc_info.value.code == 2
 
 
+def test_run_rejects_zero_limit_max_wait_seconds():
+    with pytest.raises(SystemExit) as exc_info:
+        build_parser().parse_args(
+            ["run", "--headless", "g", "--limit-max-wait-seconds", "0"]
+        )
+    assert exc_info.value.code == 2
+
+
 def _commit_fixture():
     # Commit fixture files so the worktree is clean when `next` runs (next refuses a
     # dirty worktree). Mirrors the real loop: code is committed before claiming a task.
