@@ -44,7 +44,7 @@ def cmd_verify(args: argparse.Namespace, console: Console) -> int:
     policy_error = _verify_policy_error(command, config, workdir)
     if policy_error:
         if args.json:
-            _print_verify_json(status="error", output=policy_error)
+            _print_verify_json(status="error", output=policy_error, verify_command=command)
         else:
             console.print(f"[red]policy error:[/red] {policy_error}")
         return 2

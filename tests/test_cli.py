@@ -2122,7 +2122,7 @@ def test_verify_json_refuses_protected_path_changes(tmp_path, monkeypatch, capsy
     assert payload["status"] == "error"
     assert "protected path" in payload["output"]
     assert "secrets/token.txt" in payload["output"]
-    assert payload["verify_command"] is None
+    assert payload["verify_command"] == "exit 0"
 
 
 def test_verify_json_refuses_protected_path_rename(tmp_path, monkeypatch, capsys):
@@ -2294,7 +2294,7 @@ def test_verify_json_refuses_command_not_in_allowlist(tmp_path, monkeypatch, cap
     assert payload["status"] == "error"
     assert "not allowed by policy" in payload["output"]
     assert "exit 0" in payload["output"]
-    assert payload["verify_command"] is None
+    assert payload["verify_command"] == "exit 0"
 
 
 def test_verify_allowlist_match_ignores_surrounding_whitespace(tmp_path, monkeypatch, capsys):

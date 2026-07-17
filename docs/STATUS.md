@@ -3718,18 +3718,13 @@ existing CLI session and makes no model or API calls of its own.
   referencing `--verify`, instead of writing the blank string to config where `_nonblank_string`
   would silently convert it to `None` and leave the user with contradictory output. Covered by
   `test_init_rejects_whitespace_only_verify` in test_cli.py.
+- `verify --json` policy-error envelope now includes `verify_command` (the resolved command that
+  was blocked), matching the success-path envelope; automation no longer has to parse the human
+  `output` string to learn which command was refused. Covered by updated assertions in
+  `test_verify_json_refuses_protected_path_changes` and
+  `test_verify_json_refuses_command_not_in_allowlist` in test_cli.py.
 
 ## Next
-
-1. Emit the resolved `verify_command` in the `verify --json` policy-error envelope.
-   Evidence: `src/looptight/protocol_commands.py:44`; the policy-error path calls
-   `_print_verify_json(status="error", output=policy_error)` without `verify_command=command`
-   even though `command` is already resolved at line 37, so automation cannot determine which
-   command was blocked (the success path at line 61 does pass `verify_command=command`).
-   Acceptance: A new or updated test asserts that `verify --json` on a policy-blocked repo
-   includes `"verify_command": "<configured_command>"` in the JSON envelope alongside
-   `"status": "error"`; the existing `test_cli.py` assertion `payload["verify_command"] is None`
-   is replaced with the correct non-null value; `looptight verify` passes.
 
 ## Rules
 
