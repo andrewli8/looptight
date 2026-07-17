@@ -3688,6 +3688,33 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Fix `_js_comments` to surface `// TODO` after `*/` on block-comment closing lines.
+   Evidence: `src/looptight/discovery.py:259`; the `continue` after `in_block = end == -1`
+   skips any `// line comment` on the same line as the `*/` closer, so those TODOs are
+   silently dropped from discovery results.
+   Acceptance: a new test in `tests/test_propose.py` that embeds a `// TODO` on the
+   `*/` closing line of a JS block comment, calls `_js_comments`, and asserts the comment
+   is yielded; `looptight verify` passes.
+
+2. Mutation-guard `package.json`-with-test-script ordering over `Cargo.toml` in `detect_verify`.
+   Evidence: `src/looptight/detect.py:74-88`; `package.json` with a `test` script is
+   detected before the `_VERIFY_RULES` loop that contains `Cargo.toml`, but no test
+   places both files together to confirm the npm runner wins.
+   Acceptance: `test_detect_verify_npm_test_script_wins_over_cargo` in
+   `tests/test_detect.py` writes both `package.json` (with `"test"` script) and
+   `Cargo.toml` to `tmp_path` and asserts `detect_verify` returns `"npm test"`; swapping
+   the two detection blocks immediately fails the test; `looptight verify` passes.
+
+3. Fix `atomic_write_text` to use a PID-qualified temp name so the write is non-atomic
+   only when the target itself ends in `.tmp`.
+   Evidence: `src/looptight/fsutil.py:22`; `path.with_suffix(".tmp")` produces the same
+   temp path for `foo.toml` and `foo.json` (both yield `foo.tmp`), and if the target
+   already ends in `.tmp` the temp file *is* the target (non-atomic self-overwrite).
+   Acceptance: `atomic_write_text` uses `path.with_suffix(f".{os.getpid()}.tmp")` (or
+   equivalent unique suffix) so two concurrent calls to different targets cannot collide;
+   a new test asserts the temp file name differs from the target when the target ends in
+   `.tmp`; existing `test_record_write_is_atomic` still passes; `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
