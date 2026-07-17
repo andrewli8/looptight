@@ -1335,7 +1335,12 @@ def test_verify_reports_config_and_policy_errors(tmp_path, monkeypatch, capsys):
     assert main(["verify"]) == 2
     assert "config error:" in capsys.readouterr().out
     assert main(["verify", "--json"]) == 2
-    assert json.loads(capsys.readouterr().out)["status"] == "error"
+    config_error_data = json.loads(capsys.readouterr().out)
+    assert config_error_data["status"] == "error"
+    # No command was resolved before the ConfigError, so verify_command must be null —
+    # not an empty string or the stale previous command. A regression that hoists command
+    # resolution above the except block would set a non-null value here.
+    assert config_error_data["verify_command"] is None
 
     # A protected-path change makes `verify` report a policy error and exit 2 (human).
     (tmp_path / ".looptight.toml").write_text(

@@ -3728,23 +3728,15 @@ existing CLI session and makes no model or API calls of its own.
   error) cases; the new text says "the command that was resolved … present also when the command
   was blocked by policy". Locked by `test_spec_output_contract_verify_command_covers_policy_error_case`
   in test_docs.py.
+- `test_verify_reports_config_and_policy_errors` extended with `assert data["verify_command"] is None`
+  on the config-error path: the config-error branch at `protocol_commands.py:33` omits
+  `verify_command` (no command was resolved), so the field defaults to `null`. The new assertion
+  prevents a regression that accidentally hoists command resolution above the `except ConfigError`
+  block and sets a stale or empty `verify_command` in the error envelope.
 
 ## Next
 
-1. `test_verify_reports_config_and_policy_errors` at `tests/test_cli.py:1337` checks
-   that `verify --json` with a bad config file emits `status == "error"`, but does not
-   assert `verify_command is null`. The config-error call site at
-   `src/looptight/protocol_commands.py:33` omits `verify_command` (correct — no command
-   was resolved), so `_print_verify_json` defaults it to `null`. Nothing currently
-   prevents a regression that passes a non-null `verify_command` in that path (e.g.,
-   after a refactor that hoists the command resolution above the try/except). Add the
-   missing assertion to lock down the `null` contract for the config-error envelope.
-   Evidence: `tests/test_cli.py:1337`
-   Acceptance: The extended assertion `assert json.loads(out)["verify_command"] is None`
-   fails if `_print_verify_json` is called with a non-null `verify_command` in the
-   config-error branch, and passes with the current correct behavior.
-
-3. No test documents that `cmd_verify --verify " "` (whitespace-only) falls through to
+1. No test documents that `cmd_verify --verify " "` (whitespace-only) falls through to
    "No verify command found" rather than crashing or running the blank string. The design
    choice — per the comment at `src/looptight/protocol_commands.py:27–29` — is that
    "blank `--verify` reads as 'no verify'" (consistent with how `config.verify` is
