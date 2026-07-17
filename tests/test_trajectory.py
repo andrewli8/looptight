@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 
 import pytest
@@ -122,7 +123,8 @@ def test_record_treats_null_updated_at_as_stale(tmp_path):
 def test_record_write_is_atomic(tmp_path, monkeypatch):
     repo = _repo(tmp_path)
     trajectory.record(repo, "pytest -q", -2.0, set(), passed=False)  # seed a valid store
-    tmp = trajectory._path(repo).with_suffix(".tmp")
+    p = trajectory._path(repo)
+    tmp = p.parent / (p.name + f".{os.getpid()}.tmp")
 
     def boom(src, dst):
         raise OSError("rename failed")

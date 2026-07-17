@@ -20,7 +20,7 @@ def atomic_write_text(path: Path, text: str) -> None:
     target. The parent directory is created if missing.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_suffix(".tmp")
+    temporary = path.parent / (path.name + f".{os.getpid()}.tmp")
     try:
         temporary.write_text(text, encoding="utf-8")
         os.replace(temporary, path)

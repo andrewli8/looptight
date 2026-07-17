@@ -3695,18 +3695,15 @@ existing CLI session and makes no model or API calls of its own.
   (`detect.py:73-90` vs `detect.py:114`): writing both files to `tmp_path` asserts
   `detect_verify` returns `"npm test"`, so moving the npm check after `_VERIFY_RULES`
   immediately fails the test.
+- `atomic_write_text` now uses `path.parent / (path.name + f".{os.getpid()}.tmp")` instead
+  of `path.with_suffix(".tmp")` (`fsutil.py:23`): the old formula produced `foo.tmp` for any
+  `foo.*` target, so concurrent writes to `foo.toml` and `foo.json` collided, and a target
+  ending in `.tmp` made the temp file identical to the target (non-atomic self-overwrite).
+  The fix is covered by `test_atomic_write_text_tmp_target_temp_differs_from_target` in
+  `tests/test_fsutil.py`; the capture-based test asserts `os.replace` receives a src distinct
+  from the target; `test_record_write_is_atomic` and all existing fsutil tests still pass.
 
 ## Next
-
-1. Fix `atomic_write_text` to use a PID-qualified temp name so the write is non-atomic
-   only when the target itself ends in `.tmp`.
-   Evidence: `src/looptight/fsutil.py:22`; `path.with_suffix(".tmp")` produces the same
-   temp path for `foo.toml` and `foo.json` (both yield `foo.tmp`), and if the target
-   already ends in `.tmp` the temp file *is* the target (non-atomic self-overwrite).
-   Acceptance: `atomic_write_text` uses `path.with_suffix(f".{os.getpid()}.tmp")` (or
-   equivalent unique suffix) so two concurrent calls to different targets cannot collide;
-   a new test asserts the temp file name differs from the target when the target ends in
-   `.tmp`; existing `test_record_write_is_atomic` still passes; `looptight verify` passes.
 
 ## Rules
 
