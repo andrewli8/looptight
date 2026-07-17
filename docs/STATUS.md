@@ -3705,6 +3705,46 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Fix `test_recipe_runner_oserror_falls_through` to actually exercise the OSError branch.
+   Evidence: `tests/test_detect.py:358`; the test creates a directory named `Makefile` rather
+   than an unreadable regular file, so `_recipe_runner` returns at `detect.py:163`
+   (`if not path.is_file(): return None`) before reaching the `except (OSError, ValueError)`
+   block at `detect.py:171`; the OSError arm has zero coverage.
+   Acceptance: The test creates a regular `Makefile` then `chmod(0o000)`, calls
+   `detect.detect_verify(tmp_path)`, asserts `None` is returned, and restores permissions in a
+   `finally` block; running `python -m pytest tests/test_detect.py -v` reports the test as
+   passing; `looptight verify` passes.
+
+2. Pin `atomic_write_text` mkdir-failure behavior with a new test.
+   Evidence: `src/looptight/fsutil.py:22`; `path.parent.mkdir(parents=True, exist_ok=True)`
+   sits outside the `try/except OSError` block, so a file blocking a directory component raises
+   `OSError` without leaving a stale temp; this behavior is correct but entirely unpinned —
+   a future refactor moving `mkdir` inside the try block would silently change semantics.
+   Acceptance: `test_atomic_write_text_mkdir_oserror_propagates` in `tests/test_fsutil.py`
+   writes a regular file at the path where a directory component must be created, calls
+   `atomic_write_text(target, "data\n")`, asserts `OSError` is raised and no partial temp
+   file exists; `looptight verify` passes.
+
+3. Reject whitespace-only `--verify` argument in `cmd_init`.
+   Evidence: `src/looptight/commands.py:101`; `args.verify or detect_verify(workdir)` treats
+   `"   "` as truthy so `detect_verify` is skipped and `"   "` is written to config;
+   `_nonblank_string` at `src/looptight/config.py:175` later converts it back to `None`,
+   giving the user contradictory feedback — init reports a verify command that subsequent runs
+   ignore.
+   Acceptance: A new test asserts `looptight init --verify "   "` exits with a non-zero code
+   and emits an error referencing `--verify`; the whitespace-only string is not written to the
+   config file; `looptight verify` passes.
+
+4. Emit the resolved `verify_command` in the `verify --json` policy-error envelope.
+   Evidence: `src/looptight/protocol_commands.py:44`; the policy-error path calls
+   `_print_verify_json(status="error", output=policy_error)` without `verify_command=command`
+   even though `command` is already resolved at line 37, so automation cannot determine which
+   command was blocked (the success path at line 61 does pass `verify_command=command`).
+   Acceptance: A new or updated test asserts that `verify --json` on a policy-blocked repo
+   includes `"verify_command": "<configured_command>"` in the JSON envelope alongside
+   `"status": "error"`; the existing `test_cli.py` assertion `payload["verify_command"] is None`
+   is replaced with the correct non-null value; `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
