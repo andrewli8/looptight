@@ -3733,21 +3733,13 @@ existing CLI session and makes no model or API calls of its own.
   `verify_command` (no command was resolved), so the field defaults to `null`. The new assertion
   prevents a regression that accidentally hoists command resolution above the `except ConfigError`
   block and sets a stale or empty `verify_command` in the error envelope.
+- `test_verify_treats_whitespace_only_verify_flag_as_absent` pins the design choice at
+  `protocol_commands.py:30`: whitespace-only `--verify " "` is stripped to `None` and falls
+  through to "No verify command found" (the standard no-command path), unlike `cmd_init` which
+  explicitly rejects it. The test prevents a future change from accidentally rejecting whitespace
+  in `verify` too (which would break the intentional strip-then-fallback contract).
 
 ## Next
-
-1. No test documents that `cmd_verify --verify " "` (whitespace-only) falls through to
-   "No verify command found" rather than crashing or running the blank string. The design
-   choice — per the comment at `src/looptight/protocol_commands.py:27–29` — is that
-   "blank `--verify` reads as 'no verify'" (consistent with how `config.verify` is
-   stored). `cmd_init` now rejects whitespace-only `--verify` explicitly (increment 1),
-   so the difference is intentional but unprotected against a future change that
-   accidentally rejects it in `cmd_verify` too (which would break the strip-then-fallback
-   contract for `verify`). Add a test pinning this behavior.
-   Evidence: `src/looptight/protocol_commands.py:30`
-   Acceptance: A new test `test_verify_treats_whitespace_only_verify_flag_as_absent`
-   asserts exit code 2 and "No verify command" in output when passed `--verify " "`,
-   failing if the strip-then-fallthrough is replaced with an explicit rejection.
 
 ## Rules
 

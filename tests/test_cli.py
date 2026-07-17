@@ -456,6 +456,20 @@ def test_init_rejects_whitespace_only_verify(tmp_path, monkeypatch, capsys):
     assert not (tmp_path / ".looptight.toml").exists()
 
 
+def test_verify_treats_whitespace_only_verify_flag_as_absent(tmp_path, monkeypatch, capsys):
+    # protocol_commands.py:30 — whitespace-only --verify is stripped to "" then to None,
+    # so it falls through to "No verify command found" (same as if --verify were omitted).
+    # This is intentionally different from cmd_init, which rejects whitespace-only --verify
+    # explicitly. The verify path must NOT crash, must NOT run a blank command, and must
+    # produce the standard "no command" error (not a complaint about the --verify value).
+    monkeypatch.chdir(tmp_path)
+    rc = main(["verify", "--verify", "   "])
+    assert rc == 2
+    out = capsys.readouterr().out
+    assert "No verify command" in out
+    assert "blank" not in out.lower() and "whitespace" not in out.lower()  # no special rejection
+
+
 def test_doctor_human_output_shows_readiness_tier_matching_exit(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
