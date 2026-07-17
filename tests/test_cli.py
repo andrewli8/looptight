@@ -2895,6 +2895,12 @@ def test_daemon_rejects_zero_idle_sleep():
     assert exc_info.value.code == 2
 
 
+def test_daemon_rejects_zero_fault_backoff():
+    with pytest.raises(SystemExit) as exc_info:
+        build_parser().parse_args(["daemon", "--headless", "--fault-backoff", "0"])
+    assert exc_info.value.code == 2
+
+
 def test_daemon_requires_headless(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     assert main(["daemon"]) == 2
