@@ -8,6 +8,8 @@ These tests own the contract at the source.
 
 import os
 
+import pytest
+
 from looptight.fsutil import atomic_write_text
 
 
@@ -59,6 +61,18 @@ def test_atomic_write_text_tmp_target_temp_differs_from_target(tmp_path, monkeyp
     atomic_write_text(target, "content\n")
     assert len(temps_seen) == 1
     assert str(temps_seen[0]) != str(target), "temp file must differ from target"
+
+
+def test_atomic_write_text_mkdir_oserror_propagates(tmp_path):
+    # path.parent.mkdir() sits outside the try/except block at fsutil.py:22; a regular
+    # file occupying a directory-component position raises OSError (NotADirectoryError)
+    # before any temp file is created, so no stale temp can be left behind.
+    blocker = tmp_path / "subdir"
+    blocker.write_text("file, not a dir", encoding="utf-8")
+    target = blocker / "out.txt"
+    with pytest.raises(OSError):
+        atomic_write_text(target, "data\n")
+    assert not any(tmp_path.glob("*.tmp")), "no stale temp must exist after mkdir failure"
 
 
 def test_atomic_write_text_cleans_up_when_write_text_fails(tmp_path, monkeypatch):
