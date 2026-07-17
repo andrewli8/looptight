@@ -34,6 +34,12 @@ def test_summary_renders_singular_iteration():
     assert summary._iterations(1) == "1 iteration"
 
 
+def test_iterations_zero_is_plural():
+    # summary.py:74 uses `n != 1`, so n=0 takes the plural branch. Mutating to
+    # `n > 1` would produce "0 iteration" (wrong) while leaving n=1 unchanged.
+    assert summary._iterations(0) == "0 iterations"
+
+
 def test_summary_shows_stop_reasons():
     assert "iteration cap" in summary.render(_result(StopReason.ITERATION_CAP))
     assert "no measurable progress" in summary.render(_result(StopReason.NO_PROGRESS))
