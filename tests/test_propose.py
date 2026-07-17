@@ -1922,6 +1922,29 @@ def test_from_todos_is_layout_agnostic(tmp_path):
     assert any("app.py" in loc for loc in locs), "top-level module TODO missed"
 
 
+def test_js_comments_surfaces_line_comment_after_block_close(tmp_path):
+    # discovery.py:259 — when a multi-line block comment closes mid-line (`*/`),
+    # the original unconditional `continue` skipped the remainder of the closing
+    # line so a `// TODO` that follows `*/` was silently dropped.  After the fix,
+    # the remainder after `*/` is passed to `_js_line_comment` so the TODO is
+    # yielded.  The single-line `/* ... */ // TODO` form does not exercise this
+    # path (it's handled entirely inside `_js_line_comment`); a block that starts
+    # on a prior line is required to set `in_block=True` before the closing line.
+    from looptight.discovery import _js_comments
+
+    js = tmp_path / "a.js"
+    js.write_text(
+        "/*\n"
+        " * multi-line block comment\n"
+        " */ // TODO: task after block close\n",
+        encoding="utf-8",
+    )
+    comments = [body for _lineno, body in _js_comments(js)]
+    assert any("TODO" in c for c in comments), (
+        f"// TODO after */ on closing line was not surfaced; got: {comments}"
+    )
+
+
 def test_from_todos_prunes_vendored_and_build_dirs(tmp_path):
     # A TODO inside a virtualenv or build output must never be surfaced as work.
     _write(tmp_path, ".venv/lib/site.py", "# TODO: not my code\n")

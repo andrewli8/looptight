@@ -257,7 +257,11 @@ def _js_comments(path: Path):
             # written as ` * TODO: ...` is not hidden behind the leading asterisk.
             yield lineno, _BLOCK_PREFIX_RE.sub("", body, count=1)
             in_block = end == -1  # still open until the closing */
-            continue
+            if in_block:
+                continue
+            # Block closed mid-line: fall through so any // comment after */ is
+            # picked up by _js_line_comment on the remainder of the line.
+            line = line[end + 2 :]
         body, in_block, in_template = _js_line_comment(line, in_template)
         if body is not None:
             yield lineno, body
