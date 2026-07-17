@@ -3723,23 +3723,15 @@ existing CLI session and makes no model or API calls of its own.
   `output` string to learn which command was refused. Covered by updated assertions in
   `test_verify_json_refuses_protected_path_changes` and
   `test_verify_json_refuses_command_not_in_allowlist` in test_cli.py.
+- SPEC output-contract wording for `verify_command` updated to cover both success and policy-error
+  paths: the old phrase "the command that actually ran" implied it was absent in blocked (policy-
+  error) cases; the new text says "the command that was resolved … present also when the command
+  was blocked by policy". Locked by `test_spec_output_contract_verify_command_covers_policy_error_case`
+  in test_docs.py.
 
 ## Next
 
-1. The SPEC at `docs/SPEC.md:265` describes `verify_command` as "the command that
-   actually ran" — but after the policy-error fix, `verify_command` is also present
-   when the command was blocked and did NOT run. A spec-conformance doc test does not
-   exist for this edge case; `test_spec_output_contract_documents_verify_command`
-   (test_docs.py:235) only checks that the string `verify_command` appears somewhere in
-   the output-contract section, not that the description is accurate for policy errors.
-   Update `docs/SPEC.md` so the `verify_command` description covers both the success and
-   policy-error paths, then add a test that the updated phrasing is present.
-   Evidence: `docs/SPEC.md:265`
-   Acceptance: A new test in `tests/test_docs.py` fails before the SPEC edit (the old
-   phrase "actually ran" is still there) and passes once the SPEC wording is updated to
-   describe `verify_command` as the resolved command (regardless of whether it ran).
-
-2. `test_verify_reports_config_and_policy_errors` at `tests/test_cli.py:1337` checks
+1. `test_verify_reports_config_and_policy_errors` at `tests/test_cli.py:1337` checks
    that `verify --json` with a bad config file emits `status == "error"`, but does not
    assert `verify_command is null`. The config-error call site at
    `src/looptight/protocol_commands.py:33` omits `verify_command` (correct — no command

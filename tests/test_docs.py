@@ -240,6 +240,16 @@ def test_spec_output_contract_documents_verify_command():
     assert "verify_command" in output_contract
 
 
+def test_spec_output_contract_verify_command_covers_policy_error_case():
+    # verify_command is present in policy-error responses (the command was resolved but
+    # blocked), not only in success responses. The SPEC must say so or a consumer
+    # implementing a client from the spec will assume verify_command is null in error cases
+    # and miss the blocked command. The phrase "blocked by policy" anchors this contract.
+    spec = (_ROOT / "docs" / "SPEC.md").read_text(encoding="utf-8")
+    output_contract = spec.split("## Output contract", 1)[1].split("\n## ", 1)[0]
+    assert "blocked by policy" in output_contract
+
+
 def test_spec_output_contract_documents_verify_command_in_status():
     # status --json should expose the resolved verify_command alongside verify --json;
     # the SPEC must document this additive field so a consumer knows to read it.
