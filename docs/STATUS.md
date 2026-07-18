@@ -3746,6 +3746,10 @@ existing CLI session and makes no model or API calls of its own.
   auto-detects the standard Zig test runner; `"zig build test"` added to the unit-runner list in
   `protocol_commands.py` so the command classifies as `unit` rather than `custom/unknown`;
   `docs/usage.md` lists Zig; two new tests cover detection and classification.
+- The `all()` blank-field guard at `tasks.py:146` now has direct coverage for blank title and
+  blank detail: `test_next_task_skips_candidate_with_empty_title` and
+  `test_next_task_skips_candidate_with_empty_detail` in `tests/test_tasks.py` each assert
+  `next_task` returns `status=="no_work"` — sibling of the existing empty-acceptance test.
 
 ## Next
 
@@ -3758,13 +3762,6 @@ existing CLI session and makes no model or API calls of its own.
   `tasks = [" docs/STATUS.md "]` now yields `("docs/STATUS.md",)` instead of the
   space-prefixed string that silently never matched a real file.
   Locked by `test_load_config_strips_whitespace_from_task_paths` in `tests/test_config.py`.
-
-1. Add `test_next_task_skips_candidate_with_empty_title` and
-   `test_next_task_skips_candidate_with_empty_detail` to `tests/test_tasks.py`.
-   Evidence: `src/looptight/tasks.py:146`
-   Acceptance: `next_task` called with a `TaskCandidate(title="", detail="x", acceptance="y")`
-   returns `status=="no_work"`; likewise for `detail=""`. Removing either strip-check from
-   the `all()` at `tasks.py:146` must fail at least one of the new tests.
 
 3. Assert that `_verify_policy_error` returns a non-None error when `_changed_entries`
    returns `None` and a file-count or protected-path policy is active.

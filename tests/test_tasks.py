@@ -235,6 +235,28 @@ def test_next_task_skips_candidate_with_empty_acceptance(tmp_path):
     assert result.status == "no_work"  # acceptance-less candidate is not surfaced
 
 
+def test_next_task_skips_candidate_with_empty_title(tmp_path):
+    # The all() guard at tasks.py:146 also rejects blank titles; removing that
+    # strip-check must fail this test.
+    bad = Candidate(
+        title="", source="status-next", location="docs/STATUS.md:5",
+        suggested_verify=None, score=0.0, detail="Do a thing.", acceptance="Done.",
+    )
+    result = next_task(tmp_path, propose_fn=lambda w, limit=0: [bad])
+    assert result.status == "no_work"
+
+
+def test_next_task_skips_candidate_with_empty_detail(tmp_path):
+    # The all() guard at tasks.py:146 also rejects blank details; removing that
+    # strip-check must fail this test.
+    bad = Candidate(
+        title="Do a thing", source="status-next", location="docs/STATUS.md:5",
+        suggested_verify=None, score=0.0, detail="", acceptance="Done.",
+    )
+    result = next_task(tmp_path, propose_fn=lambda w, limit=0: [bad])
+    assert result.status == "no_work"
+
+
 def test_next_keeps_idea_directive_when_queue_is_genuinely_empty(tmp_path):
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     result = next_task(tmp_path, propose_fn=lambda w, limit=0: [])
