@@ -3756,13 +3756,11 @@ existing CLI session and makes no model or API calls of its own.
   in the tuple with a comment matching the sibling style.
   Locked by `test_usage_doc_lists_autodetected_ecosystems` in `tests/test_docs.py`.
 
-2. `vitest` and `jest` appear in the unit-runner list at `protocol_commands.py:885` but
-   no test verifies their `_verifier_quality` classification. Removing either from the
-   list causes the command to be classified as `custom/unknown` without any test failing.
-   Evidence: `src/looptight/protocol_commands.py:885`
-   Acceptance: a new test `test_status_json_classifies_vitest_and_jest_as_unit` asserts
-   both classify as `unit`; removing `"vitest"` from the unit list at
-   `protocol_commands.py:885` fails the test; `looptight verify --json` reports pass.
+- `vitest` and `jest` (`protocol_commands.py:885`) are now mutation-guarded:
+  `test_status_json_classifies_vitest_and_jest_as_unit` in `tests/test_cli.py`
+  asserts `"vitest"`, `"vitest run"`, `"jest"`, and `"npx jest"` all classify as
+  `unit`; removing `"vitest"` or `"jest"` from the unit-runner list at
+  `protocol_commands.py:885` now fails the test immediately. No production code change.
 
 ## Rules
 

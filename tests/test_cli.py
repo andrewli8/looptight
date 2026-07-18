@@ -1580,6 +1580,30 @@ def test_status_json_classifies_bun_node_test_and_mocha_as_unit(
         )
 
 
+def test_status_json_classifies_vitest_and_jest_as_unit(
+    tmp_path, monkeypatch, capsys
+):
+    # vitest and jest are the two dominant JS/TS unit test runners; they appear in
+    # the unit-runner list at protocol_commands.py:885 but have no dedicated test,
+    # so removing either silently degrades their classification to custom/unknown
+    # without any existing test failing. This is the mutation guard.
+    monkeypatch.chdir(tmp_path)
+    cases = {
+        "vitest": "unit",
+        "vitest run": "unit",
+        "jest": "unit",
+        "npx jest": "unit",
+    }
+    for command, expected in cases.items():
+        (tmp_path / ".looptight.toml").write_text(f'verify = "{command}"\n')
+        assert main(["status", "--json"]) == 0
+        data = json.loads(capsys.readouterr().out)
+        assert data["verifier_quality"]["classification"] == expected, (
+            f"expected {expected!r} for {command!r}, "
+            f"got {data['verifier_quality']['classification']!r}"
+        )
+
+
 def test_status_json_classifies_ruby_php_haskell_runners_as_unit(
     tmp_path, monkeypatch, capsys
 ):
