@@ -868,6 +868,39 @@ def test_goal_set_rejects_an_empty_vision(tmp_path, monkeypatch, capsys):
     assert read_goal(tmp_path) is not None
 
 
+def test_goal_check_no_goal_and_no_done_check(tmp_path, monkeypatch, capsys):
+    # protocol_commands.py:1064-1074 was recently fixed to print informative messages
+    # instead of failing silently; these branches have no assertion yet.
+    # Case 1: no goal set — must exit 1 with "no active goal" / no_goal in JSON.
+    # Case 2: goal without --done — must exit 1 with "no done-check" / no_done_check.
+    monkeypatch.chdir(tmp_path)
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "i", "--allow-empty"],
+        cwd=tmp_path, check=True,
+    )
+
+    # Case 1: no goal set
+    assert main(["goal", "check"]) == 1
+    assert "no active goal" in capsys.readouterr().out
+
+    assert main(["goal", "check", "--json"]) == 1
+    data = json.loads(capsys.readouterr().out)
+    assert data["status"] == "no_goal"
+    assert data["command"] == "goal"
+
+    # Case 2: goal without done-check
+    assert main(["goal", "build a thing"]) == 0
+    capsys.readouterr()
+
+    assert main(["goal", "check"]) == 1
+    assert "no done-check" in capsys.readouterr().out
+
+    assert main(["goal", "check", "--json"]) == 1
+    data = json.loads(capsys.readouterr().out)
+    assert data["status"] == "no_done_check"
+
+
 def test_next_and_swarm_parsers_accept_no_ideas():
     assert build_parser().parse_args(["next", "--no-ideas"]).no_ideas is True
     assert build_parser().parse_args(["swarm", "--headless", "--no-ideas"]).no_ideas is True

@@ -3777,14 +3777,10 @@ existing CLI session and makes no model or API calls of its own.
   its runner tuple with both entries; removing either from `docs/usage.md` now fails
   the test immediately. No production code change.
 
-1. `goal check` with no active goal (exit 1, `no_goal`) or a goal with no `--done`
-   check (exit 1, `no_done_check`) has no test: the code at `protocol_commands.py:1064-1074`
-   was recently fixed to print informative messages in both cases, but the fix has no
-   assertion. Add `test_goal_check_no_goal_and_no_done_check` to `tests/test_cli.py`
-   that covers both branches — the exit code, `--json` shape, and human output.
-   Evidence: src/looptight/protocol_commands.py:1064
-   Acceptance: `pytest tests/test_cli.py::test_goal_check_no_goal_and_no_done_check`
-   passes; the test fails if the `no_goal` branch exits 0 instead of 1.
+- `goal check` no-goal and no-done-check branches (`protocol_commands.py:1064-1074`)
+  are now tested: `test_goal_check_no_goal_and_no_done_check` in `tests/test_cli.py`
+  asserts exit 1, the correct JSON `status` field, and the human-readable message for
+  each case. A regression that silently exits 0 now fails the test.
 
 ## Rules
 
