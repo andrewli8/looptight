@@ -3775,6 +3775,15 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Detect `bun.lock` (Bun 1.2+ text lockfile) alongside `bun.lockb` in `detect_verify`.
+   `detect.py:63` only checks `bun.lockb` (binary); Bun 1.2 (January 2025) changed the
+   default lock file to a text-based `bun.lock`. A Bun 1.2+ project that has `bun.lock`
+   but no `bun.lockb` falls through to pnpm/yarn/npm/pytest detection.
+   Evidence: src/looptight/detect.py:63
+   Acceptance: new test `test_detect_verify_bun_lock_text_format_returns_bun_test` passes
+   (`tmp_path / "bun.lock"` only → `"bun test"`); `test_detect_verify_bun_lock_text_wins_over_pnpm_and_yarn`
+   passes; existing `bun.lockb` tests unchanged; `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
