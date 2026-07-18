@@ -3788,6 +3788,12 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Extend `test_usage_doc_lists_autodetected_ecosystems` to also assert that `bun test`, `pnpm test`, `yarn test`, `npm test`, `uv run pytest -q`, `poetry run pytest -q`, `pdm run pytest -q`, and `pipenv run pytest -q` each appear in `docs/usage.md`. All eight strings are returned by `detect_verify` and documented in usage.md, but the existing test skips them entirely — any could be silently deleted from the doc without failing the suite. Evidence: `tests/test_docs.py:412`; `src/looptight/detect.py:65`. Acceptance: the extended test fails when any of the eight runner strings is removed from `docs/usage.md`, and the full test suite still passes.
+
+2. Add an assertion to `test_next_json_no_work_directs_idea_generation_by_default` (or a sibling test) that `data["directive"]["current_quality"]` is present in the `next --json` response when the queue is empty. `_idea_directive` at `tasks.py:106` always populates this key, but no test reads it, so removing it from the dict would go undetected despite the SPEC output contract documenting it. Evidence: `tests/test_cli.py:629`; `src/looptight/tasks.py:106`. Acceptance: the assertion fails when `current_quality` is deleted from `_idea_directive`'s return dict, and the full suite still passes.
+
+3. Add a test (e.g. `test_usage_doc_mentions_propose_eval`) that asserts `"--eval"` or `"propose --eval"` appears in `docs/usage.md`. `propose --eval` is documented at `docs/usage.md:211` and tested functionally in `test_propose_eval_scores_the_generated_queue`, but no doc-test guards its presence in usage.md — it can be silently dropped from the doc without any test failing. Evidence: `tests/test_docs.py:320`; `docs/usage.md:211`. Acceptance: the new test fails when `--eval` is removed from the `propose` triage paragraph in `docs/usage.md`, and the full suite still passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
