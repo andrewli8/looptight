@@ -4269,6 +4269,17 @@ def test_git_common_dir_returns_none_on_oserror(tmp_path):
         assert pc._git_common_dir(tmp_path) is None
 
 
+def test_git_common_dir_returns_none_on_nonzero_returncode(tmp_path):
+    from subprocess import CompletedProcess
+    from unittest.mock import patch
+
+    import looptight.protocol_commands as pc
+
+    fake = CompletedProcess(args=[], returncode=128, stdout="", stderr="")
+    with patch.object(pc.subprocess, "run", return_value=fake):
+        assert pc._git_common_dir(tmp_path) is None
+
+
 def test_coordinator_activation_returns_unknown_when_git_common_dir_fails(tmp_path, monkeypatch):
     # protocol_commands.py:797-798 — when the workspace is not "not_git" but
     # _git_common_dir returns None (e.g. git subprocess error), the result must
