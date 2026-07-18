@@ -3773,16 +3773,14 @@ existing CLI session and makes no model or API calls of its own.
   `tests/test_idea_eval.py` calls `grounding.evidence_refs(None)` and asserts `[]` is
   returned — a mutation removing the guard raises `AttributeError` and fails the test.
 
-## Next
+- `detect_verify` now detects `bun.lock` (Bun 1.2+ text/JSONC lockfile) alongside
+  `bun.lockb` (binary, Bun <1.2): `detect.py:63` was extended to check either file,
+  matching the Bun 1.2 default. Two new tests cover the gap:
+  `test_detect_verify_bun_lock_text_format_returns_bun_test` (text lock only → `"bun test"`)
+  and `test_detect_verify_bun_lock_text_wins_over_pnpm_and_yarn` (priority over pnpm/yarn
+  when only the text lock is present); all existing `bun.lockb` tests unchanged.
 
-1. Detect `bun.lock` (Bun 1.2+ text lockfile) alongside `bun.lockb` in `detect_verify`.
-   `detect.py:63` only checks `bun.lockb` (binary); Bun 1.2 (January 2025) changed the
-   default lock file to a text-based `bun.lock`. A Bun 1.2+ project that has `bun.lock`
-   but no `bun.lockb` falls through to pnpm/yarn/npm/pytest detection.
-   Evidence: src/looptight/detect.py:63
-   Acceptance: new test `test_detect_verify_bun_lock_text_format_returns_bun_test` passes
-   (`tmp_path / "bun.lock"` only → `"bun test"`); `test_detect_verify_bun_lock_text_wins_over_pnpm_and_yarn`
-   passes; existing `bun.lockb` tests unchanged; `looptight verify` passes.
+## Next
 
 ## Rules
 

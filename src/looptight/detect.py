@@ -57,10 +57,11 @@ def detect_verify(root: Path | None = None) -> str | None:
     """Infer a verify command from the project layout. None if nothing fits."""
     base = (root or Path.cwd()).resolve()
 
-    # Bun has its own built-in test runner; its lock file is distinctive (binary,
-    # never created by npm/yarn/pnpm), so check it before package.json to avoid
-    # claiming `npm test` on a Bun project that may not have npm installed.
-    if (base / "bun.lockb").is_file():
+    # Bun has its own built-in test runner. bun.lockb (binary, Bun <1.2) and
+    # bun.lock (text/JSONC, Bun 1.2+) are both distinctive — never created by
+    # npm/yarn/pnpm — so check either before package.json to avoid claiming
+    # `npm test` on a Bun project that may not have npm installed.
+    if (base / "bun.lockb").is_file() or (base / "bun.lock").is_file():
         return "bun test"
 
     # pnpm and Yarn each have a distinctive lock file. Check them before package.json

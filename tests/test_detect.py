@@ -449,6 +449,24 @@ def test_detect_verify_bun_lockb_returns_bun_test(tmp_path):
     assert detect.detect_verify(tmp_path) == "bun test"
 
 
+def test_detect_verify_bun_lock_text_format_returns_bun_test(tmp_path):
+    # Bun 1.2+ creates bun.lock (text/JSONC) by default instead of bun.lockb
+    # (binary). A project with only bun.lock and no bun.lockb must still return
+    # "bun test", not fall through to pnpm/yarn/npm detection.
+    (tmp_path / "bun.lock").write_text('{\n  "lockfileVersion": 0\n}\n')
+    assert detect.detect_verify(tmp_path) == "bun test"
+
+
+def test_detect_verify_bun_lock_text_wins_over_pnpm_and_yarn(tmp_path):
+    # bun.lock (text format) must win over pnpm-lock.yaml and yarn.lock, just
+    # as bun.lockb does. A Bun 1.2+ project that also carries pnpm or Yarn lock
+    # files (e.g. during a migration) must not fall back to "pnpm test".
+    (tmp_path / "bun.lock").write_text('{\n  "lockfileVersion": 0\n}\n')
+    (tmp_path / "pnpm-lock.yaml").write_text("lockfileVersion: '6.0'\n")
+    (tmp_path / "yarn.lock").write_text("# yarn lockfile v1\n")
+    assert detect.detect_verify(tmp_path) == "bun test"
+
+
 def test_detect_verify_bun_wins_over_npm_test_script(tmp_path):
     # bun.lockb must be checked before package.json so a Bun project that also
     # carries a package.json with a real test script still returns "bun test",
