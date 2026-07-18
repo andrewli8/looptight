@@ -3759,6 +3759,27 @@ existing CLI session and makes no model or API calls of its own.
   space-prefixed string that silently never matched a real file.
   Locked by `test_load_config_strips_whitespace_from_task_paths` in `tests/test_config.py`.
 
+1. Extend `test_write_config_preserves_policy_fields` to cover `max_changed_files=0`.
+   Evidence: `src/looptight/config.py:224`
+   Acceptance: `write_config(Config(max_changed_files=0), tmp_path)` followed by
+   `load_config(path).max_changed_files == 0` must pass. A refactor that changes the
+   `is not None` guard to a falsy check (`if config.max_changed_files:`) must fail the test.
+
+2. Add `test_next_task_skips_candidate_with_empty_title` and
+   `test_next_task_skips_candidate_with_empty_detail` to `tests/test_tasks.py`.
+   Evidence: `src/looptight/tasks.py:146`
+   Acceptance: `next_task` called with a `TaskCandidate(title="", detail="x", acceptance="y")`
+   returns `status=="no_work"`; likewise for `detail=""`. Removing either strip-check from
+   the `all()` at `tasks.py:146` must fail at least one of the new tests.
+
+3. Assert that `_verify_policy_error` returns a non-None error when `_changed_entries`
+   returns `None` and a file-count or protected-path policy is active.
+   Evidence: `src/looptight/protocol_commands.py:428`
+   Acceptance: Monkeypatch `_changed_entries` to return `None`, call
+   `_verify_policy_error("pytest -q", Config(max_changed_files=1), tmp_path)`, and assert
+   the result is not `None` (a policy-violation string). Currently the `or []` collapses
+   the git-failure case to an empty list and silently passes policy checks.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
