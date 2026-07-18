@@ -3768,13 +3768,12 @@ existing CLI session and makes no model or API calls of its own.
   `_changed_files` returns `"unavailable"` — a mutation removing the guard would fall
   through to the join and fail this test.
 
-## Next
+- `grounding.evidence_refs`'s `text or ""` guard (`grounding.py:57`) now has direct
+  regression coverage: `test_evidence_refs_returns_empty_list_for_none_input` in
+  `tests/test_idea_eval.py` calls `grounding.evidence_refs(None)` and asserts `[]` is
+  returned — a mutation removing the guard raises `AttributeError` and fails the test.
 
-1. Add `test_evidence_refs_returns_empty_list_for_none_input` to `tests/test_idea_eval.py`.
-   Evidence: `src/looptight/grounding.py:57`
-   Acceptance: Call `evidence_refs(None)` and assert the result is `[]`. The `text or ""`
-   guard at grounding.py:57 handles `None`, but removing it must raise `AttributeError`
-   and fail the test.
+## Next
 
 ## Rules
 

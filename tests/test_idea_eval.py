@@ -152,6 +152,14 @@ def test_evidence_refs_tolerates_multiple_spaces_after_colon():
     assert evidence_refs(cand) == ["src/a.py"]
 
 
+def test_evidence_refs_returns_empty_list_for_none_input():
+    # grounding.py:57 — the `text or ""` guard handles None without raising.
+    # Removing it would cause `AttributeError` on `None.findall(...)`.
+    from looptight.grounding import evidence_refs as grounding_evidence_refs
+
+    assert grounding_evidence_refs(None) == []
+
+
 def test_score_batch_rewards_a_grounded_diverse_bounded_batch(tmp_path):
     _repo_with_files(tmp_path)
     good = [
