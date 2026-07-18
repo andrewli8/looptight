@@ -3762,17 +3762,12 @@ existing CLI session and makes no model or API calls of its own.
   `unit`; removing `"vitest"` or `"jest"` from the unit-runner list at
   `protocol_commands.py:885` now fails the test immediately. No production code change.
 
-1. `"unittest"` and `"python -m unittest"` are in the unit-runner list at
-   `protocol_commands.py:885` but have no mutation-guard test: any test that removes
-   them from that list would pass today. Add
-   `test_status_json_classifies_unittest_as_unit` to `tests/test_cli.py` that asserts
-   both strings classify as `unit`; removing either from the list must then break the
-   test immediately.
-   Evidence: src/looptight/protocol_commands.py:885
-   Acceptance: `pytest tests/test_cli.py::test_status_json_classifies_unittest_as_unit`
-   passes; deleting `"unittest"` from the list at that line fails the test.
+- `"unittest"` and `"python -m unittest"` (`protocol_commands.py:885`) are now
+  mutation-guarded: `test_status_json_classifies_unittest_as_unit` in
+  `tests/test_cli.py` asserts both strings classify as `unit`; removing either from
+  the unit-runner list now fails the test immediately. No production code change.
 
-2. `"flake8"`, `"eslint"`, and `"prettier"` appear in the lint-only branch of
+1. `"flake8"`, `"eslint"`, and `"prettier"` appear in the lint-only branch of
    `_verifier_quality` (`protocol_commands.py:905`) but have no mutation-guard test:
    removing any one would silently degrade its classification without a test failure.
    Add `test_status_json_classifies_lintonly_runners` to `tests/test_cli.py` that
