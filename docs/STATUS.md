@@ -3749,38 +3749,28 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-- `test_usage_doc_lists_autodetected_ecosystems` (`tests/test_docs.py:413`) now guards
-  `"zig build test"` alongside the existing six runners: `detect.py:51` auto-selects
-  `zig build test` for `build.zig` projects and `docs/usage.md` lists it, but the tuple
-  lacked the entry so removing it from usage.md broke no test. The seventh runner is now
-  in the tuple with a comment matching the sibling style.
-  Locked by `test_usage_doc_lists_autodetected_ecosystems` in `tests/test_docs.py`.
+1. Add `test_propose_uses_config_parent_as_discovery_root` to pin that `propose()` scans
+   from the config-file's parent directory when called with a sub-directory `root`.
+   Evidence: `src/looptight/propose.py:41`
+   Acceptance: A new test in `tests/test_propose.py` places a TODO comment in the repo
+   root, places `.looptight.toml` in that root, calls `propose(root=<root_subdir>)`, and
+   asserts the TODO is found. Removing line 41 (so `discovery_root = root` instead of
+   `config_path.parent`) must fail the test.
 
-- `vitest` and `jest` (`protocol_commands.py:885`) are now mutation-guarded:
-  `test_status_json_classifies_vitest_and_jest_as_unit` in `tests/test_cli.py`
-  asserts `"vitest"`, `"vitest run"`, `"jest"`, and `"npx jest"` all classify as
-  `unit`; removing `"vitest"` or `"jest"` from the unit-runner list at
-  `protocol_commands.py:885` now fails the test immediately. No production code change.
+2. Pin `_string_list` whitespace behaviour: items with surrounding whitespace are accepted
+   and returned unstripped, silently causing task-file look-ups to fail at runtime.
+   Evidence: `src/looptight/config.py:191`
+   Acceptance: A new test in `tests/test_config.py` writes a TOML with
+   `tasks = [" docs/STATUS.md "]` (leading/trailing space) and asserts that `load_config`
+   raises `ConfigError`, OR asserts the returned path is stripped; whichever matches the
+   intended contract. The test must fail before the fix and pass after.
 
-- `"unittest"` and `"python -m unittest"` (`protocol_commands.py:885`) are now
-  mutation-guarded: `test_status_json_classifies_unittest_as_unit` in
-  `tests/test_cli.py` asserts both strings classify as `unit`; removing either from
-  the unit-runner list now fails the test immediately. No production code change.
-
-- `"flake8"`, `"eslint"`, and `"prettier"` (`protocol_commands.py:905`) are now
-  mutation-guarded: `test_status_json_classifies_lintonly_runners` in
-  `tests/test_cli.py` asserts all three classify as `lint-only`; removing `"flake8"`
-  from the lint-only list now fails the test immediately. No production code change.
-
-- `"go test ./..."` and `"deno test"` (`detect.py:46-48`) are now guarded:
-  `test_usage_doc_lists_autodetected_ecosystems` in `tests/test_docs.py` extended
-  its runner tuple with both entries; removing either from `docs/usage.md` now fails
-  the test immediately. No production code change.
-
-- `goal check` no-goal and no-done-check branches (`protocol_commands.py:1064-1074`)
-  are now tested: `test_goal_check_no_goal_and_no_done_check` in `tests/test_cli.py`
-  asserts exit 1, the correct JSON `status` field, and the human-readable message for
-  each case. A regression that silently exits 0 now fails the test.
+3. Extend `test_write_config_preserves_policy_fields` to cover `max_changed_files`.
+   Evidence: `tests/test_config.py:369`
+   Acceptance: The test's `Config(...)` call includes `max_changed_files=3`; the
+   round-tripped value equals the original, confirming `render_config` emits the field
+   and `load_config` parses it. Mutating `render_config` to omit `max_changed_files`
+   must fail the test.
 
 ## Rules
 
