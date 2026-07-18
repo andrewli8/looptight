@@ -3754,15 +3754,12 @@ existing CLI session and makes no model or API calls of its own.
   Removing `config_path.parent` at `propose.py:41` (reverting to `root`) fails the test.
   Locked by `test_propose_uses_config_parent_as_discovery_root` in `tests/test_propose.py`.
 
-1. Pin `_string_list` whitespace behaviour: items with surrounding whitespace are accepted
-   and returned unstripped, silently causing task-file look-ups to fail at runtime.
-   Evidence: `src/looptight/config.py:191`
-   Acceptance: A new test in `tests/test_config.py` writes a TOML with
-   `tasks = [" docs/STATUS.md "]` (leading/trailing space) and asserts that `load_config`
-   raises `ConfigError`, OR asserts the returned path is stripped; whichever matches the
-   intended contract. The test must fail before the fix and pass after.
+- `_string_list` now strips surrounding whitespace from task-file paths (`config.py:197`):
+  `tasks = [" docs/STATUS.md "]` now yields `("docs/STATUS.md",)` instead of the
+  space-prefixed string that silently never matched a real file.
+  Locked by `test_load_config_strips_whitespace_from_task_paths` in `tests/test_config.py`.
 
-3. Extend `test_write_config_preserves_policy_fields` to cover `max_changed_files`.
+1. Extend `test_write_config_preserves_policy_fields` to cover `max_changed_files`.
    Evidence: `tests/test_config.py:369`
    Acceptance: The test's `Config(...)` call includes `max_changed_files=3`; the
    round-tripped value equals the original, confirming `render_config` emits the field

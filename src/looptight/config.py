@@ -194,7 +194,7 @@ def _string_list(data: dict[str, object], field: str) -> tuple[str, ...]:
         not isinstance(item, str) or not item.strip() for item in value
     ):
         raise ValueError(f"{field} must be an array of nonempty strings")
-    return tuple(value)
+    return tuple(item.strip() for item in value)
 
 
 def render_config(config: Config) -> str:
