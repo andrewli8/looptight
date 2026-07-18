@@ -3787,7 +3787,7 @@ existing CLI session and makes no model or API calls of its own.
    + `package.json`, but no test covers `bun.lock` (text, Bun 1.2+) + `package.json`.
    A mutation deleting the `or (base / "bun.lock").is_file()` half of the guard at
    `detect.py:64` would go undetected by the existing suite.
-   Evidence: src/looptight/tests/test_detect.py:452
+   Evidence: tests/test_detect.py:452
    Acceptance: new test `test_detect_verify_bun_lock_text_wins_over_npm_test_script`
    passes: `tmp_path / "bun.lock"` + `package.json` with a real test script →
    `detect_verify` returns `"bun test"`; `looptight verify` passes.
