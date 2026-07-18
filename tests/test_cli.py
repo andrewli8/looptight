@@ -2306,6 +2306,13 @@ def test_changed_file_list_splits_renames_and_unquotes(tmp_path, monkeypatch):
     assert "plain.py" in files
 
 
+def test_changed_files_returns_unavailable_when_git_fails(tmp_path, monkeypatch):
+    from looptight import protocol_commands
+
+    monkeypatch.setattr(protocol_commands, "_changed_file_list", lambda _: None)
+    assert protocol_commands._changed_files(tmp_path) == "unavailable"
+
+
 def test_changed_entries_skips_short_git_status_lines(tmp_path, monkeypatch):
     # protocol_commands.py:392-393 — the `if len(line) <= 3: continue` guard skips lines
     # that are too short to contain a path (e.g. a bare "??" or " M " with no path). This

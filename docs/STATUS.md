@@ -3762,15 +3762,15 @@ existing CLI session and makes no model or API calls of its own.
   `returncode=128` and asserts `_git_common_dir` returns `None` — sibling of the existing
   OSError test; a mutation removing the `if result.returncode != 0` guard now fails the test.
 
+- `_changed_files`'s `if files is None` guard (`protocol_commands.py:373`) now has direct
+  regression coverage: `test_changed_files_returns_unavailable_when_git_fails` in
+  `tests/test_cli.py` monkeypatches `_changed_file_list` to return `None` and asserts
+  `_changed_files` returns `"unavailable"` — a mutation removing the guard would fall
+  through to the join and fail this test.
+
 ## Next
 
-1. Add `test_changed_files_returns_unavailable_when_git_fails` to `tests/test_cli.py`.
-   Evidence: `src/looptight/protocol_commands.py:373`
-   Acceptance: Monkeypatch `_changed_file_list` to return `None` and assert
-   `_changed_files(tmp_path)` returns `"unavailable"`. Removing the `if files is None`
-   branch must fail the test.
-
-2. Add `test_evidence_refs_returns_empty_list_for_none_input` to `tests/test_idea_eval.py`.
+1. Add `test_evidence_refs_returns_empty_list_for_none_input` to `tests/test_idea_eval.py`.
    Evidence: `src/looptight/grounding.py:57`
    Acceptance: Call `evidence_refs(None)` and assert the result is `[]`. The `text or ""`
    guard at grounding.py:57 handles `None`, but removing it must raise `AttributeError`
