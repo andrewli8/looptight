@@ -3772,16 +3772,12 @@ existing CLI session and makes no model or API calls of its own.
   `tests/test_cli.py` asserts all three classify as `lint-only`; removing `"flake8"`
   from the lint-only list now fails the test immediately. No production code change.
 
-1. `"go test ./..."` and `"deno test"` are in `_VERIFY_RULES` at `detect.py:46-48`
-   and listed in `docs/usage.md:19-20`, but `test_usage_doc_lists_autodetected_ecosystems`
-   at `tests/test_docs.py:413` does not include either in its runner tuple — removing
-   either string from `usage.md` would not break any test. Extend the tuple with both
-   entries (matching the comment style of existing entries).
-   Evidence: src/looptight/detect.py:46
-   Acceptance: `pytest tests/test_docs.py::test_usage_doc_lists_autodetected_ecosystems`
-   passes; removing `go test ./...` from `docs/usage.md` fails the test.
+- `"go test ./..."` and `"deno test"` (`detect.py:46-48`) are now guarded:
+  `test_usage_doc_lists_autodetected_ecosystems` in `tests/test_docs.py` extended
+  its runner tuple with both entries; removing either from `docs/usage.md` now fails
+  the test immediately. No production code change.
 
-2. `goal check` with no active goal (exit 1, `no_goal`) or a goal with no `--done`
+1. `goal check` with no active goal (exit 1, `no_goal`) or a goal with no `--done`
    check (exit 1, `no_done_check`) has no test: the code at `protocol_commands.py:1064-1074`
    was recently fixed to print informative messages in both cases, but the fix has no
    assertion. Add `test_goal_check_no_goal_and_no_done_check` to `tests/test_cli.py`

@@ -417,7 +417,9 @@ def test_usage_doc_lists_autodetected_ecosystems():
         "crystal spec",     # detect.py: shard.yml — added last; most likely to be dropped
         "swift test",       # detect.py: Package.swift
         "mix test",         # detect.py: mix.exs (Elixir)
-        "zig build test",   # detect.py: build.zig (added after the initial six)
+        "zig build test",   # detect.py: build.zig
+        "go test",          # detect.py: go.mod (go test ./...)
+        "deno test",        # detect.py: deno.json / deno.jsonc
     ):
         assert runner in text, f"usage.md does not list the auto-detected runner {runner!r}"
 
