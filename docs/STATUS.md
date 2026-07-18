@@ -3749,15 +3749,12 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. Add `test_propose_uses_config_parent_as_discovery_root` to pin that `propose()` scans
-   from the config-file's parent directory when called with a sub-directory `root`.
-   Evidence: `src/looptight/propose.py:41`
-   Acceptance: A new test in `tests/test_propose.py` places a TODO comment in the repo
-   root, places `.looptight.toml` in that root, calls `propose(root=<root_subdir>)`, and
-   asserts the TODO is found. Removing line 41 (so `discovery_root = root` instead of
-   `config_path.parent`) must fail the test.
+- `test_propose_uses_config_parent_as_discovery_root` added to `tests/test_propose.py`:
+  places a TODO in a repo root, calls `propose(root=<subdir>)`, asserts the TODO is found.
+  Removing `config_path.parent` at `propose.py:41` (reverting to `root`) fails the test.
+  Locked by `test_propose_uses_config_parent_as_discovery_root` in `tests/test_propose.py`.
 
-2. Pin `_string_list` whitespace behaviour: items with surrounding whitespace are accepted
+1. Pin `_string_list` whitespace behaviour: items with surrounding whitespace are accepted
    and returned unstripped, silently causing task-file look-ups to fail at runtime.
    Evidence: `src/looptight/config.py:191`
    Acceptance: A new test in `tests/test_config.py` writes a TOML with

@@ -1563,6 +1563,23 @@ def test_propose_limit_zero_returns_all_candidates(tmp_path):
     assert len(all_candidates) == 20
 
 
+def test_propose_uses_config_parent_as_discovery_root(tmp_path):
+    # propose.py:41 sets discovery_root = config_path.parent (not `root`) so that
+    # running from a subdirectory still scans the full repo.  This test pins that
+    # behaviour: a TODO in the repo root must be found even when propose() is called
+    # with a subdirectory as `root`.
+    _write(tmp_path, ".looptight.toml", "")
+    _write(tmp_path, "src/a.py", "# TODO: find me from subdir\n")
+    subdir = tmp_path / "subdir"
+    subdir.mkdir()
+    cands = propose(subdir)
+    titles = [c.title for c in cands]
+    assert "find me from subdir" in titles, (
+        "TODO in repo root not found when propose() called with a subdirectory; "
+        "check propose.py:41 (discovery_root = config_path.parent)"
+    )
+
+
 # --- cooldown suppression --------------------------------------------------
 
 
