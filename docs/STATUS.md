@@ -3749,14 +3749,12 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-1. `test_usage_doc_lists_autodetected_ecosystems` in `tests/test_docs.py` does not
-   include `"zig build test"` in its runner tuple even though `detect.py` auto-selects
-   it for `build.zig` projects and `docs/usage.md` lists it. Removing `"zig build test"`
-   from `docs/usage.md` breaks no existing test.
-   Evidence: `tests/test_docs.py:413`
-   Acceptance: `"zig build test"` is added to the tuple at `tests/test_docs.py:413`; a
-   mutation removing `"zig build test"` from `docs/usage.md` now fails the test;
-   `looptight verify --json` reports pass.
+- `test_usage_doc_lists_autodetected_ecosystems` (`tests/test_docs.py:413`) now guards
+  `"zig build test"` alongside the existing six runners: `detect.py:51` auto-selects
+  `zig build test` for `build.zig` projects and `docs/usage.md` lists it, but the tuple
+  lacked the entry so removing it from usage.md broke no test. The seventh runner is now
+  in the tuple with a comment matching the sibling style.
+  Locked by `test_usage_doc_lists_autodetected_ecosystems` in `tests/test_docs.py`.
 
 2. `vitest` and `jest` appear in the unit-runner list at `protocol_commands.py:885` but
    no test verifies their `_verifier_quality` classification. Removing either from the

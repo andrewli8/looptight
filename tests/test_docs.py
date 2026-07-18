@@ -411,12 +411,13 @@ def test_usage_doc_lists_autodetected_ecosystems():
     # ecosystem without confirmation that looptight will auto-configure their project.
     text = (_DOCS / "usage.md").read_text(encoding="utf-8")
     for runner in (
-        "cargo test",    # detect.py: Cargo.toml
-        "gradle test",   # detect.py: build.gradle / build.gradle.kts
-        "dotnet test",   # detect.py: *.sln / *.csproj / *.fsproj / *.vbproj
-        "crystal spec",  # detect.py: shard.yml — added last; most likely to be dropped
-        "swift test",    # detect.py: Package.swift
-        "mix test",      # detect.py: mix.exs (Elixir)
+        "cargo test",       # detect.py: Cargo.toml
+        "gradle test",      # detect.py: build.gradle / build.gradle.kts
+        "dotnet test",      # detect.py: *.sln / *.csproj / *.fsproj / *.vbproj
+        "crystal spec",     # detect.py: shard.yml — added last; most likely to be dropped
+        "swift test",       # detect.py: Package.swift
+        "mix test",         # detect.py: mix.exs (Elixir)
+        "zig build test",   # detect.py: build.zig (added after the initial six)
     ):
         assert runner in text, f"usage.md does not list the auto-detected runner {runner!r}"
 
