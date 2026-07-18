@@ -391,6 +391,14 @@ def test_write_config_preserves_policy_fields(tmp_path):
     assert loaded == config
 
 
+def test_write_config_preserves_max_changed_files_zero(tmp_path):
+    # 0 is falsy; render_config must use `is not None`, not a truthiness check.
+    config = Config(max_changed_files=0)
+    path = write_config(config, tmp_path)
+    loaded = load_config(path)
+    assert loaded.max_changed_files == 0
+
+
 def test_write_config_is_atomic(tmp_path, monkeypatch):
     # An interrupted write must leave no partial `.looptight.toml` (and no `.tmp`),
     # so a re-run of `init` -- which refuses to overwrite an existing file -- is not

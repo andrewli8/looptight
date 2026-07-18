@@ -3759,13 +3759,7 @@ existing CLI session and makes no model or API calls of its own.
   space-prefixed string that silently never matched a real file.
   Locked by `test_load_config_strips_whitespace_from_task_paths` in `tests/test_config.py`.
 
-1. Extend `test_write_config_preserves_policy_fields` to cover `max_changed_files=0`.
-   Evidence: `src/looptight/config.py:224`
-   Acceptance: `write_config(Config(max_changed_files=0), tmp_path)` followed by
-   `load_config(path).max_changed_files == 0` must pass. A refactor that changes the
-   `is not None` guard to a falsy check (`if config.max_changed_files:`) must fail the test.
-
-2. Add `test_next_task_skips_candidate_with_empty_title` and
+1. Add `test_next_task_skips_candidate_with_empty_title` and
    `test_next_task_skips_candidate_with_empty_detail` to `tests/test_tasks.py`.
    Evidence: `src/looptight/tasks.py:146`
    Acceptance: `next_task` called with a `TaskCandidate(title="", detail="x", acceptance="y")`
