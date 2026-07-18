@@ -1626,6 +1626,29 @@ def test_status_json_classifies_unittest_as_unit(
         )
 
 
+def test_status_json_classifies_lintonly_runners(
+    tmp_path, monkeypatch, capsys
+):
+    # flake8, eslint, and prettier are in the lint-only branch at
+    # protocol_commands.py:905 but have no dedicated test, so removing any one
+    # silently downgrades its classification to custom/unknown without any existing
+    # test failing. This is the mutation guard.
+    monkeypatch.chdir(tmp_path)
+    cases = {
+        "flake8": "lint-only",
+        "eslint .": "lint-only",
+        "prettier --check .": "lint-only",
+    }
+    for command, expected in cases.items():
+        (tmp_path / ".looptight.toml").write_text(f'verify = "{command}"\n')
+        assert main(["status", "--json"]) == 0
+        data = json.loads(capsys.readouterr().out)
+        assert data["verifier_quality"]["classification"] == expected, (
+            f"expected {expected!r} for {command!r}, "
+            f"got {data['verifier_quality']['classification']!r}"
+        )
+
+
 def test_status_json_classifies_ruby_php_haskell_runners_as_unit(
     tmp_path, monkeypatch, capsys
 ):

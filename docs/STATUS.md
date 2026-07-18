@@ -3767,15 +3767,10 @@ existing CLI session and makes no model or API calls of its own.
   `tests/test_cli.py` asserts both strings classify as `unit`; removing either from
   the unit-runner list now fails the test immediately. No production code change.
 
-1. `"flake8"`, `"eslint"`, and `"prettier"` appear in the lint-only branch of
-   `_verifier_quality` (`protocol_commands.py:905`) but have no mutation-guard test:
-   removing any one would silently degrade its classification without a test failure.
-   Add `test_status_json_classifies_lintonly_runners` to `tests/test_cli.py` that
-   asserts each classifies as `lint-only`; removing `"flake8"` from the list must fail
-   the test immediately.
-   Evidence: src/looptight/protocol_commands.py:905
-   Acceptance: `pytest tests/test_cli.py::test_status_json_classifies_lintonly_runners`
-   passes; removing `"flake8"` from the lint-only list at that line fails the test.
+- `"flake8"`, `"eslint"`, and `"prettier"` (`protocol_commands.py:905`) are now
+  mutation-guarded: `test_status_json_classifies_lintonly_runners` in
+  `tests/test_cli.py` asserts all three classify as `lint-only`; removing `"flake8"`
+  from the lint-only list now fails the test immediately. No production code change.
 
 ## Rules
 
