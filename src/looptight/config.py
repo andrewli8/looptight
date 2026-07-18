@@ -221,6 +221,7 @@ continue_through_backlog = {str(config.continue_through_backlog).lower()}
 protected_paths = [{", ".join(_toml_string(p) for p in config.protected_paths)}]
 no_direct_push = {str(config.no_direct_push).lower()}
 allowed_verify_commands = [{", ".join(_toml_string(c) for c in config.allowed_verify_commands)}]
+{f"max_changed_files = {config.max_changed_files}" if config.max_changed_files is not None else "# max_changed_files =  # uncomment and set a limit"}
 """
 
 

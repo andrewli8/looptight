@@ -384,6 +384,7 @@ def test_write_config_preserves_policy_fields(tmp_path):
         no_direct_push=True,
         protected_paths=("docs/",),
         allowed_verify_commands=("pytest -q",),
+        max_changed_files=3,
     )
     path = write_config(config, tmp_path)
     loaded = load_config(path)

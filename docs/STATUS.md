@@ -3759,13 +3759,6 @@ existing CLI session and makes no model or API calls of its own.
   space-prefixed string that silently never matched a real file.
   Locked by `test_load_config_strips_whitespace_from_task_paths` in `tests/test_config.py`.
 
-1. Extend `test_write_config_preserves_policy_fields` to cover `max_changed_files`.
-   Evidence: `tests/test_config.py:369`
-   Acceptance: The test's `Config(...)` call includes `max_changed_files=3`; the
-   round-tripped value equals the original, confirming `render_config` emits the field
-   and `load_config` parses it. Mutating `render_config` to omit `max_changed_files`
-   must fail the test.
-
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
