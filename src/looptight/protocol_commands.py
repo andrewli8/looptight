@@ -425,7 +425,13 @@ def _unquote_git_path(path: str) -> str:
 def _verify_policy_error(command: str, config, workdir: Path) -> str | None:
     if config.allowed_verify_commands and command not in config.allowed_verify_commands:
         return f"verify command not allowed by policy: {command}"
-    entries = _changed_entries(workdir) or []
+    entries = _changed_entries(workdir)
+    if entries is None and (
+        config.max_changed_files is not None or config.protected_paths
+    ):
+        return "cannot enforce file-based policy: git status failed"
+    if entries is None:
+        entries = []
     # Count changed files, not paths: a rename is one file (one entry), so renaming
     # a single file is not double-counted against max_changed_files.
     changed_count = len(entries)

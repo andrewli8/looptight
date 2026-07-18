@@ -4571,6 +4571,27 @@ def test_changed_entries_returns_none_on_nonzero_returncode(tmp_path, monkeypatc
     assert result is None
 
 
+def test_verify_policy_error_returns_error_when_changed_entries_returns_none(tmp_path, monkeypatch):
+    # protocol_commands.py:428 — `or []` collapses git-failure (None) to an empty list,
+    # so a max_changed_files or protected_paths policy silently passes when git fails.
+    # _verify_policy_error must fail closed (return a non-None error) when it cannot
+    # determine the changed-file set and a file-based policy is active.
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    import looptight.protocol_commands as pc
+
+    with patch.object(pc, "_changed_entries", return_value=None):
+        config = SimpleNamespace(
+            allowed_verify_commands=None,
+            max_changed_files=1,
+            protected_paths=[],
+        )
+        result = pc._verify_policy_error("pytest -q", config, tmp_path)
+
+    assert result is not None
+
+
 def test_count_non_int_value_returns_zero():
     # protocol_commands.py:945 — the `else 0` branch when a counts dict has a non-int
     # value (e.g. from future schema evolution) was never directly tested; a regression

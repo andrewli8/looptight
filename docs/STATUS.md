@@ -3750,6 +3750,11 @@ existing CLI session and makes no model or API calls of its own.
   blank detail: `test_next_task_skips_candidate_with_empty_title` and
   `test_next_task_skips_candidate_with_empty_detail` in `tests/test_tasks.py` each assert
   `next_task` returns `status=="no_work"` — sibling of the existing empty-acceptance test.
+- `_verify_policy_error` now fails closed when `_changed_entries` returns `None` and a
+  file-based policy (max_changed_files or protected_paths) is active: the `or []` that
+  collapsed git-failure to an empty pass is replaced by an explicit None check that returns
+  an error. Covered by `test_verify_policy_error_returns_error_when_changed_entries_returns_none`
+  in tests/test_cli.py.
 
 ## Next
 
@@ -3762,14 +3767,6 @@ existing CLI session and makes no model or API calls of its own.
   `tasks = [" docs/STATUS.md "]` now yields `("docs/STATUS.md",)` instead of the
   space-prefixed string that silently never matched a real file.
   Locked by `test_load_config_strips_whitespace_from_task_paths` in `tests/test_config.py`.
-
-3. Assert that `_verify_policy_error` returns a non-None error when `_changed_entries`
-   returns `None` and a file-count or protected-path policy is active.
-   Evidence: `src/looptight/protocol_commands.py:428`
-   Acceptance: Monkeypatch `_changed_entries` to return `None`, call
-   `_verify_policy_error("pytest -q", Config(max_changed_files=1), tmp_path)`, and assert
-   the result is not `None` (a policy-violation string). Currently the `or []` collapses
-   the git-failure case to an empty list and silently passes policy checks.
 
 ## Rules
 
