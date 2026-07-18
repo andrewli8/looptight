@@ -3782,6 +3782,16 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
+1. Add test for `bun.lock` (text format) winning over `package.json` test script. The
+   symmetric test `test_detect_verify_bun_wins_over_npm_test_script` covers `bun.lockb`
+   + `package.json`, but no test covers `bun.lock` (text, Bun 1.2+) + `package.json`.
+   A mutation deleting the `or (base / "bun.lock").is_file()` half of the guard at
+   `detect.py:64` would go undetected by the existing suite.
+   Evidence: src/looptight/tests/test_detect.py:452
+   Acceptance: new test `test_detect_verify_bun_lock_text_wins_over_npm_test_script`
+   passes: `tmp_path / "bun.lock"` + `package.json` with a real test script →
+   `detect_verify` returns `"bun test"`; `looptight verify` passes.
+
 ## Rules
 
 - Validation outranks activity: no evidence means `NO_WORK`, not a new audit.
