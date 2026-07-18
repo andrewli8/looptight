@@ -3780,17 +3780,13 @@ existing CLI session and makes no model or API calls of its own.
   and `test_detect_verify_bun_lock_text_wins_over_pnpm_and_yarn` (priority over pnpm/yarn
   when only the text lock is present); all existing `bun.lockb` tests unchanged.
 
-## Next
+- Mutation-coverage for the `bun.lock` (text format) detection guard: added
+  `test_detect_verify_bun_lock_text_wins_over_npm_test_script` (`tests/test_detect.py`),
+  the symmetric counterpart to `test_detect_verify_bun_wins_over_npm_test_script`. A
+  mutation that deletes the `or (base / "bun.lock").is_file()` half of the `detect.py:64`
+  OR guard leaves the existing `bun.lockb` tests green but fails this new one.
 
-1. Add test for `bun.lock` (text format) winning over `package.json` test script. The
-   symmetric test `test_detect_verify_bun_wins_over_npm_test_script` covers `bun.lockb`
-   + `package.json`, but no test covers `bun.lock` (text, Bun 1.2+) + `package.json`.
-   A mutation deleting the `or (base / "bun.lock").is_file()` half of the guard at
-   `detect.py:64` would go undetected by the existing suite.
-   Evidence: tests/test_detect.py:452
-   Acceptance: new test `test_detect_verify_bun_lock_text_wins_over_npm_test_script`
-   passes: `tmp_path / "bun.lock"` + `package.json` with a real test script →
-   `detect_verify` returns `"bun test"`; `looptight verify` passes.
+## Next
 
 ## Rules
 

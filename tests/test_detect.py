@@ -476,6 +476,16 @@ def test_detect_verify_bun_wins_over_npm_test_script(tmp_path):
     assert detect.detect_verify(tmp_path) == "bun test"
 
 
+def test_detect_verify_bun_lock_text_wins_over_npm_test_script(tmp_path):
+    # bun.lock (text format, Bun 1.2+) must also be checked before package.json.
+    # A mutation deleting the `or (base / "bun.lock").is_file()` half of the guard
+    # at detect.py:64 would leave this test failing while the bun.lockb test above
+    # would still pass — exposing the regression before it ships.
+    (tmp_path / "bun.lock").write_text('{\n  "lockfileVersion": 0\n}\n')
+    (tmp_path / "package.json").write_text('{"scripts": {"test": "bun test"}}')
+    assert detect.detect_verify(tmp_path) == "bun test"
+
+
 def test_detect_verify_pnpm_lock_returns_pnpm_test(tmp_path):
     # pnpm-lock.yaml indicates a pnpm project; detect_verify must return "pnpm test"
     # even without a package.json (pnpm may not have npm installed).
