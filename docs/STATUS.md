@@ -3758,15 +3758,23 @@ existing CLI session and makes no model or API calls of its own.
 
 ## Next
 
-- `test_propose_uses_config_parent_as_discovery_root` added to `tests/test_propose.py`:
-  places a TODO in a repo root, calls `propose(root=<subdir>)`, asserts the TODO is found.
-  Removing `config_path.parent` at `propose.py:41` (reverting to `root`) fails the test.
-  Locked by `test_propose_uses_config_parent_as_discovery_root` in `tests/test_propose.py`.
+1. Add `test_git_common_dir_returns_none_on_nonzero_returncode` to `tests/test_cli.py`.
+   Evidence: `src/looptight/protocol_commands.py:828`
+   Acceptance: Monkeypatch `subprocess.run` to return a `CompletedProcess` with `returncode=128`
+   and assert `_git_common_dir` returns `None`. Removing the `if result.returncode != 0` guard
+   must fail the test. Sibling of `test_git_common_dir_returns_none_on_oserror`.
 
-- `_string_list` now strips surrounding whitespace from task-file paths (`config.py:197`):
-  `tasks = [" docs/STATUS.md "]` now yields `("docs/STATUS.md",)` instead of the
-  space-prefixed string that silently never matched a real file.
-  Locked by `test_load_config_strips_whitespace_from_task_paths` in `tests/test_config.py`.
+2. Add `test_changed_files_returns_unavailable_when_git_fails` to `tests/test_cli.py`.
+   Evidence: `src/looptight/protocol_commands.py:373`
+   Acceptance: Monkeypatch `_changed_file_list` to return `None` and assert
+   `_changed_files(tmp_path)` returns `"unavailable"`. Removing the `if files is None`
+   branch must fail the test.
+
+3. Add `test_evidence_refs_returns_empty_list_for_none_input` to `tests/test_idea_eval.py`.
+   Evidence: `src/looptight/grounding.py:57`
+   Acceptance: Call `evidence_refs(None)` and assert the result is `[]`. The `text or ""`
+   guard at grounding.py:57 handles `None`, but removing it must raise `AttributeError`
+   and fail the test.
 
 ## Rules
 
